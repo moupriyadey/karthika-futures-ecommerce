@@ -1,0 +1,7 @@
+Flask
+Flask-Login
+Flask-Mail
+python-dotenv
+qrcode
+Pillow
+gunicorn
