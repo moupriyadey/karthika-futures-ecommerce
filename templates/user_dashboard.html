@@ -1,0 +1,96 @@
+{% extends '_base.html' %}
+
+{% block title %}User Dashboard - Karthika Futures{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-container {
+        padding: 3rem;
+        background-color: #ffffff;
+        border-radius: 0.75rem;
+        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+    }
+    .dashboard-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .dashboard-header h2 {
+        color: #333;
+        font-size: 2.5rem;
+    }
+    .dashboard-links {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        max-width: 400px;
+        margin: 0 auto;
+        padding: 1.5rem;
+        background-color: #f8f9fa;
+        border-radius: 0.5rem;
+        box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
+    }
+    .dashboard-links .btn {
+        padding: 1rem 1.5rem;
+        font-size: 1.2rem;
+        font-weight: bold;
+        border-radius: 0.5rem;
+        transition: all 0.3s ease;
+    }
+    .dashboard-links .btn-primary {
+        background-color: #007bff;
+        border-color: #007bff;
+    }
+    .dashboard-links .btn-primary:hover {
+        background-color: #0056b3;
+        border-color: #004085;
+        transform: translateY(-2px);
+    }
+    .dashboard-links .btn-info {
+        background-color: #17a2b8;
+        border-color: #17a2b8;
+    }
+    .dashboard-links .btn-info:hover {
+        background-color: #117a8b;
+        border-color: #0c5460;
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container dashboard-container">
+    <div class="dashboard-header">
+        <h2>Welcome, {{ current_user.name | default('User') }}!</h2>
+        <p class="text-muted">Your personal dashboard.</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="mb-4">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="dashboard-links">
+        <a href="{{ url_for('profile') }}" class="btn btn-primary">
+            My Profile
+        </a>
+        <a href="{{ url_for('my_orders') }}" class="btn btn-info">
+            My Orders
+        </a>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+            Continue Shopping
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}{% endblock %}

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Karthika Futures{% endblock %}</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" xintegrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <!-- Google Fonts: Inter (if preferred, or keep your Segoe UI) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+    <!-- Your custom global CSS (e.g., style.css if you have one) -->
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"> -->
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif; /* Changed from Segoe UI for consistency with Inter from my side */
+            background-color: #f0f2f5; 
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .navbar {
+            background-color: #fff;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+        .navbar-brand {
+            font-weight: 700;
+            color: #333 !important;
+        }
+        .nav-link {
+            font-weight: 500;
+            color: #555 !important;
+        }
+        .nav-link:hover {
+            color: #007bff !important;
+        }
+        .footer {
+            background-color: #343a40;
+            color: #f8f9fa;
+            padding: 2rem 0;
+            margin-top: auto;
+        }
+        .flash-messages {
+            margin-top: 1rem;
+        }
+        /* Styles for custom JS alerts */
+        .js-alert-container {
+            position: fixed;
+            top: 70px; /* Adjust based on navbar height */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 500px; /* Limit width */
+            z-index: 1060; /* Higher than navbar, lower than modal */
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .js-alert {
+            animation: fadeOut 0.5s ease-out forwards 2.5s; /* Fade out after 2.5s delay */
+            opacity: 1;
+            transition: opacity 0.5s ease-out;
+            pointer-events: none; /* Allows clicks to pass through */
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        .alert-success { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
+        .alert-info { background-color: #d1ecf1; color: #0c5460; border-color: #bee5eb; }
+        .alert-warning { background-color: #fff3cd; color: #856404; border-color: #ffeeba; }
+        .alert-danger { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+
+        /* Styles for the Image Modal (moved from index.html) */
+        #imageModal { 
+            display: none; 
+            position: fixed; 
+            inset: 0; 
+            background-color: rgba(0,0,0,0.95); 
+            z-index: 9999; 
+            justify-content: center; 
+            align-items: center; 
+            overflow: hidden; 
+        } 
+        #imageModal .modal-content-wrapper { /* Added a wrapper for content within the modal to centralize */
+            position: relative; 
+            width: 100%; 
+            height: 100%; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+        }
+        #modalImage { 
+            max-width: 95vw; 
+            max-height: 90vh; 
+            object-fit: contain; 
+            border-radius: 10px; 
+            box-shadow: 0 0 20px rgba(255,255,255,0.2); 
+            z-index: 10000; /* Ensure image is below close button and above watermarks */
+        } 
+        #closeModalBtn { 
+            position: absolute; 
+            top: 20px; 
+            right: 30px; 
+            font-size: 2.5rem; 
+            color: white; 
+            background: none; 
+            border: none; 
+            cursor: pointer; 
+            z-index: 10001; 
+        }
+        /* Watermark styling for enlarged images */
+        .watermark {
+            position:absolute; 
+            color:white; /* White or light color for contrast on dark modal background */
+            opacity:0.1; /* Make it subtle */
+            font-size:3rem; /* Good size for visibility */
+            font-weight:bold;
+            white-space: nowrap; /* Prevent wrapping */
+            user-select: none; /* Prevent selection/copying */
+            pointer-events: none; /* Allow clicks to pass through */
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* Subtle shadow for definition */
+            z-index: 9999; /* Ensure it's above the image but below the close button */
+        }
+        /* Specific watermark positions for a grid-like pattern */
+        .watermark:nth-child(1) { top:10%; left:10%; transform: rotate(-10deg); }
+        .watermark:nth-child(2) { top:10%; right:10%; transform: rotate(10deg); }
+        .watermark:nth-child(3) { bottom:10%; left:10%; transform: rotate(10deg); }
+        .watermark:nth-child(4) { bottom:10%; right:10%; transform: rotate(-10deg); }
+        .watermark:nth-child(5) { top:50%; left:50%; transform:translate(-50%, -50%) rotate(0deg); font-size:6rem; opacity:0.05; } /* Larger central one */
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top shadow">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('index') }}">🖼️ Karthika Futures</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('all_products') }}">Explore Artworks</a>
+                    </li>
+                    {# Admin Panel link, conditional on login status #}
+                    {% if current_user.is_authenticated and current_user.is_admin %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_panel') }}">Admin Panel</a>
+                    </li>
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav">
+                    {# User login/profile links, conditional on login status #}
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle"></i> Hi, {{ current_user.name | default(current_user.email) }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('user_dashboard') }}">Dashboard</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('profile') }}">Profile</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('my_orders') }}">My Orders</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_logout') if current_user.is_admin else url_for('logout') }}">Logout</a></li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('user_login') }}" id="loginNavLink">Login</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('signup') }}">Sign Up</a>
+                    </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('cart') }}">
+                            <i class="fas fa-shopping-cart"></i> Cart 
+                            <span id="cart-count" class="badge bg-danger ms-1">0</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container flash-messages mt-5 pt-5">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    {# --- Custom JS Alert Container --- #}
+    <div id="js-alert-container" class="js-alert-container"></div>
+    {# --- End Custom JS Alert Container --- #}
+
+    <main class="flex-grow-1">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer py-3">
+        <div class="container text-center">
+            <h5>🙏 Support Our Mission</h5> 
+            <p>Scan the QR code to make a donation</p> 
+            <img src="{{ url_for('static', filename='uploads/qr_code.png') }}" alt="Donation QR Code" style="max-width:150px;"> 
+            <hr class="bg-light"> 
+            <p class="mb-1">🛕 <strong>Karthika Futures</strong> - Divine Art Marketplace</p> 
+            <p class="text-muted small mb-0">© {{ current_year | default(2024) }} Karthika Futures. All rights reserved.</p> 
+        </div>
+    </footer>
+
+    <!-- Global Image Modal HTML (moved from index.html) -->
+    <div id="imageModal"> 
+        <div class="modal-content-wrapper"> 
+            <button id="closeModalBtn">×</button> 
+            <img id="modalImage" src="" alt="Zoomed Image"> 
+            {# Watermarks for enlarged images #}
+            <div class="watermark">Karthikafutures</div> 
+            <div class="watermark">Karthikafutures</div> 
+            <div class="watermark">Karthikafutures</div> 
+            <div class="watermark">Karthikafutures</div> 
+            <div class="watermark">Karthikafutures</div> 
+        </div> 
+    </div> 
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script>
+        // Get the static URL prefix from Flask to use in JavaScript for image paths
+        const STATIC_URL_PREFIX = "{{ url_for('static', filename='') }}";
+
+        // Global function to update the cart count in the navbar
+        function updateCartCountDisplay() {
+            const cart = JSON.parse(sessionStorage.getItem('cart') || '{}'); // Cart stored as object
+            const cartCountElement = document.getElementById('cart-count'); 
+            if (cartCountElement) {
+                // Sum quantities from all items in the cart object
+                const totalItems = Object.values(cart).reduce((sum, item) => sum + parseInt(item.quantity || 0), 0);
+                cartCountElement.textContent = totalItems;
+                if (totalItems > 0) {
+                    cartCountElement.classList.add('badge', 'bg-danger', 'ms-1'); 
+                } else {
+                    cartCountElement.classList.remove('badge', 'bg-danger', 'ms-1');
+                    cartCountElement.textContent = '0';
+                }
+            }
+        }
+
+        // Global function to sync client-side cart to server session (AJAX call)
+        async function syncCartToServer() {
+            console.log("DEBUG: Attempting to sync client-side cart to server...");
+            const clientCart = JSON.parse(sessionStorage.getItem('cart') || '{}');
+
+            try {
+                const response = await fetch('{{ url_for("update_cart_session") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ cart: clientCart }) 
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log("DEBUG: Cart sync successful:", data.message);
+                } else {
+                    const errorData = await response.json();
+                    console.error("ERROR: Cart sync failed:", errorData.message);
+                }
+            } catch (error) {
+                console.error("ERROR: Network error during cart sync:", error);
+            }
+        }
+
+        // --- New Global function to display custom JavaScript alerts ---
+        function showCustomAlert(message, type = 'info', duration = 3000) {
+            const alertContainer = document.getElementById('js-alert-container');
+            if (!alertContainer) {
+                console.error("JS Alert container not found. Cannot display custom alert.");
+                return;
+            }
+
+            // Remove any existing alerts in this container before adding a new one
+            // This ensures only one custom cart alert is visible at a time
+            while (alertContainer.firstChild) {
+                alertContainer.removeChild(alertContainer.firstChild);
+            }
+
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show js-alert`;
+            alertDiv.role = 'alert';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            
+            alertContainer.appendChild(alertDiv);
+
+            // Remove the alert after a duration
+            setTimeout(() => {
+                const bsAlert = bootstrap.Alert.getInstance(alertDiv) || new bootstrap.Alert(alertDiv);
+                bsAlert.close();
+                // Ensure it's removed from DOM after the animation
+                alertDiv.addEventListener('closed.bs.alert', () => {
+                    alertDiv.remove();
+                });
+            }, duration);
+        }
+        // --- End New Global function ---
+
+        // --- Global Image Modal Logic (moved from original index.html) ---
+        document.addEventListener('DOMContentLoaded', function() {
+            // Event listener for opening the modal from any image with class 'card-img-top'
+            document.querySelectorAll('.card-img-top').forEach(img => { 
+                img.style.cursor = 'zoom-in'; 
+                img.addEventListener('click', () => { 
+                    document.getElementById('modalImage').src = img.src; 
+                    document.getElementById('imageModal').style.display = 'flex'; 
+                }); 
+            }); 
+
+            // Close modal button
+            document.getElementById('closeModalBtn').addEventListener('click', () => { 
+                document.getElementById('imageModal').style.display = 'none'; 
+            }); 
+
+            // Close modal when clicking outside the image
+            document.getElementById('imageModal').addEventListener('click', (e) => { 
+                if (e.target.id === 'imageModal') { 
+                    document.getElementById('imageModal').style.display = 'none'; 
+                } 
+            }); 
+
+            // Close modal on Escape key press
+            document.addEventListener('keydown', (e) => { 
+                if (e.key === "Escape") { 
+                    document.getElementById('imageModal').style.display = 'none'; 
+                } 
+            }); 
+
+            // --- Floating Login Attention Grabber (moved from original index.html) ---
+            const loginNavLink = document.getElementById('loginNavLink');
+            {% if not current_user.is_authenticated %}
+            if (loginNavLink) {
+                const loginAttentionBadge = document.createElement('span');
+                loginAttentionBadge.id = 'loginAttentionBadge';
+                loginAttentionBadge.textContent = 'Login!';
+                loginAttentionBadge.className = 'badge bg-primary rounded-pill';
+
+                loginAttentionBadge.style.position = 'absolute';
+                loginAttentionBadge.style.top = 'calc(100% + 5px)';
+                loginAttentionBadge.style.left = '50%';
+                loginAttentionBadge.style.transform = 'translateX(-50%)';
+                loginAttentionBadge.style.fontSize = '0.8em';
+                loginAttentionBadge.style.padding = '0.3em 0.7em';
+                loginAttentionBadge.style.opacity = '0';
+                loginAttentionBadge.style.transition = 'opacity 0.5s ease-in-out, transform 0.5s ease-in-out';
+                loginAttentionBadge.style.pointerEvents = 'none';
+                loginAttentionBadge.style.whiteSpace = 'nowrap';
+                loginAttentionBadge.style.zIndex = '1050';
+
+                loginNavLink.parentElement.appendChild(loginAttentionBadge);
+
+                let attentionInterval;
+                let currentTimeout;
+
+                function showLoginAttention() {
+                    if (currentTimeout) clearTimeout(currentTimeout);
+                    loginAttentionBadge.style.opacity = '1';
+                    loginAttentionBadge.style.transform = 'translateX(-50%) scale(1.05)';
+                    currentTimeout = setTimeout(() => {
+                        loginAttentionBadge.style.opacity = '0';
+                        loginAttentionBadge.style.transform = 'translateX(-50%) scale(1)';
+                    }, 2500);
+                }
+
+                function startLoginAttentionScheduler() {
+                    if (attentionInterval) {
+                        clearInterval(attentionInterval);
+                    }
+                    attentionInterval = setInterval(() => {
+                        const delayBeforeShow = Math.random() * (15000 - 5000) + 5000;
+                        setTimeout(showLoginAttention, delayBeforeShow);
+                    }, 6000);
+                }
+
+                startLoginAttentionScheduler();
+
+                loginNavLink.addEventListener('mouseenter', () => {
+                    clearInterval(attentionInterval);
+                    if (currentTimeout) clearTimeout(currentTimeout);
+                    loginAttentionBadge.style.opacity = '0';
+                    loginAttentionBadge.style.transform = 'translateX(-50%) scale(1)';
+                });
+
+                loginNavLink.addEventListener('mouseleave', () => {
+                    if (document.visibilityState === 'visible') {
+                        startLoginAttentionScheduler();
+                    }
+                });
+
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'hidden') {
+                        clearInterval(attentionInterval);
+                        if (currentTimeout) clearTimeout(currentTimeout);
+                        loginAttentionBadge.style.opacity = '0';
+                        loginAttentionBadge.style.transform = 'translateX(-50%) scale(1)';
+                    } else {
+                        startLoginAttentionScheduler();
+                    }
+                });
+            }
+            {% endif %}
+
+            // Initial updates on page load for all pages extending _base.html
+            updateCartCountDisplay();
+            syncCartToServer(); 
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,175 @@
+{% extends '_base.html' %}
+
+{% block title %}Admin Panel - Karthika Futures{% endblock %}
+
+{% block extra_css %}
+<style>
+    .admin-container {
+        margin-top: 5rem; /* Space from fixed navbar */
+        margin-bottom: 2rem;
+        background-color: #ffffff;
+        border-radius: 0.75rem;
+        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
+        padding: 2rem;
+    }
+    h2 {
+        color: #333;
+        margin-bottom: 1.5rem;
+    }
+    .card-header {
+        background-color: #f8f9fa;
+        font-weight: bold;
+    }
+    .table thead th {
+        background-color: #e9ecef;
+        border-bottom: 2px solid #dee2e6;
+    }
+    .table tbody td {
+        vertical-align: middle;
+    }
+    .table-responsive {
+        margin-top: 1.5rem;
+    }
+    .table img.img-thumbnail {
+        max-width: 80px;
+        height: auto;
+        border-radius: 0.25rem;
+    }
+    .btn-action {
+        margin-right: 5px;
+    }
+    /* Specific styles for better form layout in Add/Edit Artwork section if they were here */
+    .form-section {
+        padding: 1.5rem;
+        background-color: #f8f9fa;
+        border-radius: 0.5rem;
+        margin-bottom: 2rem;
+    }
+    .status-dropdown {
+        width: 180px; /* Adjust width for status dropdown */
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container admin-container">
+    <h2 class="text-center mb-4">Admin Dashboard</h2>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            Manage Artworks
+        </div>
+        <div class="card-body">
+            <a href="{{ url_for('add_artwork') }}" class="btn btn-success mb-3">Add New Artwork</a>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>SKU</th>
+                            <th>Image</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for artwork in artworks %}
+                        <tr>
+                            <td>{{ artwork.sku }}</td>
+                            <td>
+                                {% if artwork.image %}
+                                <img src="{{ url_for('static', filename=artwork.image) }}" alt="{{ artwork.name }}" class="img-thumbnail">
+                                {% else %}
+                                <img src="https://placehold.co/80x80/cccccc/333333?text=No+Img" alt="No Image" class="img-thumbnail">
+                                {% endif %}
+                            </td>
+                            <td>{{ artwork.name }}</td>
+                            <td>{{ artwork.category }}</td>
+                            <td>₹{{ artwork.original_price | round(2) }}</td>
+                            <td>{{ artwork.stock }}</td>
+                            <td>
+                                <a href="{{ url_for('edit_artwork', sku=artwork.sku) }}" class="btn btn-sm btn-info btn-action">Edit</a>
+                                <a href="{{ url_for('delete_artwork', sku=artwork.sku) }}" class="btn btn-sm btn-danger btn-action" onclick="return confirm('Are you sure you want to delete this artwork?');">Delete</a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center">No artworks found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            Manage Orders
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Date</th>
+                            <th>Customer Email</th>
+                            <th>Total Amount</th>
+                            <th>Payment Status</th>
+                            <th>Transaction ID / UTR</th> {# NEW COLUMN HEADER #}
+                            <th>Courier</th>
+                            <th>Tracking Number</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td>{{ order.order_id }}</td>
+                            <td>{{ order.placed_on | default('N/A') }}</td>
+                            <td>{{ order.user_email | default('N/A') }}</td>
+                            <td>₹{{ order.total_amount | default(0.0) | round(2) }}</td>
+                            <td>
+                                <form action="{{ url_for('admin_orders') }}" method="POST" class="d-inline-flex align-items-center">
+                                    <input type="hidden" name="order_id" value="{{ order.order_id }}">
+                                    <select name="status" class="form-select form-select-sm status-dropdown me-2">
+                                        <option value="Pending Payment" {% if order.status == 'Pending Payment' %}selected{% endif %}>Pending Payment</option>
+                                        <option value="Payment Submitted - Awaiting Verification" {% if order.status == 'Payment Submitted - Awaiting Verification' %}selected{% endif %}>Payment Submitted - Awaiting Verification</option>
+                                        <option value="Payment Confirmed" {% if order.status == 'Payment Confirmed' %}selected{% endif %}>Payment Confirmed</option>
+                                        <option value="Processing" {% if order.status == 'Processing' %}selected{% endif %}>Processing</option>
+                                        <option value="Shipped" {% if order.status == 'Shipped' %}selected{% endif %}>Shipped</option>
+                                        <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                                        <option value="Cancelled" {% if order.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-sm btn-primary">Update Status</button>
+                                </form>
+                            </td>
+                            <td>{{ order.transaction_id | default('N/A') }}</td> {# NEW FIELD DISPLAY #}
+                            <td>
+                                <form action="{{ url_for('admin_orders') }}" method="POST" class="d-inline-flex align-items-center">
+                                    <input type="hidden" name="order_id" value="{{ order.order_id }}">
+                                    <input type="hidden" name="status" value="{{ order.status }}"> {# Keep current status #}
+                                    <input type="text" name="courier" class="form-control form-control-sm me-1" value="{{ order.courier | default('') }}" placeholder="Courier Name" style="width: 100px;">
+                                    <input type="text" name="tracking_number" class="form-control form-control-sm me-1" value="{{ order.tracking_number | default('') }}" placeholder="Tracking #" style="width: 120px;">
+                                    <button type="submit" class="btn btn-sm btn-secondary">Set Shipping</button>
+                                </form>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('delete_order', order_id=order.order_id) }}" class="btn btn-sm btn-danger btn-action" onclick="return confirm('Are you sure you want to delete this order?');">Delete</a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center">No orders found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

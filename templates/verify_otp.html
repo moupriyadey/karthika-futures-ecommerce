@@ -1,0 +1,64 @@
+{% extends '_base.html' %}
+
+{% block title %}Verify OTP - Karthika Futures{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* body styles for centering are handled by _base.html */
+    /* background-color for body is also in _base.html */
+    .otp-container {
+        background-color: #ffffff;
+        padding: 2.5rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 400px;
+        margin: 20px auto; /* Added margin for spacing, as it's no longer filling the flex body */
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center"> {# Added row/col for centering in the container #}
+    <div class="col-md-6">
+        <div class="otp-container">
+            <h2 class="text-center mb-4">🔐 Verify OTP</h2>
+            {# Flash messages are now handled in _base.html #}
+
+            {% if email %}
+                <p class="text-center text-muted mb-4">
+                    An OTP has been sent to <strong>{{ email }}</strong>. Please check your inbox (and spam folder).
+                </p>
+            {% else %}
+                <p class="text-center text-muted mb-4">Please enter the OTP sent to your email.</p>
+            {% endif %}
+
+            <form method="post">
+                <div class="mb-3">
+                    <label for="otpInput" class="form-label">Enter OTP</label>
+                    <input type="text" class="form-control" id="otpInput" name="otp" required pattern="\d{6}" title="Please enter a 6-digit OTP">
+                    <div class="form-text">6-digit code</div>
+                </div>
+                
+                {# --- CRITICAL: Hidden field to pass 'next_url' back to the Flask route --- #}
+                {% if next_url %}
+                <input type="hidden" name="next" value="{{ next_url }}">
+                {% endif %}
+
+                <div class="d-grid gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">Verify OTP</button>
+                </div>
+            </form>
+
+            <p class="text-center mt-3">
+                <small>Did not receive OTP? Check your spam folder or <a href="{{ url_for('user_login', next=next_url if next_url else '') }}" class="text-decoration-none">try logging in again</a>.</small>
+            </p>
+        </div>
+    </div>
+    
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{# No page-specific JS needed here beyond what Bootstrap provides #}
+{% endblock %}

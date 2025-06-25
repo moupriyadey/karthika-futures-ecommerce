@@ -1,0 +1,119 @@
+{% extends '_base.html' %}
+
+{% block title %}Complete Payment - Karthika Futures{% endblock %}
+
+{% block extra_css %}
+<style>
+    .payment-details-container {
+        padding: 3rem;
+        background-color: #ffffff;
+        border-radius: 0.75rem;
+        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+        max-width: 700px;
+        margin-left: auto;
+        margin-right: auto;
+        text-align: center;
+    }
+    .upi-info p {
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+    }
+    .upi-info strong {
+        color: #007bff;
+    }
+    .qr-code-placeholder {
+        width: 150px;
+        height: 150px;
+        background-color: #f0f0f0;
+        border: 1px solid #ddd;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 1.5rem auto;
+        font-size: 0.9rem;
+        color: #777;
+        border-radius: 0.5rem;
+    }
+    .payment-summary {
+        background-color: #e9f7ef; /* Light green background */
+        border: 1px solid #d4edda;
+        border-radius: 0.5rem;
+        padding: 1rem 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .payment-summary h4 {
+        color: #28a745; /* Green text */
+        margin-bottom: 0.5rem;
+    }
+    .payment-summary p {
+        font-size: 1.1rem;
+        margin-bottom: 0;
+    }
+    .file-upload-section {
+        border-top: 1px dashed #eee;
+        padding-top: 2rem;
+        margin-top: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container payment-details-container">
+    <h2 class="mb-4">Complete Your Payment</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="mb-4">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="payment-summary mb-4">
+        <h4>Order Total: ₹{{ amount | default(0.00) | round(2) }}</h4>
+        <p class="text-muted">Order ID: <strong>{{ order_id }}</strong></p>
+    </div>
+
+    <p class="lead">Please make a UPI payment to the details below:</p>
+
+    <div class="upi-info mb-4">
+        <p>UPI ID: <strong>{{ upi_id }}</strong></p>
+        <p>Beneficiary Name: <strong>{{ banking_name }}</strong></p>
+        <div class="qr-code-placeholder">
+            QR Code Placeholder (For {{ upi_id }})
+        </div>
+        <p class="text-muted small">
+            (You can scan this QR code or manually enter the UPI ID in your UPI app.)
+        </p>
+    </div>
+
+    <div class="file-upload-section">
+        <h3>Upload Payment Screenshot</h3>
+        <p class="text-muted">
+            After making the payment, please upload a screenshot of the successful transaction.
+            This will help us verify your payment quickly.
+        </p>
+        <form method="POST" action="{{ url_for('payment_confirm') }}" enctype="multipart/form-data">
+            <input type="hidden" name="order_id" value="{{ order_id }}">
+            <div class="mb-3">
+                <label for="payment_screenshot" class="form-label">Select Screenshot:</label>
+                <input class="form-control" type="file" id="payment_screenshot" name="payment_screenshot" accept="image/*" required>
+                <div class="form-text">Max file size: 16MB. Accepted formats: JPG, PNG.</div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg mt-3">Confirm Payment & Upload Screenshot</button>
+        </form>
+    </div>
+
+    <div class="mt-4">
+        <a href="{{ url_for('my_orders') }}" class="btn btn-secondary">Go to My Orders</a>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,343 @@
+{% extends '_base.html' %}
+
+{% block title %}Your Shopping Cart - Karthika Futures{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Add any specific styles for your cart page here */
+    .cart-container {
+        padding: 2rem;
+        background-color: #ffffff;
+        border-radius: 0.75rem;
+        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
+        margin-top: 2rem; /* Give some space below the navbar */
+        margin-bottom: 2rem;
+    }
+    .list-group-item {
+        border-bottom: 1px solid #eee;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
+    .list-group-item:last-child {
+        border-bottom: none;
+    }
+    .item-details small {
+        display: block;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+    .item-quantity-control {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    /* Removed specific input width as it's no longer an input */
+    .remove-item-btn {
+        margin-left: 10px;
+        font-size: 0.8em;
+    }
+    #grand-total-display {
+        font-size: 1.5rem;
+        font-weight: bold; /* Ensure total stands out */
+        color: #28a745; /* Green color for total */
+    }
+    .empty-cart-message {
+        text-align: center;
+        padding: 3rem 0;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container cart-container">
+    <h2 class="mb-4 text-center">🛒 Your Shopping Cart</h2>
+
+    {# Flash messages are handled in _base.html #}
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card p-4 shadow-sm mb-4">
+                <h4 class="mb-3">Items in your Cart</h4>
+                <ul class="list-group mb-3" id="cart-items-list">
+                    {# Jinja2 loop to render items from Flask context #}
+                    {% if cart_items %}
+                        {% for item in cart_items %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center lh-sm">
+                            <div class="flex-grow-1 item-details">
+                                <h6 class="my-0">{{ item.name }}</h6>
+                                <small class="text-muted">Size: {{ item.size | default('N/A') }}, Frame: {{ item.frame | default('N/A') }}, Glass: {{ item.glass | default('N/A') }}</small>
+                                <div class="mt-1">
+                                    <small class="text-muted">Unit Price: ₹{{ item.unit_price | default(0.00) | round(2) }}</small>
+                                </div>
+                                <div class="item-quantity-control mt-2">
+                                    {# Quantity is now displayed as text, not an editable input #}
+                                    <span>Quantity:</span>
+                                    <span class="fw-bold fs-5 ms-1" data-item-id="{{ item.id }}">{{ item.quantity }}</span>
+                                    <button type="button" class="btn btn-danger btn-sm remove-item-btn ms-2"
+                                        data-item-id="{{ item.id }}" data-item-size="{{ item.size | default('N/A') }}" 
+                                        data-item-frame="{{ item.frame | default('N/A') }}" data-item-glass="{{ item.glass | default('N/A') }}">Remove</button>
+                                </div>
+                            </div>
+                            <span class="text-muted">₹{{ item.calculated_display_price | default(0.00) | round(2) }}</span>
+                            {# Image rendering. Assuming item.image is a path relative to static/ #}
+                            {% if item.image %}
+                                <img src="{{ STATIC_URL_PREFIX }}{{ item.image }}" class="img-thumbnail ms-3" alt="{{ item.name }}" style="width: 80px; height: 80px; object-fit: cover;">
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    {% else %}
+                        {# This is the only place the empty cart message should appear for initial load #}
+                        <li class="list-group-item empty-cart-message" id="empty-cart-message">
+                            Your cart is empty. Start shopping on the <a href="{{ url_for('index') }}">homepage</a>!
+                        </li>
+                    {% endif %}
+                </ul>
+                <h4 class="d-flex justify-content-between align-items-center mt-3">
+                    <span>Total Estimated Amount</span>
+                    <strong id="grand-total-display">₹{{ grand_total | default(0.00) | round(2) }}</strong>
+                </h4>
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">Continue Shopping</a>
+                <button type="button" class="btn btn-danger" id="clear-cart-btn" {% if not cart_items %}style="display: none;"{% endif %}>Clear Cart</button>
+                <button type="button" class="btn btn-primary" id="checkout-button" {% if not cart_items %}style="display: none;"{% endif %}>Proceed to Checkout</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // STATIC_URL_PREFIX is now defined in _base.html and available globally.
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("DEBUG: cart.html DOMContentLoaded fired."); // Debugging line
+
+        const cartItemsList = document.getElementById('cart-items-list');
+        const grandTotalDisplay = document.getElementById('grand-total-display');
+        const emptyCartMessage = document.getElementById('empty-cart-message');
+        const clearCartBtn = document.getElementById('clear-cart-btn');
+        const proceedToCheckoutBtn = document.getElementById('checkout-button'); 
+
+        // Function to update the cart count in the navbar (this function is also global in _base.html)
+        // Re-defining it here for self-contained debugging, but typically it would be assumed global.
+        function updateCartCountDisplay() {
+            console.log("DEBUG: updateCartCountDisplay called."); // Debugging line
+            const cart = JSON.parse(sessionStorage.getItem('cart') || '{}');
+            const cartCountElement = document.getElementById('cart-count'); 
+            if (cartCountElement) {
+                const totalItems = Object.values(cart).reduce((sum, item) => sum + parseInt(item.quantity || 0), 0);
+                cartCountElement.textContent = totalItems;
+                if (totalItems > 0) {
+                    cartCountElement.classList.add('badge', 'bg-danger', 'ms-1'); 
+                } else {
+                    cartCountElement.classList.remove('badge', 'bg-danger', 'ms-1');
+                    cartCountElement.textContent = '0';
+                }
+                console.log("DEBUG: Cart count display updated to:", totalItems); // Debugging line
+            }
+        }
+
+        // Function to re-render the cart content after a change (e.g., remove)
+        // This will now fetch from sessionStorage and update the visible DOM elements.
+        function renderCartDynamic() {
+            console.log("DEBUG: renderCartDynamic called."); // Debugging line
+            let cartObject = JSON.parse(sessionStorage.getItem('cart') || '{}');
+            let cartArray = Object.values(cartObject); // Convert object to array for easier iteration
+            console.log("DEBUG: Cart data from sessionStorage for rendering:", cartObject); // Debugging line
+            console.log("DEBUG: Cart array for rendering:", cartArray); // Debugging line
+            
+            cartItemsList.innerHTML = ''; // Clear existing items
+
+            let grandTotal = 0;
+
+            if (cartArray.length === 0) {
+                emptyCartMessage.style.display = 'block'; 
+                console.log("DEBUG: Cart is empty, showing empty message."); // Debugging line
+            } else {
+                emptyCartMessage.style.display = 'none'; // Hide Jinja's empty message if JS finds items
+                console.log("DEBUG: Cart has items, hiding empty message."); // Debugging line
+                
+                cartArray.forEach(item => {
+                    const itemUnitPrice = Number(item.unit_price || 0);    
+                    const itemQuantity = Number(item.quantity || 1);       
+                    let itemTotal = itemUnitPrice * itemQuantity;
+                    grandTotal += itemTotal;    
+
+                    // Construct the image HTML conditionally in JavaScript
+                    let imageHtml = '';
+                    // Use the globally available STATIC_URL_PREFIX
+                    if (item.image) {
+                        const imageUrl = STATIC_URL_PREFIX + item.image; 
+                        imageHtml = `<img src="${imageUrl}" alt="${item.name}" class="img-thumbnail ms-3" style="width: 80px; height: 80px; object-fit: cover;">`;
+                    }
+
+                    const listItem = document.createElement('li');
+                    listItem.className = 'list-group-item d-flex justify-content-between align-items-center lh-sm';
+                    listItem.innerHTML = `
+                        <div class="flex-grow-1 item-details">
+                            <h6 class="my-0">${item.name}</h6>
+                            <small class="text-muted">Size: ${item.size || 'N/A'}, Frame: ${item.frame || 'N/A'}, Glass: ${item.glass || 'N/A'}</small>
+                            <div class="mt-1">
+                                <small class="text-muted">Unit Price: ₹${itemUnitPrice.toFixed(2)}</small>
+                            </div>
+                            <div class="item-quantity-control mt-2">
+                                <span>Quantity:</span>
+                                <span class="fw-bold fs-5 ms-1" data-item-id="${item.id}">${item.quantity}</span>
+                                <button type="button" class="btn btn-danger btn-sm remove-item-btn"
+                                    data-item-id="${item.id}" data-item-size="${item.size || 'N/A'}" 
+                                    data-item-frame="${item.frame || 'N/A'}" data-item-glass="${item.glass || 'N/A'}">Remove</button>
+                            </div>
+                        </div>
+                        <span class="text-muted">₹${itemTotal.toFixed(2)}</span>
+                        ${imageHtml}
+                    `;
+                    cartItemsList.appendChild(listItem);
+                    console.log(`DEBUG: Added item "${item.name}" to DOM with total ₹${itemTotal.toFixed(2)}`); // Debugging line
+                });
+            }
+            grandTotalDisplay.textContent = `₹${grandTotal.toFixed(2)}`;
+            console.log("DEBUG: Grand total updated to:", grandTotal.toFixed(2)); // Debugging line
+
+            // Control button visibility based on cartArray length
+            if (cartArray.length === 0) {
+                clearCartBtn.style.display = 'none';
+                proceedToCheckoutBtn.style.display = 'none';
+                console.log("DEBUG: Hiding Clear Cart and Checkout buttons."); // Debugging line
+            } else {
+                clearCartBtn.style.display = 'inline-block';
+                proceedToCheckoutBtn.style.display = 'inline-block';
+                console.log("DEBUG: Showing Clear Cart and Checkout buttons."); // Debugging line
+            }
+        }
+
+        // Event listener for "Remove" buttons using event delegation
+        cartItemsList.addEventListener('click', async function(event) {
+            console.log("DEBUG: Click event on cartItemsList detected."); // Debugging line
+            if (event.target.classList.contains('remove-item-btn')) {
+                console.log("DEBUG: Remove button clicked for item:", event.target.dataset.itemId); // Debugging line
+                const itemIdToRemove = event.target.dataset.itemId; // This is the full unique ID
+
+                let cart = JSON.parse(sessionStorage.getItem('cart') || '{}');
+                console.log("DEBUG: Cart before removal:", JSON.stringify(cart)); // Debugging line
+                
+                if (cart[itemIdToRemove]) {
+                    delete cart[itemIdToRemove]; // Remove the item directly using its unique key
+                    console.log("DEBUG: Item removed from sessionStorage. New cart:", JSON.stringify(cart)); // Debugging line
+                } else {
+                    console.warn(`Item with ID ${itemIdToRemove} not found in cart for removal.`);
+                }
+                
+                sessionStorage.setItem('cart', JSON.stringify(cart));
+                renderCartDynamic(); // Re-render the cart after removal
+                updateCartCountDisplay(); // Update cart icon in navbar
+                // Check if syncCartToServer is available before calling
+                if (typeof syncCartToServer === 'function') {
+                    await syncCartToServer(); // Sync the cleared cart to the server
+                } else {
+                    console.error("syncCartToServer function not found. Cart not synced to server.");
+                }
+            }
+        });
+
+        // Removed the quantity change listener as per your request (as quantity input is replaced by span)
+
+        // Event listener for "Clear Cart" button
+        clearCartBtn.addEventListener('click', async function() {
+            console.log("DEBUG: Clear Cart button clicked."); // Debugging line
+            if (confirm('Are you sure you want to clear your entire cart?')) {
+                sessionStorage.removeItem('cart');
+                console.log("DEBUG: sessionStorage cart cleared."); // Debugging line
+                renderCartDynamic(); // Re-render to show empty cart
+                updateCartCountDisplay(); // Update cart icon in navbar
+                // Check if syncCartToServer is available before calling
+                if (typeof syncCartToServer === 'function') {
+                    await syncCartToServer(); // Sync the cleared cart to the server
+                } else {
+                    console.error("syncCartToServer function not found. Cart not synced to server.");
+                }
+            }
+        });
+
+        // Event listener for "Proceed to Checkout" button
+        if (proceedToCheckoutBtn) {
+            proceedToCheckoutBtn.addEventListener('click', async function(event) {
+                event.preventDefault(); // Prevent default button click
+                console.log("DEBUG: Proceed to Checkout button clicked."); // Debugging line
+                const cart = JSON.parse(sessionStorage.getItem('cart') || '{}');
+                console.log("DEBUG: Cart content before checkout form submission:", JSON.stringify(cart)); // Debugging line
+
+                if (Object.keys(cart).length > 0) { // Check if the cart object has any keys
+                    console.log("DEBUG: Cart is not empty. Attempting to sync and redirect."); // Debugging line
+                    // Ensure server session is updated with the latest cart state before redirecting
+                    // Check if syncCartToServer is available before calling
+                    if (typeof syncCartToServer === 'function') {
+                        await syncCartToServer(); // Await sync to ensure server has latest cart
+                        console.log("DEBUG: syncCartToServer completed for checkout."); // Debugging line
+                    } else {
+                        console.error("syncCartToServer function not found. Proceeding without server sync.");
+                    }
+                    
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '{{ url_for("purchase_form") }}';    
+
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = 'cart_json';
+                    hiddenInput.value = JSON.stringify(Object.values(cart)); // Send array of values
+
+                    form.appendChild(hiddenInput);
+                    document.body.appendChild(form);    
+                    form.submit();
+                    console.log("DEBUG: Form submitted for checkout to {{ url_for('purchase_form') }}."); // Debugging line
+                } else {
+                    // Replaced alert with flash message for better UX in Canvas environment
+                    flashMessage('Your cart is empty! Please add items before proceeding to checkout.', 'warning');
+                    console.log("DEBUG: Checkout attempted with empty cart."); // Debugging line
+                }
+            });
+        }
+
+        // Helper function for flashing messages (since alert is discouraged)
+        // This function is also now globally available in _base.html
+        function flashMessage(message, category = 'info') {
+            const flashMessagesContainer = document.querySelector('.flash-messages');
+            if (flashMessagesContainer) {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${category} alert-dismissible fade show`;
+                alertDiv.role = 'alert';
+                alertDiv.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                flashMessagesContainer.prepend(alertDiv); // Add at the top
+                setTimeout(() => {
+                    const bootstrapAlert = bootstrap.Alert.getInstance(alertDiv);
+                    if (bootstrapAlert) {
+                        bootstrapAlert.dispose(); // Use Bootstrap's method to close
+                    } else {
+                        alertDiv.remove(); // Fallback if Bootstrap JS isn't loaded or initialized
+                    }
+                }, 5000); // Auto-dismiss after 5 seconds
+            } else {
+                console.warn("Flash messages container not found. Cannot display message:", message);
+                // Fallback to console if no flash messages container
+            }
+        }
+
+        // Initial render of the cart when the page loads
+        renderCartDynamic(); 
+        updateCartCountDisplay();
+        // Also sync the cart to server on initial page load if any items are already in session storage
+        // Ensure syncCartToServer is available before calling
+        if (typeof syncCartToServer === 'function') {
+            syncCartToServer();
+        } else {
+            console.error("syncCartToServer function not found for initial page load.");
+        }
+    });
+</script>
+{% endblock %}

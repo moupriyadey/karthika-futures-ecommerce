@@ -1,0 +1,34 @@
+<!-- templates/thank-you.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Thank You - Karthika Futures</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+  <div class="container py-5 text-center">
+    <h1 class="text-success">🎉 Thank You, {{ name }}!</h1>
+    <p>Your divine artwork order has been received. 🙏</p>
+    <a href="/" class="btn btn-primary mt-3">Back to Home</a>
+  </div>
+
+  <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if cart data exists in localStorage and remove it
+            if (localStorage.getItem('cart')) {
+                localStorage.removeItem('cart');
+                console.log('Cart cleared after successful order.');
+
+                // Optionally: Update the cart count badge in the navbar to 0 immediately
+                const cartCountBadge = document.getElementById('cart-count'); // Assuming your cart count badge has this ID
+                if (cartCountBadge) {
+                    cartCountBadge.textContent = '0';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+</body>
+</html>

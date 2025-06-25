@@ -1,0 +1,279 @@
+{% extends '_base.html' %}
+
+{% block title %}Checkout - Karthika Futures{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background-color: #f5f7fa; /* Slightly off-white background for the page */
+    }
+    .form-popup-container {
+        background-color: #ffffff; /* White background for the form itself */
+        padding: 3rem; /* Generous padding inside the container */
+        border-radius: 1rem; /* More rounded corners for a softer look */
+        box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.1); /* Stronger, more professional shadow */
+        width: 100%;
+        max-width: 800px; /* Wider max-width for a more spacious feel */
+        margin: 3rem auto; /* Center horizontally with auto, add more vertical margin */
+        border: 1px solid #e0e0e0; /* Subtle border for definition */
+    }
+    h2 {
+        color: #333;
+        font-weight: 700;
+        margin-bottom: 2rem;
+    }
+    .card {
+        margin-bottom: 2rem; /* More space between cards */
+        border: 1px solid #e9ecef; /* Light border for inner cards */
+        border-radius: 0.75rem; /* Rounded corners for inner cards */
+        box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.05); /* Subtle shadow for inner cards */
+    }
+    .card-header {
+        background-color: #f8f9fa; /* Lighter header for cards */
+        border-bottom: 1px solid #e9ecef;
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+        color: #495057;
+        border-top-left-radius: 0.75rem; /* Match card-border-radius */
+        border-top-right-radius: 0.75rem; /* Match card-border-radius */
+    }
+    .card-body {
+        padding: 1.5rem;
+    }
+    .list-group-item {
+        border-color: #f0f0f0; /* Lighter borders for list items */
+        padding: 1rem 0; /* Adjusted padding */
+    }
+    .list-group-item:first-child {
+        border-top: none; /* No top border for the first item */
+    }
+    .list-group-item:last-child {
+        border-bottom: none; /* No bottom border for the last item */
+    }
+    .list-group-item h6 {
+        font-weight: 500;
+        color: #333;
+    }
+    .text-muted {
+        color: #6c757d !important;
+    }
+    .grand-total-section {
+        border-top: 1px dashed #ced4da; /* Dashed line for total separation */
+        padding-top: 1.5rem;
+        margin-top: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .grand-total-section span {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #333;
+    }
+    #grand-total-display {
+        font-size: 2rem; /* Larger total font size */
+        color: #28a745; /* Prominent green for total */
+        font-weight: 700;
+    }
+    .form-label {
+        font-weight: 600; /* Bolder labels */
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+    .form-control {
+        border-radius: 0.5rem; /* Rounded inputs */
+        border: 1px solid #ced4da;
+        padding: 0.75rem 1rem;
+        transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    .form-control:focus {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25); /* Bootstrap-like focus glow */
+    }
+    .form-text {
+        font-size: 0.875em;
+        color: #888;
+    }
+    .btn-success {
+        background-color: #28a745;
+        border-color: #28a745;
+        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, transform 0.1s ease;
+    }
+    .btn-success:hover {
+        background-color: #218838;
+        border-color: #1e7e34;
+        transform: translateY(-2px); /* Subtle lift on hover */
+    }
+    .d-grid {
+        margin-top: 2.5rem; /* More space above the button */
+    }
+
+    /* Make the overall form container scrollable on smaller screens if needed */
+    @media (max-width: 767.98px) {
+        .form-popup-container {
+            margin: 1rem; /* Smaller margin on small screens */
+            padding: 1.5rem; /* Less padding on small screens */
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-popup-container">
+    <h2 class="text-center">📋 Order Summary</h2>
+    
+    <form method="POST" action="{{ url_for('purchase_form') }}">
+        <div class="card">
+            <div class="card-header">Your Items</div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush mb-3" id="cart-summary-list">
+                    {% if items_for_display %}
+                        {% for item in items_for_display %}
+                        <li class="list-group-item d-flex justify-content-between lh-sm">
+                            <div>
+                                <h6 class="my-0">{{ item.name }} (x{{ item.quantity }})</h6>
+                                <small class="text-muted">
+                                    Size: {{ item.size | default('N/A') }}, 
+                                    Frame: {{ item.frame | default('N/A') }}, 
+                                    Glass: {{ item.glass | default('N/A') }}
+                                </small>
+                            </div>
+                            <span class="text-muted">₹{{ (item.price | default(0.00)) | round(2) }}</span>
+                        </li>
+                        {% endfor %}
+                    {% else %}
+                        <li class="list-group-item text-muted text-center" id="empty-cart-message">No items in cart. Please add items.</li>
+                    {% endif %}
+                </ul>
+                <div class="grand-total-section">
+                    <span>Grand Total</span>
+                    <strong id="grand-total-display">₹{{ grand_total | default(0.00) | round(2) }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Shipping Details</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="fullName" class="form-label">Full Name</label>
+                    <input type="text" class="form-control" id="fullName" name="name" value="{{ prefill_name if prefill_name else '' }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="email" name="email" value="{{ prefill_email if prefill_email else '' }}" readonly required>
+                    <div class="form-text">Your email is pre-filled from your login.</div>
+                </div>
+                <div class="mb-3">
+                    <label for="phone" class="form-label">Phone</label>
+                    <input type="tel" class="form-control" id="phone" name="phone" value="{{ prefill_phone if prefill_phone else '' }}" required pattern="[0-9]{10}" title="Please enter a 10-digit phone number">
+                </div>
+                <div class="mb-3">
+                    <label for="address" class="form-label">Shipping Address</label>
+                    <textarea class="form-control" id="address" name="address" rows="3" required>{{ prefill_address if prefill_address else '' }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="pincode" class="form-label">Pincode</label>
+                    <input type="text" class="form-control" id="pincode" name="pincode" value="{{ prefill_pincode if prefill_pincode else '' }}" required pattern="[0-9]{6}" title="Please enter a 6-digit pincode">
+                </div>
+
+                {# This hidden input is crucial for passing cart data back to the server in the second POST #}
+                <input type="hidden" name="cart_json" id="hiddenCartJson" value="{{ cart_json }}">
+                
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-success btn-lg">Confirm & Place Order</button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const hiddenCartJsonInput = document.getElementById('hiddenCartJson');
+        const cartSummaryList = document.getElementById('cart-summary-list');
+        const grandTotalDisplay = document.getElementById('grand-total-display'); 
+        const emptyCartMessage = document.getElementById('empty-cart-message');
+
+        // cart variable should be populated from the hidden input if available,
+        // otherwise try sessionStorage. This ensures consistency when the page
+        // is re-rendered by Flask (after the first POST).
+        let cart = [];
+        if (hiddenCartJsonInput && hiddenCartJsonInput.value) {
+            try {
+                cart = JSON.parse(hiddenCartJsonInput.value);
+            } catch (e) {
+                console.error("Error parsing cart_json from hidden input:", e);
+                cart = [];
+            }
+        } else {
+            try {
+                // If this page is reached via direct GET (unlikely if /cart redirects empty),
+                // it would pull from sessionStorage.
+                let sessionCartObject = JSON.parse(sessionStorage.getItem('cart') || '{}');
+                cart = Object.values(sessionCartObject); // Convert object to array
+            } catch (e) {
+                console.error("Error parsing cart from session storage:", e);
+                cart = [];
+            }
+        }
+        
+        // Ensure hiddenCartJsonInput value is always synchronized with the current cart array
+        if (hiddenCartJsonInput) {
+            hiddenCartJsonInput.value = JSON.stringify(cart);
+            console.log("Purchase form loaded. hiddenCartJsonInput set to:", hiddenCartJsonInput.value);
+        } else {
+            console.error("Error: hiddenCartJsonInput element not found!");
+        }
+
+        // Populate cart summary (individual list items)
+        if (cart.length > 0) {
+            emptyCartMessage.style.display = 'none'; // Hide the "No items" message
+            // Note: The list items are primarily rendered by Jinja in the HTML.
+            // This JS block would be primarily for dynamic updates if the form allowed editing,
+            // or to ensure the message is hidden if Jinja rendering resulted in items.
+            // If you uncommented cartSummaryList.innerHTML = ''; and the loop below,
+            // it would overwrite the Jinja-rendered list, which is fine, but
+            // ensure consistency. For now, assuming Jinja populates it and JS just ensures visibility.
+            
+            // Example of how you *could* dynamically re-render if needed, but for purchase form,
+            // Jinja rendering from Flask context is usually sufficient on initial load.
+            /*
+            cartSummaryList.innerHTML = ''; // Clear existing items if any
+            let calculatedJsGrandTotal = 0; // If you need a client-side calculated total here
+            cart.forEach(item => {
+                const itemTotalPrice = parseFloat(item.unit_price || 0) * parseInt(item.quantity || 1);
+                calculatedJsGrandTotal += itemTotalPrice;
+
+                const listItem = document.createElement('li');
+                listItem.className = 'list-group-item d-flex justify-content-between lh-sm';
+                listItem.innerHTML = `
+                    <div>
+                        <h6 class="my-0">${item.name} (x${item.quantity})</h6>
+                        <small class="text-muted">
+                            Size: ${item.size || 'N/A'}, 
+                            Frame: ${item.frame || 'N/A'}, 
+                            Glass: ${item.glass || 'N/A'}
+                        </small>
+                    </div>
+                    <span class="text-muted">₹${itemTotalPrice.toFixed(2)}</span>
+                `;
+                cartSummaryList.appendChild(listItem);
+            });
+            // If you want JS to update the grand total display, uncomment this:
+            // grandTotalDisplay.textContent = `₹${calculatedJsGrandTotal.toFixed(2)}`;
+            */
+        } else {
+            emptyCartMessage.textContent = 'No items in cart. Please add items from the homepage or your cart.';
+            emptyCartMessage.style.display = 'block';
+            // Also ensure the grand total displays 0 if cart is empty
+            grandTotalDisplay.textContent = '₹0.00';
+        }
+    });
+</script>
+{% endblock %}

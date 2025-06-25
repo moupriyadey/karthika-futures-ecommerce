@@ -1,0 +1,225 @@
+{% extends '_base.html' %}
+
+{% block title %}Manage Orders - Admin Panel{% endblock %}
+
+{% block extra_css %}
+<style>
+    .admin-orders-container {
+        padding: 2rem;
+        background-color: #ffffff;
+        border-radius: 0.75rem;
+        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+    }
+    .table-responsive {
+        margin-top: 1.5rem;
+    }
+    .table th, .table td {
+        vertical-align: middle;
+    }
+    .order-details-popup {
+        display: none;
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        background-color: white;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        z-index: 1000;
+        max-width: 500px;
+        width: 90%;
+    }
+    .popup-overlay {
+        display: none;
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+        z-index: 999;
+    }
+    .close-btn {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        font-size: 1.5rem;
+        cursor: pointer;
+    }
+    /* Status styling */
+    .status-pending-payment { color: orange; font-weight: bold; }
+    .status-processing { color: blue; font-weight: bold; }
+    .status-shipped { color: #007bff; font-weight: bold; }
+    .status-delivered { color: green; font-weight: bold; }
+    .status-cancelled { color: red; font-weight: bold; }
+    .status-payment-submitted---awaiting-verification { color: purple; font-weight: bold; } /* New status */
+
+    /* Flagging for cancelled orders */
+    .table-danger-flagged {
+        background-color: #f8d7da; /* Light red background */
+    }
+    .table-danger-flagged td {
+        border-color: #f5c6cb; /* Slightly darker border */
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container admin-orders-container">
+    <h2 class="text-center mb-4">Manage Orders</h2>
+
+    <div class="row mb-4">
+        <div class="col-12 text-end">
+            <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">Back to Admin Dashboard</a>
+        </div>
+    </div>
+
+    <hr>
+
+    <h3 class="mt-5 mb-3">All Customer Orders</h3>
+    <div class="table-responsive">
+        <table class="table table-hover table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th>Order ID</th>
+                    <th>Customer Email</th>
+                    <th>Total Amount</th>
+                    <th>Status</th>
+                    <th>Items</th>
+                    <th>Placed On</th>
+                    <th>Transaction Details</th> {# New Column #}
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if orders %}
+                    {% for order in orders %}
+                    <tr class="{{ 'table-danger-flagged' if order.status == 'Cancelled' else '' }}"> {# Apply flag class #}
+                        <td>{{ order.order_id }}</td>
+                        <td>{{ order.user_email }}</td>
+                        <td>₹{{ order.total_amount | default(0.0) | round(2) }}</td>
+                        <td><span class="status-{{ order.status | lower | replace(' ', '-') }}">{{ order.status }}</span></td>
+                        <td>
+                            <ul class="list-unstyled mb-0">
+                                {% for item in order.items %}
+                                    <li>
+                                        {{ item.name }} (x{{ item.quantity }})
+                                        {% if item.size %}<small class="text-muted">Size: {{ item.size }}</small>{% endif %}
+                                        {% if item.frame %}<small class="text-muted">Frame: {{ item.frame }}</small>{% endif %}
+                                        {% if item.glass %}<small class="text-muted">Glass: {{ item.glass }}</small>{% endif %}
+                                        - ₹{{ item.price | default(0.0) | round(2) }}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                        <td>{{ order.placed_on }}</td>
+                        <td>
+                            {% if order.transaction_id %}
+                                <p><strong>Ref ID:</strong> {{ order.transaction_id }}</p>
+                            {% endif %}
+                            {% if order.payment_date_time %}
+                                <p><strong>Date/Time:</strong> {{ order.payment_date_time }}</p>
+                            {% endif %}
+                            {% if order.payment_screenshot %}
+                                <p><a href="{{ url_for('static', filename=order.payment_screenshot) }}" target="_blank">View Screenshot</a></p>
+                            {% endif %}
+                            {% if not order.transaction_id and not order.payment_screenshot %}
+                                <em>No details provided</em>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-warning update-status-btn"
+                                data-order-id="{{ order.order_id }}"
+                                data-current-status="{{ order.status }}"
+                                data-current-courier="{{ order.courier | default('') }}"
+                                data-current-tracking="{{ order.tracking_number | default('') }}">Update Status</button>
+                            <a href="{{ url_for('delete_order', order_id=order.order_id) }}" class="btn btn-sm btn-danger mt-1" onclick="return confirm('Are you sure you want to delete this order?');">Delete</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center">No orders placed yet.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    {# Order Status Update Popup (Modal) #}
+    <div id="orderStatusPopup" class="order-details-popup">
+        <span class="close-btn">&times;</span>
+        <h4 class="mb-3">Update Order Status</h4>
+        <form method="POST" id="orderStatusForm" action="{{ url_for('admin_orders') }}">
+            <input type="hidden" name="order_id" id="popupOrderId">
+            <div class="mb-3">
+                <label for="statusSelect" class="form-label">Status</label>
+                <select class="form-select" id="statusSelect" name="status" required>
+                    <option value="Pending Payment">Pending Payment</option>
+                    <option value="Payment Submitted - Awaiting Verification">Payment Submitted - Awaiting Verification</option>
+                    <option value="Processing">Processing</option>
+                    <option value="Shipped">Shipped</option>
+                    <option value="Delivered">Delivered</option>
+                    <option value="Cancelled">Cancelled</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="courierInput" class="form-label">Courier</label>
+                <input type="text" class="form-control" id="courierInput" name="courier" placeholder="e.g., Delhivery, BlueDart">
+            </div>
+            <div class="mb-3">
+                <label for="trackingNumberInput" class="form-label">Tracking Number</label>
+                <input type="text" class="form-control" id="trackingNumberInput" name="tracking_number" placeholder="Enter tracking number">
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Save Changes</button>
+        </form>
+    </div>
+    <div id="popupOverlay" class="popup-overlay"></div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const updateStatusButtons = document.querySelectorAll('.update-status-btn');
+        const orderStatusPopup = document.getElementById('orderStatusPopup');
+        const popupOverlay = document.getElementById('popupOverlay');
+        const closeBtn = orderStatusPopup.querySelector('.close-btn');
+        const popupOrderId = document.getElementById('popupOrderId');
+        const statusSelect = document.getElementById('statusSelect');
+        const courierInput = document.getElementById('courierInput');
+        const trackingNumberInput = document.getElementById('trackingNumberInput');
+
+        updateStatusButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const orderId = this.dataset.orderId;
+                const currentStatus = this.dataset.currentStatus;
+                const currentCourier = this.dataset.currentCourier;
+                const currentTracking = this.dataset.currentTracking;
+
+                popupOrderId.value = orderId;
+                statusSelect.value = currentStatus;
+                courierInput.value = currentCourier;
+                trackingNumberInput.value = currentTracking;
+
+                orderStatusPopup.style.display = 'block';
+                popupOverlay.style.display = 'block';
+            });
+        });
+
+        closeBtn.addEventListener('click', function() {
+            orderStatusPopup.style.display = 'none';
+            popupOverlay.style.display = 'none';
+        });
+
+        popupOverlay.addEventListener('click', function() {
+            orderStatusPopup.style.display = 'none';
+            popupOverlay.style.display = 'none';
+        });
+    });
+</script>
+{% endblock %}

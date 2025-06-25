@@ -1,0 +1,82 @@
+{% extends '_base.html' %}
+
+{% block title %}Your Account - Karthika Futures{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* The star style is now in style.css, but if you had any specific to ONLY this page, they'd go here */
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 class="mb-4 text-center">👤 Welcome, {{ user.name }}</h2>
+
+<div class="mb-4 p-4 border rounded shadow-sm bg-white">
+    <h5 class="mb-3">Your Details</h5>
+    <p><strong>Email:</strong> {{ user.email }}</p>
+    <p><strong>Phone:</strong> {{ user.phone }}</p>
+    <p><strong>Shipping Address:</strong><br>{{ user.shipping_address }}</p>
+    <p><strong>Billing Address:</strong><br>{{ user.billing_address }}</p>
+    <a href="{{ url_for('edit_account') }}" class="btn btn-outline-primary btn-sm">✏️ Edit Details</a>
+    <a href="{{ url_for('delete_account') }}" class="btn btn-outline-danger btn-sm ms-2" onclick="return confirm('Are you sure you want to delete your account? This action cannot be undone.')">🗑 Delete Account</a>
+</div>
+
+<div class="mb-5 p-4 border rounded shadow-sm bg-white">
+    <h5 class="mb-3">Your Orders</h5>
+    {% if orders %}
+        <div class="table-responsive"> {# Added responsive wrapper for table #}
+            <table class="table table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Artwork</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Status</th>
+                        <th>Rate/Review</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                        <tr>
+                            <td>{{ order.id }}</td>
+                            <td>{{ order.artwork_name }} ({{ order.sku }})</td>
+                            <td>{{ order.qty }}</td>
+                            <td>₹{{ order.total_price }}</td>
+                            <td>{{ order.status }}</td>
+                            <td>
+                                {% if order.status == 'Delivered' %}
+                                    <form method="POST" action="{{ url_for('submit_review') }}" class="d-flex flex-column"> {# Added flex for layout #}
+                                        <input type="hidden" name="order_id" value="{{ order.id }}">
+                                        <div class="mb-1">
+                                            <select name="rating" class="form-select form-select-sm mb-1" required>
+                                                <option value="">⭐ Select</option>
+                                                <option value="5">5 - Excellent</option>
+                                                <option value="4">4 - Good</option>
+                                                <option value="3">3 - Average</option>
+                                                <option value="2">2 - Poor</option>
+                                                <option value="1">1 - Very Poor</option>
+                                            </select>
+                                            <input type="text" name="review" class="form-control form-control-sm mb-1" placeholder="Write a short review" required>
+                                            <button type="submit" class="btn btn-sm btn-success">Submit</button>
+                                        </div>
+                                    </form>
+                                {% else %}
+                                    <span class="text-muted">Pending delivery</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>No orders found.</p>
+    {% endif %}
+</div>
+
+<div class="text-center mt-4"> {# Added mt-4 for spacing #}
+    <a href="{{ url_for('logout') }}" class="btn btn-secondary">🔓 Logout</a>
+    <a href="{{ url_for('index') }}" class="btn btn-link ms-2">🏠 Home</a> {# Added ms-2 for spacing #}
+</div>
+{% endblock %}

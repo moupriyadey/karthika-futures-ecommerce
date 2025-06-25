@@ -1,0 +1,62 @@
+/* Custom CSS for the "embossed popup" effect from purchase.form.html */
+body.bg-light .form-popup-container { /* Target specific body to avoid conflict with flexbox */
+    /* Use flexbox to center the content vertically and horizontally is already in _base.html body */
+    /* background-color: #e9ecef; is already in _base.html body */
+    /* overflow-y: auto; is already in _base.html body */
+}
+.form-popup-container {
+    background-color: #ffffff; /* White background for the form itself */
+    padding: 2.5rem; /* Generous padding inside the container */
+    border-radius: 0.75rem; /* More rounded corners for a softer look */
+    box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.15); /* Stronger, more professional shadow */
+    width: 100%;
+    max-width: 768px; /* Max width for larger screens (e.g., tablet/desktop) */
+    margin: 2rem auto; /* Add vertical margin for spacing */
+}
+/* Optional: Adjust spacing for inner cards */
+.card {
+    margin-bottom: 1.5rem;
+    border: none; /* Remove default card border for cleaner look */
+}
+.form-text {
+    font-size: 0.875em;
+}
+/* Make the overall form container scrollable on smaller screens if needed */
+@media (max-width: 767.98px) {
+    .form-popup-container {
+        margin: 1rem; /* Smaller margin on small screens */
+        padding: 1.5rem; /* Less padding on small screens */
+    }
+}
+
+/* Custom CSS for payment.html */
+.qr-box {
+    text-align: center;
+    background: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+}
+.note {
+    font-size: 0.9rem;
+    color: #888;
+}
+
+/* Custom CSS for verify-otp.html */
+body.bg-light .otp-container { /* Target specific body to avoid conflict with flexbox */
+    /* background-color: #f8f9fa; is already in _base.html body */
+}
+.otp-container {
+    background-color: #ffffff;
+    padding: 2.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+}
+
+/* Custom CSS for account.html */
+.star {
+    color: gold;
+    font-size: 1.2rem;
+}

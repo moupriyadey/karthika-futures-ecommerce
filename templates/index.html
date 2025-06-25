@@ -1,0 +1,249 @@
+{% extends '_base.html' %}
+
+{% block title %}Karthika Futures - Divine Art Marketplace{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        /* Placeholder for Veda Era/Manuscript background */
+        background-image: url('https://placehold.co/1920x1080/f5e8d8/6b4e28?text=Vedic+Manuscript+Background'); 
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed; /* Keeps background fixed when scrolling */
+        color: #333; /* Default text color over light background */
+    }
+
+    .main-content-area {
+        background-color: rgba(255, 255, 255, 0.9); /* Slightly transparent white background for content */
+        padding: 2rem;
+        border-radius: 0.75rem;
+        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15);
+        margin-top: 6rem; /* Space from fixed navbar */
+        margin-bottom: 2rem;
+        position: relative; /* For Sanskrit words positioning */
+        overflow: hidden; /* To contain Sanskrit words */
+    }
+
+    .sanskrit-words-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none; /* Allows clicks to pass through */
+        overflow: hidden;
+    }
+
+    .sanskrit-word {
+        position: absolute;
+        font-family: 'Times New Roman', serif; /* Classic font for Sanskrit */
+        font-size: 5rem; /* Larger for more impact */
+        color: rgba(100, 70, 0, 0.05); /* Very subtle, earthy brown/gold */
+        text-shadow: 
+            1px 1px 2px rgba(0,0,0,0.1),
+            -1px -1px 2px rgba(255,255,255,0.2); /* Shady embossed effect */
+        opacity: 0.8; /* Subtle visibility */
+        transform: rotate(-15deg); /* Slight rotation for manuscript feel */
+        white-space: nowrap; /* Prevent wrapping */
+        user-select: none; /* Prevent text selection */
+        animation: floatAndFade 20s infinite linear; /* Gentle animation */
+        z-index: 0; /* Ensure it's behind content */
+    }
+
+    .sanskrit-word:nth-child(1) { top: 5%; left: 10%; font-size: 4rem; animation-delay: 0s; }
+    .sanskrit-word:nth-child(2) { top: 20%; right: 5%; transform: rotate(10deg); animation-delay: 5s; }
+    .sanskrit-word:nth-child(3) { bottom: 15%; left: 20%; font-size: 4.5rem; animation-delay: 10s; }
+    .sanskrit-word:nth-child(4) { bottom: 5%; right: 20%; transform: rotate(-8deg); animation-delay: 15s; }
+    .sanskrit-word:nth-child(5) { top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(25deg); font-size: 6rem; opacity: 0.03; animation-delay: 20s; } /* Larger, fainter central one */
+
+    @keyframes floatAndFade {
+        0% { transform: translateY(0) scale(1); opacity: 0.05; }
+        50% { transform: translateY(-10px) scale(1.02); opacity: 0.08; }
+        100% { transform: translateY(0) scale(1); opacity: 0.05; }
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        position: relative; /* For z-index to be above Sanskrit words */
+        z-index: 1;
+    }
+
+    .page-header h1 {
+        font-size: 3.5rem;
+        font-weight: 700;
+        color: #6b4e28; /* Earthy tone */
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+    .page-header p.lead {
+        font-size: 1.25rem;
+        color: #4a4a4a;
+        margin-top: 1rem;
+    }
+
+    .banner-img {
+        width: 100%;
+        height: 200px; /* Standard YouTube banner height approx */
+        object-fit: cover;
+        border-radius: 0.5rem;
+        box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+        display: block; /* Ensure no extra space below */
+    }
+
+    .kurukshetra-img {
+        width: 100%;
+        height: 350px; /* Fixed height for consistency */
+        object-fit: cover; /* Ensures image covers area */
+        border-radius: 0.75rem;
+        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.2);
+        margin-bottom: 3rem; /* Space below image */
+        display: block;
+    }
+
+    .artwork-card {
+        border: none;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        height: 100%; /* Ensure cards in a row have same height */
+        display: flex;
+        flex-direction: column;
+    }
+    .artwork-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.2);
+    }
+    .artwork-card .card-img-top {
+        height: 200px; /* Consistent image height for all cards */
+        object-fit: cover;
+        border-radius: 0.75rem 0.75rem 0 0;
+        cursor: zoom-in; /* Indicate clickability for modal */
+    }
+    .artwork-card .card-body {
+        padding: 1.25rem;
+        flex-grow: 1; /* Allows body to expand and push footer down */
+        display: flex;
+        flex-direction: column;
+    }
+    .artwork-card .card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+    .artwork-card .card-subtitle {
+        font-size: 0.95rem;
+        color: #666;
+        margin-bottom: 0.75rem;
+    }
+    .artwork-card .card-text {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #007bff; /* Primary color for price */
+        margin-top: auto; /* Push price to bottom */
+    }
+    .artwork-card .btn-primary {
+        margin-top: 1rem;
+        width: 100%; /* Full width button */
+        border-radius: 0.5rem;
+        font-weight: 600;
+    }
+
+    .qr-code-section {
+        background-color: rgba(255, 255, 255, 0.95);
+        padding: 2.5rem;
+        border-radius: 0.75rem;
+        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15);
+        text-align: center;
+        margin-top: 3rem;
+    }
+    .qr-code-section h3 {
+        color: #6b4e28;
+        font-size: 2rem;
+        margin-bottom: 1.5rem;
+        font-weight: 700;
+    }
+    .qr-code-section img {
+        max-width: 180px;
+        height: auto;
+        border: 5px solid #007bff; /* Accent border */
+        border-radius: 0.5rem;
+        box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+        margin-bottom: 1.5rem;
+    }
+    .qr-code-section p {
+        font-size: 1.1rem;
+        color: #4a4a4a;
+        margin-bottom: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container main-content-area position-relative">
+    {# Sanskrit words overlay - make sure they are behind actual content #}
+    <div class="sanskrit-words-overlay">
+        <span class="sanskrit-word">ॐ कृष्णाय नमः</span>
+        <span class="sanskrit-word">धर्मक्षेत्रे कुरुक्षेत्रे</span>
+        <span class="sanskrit-word">यतो धर्मस्ततो जयः</span>
+        <span class="sanskrit-word">कर्मण्येवाधिकारस्ते</span>
+        <span class="sanskrit-word">ब्रह्मन्</span>
+    </div>
+
+    <div class="page-header position-relative"> {# Ensure header is above Sanskrit words #}
+        <h1 class="mb-3">Hare Rama.. Hare Krishna</h1>
+        <a href="https://www.youtube.com/@karthikafutures" target="_blank" class="lead d-inline-block text-decoration-none">
+            <i class="fab fa-youtube text-danger me-2"></i> Visit our YouTube channel: @karthikafutures
+        </a>
+    </div>
+
+    {# Small banner at the top #}
+    <div class="text-center mb-5">
+        <img src="https://placehold.co/1200x200/cccccc/333333?text=Your+YouTube+Banner+Here" alt="YouTube Channel Banner" class="banner-img">
+    </div>
+
+    {# Embedded image of Kurukshetra field #}
+    <div class="text-center mb-5">
+        <img src="https://placehold.co/1200x350/a0c4ff/2b2d42?text=Lord+Krishna+Vishwarup+in+Kurukshetra" alt="Lord Krishna Vishwarup in Kurukshetra" class="kurukshetra-img">
+        <small class="d-block text-muted mt-2">A depiction of Lord Krishna showing His Universal Form (Vishwarup) to Arjuna on the battlefield of Kurukshetra.</small>
+    </div>
+
+    <h3 class="text-center mb-4 text-primary">Our Latest Artworks</h3>
+    
+    {% if artworks %}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% for artwork in artworks %}
+        <div class="col">
+            <div class="card artwork-card">
+                {% if artwork.image %}
+                <img src="{{ url_for('static', filename=artwork.image) }}" class="card-img-top" alt="{{ artwork.name }}">
+                {% else %}
+                <img src="https://placehold.co/400x200/cccccc/333333?text=No+Image" class="card-img-top" alt="No Image">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ artwork.name }}</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">{{ artwork.category }}</h6>
+                    <p class="card-text">₹{{ artwork.original_price | round(2) }}</p>
+                    <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary mt-auto">View Details</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-center text-muted fs-4">No artworks available yet. Please check back later!</p>
+    {% endif %}
+
+    {# QR Code for donation #}
+    <div class="qr-code-section mt-5">
+        <h3>🙏 Support Hariseva and Dharmaseva 🙏</h3>
+        <p>Your generous contributions help us preserve and promote divine art and culture.</p>
+        <img src="{{ url_for('static', filename='uploads/qr_code.png') }}" alt="Donation QR Code for Hariseva Dharmaseva">
+        <p class="lead">Scan to donate and support our mission!</p>
+        <p class="text-muted small">All donations go towards Hariseva and Dharmaseva initiatives.</p>
+    </div>
+
+</div>
+{% endblock %}

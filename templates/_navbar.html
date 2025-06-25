@@ -1,0 +1,29 @@
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top">
+    <div class="container">
+        <a class="navbar-brand" href="/">🖼️ Karthika Futures</a>
+        <ul class="navbar-nav ms-auto">
+            <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+            
+            {# INSERT THE CART LINK HERE #}
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('cart') }}">
+                    🛒 Cart <span id="cart-count" class="badge rounded-pill"></span>
+                </a>
+            </li>
+
+            {# Dynamically show Login or Logout based on user authentication status #}
+            {% if current_user.is_authenticated %}
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+            </li>
+            {% else %}
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('user_login') }}">Login</a>
+            </li>
+            {% endif %}
+            
+            {# The Account link - ensure this route exists in your app.py #}
+            <li class="nav-item"><a class="nav-link" href="/account">Account</a></li>
+        </ul>
+    </div>
+</nav>

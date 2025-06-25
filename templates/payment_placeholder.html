@@ -1,0 +1,19 @@
+{% extends '_base.html' %}
+
+{% block title %}Proceed to Payment{% endblock %}
+
+{% block content %}
+<div class="form-popup-container text-center">
+    <h2 class="mb-4">💰 Proceed to Payment</h2>
+    <p class="lead">Your order **#{{ order_id }}** has been created successfully!</p>
+    <p class="lead">Your total amount is **₹{{ "%.2f" | format(amount) }}**.</p>
+    <p>Please complete your payment through our secure gateway.</p>
+    
+    <p class="mt-4 text-muted">
+        <em>(Note: This is a placeholder for payment gateway integration. In a real application, you would be redirected to a secure payment page here.)</em>
+    </p>
+
+    <a href="{{ url_for('thank_you') }}" class="btn btn-success btn-lg mt-3">Simulate Payment Success & Go to Thank You</a>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary mt-3">Continue Shopping</a>
+</div>
+{% endblock %}

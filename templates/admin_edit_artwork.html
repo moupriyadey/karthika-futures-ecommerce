@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Edit Artwork | Admin Panel</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Edit Artwork</h1>
+    </header>
+    <main>
+        <form method="POST" action="/admin-edit/{{ artwork.id }}">
+            <label for="title">Title:</label>
+            <input type="text" id="title" name="title" value="{{ artwork.title }}" required>
+
+            <label for="price">Price (₹):</label>
+            <input type="number" id="price" name="price" value="{{ artwork.price }}" required>
+
+            <label for="status">Stock Status:</label>
+            <select id="status" name="status">
+                <option value="In Stock" {% if artwork.status == 'In Stock' %}selected{% endif %}>In Stock</option>
+                <option value="Sold Out" {% if artwork.status == 'Sold Out' %}selected{% endif %}>Sold Out</option>
+            </select>
+
+            <button type="submit">Update Artwork</button>
+        </form>
+    </main>
+</body>
+</html>

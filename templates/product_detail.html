@@ -1,0 +1,329 @@
+{% extends '_base.html' %}
+
+{% block title %}{{ artwork.name }} - Karthika Futures{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* This CSS block ensures watermarks appear on the main product image. */
+    .product-detail-container {
+        padding: 2rem;
+        background-color: #ffffff;
+        border-radius: 0.75rem;
+        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
+        margin-top: 5rem; /* Space from fixed navbar */
+        margin-bottom: 2rem;
+    }
+    .product-image-container {
+        position: relative; /* Needed for absolute positioning of watermarks */
+        overflow: hidden; /* Ensures watermarks don't spill outside */
+        border-radius: 0.75rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        cursor: zoom-in; /* Indicates it's clickable for enlargement */
+        display: flex; /* For centering content vertically if needed */
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        max-width: 600px; /* Max width for the image container */
+        margin: 0 auto 2rem auto; /* Center and add margin below */
+        background-color: #f8f9fa; /* Light background for images that don't fill */
+    }
+    .product-main-image {
+        width: 100%;
+        height: auto; /* Maintain aspect ratio */
+        display: block;
+        border-radius: 0.75rem;
+        transition: transform 0.3s ease; /* Smooth zoom effect on hover */
+        z-index: 0; /* Ensure image is behind watermarks */
+    }
+    .product-image-container:hover .product-main-image {
+        transform: scale(1.02); /* Slight zoom on hover */
+    }
+    
+    /* Watermark styling specific to the product detail page's main image */
+    .product-image-container .watermark {
+        position: absolute;
+        color: rgba(255, 255, 255, 0.5); /* Lighter for visibility on image, but still subtle */
+        opacity: 0.3; /* Increased opacity for better visibility */
+        font-size: 2.5rem; /* Slightly smaller than modal watermarks */
+        font-weight: bold;
+        white-space: nowrap;
+        user-select: none;
+        pointer-events: none;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* Subtle shadow */
+        z-index: 1; /* Above image */
+    }
+
+    /* Positioning for watermarks on the main product image */
+    .product-image-container .watermark:nth-child(2) { top: 5%; left: 5%; transform: rotate(-15deg); }
+    .product-image-container .watermark:nth-child(3) { top: 5%; right: 5%; transform: rotate(15deg); }
+    .product-image-container .watermark:nth-child(4) { bottom: 5%; left: 5%; transform: rotate(15deg); }
+    .product-image-container .watermark:nth-child(5) { bottom: 5%; right: 5%; transform: rotate(-15deg); }
+    .product-image-container .watermark:nth-child(6) { top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(0deg); font-size: 5rem; opacity: 0.15; } /* Central, larger, also increased opacity */
+
+    .product-details h1 {
+        font-size: 2.5rem;
+        color: #333;
+        margin-bottom: 1rem;
+        font-weight: 700;
+    }
+    .product-details .price {
+        font-size: 1.8rem;
+        color: #007bff;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+    }
+    .product-details .description {
+        font-size: 1.1rem;
+        line-height: 1.6;
+        color: #555;
+        margin-bottom: 1.5rem;
+    }
+    .option-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #444;
+    }
+    .option-group select {
+        width: 100%;
+        max-width: 300px;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        border: 1px solid #ced4da;
+        margin-bottom: 1rem;
+    }
+    .quantity-selector {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    .quantity-selector button {
+        padding: 0.5rem 1rem;
+        border: 1px solid #007bff;
+        background-color: #007bff;
+        color: white;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        font-size: 1.2rem;
+    }
+    .quantity-selector button:hover {
+        background-color: #0056b3;
+    }
+    .quantity-selector input {
+        width: 60px;
+        text-align: center;
+        margin: 0 0.5rem;
+        padding: 0.5rem;
+        border: 1px solid #ced4da;
+        border-radius: 0.5rem;
+        font-size: 1.1rem;
+    }
+    .add-to-cart-btn {
+        width: 100%;
+        max-width: 300px;
+        padding: 0.75rem 1.5rem;
+        font-size: 1.2rem;
+        font-weight: 600;
+        border-radius: 0.5rem;
+    }
+    .stock-info {
+        margin-top: 1rem;
+        font-weight: 500;
+        color: #666;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container product-detail-container">
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div id="product-main-image-container" class="product-image-container">
+                {% if artwork.image %}
+                    <img src="{{ url_for('static', filename=artwork.image) }}" class="product-main-image" alt="{{ artwork.name }}" data-full-src="{{ url_for('static', filename=artwork.image) }}">
+                {% else %}
+                    <img src="https://placehold.co/600x400/cccccc/333333?text=No+Image" class="product-main-image" alt="No Image" data-full-src="https://placehold.co/600x400/cccccc/333333?text=No+Image">
+                {% endif %}
+                {# Watermarks overlaid on the image itself - ensures visibility on /product/ page #}
+                <div class="watermark">Karthikafutures</div> 
+                <div class="watermark">Karthikafutures</div> 
+                <div class="watermark">Karthikafutures</div> 
+                <div class="watermark">Karthikafutures</div> 
+                <div class="watermark">Karthikafutures</div> 
+                <div class="watermark">Karthikafutures</div> {# Added an extra watermark for better coverage #}
+            </div>
+            <a href="{{ url_for('all_products') }}" class="btn btn-outline-secondary mt-3">← Back to All Artworks</a>
+        </div>
+        <div class="col-lg-6 product-details">
+            <h1>{{ artwork.name }}</h1>
+            <p class="text-muted">{{ artwork.category }}</p>
+            <p class="price">₹<span id="display-price">{{ artwork.original_price | round(2) }}</span></p>
+
+            <p class="description">{{ artwork.description }}</p>
+
+            <div class="mb-3 option-group">
+                <label for="size-select">Size:</label>
+                <select id="size-select" class="form-select">
+                    <option value="Original" data-price="0">Original (No Change)</option>
+                    {% if artwork.size_a4 > 0 %}<option value="A4" data-price="{{ artwork.size_a4 }}">A4 (₹{{ artwork.size_a4 }})</option>{% endif %}
+                    {% if artwork.size_a5 > 0 %}<option value="A5" data-price="{{ artwork.size_a5 }}">A5 (₹{{ artwork.size_a5 }})</option>{% endif %}
+                    {% if artwork.size_letter > 0 %}<option value="Letter" data-price="{{ artwork.size_letter }}">Letter (₹{{ artwork.size_letter }})</option>{% endif %}
+                    {% if artwork.size_legal > 0 %}<option value="Legal" data-price="{{ artwork.size_legal }}">Legal (₹{{ artwork.size_legal }})</option>{% endif %}
+                </select>
+            </div>
+
+            <div class="mb-3 option-group">
+                <label for="frame-select">Frame:</label>
+                <select id="frame-select" class="form-select">
+                    <option value="None" data-price="0">None</option>
+                    {% if artwork.frame_wooden > 0 %}<option value="Wooden" data-price="{{ artwork.frame_wooden }}">Wooden (₹{{ artwork.frame_wooden }})</option>{% endif %}
+                    {% if artwork.frame_metal > 0 %}<option value="Metal" data-price="{{ artwork.frame_metal }}">Metal (₹{{ artwork.frame_metal }})</option>{% endif %}
+                    {% if artwork.frame_pvc > 0 %}<option value="PVC" data-price="{{ artwork.frame_pvc }}">PVC (₹{{ artwork.frame_pvc }})</option>{% endif %}
+                </select>
+            </div>
+
+            <div class="mb-3 option-group">
+                <label for="glass-select">Glass:</label>
+                <select id="glass-select" class="form-select">
+                    <option value="None" data-price="0">None</option>
+                    {% if artwork.glass_price > 0 %}<option value="Standard" data-price="{{ artwork.glass_price }}">Standard (₹{{ artwork.glass_price }})</option>{% endif %}
+                </select>
+            </div>
+
+            <div class="quantity-selector">
+                <button id="decrease-quantity">-</button>
+                <input type="text" id="quantity-input" value="1" readonly>
+                <button id="increase-quantity">+</button>
+            </div>
+
+            <button id="add-to-cart-btn" class="btn btn-primary add-to-cart-button">Add to Cart</button>
+            <p class="stock-info">
+                Stock: <span id="current-stock">{{ artwork.stock }}</span> available
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const originalPrice = {{ artwork.original_price | tojson }};
+        const displayPriceElement = document.getElementById('display-price');
+        const sizeSelect = document.getElementById('size-select');
+        const frameSelect = document.getElementById('frame-select');
+        const glassSelect = document.getElementById('glass-select');
+        const quantityInput = document.getElementById('quantity-input');
+        const decreaseQuantityBtn = document.getElementById('decrease-quantity');
+        const increaseQuantityBtn = document.getElementById('increase-quantity');
+        const addToCartBtn = document.getElementById('add-to-cart-btn');
+        const currentStockElement = document.getElementById('current-stock');
+
+        function calculatePrice() {
+            let currentPrice = originalPrice;
+            currentPrice += parseFloat(sizeSelect.selectedOptions[0].dataset.price || 0);
+            currentPrice += parseFloat(frameSelect.selectedOptions[0].dataset.price || 0);
+            currentPrice += parseFloat(glassSelect.selectedOptions[0].dataset.price || 0);
+            displayPriceElement.textContent = currentPrice.toFixed(2);
+        }
+
+        sizeSelect.addEventListener('change', calculatePrice);
+        frameSelect.addEventListener('change', calculatePrice);
+        glassSelect.addEventListener('change', calculatePrice);
+
+        decreaseQuantityBtn.addEventListener('click', function() {
+            let quantity = parseInt(quantityInput.value);
+            if (quantity > 1) {
+                quantity--;
+                quantityInput.value = quantity;
+            }
+        });
+
+        increaseQuantityBtn.addEventListener('click', function() {
+            let quantity = parseInt(quantityInput.value);
+            let maxStock = parseInt({{ artwork.stock | tojson }}); // Use artwork.stock directly
+            if (quantity < maxStock) {
+                quantity++;
+                quantityInput.value = quantity;
+            } else {
+                showCustomAlert('Cannot add more than available stock.', 'warning');
+            }
+        });
+
+        addToCartBtn.addEventListener('click', function() {
+            let quantity = parseInt(quantityInput.value);
+            let maxStock = parseInt({{ artwork.stock | tojson }});
+
+            if (quantity <= 0) {
+                showCustomAlert('Please enter a valid quantity.', 'danger');
+                return;
+            }
+            if (quantity > maxStock) {
+                showCustomAlert('Not enough stock available.', 'danger');
+                return;
+            }
+
+            const artworkSku = "{{ artwork.sku }}";
+            const artworkName = "{{ artwork.name }}";
+            const artworkImage = "{{ artwork.image }}";
+            const unitPrice = parseFloat(displayPriceElement.textContent);
+            const selectedSize = sizeSelect.value === "Original" ? "Original" : sizeSelect.value;
+            const selectedFrame = frameSelect.value === "None" ? "None" : frameSelect.value;
+            const selectedGlass = glassSelect.value === "None" ? "None" : glassSelect.value;
+
+            // Retrieve current cart from sessionStorage
+            let cart = JSON.parse(sessionStorage.getItem('cart')) || {};
+
+            // Create a unique identifier for the item based on SKU and selected options
+            const itemId = `${artworkSku}-${selectedSize.replace(/\s/g, '_')}-${selectedFrame.replace(/\s/g, '_')}-${selectedGlass.replace(/\s/g, '_')}`;
+
+            if (cart[itemId]) {
+                // If item with same options exists, update quantity
+                if (cart[itemId].quantity + quantity > maxStock) {
+                    showCustomAlert(`Adding ${quantity} would exceed available stock. Only ${maxStock - cart[itemId].quantity} more can be added.`, 'warning');
+                    return;
+                }
+                cart[itemId].quantity += quantity;
+                cart[itemId].total_price = cart[itemId].quantity * cart[itemId].unit_price;
+            } else {
+                // Add new item to cart
+                cart[itemId] = {
+                    id: itemId,
+                    sku: artworkSku,
+                    name: artworkName,
+                    image: artworkImage,
+                    unit_price: unitPrice, // This is the calculated unit price with options
+                    quantity: quantity,
+                    total_price: quantity * unitPrice,
+                    size: selectedSize,
+                    frame: selectedFrame,
+                    glass: selectedGlass
+                };
+            }
+
+            sessionStorage.setItem('cart', JSON.stringify(cart));
+            updateCartCountDisplay(); // Update navbar cart count
+            syncCartToServer(); // Sync cart to Flask session
+            showCustomAlert('Item added to cart!', 'success');
+            console.log("Cart contents:", cart);
+        });
+
+        // --- Trigger global image modal when the main product image container is clicked ---
+        const productMainImageContainer = document.getElementById('product-main-image-container');
+        if (productMainImageContainer) {
+            productMainImageContainer.addEventListener('click', function() {
+                const modalImage = document.getElementById('modalImage');
+                const imageModal = document.getElementById('imageModal');
+                const fullSrc = this.querySelector('.product-main-image').dataset.fullSrc;
+                
+                if (modalImage && imageModal && fullSrc) {
+                    modalImage.src = fullSrc;
+                    imageModal.style.display = 'flex'; // Show the modal
+                }
+            });
+        }
+
+        calculatePrice(); // Initial price calculation on page load
+    });
+</script>
+{% endblock %}

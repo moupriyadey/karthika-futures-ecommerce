@@ -1,0 +1,172 @@
+/* General Page Styling */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    text-align: center;
+    padding: 50px;
+}
+
+/* Header Styling */
+header {
+    background-color: #0077b6;
+    color: white;
+    padding: 20px;
+    font-size: 24px;
+}
+
+/* Login Form Container */
+main {
+    background-color: white;
+    padding: 20px;
+    width: 300px;
+    margin: auto;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+/* Input Fields */
+input {
+    width: 90%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+/* Submit Button */
+button {
+    background-color: #0077b6;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 5px;
+}
+
+button:hover {
+    background-color: #005f87;
+}
+
+/* General Styling */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    text-align: center;
+    padding: 50px;
+}
+
+/* Header */
+header {
+    background-color: #0077b6;
+    color: white;
+    padding: 20px;
+    font-size: 24px;
+}
+
+/* Navigation */
+nav ul {
+    list-style: none;
+    padding: 0;
+}
+
+nav ul li {
+    display: inline;
+    margin: 0 15px;
+}
+
+nav ul li a {
+    text-decoration: none;
+    color: #0077b6;
+    font-weight: bold;
+}
+
+/* Dashboard Overview */
+.overview {
+    background-color: white;
+    padding: 20px;
+    width: 400px;
+    margin: auto;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+/* Make text and elements scale properly */
+body {
+    font-size: 16px;
+}
+
+/* Responsive Header */
+header {
+    padding: 15px;
+    text-align: center;
+}
+
+/* Ensure the navigation bar adjusts */
+nav ul {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Optimize the dashboard overview section */
+.overview {
+    width: 90%;
+    padding: 15px;
+}
+
+/* Mobile-Specific Adjustments */
+@media (max-width: 768px) {
+    body {
+        padding: 20px;
+    }
+
+    nav ul li {
+        display: block;
+        margin-bottom: 10px;
+    }
+
+    button {
+        width: 100%;
+        padding: 12px;
+    }
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th, td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background-color: #0077b6;
+    color: white;
+}
+
+td img {
+    border-radius: 5px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th, td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background-color: #0077b6;
+    color: white;
+}
+
+td img {
+    border-radius: 5px;
+}

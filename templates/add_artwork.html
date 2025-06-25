@@ -1,0 +1,179 @@
+{% extends '_base.html' %}
+
+{% block title %}Add New Artwork - Karthika Futures{% endblock %}
+
+{% block extra_css %}
+<style>
+    .add-artwork-container {
+        background-color: #ffffff;
+        padding: 2.5rem;
+        border-radius: 0.75rem;
+        box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.15);
+        width: 100%;
+        max-width: 800px; /* Adjust max-width as needed */
+        margin: 2rem auto;
+    }
+    .form-label {
+        font-weight: 500;
+        margin-bottom: 0.3rem;
+    }
+    .input-group-text {
+        min-width: 100px; /* Align labels for price fields */
+    }
+    .image-preview {
+        max-width: 100%;
+        height: auto;
+        max-height: 200px; /* Limit height of preview */
+        display: block;
+        margin-top: 1rem;
+        border-radius: 0.5rem;
+        object-fit: contain; /* Ensure image fits without distortion */
+    }
+    .btn-custom-width {
+        width: 100%;
+        max-width: 250px; /* Max width for buttons */
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container add-artwork-container">
+    <h2 class="mb-4 text-center">🖼️ Add New Artwork</h2>
+
+    <form method="POST" action="{{ url_for('add_artwork') }}" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label for="name" class="form-label">Artwork Name</label>
+            <input type="text" class="form-control" id="name" name="name" required value="{{ request.form.name }}">
+        </div>
+        <div class="mb-3">
+            <label for="sku" class="form-label">SKU (Unique Identifier)</label>
+            <input type="text" class="form-control" id="sku" name="sku" required value="{{ request.form.sku }}">
+        </div>
+        <div class="mb-3">
+            <label for="category" class="form-label">Category</label>
+            <select class="form-select" id="category" name="category" required>
+                <option value="">Select a Category</option>
+                <option value="Ramayana" {% if request.form.category == 'Ramayana' %}selected{% endif %}>Ramayana</option>
+                <option value="Mahabharata" {% if request.form.category == 'Mahabharata' %}selected{% endif %}>Mahabharata</option>
+                <option value="Puranas" {% if request.form.category == 'Puranas' %}selected{% endif %}>Puranas</option>
+                <option value="Other" {% if request.form.category == 'Other' %}selected{% endif %}>Other</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="original_price" class="form-label">Original Price (₹)</label>
+            <div class="input-group">
+                <span class="input-group-text">₹</span>
+                <input type="number" step="0.01" class="form-control" id="original_price" name="original_price" required value="{{ request.form.original_price }}">
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="stock" class="form-label">Stock Quantity</label>
+            <input type="number" class="form-control" id="stock" name="stock" required min="0" value="{{ request.form.stock }}">
+        </div>
+        <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            <textarea class="form-control" id="description" name="description" rows="3">{{ request.form.description }}</textarea>
+        </div>
+        <div class="mb-3">
+            <label for="image" class="form-label">Artwork Image</label>
+            <input type="file" class="form-control" id="image" name="image" accept="image/*" required>
+            <img id="image-preview" class="image-preview" src="#" alt="Image Preview" style="display: none;">
+        </div>
+
+        <hr class="my-4">
+        <h4 class="mb-3 text-center">Customization Options (Prices)</h4>
+        <p class="text-muted text-center">Enter 0 if an option is not applicable or free.</p>
+
+        <div class="row mb-3">
+            <div class="col-md-4 mb-3">
+                <label for="frame_wooden" class="form-label">Wooden Frame Price (₹)</label>
+                <div class="input-group">
+                    <span class="input-group-text">₹</span>
+                    <input type="number" step="0.01" class="form-control" id="frame_wooden" name="frame_wooden" value="{{ request.form.frame_wooden | default('0.00') }}" required>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label for="frame_metal" class="form-label">Metal Frame Price (₹)</label>
+                <div class="input-group">
+                    <span class="input-group-text">₹</span>
+                    <input type="number" step="0.01" class="form-control" id="frame_metal" name="frame_metal" value="{{ request.form.frame_metal | default('0.00') }}" required>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label for="frame_pvc" class="form-label">PVC Frame Price (₹)</label>
+                <div class="input-group">
+                    <span class="input-group-text">₹</span>
+                    <input type="number" step="0.01" class="form-control" id="frame_pvc" name="frame_pvc" value="{{ request.form.frame_pvc | default('0.00') }}" required>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="glass_price" class="form-label">Glass Price (₹)</label>
+            <div class="input-group">
+                <span class="input-group-text">₹</span>
+                <input type="number" step="0.01" class="form-control" id="glass_price" name="glass_price" value="{{ request.form.glass_price | default('0.00') }}" required>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6 mb-3">
+                <label for="size_a4" class="form-label">A4 Size Price (₹)</label>
+                <div class="input-group">
+                    <span class="input-group-text">₹</span>
+                    <input type="number" step="0.01" class="form-control" id="size_a4" name="size_a4" value="{{ request.form.size_a4 | default('0.00') }}" required>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="size_a5" class="form-label">A5 Size Price (₹)</label>
+                <div class="input-group">
+                    <span class="input-group-text">₹</span>
+                    <input type="number" step="0.01" class="form-control" id="size_a5" name="size_a5" value="{{ request.form.size_a5 | default('0.00') }}" required>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="size_letter" class="form-label">Letter Size Price (₹)</label>
+                <div class="input-group">
+                    <span class="input-group-text">₹</span>
+                    <input type="number" step="0.01" class="form-control" id="size_letter" name="size_letter" value="{{ request.form.size_letter | default('0.00') }}" required>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="size_legal" class="form-label">Legal Size Price (₹)</label>
+                <div class="input-group">
+                    <span class="input-group-text">₹</span>
+                    <input type="number" step="0.01" class="form-control" id="size_legal" name="size_legal" value="{{ request.form.size_legal | default('0.00') }}" required>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-grid gap-2 mt-4">
+            <button type="submit" class="btn btn-primary btn-lg">Add Artwork</button>
+            <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary btn-lg">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const imageInput = document.getElementById('image');
+        const imagePreview = document.getElementById('image-preview');
+
+        imageInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                };
+                reader.readAsDataURL(this.files[0]);
+            } else {
+                imagePreview.src = '#';
+                imagePreview.style.display = 'none';
+            }
+        });
+    });
+</script>
+{% endblock %}

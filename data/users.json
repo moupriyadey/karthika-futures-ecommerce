@@ -1,0 +1,22 @@
+{
+    "covcorres@gmail.com": {
+        "address": "kolkata",
+        "email": "covcorres@gmail.com",
+        "name": "covcorres",
+        "password": "scrypt:32768:8:1$yJr6049MylhWV9qE$c24b92388401b3e30048c4ffaa664397ce7c64530d315e4409db0a9f3110f7e71b4f10121cd4cbc8959519359d6dcb457703191daa9f9b9dd7446e273ce962e9",
+        "phone": "2222222222",
+        "pincode": "121323",
+        "role": "user",
+        "id": "2a6b52b4-992c-470a-ba0d-a9022216adb0"
+    },
+    "subhashes@live.com": {
+        "address": "kolkata",
+        "email": "subhashes@live.com",
+        "name": "live.com",
+        "password": "scrypt:32768:8:1$xdoT9QfsFc7hdEHq$6ac2d15a6e2ef40b876fed1ca78c4085864b216d46f899e53b0495773fc8be3ce9f0115d393f789c5fa92d0a9dd863a2ddf49dfbda443131fb106a962d390b20",
+        "phone": "1234567891",
+        "pincode": "223223",
+        "role": "user",
+        "id": "bf59e9d7-3ff0-4ac0-844f-8e13ed45897f"
+    }
+}

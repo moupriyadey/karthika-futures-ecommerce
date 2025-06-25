@@ -1,0 +1,30 @@
+{% extends '_base.html' %}
+
+{% block title %}User Login - Karthika Futures{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <h3 class="text-center mb-4">User Login via Email OTP</h3>
+
+        {# Flash messages are now handled in _base.html #}
+
+        <form method="POST" action="{{ url_for('user_login', next=next_url) }}" class="p-4 border rounded shadow-sm bg-white">
+            <div class="mb-3">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="email" name="email" required>
+            </div>
+            {# --- CRITICAL: Hidden field to pass 'next_url' back to the Flask route --- #}
+            {% if next_url %}
+            <input type="hidden" name="next" value="{{ next_url }}">
+            {% endif %}
+            <div class="d-grid gap-2">
+                   <button type="submit" class="btn btn-primary">Send OTP</button>
+            </div>
+        </form>
+        <p class="text-center mt-3">
+            Don't have an account? <a href="{{ url_for('signup') }}">Sign up here</a>
+        </p>
+    </div>
+</div>
+{% endblock %}
