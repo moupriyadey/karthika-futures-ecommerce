@@ -2,34 +2,39 @@ Dear {{ order.customer_name }},
 
 Thank you for your recent purchase from {{ OUR_BUSINESS_NAME }}!
 
-Your Order ID: {{ order.order_id }}
-Placed On: {{ order.placed_on }}
+Your order #{{ order.order_id }} with us has been shipped.
+We have attached your official tax invoice for this order to this email.
 
-Your invoice for this order is attached to this email. You can also download it from your "My Orders" section on our website.
+Order Details Summary:
+----------------------
+Order ID: {{ order.order_id }}
+Order Date: {{ order.placed_on }}
+Total Amount Paid: ₹{{ order.total_amount | float | int }}
+Status: {{ order.status }}
 
-Order Summary:
-{% for item in order.items %} Item: {{ item.name }} SKU: {{ item.sku }} Quantity: {{ item.quantity }} Size: {{ item.size | default('Original') }} Frame: {{ item.frame | default('None') }} Glass: {{ item.glass | default('None') }} Unit Price (Pre-GST): ₹{{ item.unit_price_before_gst | round(2) }} GST ({{ item.gst_percentage | round(2) }}%): ₹{{ item.gst_amount | round(2) }} Item Total (with GST): ₹{{ item.total_price | round(2) }}
+Items Purchased:
+{% for item in order.items %}
+- {{ item.name }} (SKU: {{ item.sku }}) x {{ item.quantity }} = ₹{{ item.total_price | float | int }}
+  {% if item.size and item.size != 'Original' %}  Size: {{ item.size }}{% endif %}
+  {% if item.frame and item.frame != 'None' %}  Frame: {{ item.frame }}{% endif %}
+  {% if item.glass and item.glass != 'None' %}  Glass: {{ item.glass }}{% endif %}
 {% endfor %}
 
-Invoice Details:
-Subtotal (Pre-GST): ₹{{ order.subtotal_before_gst | default(0.0) | round(2) }} Total GST: ₹{{ order.invoice_details.total_gst_amount | default(0.0) | round(2) }} (CGST: ₹{{ order.invoice_details.cgst_amount | default(0.0) | round(2) }}, SGST: ₹{{ order.invoice_details.sgst_amount | default(0.0) | round(2) }}) Shipping Charges: ₹{{ order.invoice_details.shipping_charge | default(0.0) | round(2) }} {% if order.invoice_details.shipping_charge | default(0.0) == 0 %} (FREE Shipping!) {% endif %}
-FINAL INVOICE AMOUNT: ₹{{ order.invoice_details.final_invoice_amount | default(order.total_amount, 0.0) | round(2) }}
-Delivery Address:
+Shipping Address:
+-----------------
 {{ order.customer_name }}
 {{ order.customer_address }}
 Pincode: {{ order.customer_pincode }}
-Phone: {{ order.customer_phone | mask_phone_number }}
+Phone: {{ order.customer_phone_camouflaged }}
 
-Your order status is currently: {{ order.status }}
-{% if order.courier and order.tracking_number %}
-Courier: {{ order.courier }}
-Tracking Number: {{ order.tracking_number }}
-{% endif %}
+You can track your order status and download your invoice anytime by logging into your account:
+{{ url_for('my_orders', _external=True) }}
 
-For any queries regarding your order, please contact us.
+If you have any questions or require further assistance, please do not hesitate to contact us.
 
-Thank you again for shopping with us!
+Thank you again for choosing {{ OUR_BUSINESS_NAME }}. We hope you enjoy your new artwork!
 
-Sincerely,
+Best regards,
+
 The Team at {{ OUR_BUSINESS_NAME }}
 {{ OUR_BUSINESS_ADDRESS }}

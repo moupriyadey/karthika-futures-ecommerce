@@ -1,304 +1,133 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Invoice - Admin Panel</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-        }
-        .sidebar {
-            width: 250px;
-            background-color: #1a202c; /* Darker sidebar */
-            color: #e2e8f0;
-            padding: 1.5rem;
-            min-height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            display: flex;
-            flex-direction: column;
-            border-top-right-radius: 1rem; /* Rounded corner */
-            border-bottom-right-radius: 1rem; /* Rounded corner */
-        }
-        .sidebar a {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1rem;
-            margin-bottom: 0.5rem;
-            border-radius: 0.5rem;
-            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
-        }
-        .sidebar a:hover {
-            background-color: #2d3748; /* Slightly lighter on hover */
-            color: #ffffff;
-        }
-        .sidebar a.active {
-            background-color: #4a5568; /* Active item background */
-            color: #ffffff;
-            font-weight: 600;
-        }
-        .sidebar .icon {
-            margin-right: 0.75rem;
-            font-size: 1.25rem;
-        }
-        .main-content {
-            margin-left: 250px; /* Offset by sidebar width */
-            padding: 2rem;
-            flex-grow: 1;
-        }
-        .flash-messages {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            z-index: 1000;
-        }
-        .flash-message {
-            padding: 1rem;
-            border-radius: 0.5rem;
-            margin-bottom: 0.5rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            opacity: 0;
-            animation: fadeInOut 5s forwards;
-        }
-        .flash-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .flash-danger {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .flash-info {
-            background-color: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-        @keyframes fadeInOut {
-            0% { opacity: 0; transform: translateY(-20px); }
-            10% { opacity: 1; transform: translateY(0); }
-            90% { opacity: 1; transform: translateY(0); }
-            100% { opacity: 0; transform: translateY(-20px); }
-        }
+{% extends '_base.html' %}
 
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
-                border-radius: 0;
-                min-height: auto;
-            }
-            .main-content {
-                margin-left: 0;
-                padding: 1rem;
-            }
-            .sidebar-menu {
-                flex-direction: row;
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-            .sidebar a {
-                flex: 1 1 auto; /* Allow items to grow and shrink */
-                text-align: center;
-                padding: 0.5rem;
-                margin: 0.25rem;
-            }
-            .sidebar .icon {
-                margin-right: 0;
-                margin-bottom: 0.25rem;
-            }
-        }
-    </style>
-</head>
-<body class="flex">
-    <aside class="sidebar">
-        <div class="text-2xl font-bold mb-8 text-center">Admin Panel</div>
-        <nav class="sidebar-menu flex-grow">
-            <a href="{{ url_for('admin_panel') }}" class="active">
-                <i class="fas fa-tachometer-alt icon"></i> Dashboard
-            </a>
-            <a href="{{ url_for('add_artwork') }}">
-                <i class="fas fa-plus-circle icon"></i> Add Artwork
-            </a>
-            <a href="{{ url_for('export_orders_csv') }}">
-                <i class="fas fa-file-csv icon"></i> Export Orders
-            </a>
-            <a href="{{ url_for('export_artworks_csv') }}">
-                <i class="fas fa-file-csv icon"></i> Export Artworks
-            </a>
-            <a href="{{ url_for('admin_logout') }}">
-                <i class="fas fa-sign-out-alt icon"></i> Logout
-            </a>
-        </nav>
-        <div class="mt-auto text-sm text-gray-500 text-center">
-            &copy; {{ current_year }} Karthika Futures
-        </div>
-    </aside>
+{% block title %}Edit Invoice for Order {{ order.order_id }} - Karthika Futures{% endblock %}
 
-    <main class="main-content">
-        <h1 class="text-3xl font-bold text-gray-800 mb-8">Edit Invoice for Order #{{ order.order_id | default('N/A') }}</h1>
+{% block content %}
+<div class="container main-content-area position-relative">
+    <h2 class="text-center mb-4">Edit Invoice for Order #{{ order.order_id }}</h2>
 
-        <div class="flash-messages">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="flash-message flash-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
+    <div class="d-flex border-bottom mb-4">
+        <a href="{{ url_for('admin_panel') }}" class="nav-link px-3 py-2">Dashboard</a>
+        <a href="{{ url_for('admin_artworks_view') }}" class="nav-link px-3 py-2">Artworks</a>
+        <a href="{{ url_for('admin_orders_view') }}" class="nav-link px-3 py-2 active border-bottom border-primary border-2">Orders</a>
+        <a href="{{ url_for('admin_categories_view') }}" class="nav-link px-3 py-2">Categories</a>
+    </div>
+
+    <form method="POST" action="{{ url_for('admin_edit_invoice', order_id=order.order_id) }}" class="p-4 border rounded shadow-sm bg-light">
+        <input type="hidden" name="order_id" value="{{ order.order_id }}">
+        
+        <h4 class="mb-3">Invoice Details</h4>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label for="invoice_number" class="form-label">Invoice Number</label>
+                <input type="text" class="form-control" id="invoice_number" name="invoice_number" value="{{ order.invoice_details.invoice_number if order.invoice_details else '' }}">
+            </div>
+            <div class="col-md-6">
+                <label for="invoice_date" class="form-label">Invoice Date</label>
+                <input type="date" class="form-control" id="invoice_date" name="invoice_date" value="{{ order.invoice_details.invoice_date if order.invoice_details and order.invoice_details.invoice_date else '' }}">
+            </div>
         </div>
 
-        <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-4xl mx-auto">
-            <form action="{{ url_for('admin_edit_invoice', order_id=order.order_id) }}" method="post" class="space-y-6">
-                
-                <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">Business Details (for Invoice)</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="business_name" class="block text-sm font-medium text-gray-700">Business Name</label>
-                        <input type="text" id="business_name" name="business_name" value="{{ order.invoice_details.business_name | default(our_business_name) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                    </div>
-                    <div>
-                        <label for="gst_number" class="block text-sm font-medium text-gray-700">GSTIN</label>
-                        <input type="text" id="gst_number" name="gst_number" value="{{ order.invoice_details.gst_number | default(our_gstin) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                    </div>
-                    <div class="md:col-span-2">
-                        <label for="business_address" class="block text-sm font-medium text-gray-700">Business Address</label>
-                        <textarea id="business_address" name="business_address" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">{{ order.invoice_details.business_address | default(our_business_address) }}</textarea>
-                    </div>
-                    <div>
-                        <label for="pan_number" class="block text-sm font-medium text-gray-700">PAN</label>
-                        <input type="text" id="pan_number" name="pan_number" value="{{ order.invoice_details.pan_number | default(our_pan) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                    </div>
-                </div>
-
-                <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2 mt-8">Invoice Specifics</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="invoice_number" class="block text-sm font-medium text-gray-700">Invoice Number</label>
-                        <input type="text" id="invoice_number" name="invoice_number" value="{{ order.invoice_details.invoice_number | default('') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                    </div>
-                    <div>
-                        <label for="invoice_date" class="block text-sm font-medium text-gray-700">Invoice Date</label>
-                        {# Attempt to parse and format date for input type="date" if possible #}
-                        <input type="datetime-local" id="invoice_date" name="invoice_date" 
-                               value="{{ (order.invoice_details.invoice_date | default(now().strftime('%Y-%m-%d %H:%M:%S'))).split('.')[0] }}" 
-                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                    </div>
-                </div>
-
-                <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2 mt-8">Customer & Order Details</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="customer_name" class="block text-sm font-medium text-gray-700">Customer Name</label>
-                        <input type="text" id="customer_name" name="customer_name" value="{{ order.customer_name | default('N/A') }}" readonly class="mt-1 block w-full rounded-md border-gray-300 shadow-sm bg-gray-100 p-2">
-                    </div>
-                    <div>
-                        <label for="customer_email" class="block text-sm font-medium text-gray-700">Customer Email</label>
-                        <input type="email" id="customer_email" name="customer_email" value="{{ order.user_email | default('N/A') }}" readonly class="mt-1 block w-full rounded-md border-gray-300 shadow-sm bg-gray-100 p-2">
-                    </div>
-                    <div class="md:col-span-2">
-                        <label for="billing_address" class="block text-sm font-medium text-gray-700">Billing Address</label>
-                        <textarea id="billing_address" name="billing_address" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">{{ order.invoice_details.billing_address | default(order.customer_address | default('')) }}</textarea>
-                        <p class="text-xs text-gray-500 mt-1">This will be used as the billing address on the invoice. Defaults to customer's delivery address.</p>
-                    </div>
-                </div>
-
-                <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2 mt-8">Financial Details</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="subtotal_before_gst" class="block text-sm font-medium text-gray-700">Subtotal (Pre-GST) - Item Sum</label>
-                        <input type="number" id="subtotal_before_gst" name="subtotal_before_gst" step="0.01" value="{{ order.subtotal_before_gst | default(0.0) | round(2) }}" readonly class="mt-1 block w-full rounded-md border-gray-300 shadow-sm bg-gray-100 p-2">
-                        <p class="text-xs text-gray-500 mt-1">Sum of artwork prices before GST. Not editable.</p>
-                    </div>
-                    <div>
-                        <label for="shipping_charge" class="block text-sm font-medium text-gray-700">Shipping Charge (₹)</label>
-                        <input type="number" id="shipping_charge" name="shipping_charge" step="0.01" value="{{ order.invoice_details.shipping_charge | default(0.0) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
-                    </div>
-                    <div>
-                        <label for="gst_rate" class="block text-sm font-medium text-gray-700">GST Rate Applied (%)</label>
-                        <input type="number" id="gst_rate" name="gst_rate" step="0.01" value="{{ order.invoice_details.gst_rate_applied | default(default_gst_rate) | round(2) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
-                        <p class="text-xs text-gray-500 mt-1">This rate will be applied to the 'Subtotal (Pre-GST)' to calculate total GST.</p>
-                    </div>
-                    <div>
-                        <label for="total_gst_amount" class="block text-sm font-medium text-gray-700">Total GST Amount (₹)</label>
-                        <input type="number" id="total_gst_amount" name="total_gst_amount" step="0.01" value="{{ order.invoice_details.total_gst_amount | default(0.0) | round(2) }}" readonly class="mt-1 block w-full rounded-md border-gray-300 shadow-sm bg-gray-100 p-2">
-                        <p class="text-xs text-gray-500 mt-1">Automatically calculated based on GST Rate.</p>
-                    </div>
-                    <div>
-                        <label for="cgst_amount" class="block text-sm font-medium text-gray-700">CGST Amount (₹)</label>
-                        <input type="number" id="cgst_amount" name="cgst_amount" step="0.01" value="{{ order.invoice_details.cgst_amount | default(0.0) | round(2) }}" readonly class="mt-1 block w-full rounded-md border-gray-300 shadow-sm bg-gray-100 p-2">
-                    </div>
-                    <div>
-                        <label for="sgst_amount" class="block text-sm font-medium text-gray-700">SGST Amount (₹)</label>
-                        <input type="number" id="sgst_amount" name="sgst_amount" step="0.01" value="{{ order.invoice_details.sgst_amount | default(0.0) | round(2) }}" readonly class="mt-1 block w-full rounded-md border-gray-300 shadow-sm bg-gray-100 p-2">
-                    </div>
-                    <div class="md:col-span-2">
-                        <label for="final_invoice_amount" class="block text-sm font-medium text-gray-700">Final Invoice Amount (₹)</label>
-                        <input type="number" id="final_invoice_amount" name="final_invoice_amount" step="0.01" value="{{ order.invoice_details.final_invoice_amount | default(0.0) | round(2) }}" readonly class="mt-1 block w-full rounded-md border-gray-300 shadow-sm bg-gray-100 font-bold text-lg p-2">
-                        <p class="text-xs text-gray-500 mt-1">Subtotal + Total GST + Shipping Charge.</p>
-                    </div>
-                </div>
-
-                <div class="flex justify-end gap-4 mt-8">
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-md shadow-md transition duration-200">Save Changes</button>
-                    <a href="{{ url_for('admin_panel') }}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded-md shadow-md transition duration-200">Cancel</a>
-                </div>
-            </form>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label for="gst_number" class="form-label">GST Number</label>
+                <input type="text" class="form-control" id="gst_number" name="gst_number" value="{{ order.invoice_details.gst_number if order.invoice_details else '' }}" required>
+            </div>
+            <div class="col-md-6">
+                <label for="pan_number" class="form-label">PAN Number</label>
+                <input type="text" class="form-control" id="pan_number" name="pan_number" value="{{ order.invoice_details.pan_number if order.invoice_details else '' }}">
+            </div>
         </div>
-    </main>
 
-    <script>
-        const subtotalBeforeGstInput = document.getElementById('subtotal_before_gst');
+        <div class="mb-3">
+            <label for="business_name" class="form-label">Business Name</label>
+            <input type="text" class="form-control" id="business_name" name="business_name" value="{{ order.invoice_details.business_name if order.invoice_details else '' }}" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="business_address" class="form-label">Business Address</label>
+            <textarea class="form-control" id="business_address" name="business_address" rows="3" required>{{ order.invoice_details.business_address if order.invoice_details else '' }}</textarea>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label for="total_gst_amount" class="form-label">Total GST Amount (₹)</label>
+                <input type="number" step="0.01" class="form-control" id="total_gst_amount" name="total_gst_amount" value="{{ order.invoice_details.total_gst_amount if order.invoice_details else '0.00' }}" readonly>
+            </div>
+             <div class="col-md-4">
+                <label for="cgst_amount" class="form-label">CGST Amount (₹)</label>
+                <input type="number" step="0.01" class="form-control" id="cgst_amount" name="cgst_amount" value="{{ order.invoice_details.cgst_amount if order.invoice_details else '0.00' }}" readonly>
+            </div>
+             <div class="col-md-4">
+                <label for="sgst_amount" class="form-label">SGST Amount (₹)</label>
+                <input type="number" step="0.01" class="form-control" id="sgst_amount" name="sgst_amount" value="{{ order.invoice_details.sgst_amount if order.invoice_details else '0.00' }}" readonly>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label for="gst_rate_applied" class="form-label">GST Rate Applied (%)</label>
+                <input type="number" step="0.01" class="form-control" id="gst_rate_applied" name="gst_rate_applied" value="{{ order.invoice_details.gst_rate_applied if order.invoice_details else '0.00' }}" readonly>
+            </div>
+            <div class="col-md-6">
+                <label for="shipping_charge" class="form-label">Shipping Charge (₹)</label>
+                <input type="number" step="0.01" class="form-control" id="shipping_charge" name="shipping_charge" value="{{ order.invoice_details.shipping_charge if order.invoice_details else '0.00' }}">
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="final_invoice_amount" class="form-label">Final Invoice Amount (₹)</label>
+            <input type="number" step="0.01" class="form-control" id="final_invoice_amount" name="final_invoice_amount" value="{{ order.invoice_details.final_invoice_amount if order.invoice_details else '0.00' }}" readonly>
+        </div>
+
+        <div class="mb-3">
+            <label for="invoice_status" class="form-label">Invoice Status</label>
+            <select class="form-select" id="invoice_status" name="invoice_status" required>
+                <option value="Prepared" {% if order.invoice_details and order.invoice_details.invoice_status == 'Prepared' %}selected{% endif %}>Prepared</option>
+                <option value="Sent" {% if order.invoice_details and order.invoice_details.invoice_status == 'Sent' %}selected{% endif %}>Sent</option>
+                <option value="Held" {% if order.invoice_details and order.invoice_details.invoice_status == 'Held' %}selected{% endif %}>Held</option>
+                <option value="Edited" {% if order.invoice_details and order.invoice_details.invoice_status == 'Edited' %}selected{% endif %}>Edited</option>
+                <option value="PDF Gen Failed" {% if order.invoice_details and order.invoice_details.invoice_status == 'PDF Gen Failed' %}selected{% endif %}>PDF Gen Failed</option>
+                <option value="Email Failed" {% if order.invoice_details and order.invoice_details.invoice_status == 'Email Failed' %}selected{% endif %}>Email Failed</option>
+                <option value="Cancelled" {% if order.invoice_details and order.invoice_details.invoice_status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+            </select>
+        </div>
+
+        <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="is_held_by_admin" name="is_held_by_admin" {% if order.invoice_details and order.invoice_details.is_held_by_admin %}checked{% endif %}>
+            <label class="form-check-label" for="is_held_by_admin">Hold Invoice (Prevent automatic sending)</label>
+        </div>
+
+        <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary btn-lg">Save Invoice Changes</button>
+            <a href="{{ url_for('admin_orders_view') }}" class="btn btn-secondary btn-lg">Back to Orders</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
         const shippingChargeInput = document.getElementById('shipping_charge');
-        const gstRateInput = document.getElementById('gst_rate');
-        const totalGstAmountInput = document.getElementById('total_gst_amount');
-        const cgstAmountInput = document.getElementById('cgst_amount');
-        const sgstAmountInput = document.getElementById('sgst_amount');
         const finalInvoiceAmountInput = document.getElementById('final_invoice_amount');
+        const subtotalBeforeGst = parseFloat('{{ order.subtotal_before_gst | float }}'); // From order object
+        const totalGstAmount = parseFloat('{{ order.invoice_details.total_gst_amount | float }}'); // From invoice details
 
-        function calculateTotals() {
-            const subtotal = parseFloat(subtotalBeforeGstInput.value) || 0;
-            const shipping = parseFloat(shippingChargeInput.value) || 0;
-            const gstRate = parseFloat(gstRateInput.value) || 0;
-
-            const calculatedGst = subtotal * (gstRate / 100);
-            const calculatedCgst = calculatedGst / 2;
-            const calculatedSgst = calculatedGst / 2;
-            const calculatedFinalAmount = subtotal + calculatedGst + shipping;
-
-            totalGstAmountInput.value = calculatedGst.toFixed(2);
-            cgstAmountInput.value = calculatedCgst.toFixed(2);
-            sgstAmountInput.value = calculatedSgst.toFixed(2);
+        function calculateFinalInvoiceAmount() {
+            const currentShippingCharge = parseFloat(shippingChargeInput.value) || 0;
+            // The logic here should reflect how final invoice amount is calculated:
+            // It's usually (subtotal_before_gst + total_gst_amount + shipping_charge)
+            const calculatedFinalAmount = subtotalBeforeGst + totalGstAmount + currentShippingCharge;
             finalInvoiceAmountInput.value = calculatedFinalAmount.toFixed(2);
         }
 
-        // Attach event listeners for input changes
-        shippingChargeInput.addEventListener('input', calculateTotals);
-        gstRateInput.addEventListener('input', calculateTotals);
+        // Add event listener to recalculate when shipping charge changes
+        shippingChargeInput.addEventListener('input', calculateFinalInvoiceAmount);
 
-        // Initial calculation on page load to ensure display is accurate
-        document.addEventListener('DOMContentLoaded', calculateTotals);
-
-        // Flash message functionality
-        document.addEventListener('DOMContentLoaded', () => {
-            document.querySelectorAll('.flash-message').forEach(message => {
-                setTimeout(() => {
-                    message.style.opacity = '0';
-                    message.style.transform = 'translateY(-20px)';
-                    message.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
-                    message.addEventListener('transitionend', () => message.remove());
-                }, 4500); // Start fading out after 4.5 seconds
-            });
-        });
-    </script>
-</body>
-</html>
+        // Initial calculation on page load
+        calculateFinalInvoiceAmount();
+    });
+</script>
+{% endblock %}

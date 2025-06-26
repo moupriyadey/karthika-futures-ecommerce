@@ -4,24 +4,16 @@
 
 {% block extra_css %}
 <style>
-    body {
-        /* Placeholder for Veda Era/Manuscript background */
-        background-image: url('https://placehold.co/1920x1080/c8b29c/362a22?text=Ancient+Parchment+Background'); 
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed; /* Keeps background fixed when scrolling */
-        color: #333; /* Default text color over light background */
-    }
-
     .main-content-area {
         background-color: rgba(255, 255, 255, 0.9); /* Slightly transparent white background for content */
         padding: 2rem;
         border-radius: 0.75rem;
         box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15);
-        margin-top: 6rem; /* Space from fixed navbar */
+        margin-top: 2rem; /* Space from fixed navbar */
         margin-bottom: 2rem;
         position: relative; /* For Sanskrit words positioning */
         overflow: hidden; /* To contain Sanskrit words */
+        z-index: 10; /* Ensure content is above the body::before overlay */
     }
 
     .sanskrit-words-overlay {
@@ -164,7 +156,6 @@
         border-color: #28a745;
     }
 
-
     .qr-code-section {
         background-color: rgba(255, 255, 255, 0.95);
         padding: 2.5rem;
@@ -286,29 +277,39 @@
 
     <h3 class="text-center mb-4 text-primary">Our Latest Artworks</h3>
     
-    {% if artworks %}
+    {% if all_artworks %}
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-        {% for artwork in artworks %}
+        {% for artwork in all_artworks %}
         <div class="col">
             <div class="card artwork-card">
-                {% if artwork.image %}
-                <img src="{{ url_for('static', filename=artwork.image) }}" class="card-img-top" alt="{{ artwork.name }}">
+                {% if artwork.images and artwork.images[0] %}
+                <img src="{{ url_for('static', filename=artwork.images[0]) }}" class="card-img-top clickable-image" alt="{{ artwork.name }}">
                 {% else %}
-                <img src="https://placehold.co/400x200/cccccc/333333?text=No+Image" class="card-img-top" alt="No Image">
+                <img src="https://placehold.co/400x200/cccccc/333333?text=No+Image" class="card-img-top clickable-image" alt="No Image">
                 {% endif %}
                 <div class="card-body">
                     <h5 class="card-title">{{ artwork.name }}</h5>
                     <h6 class="card-subtitle mb-2 text-muted">{{ artwork.category }}</h6>
-                    <p class="card-text">₹{{ artwork.original_price | round(2) }}</p>
+                    <p class="card-text">₹{{ artwork.original_price | int }}</p>
                     <div class="btn-group">
                         <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary">View Details</a>
-                        <button class="btn btn-success buy-now-btn"
+                        {% if artwork.stock > 0 %}
+                        <button class="btn btn-success add-to-cart-btn"
                                 data-sku="{{ artwork.sku }}"
                                 data-name="{{ artwork.name }}"
-                                data-image="{{ url_for('static', filename=artwork.image) if artwork.image else 'https://placehold.co/400x200/cccccc/333333?text=No+Image' }}"
-                                data-price="{{ artwork.original_price | round(2) }}">
-                            Buy Now
+                                data-image="{{ url_for('static', filename=artwork.images[0]) if artwork.images else 'https://placehold.co/240x240/cccccc/333333?text=No+Image' }}"
+                                data-original-price="{{ artwork.original_price }}"
+                                data-size="Original"
+                                data-frame="None"
+                                data-glass="None"
+                                data-size-price="0"
+                                data-frame-price="0"
+                                data-glass-price="0">
+                            Add to Cart
                         </button>
+                        {% else %}
+                        <button class="btn btn-secondary" disabled>Out of Stock</button>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -316,60 +317,59 @@
         {% endfor %}
     </div>
     {% else %}
-    <p class="text-center text-muted fs-4">No artworks available yet. Please check back later!</p>
+    <p class="text-center text-muted fs-5 py-4">No artworks available yet. Please check back later!</p>
     {% endif %}
 
-    {# QR Code for donation #}
-    <div class="qr-code-section mt-5">
-        <h3>🙏 Support Hariseva and Dharmaseva 🙏</h3>
-        <p>Your generous contributions help us preserve and promote divine art and culture.</p>
-        <img src="{{ url_for('static', filename='uploads/qr_code.png') }}" alt="Donation QR Code for Hariseva Dharmaseva">
-        <p class="lead">Scan to donate and support our mission!</p>
-        <p class="text-muted small">All donations go towards Hariseva and Dharmaseva initiatives.</p>
+    {# Optional QR Code Section below products #}
+    <div class="row mt-5">
+        <div class="col-md-6 offset-md-3">
+            <div class="qr-code-section">
+                <h3>Support Our Divine Mission</h3>
+                <p>Your contributions help us share sacred art and wisdom.</p>
+                <img src="{{ url_for('static', filename='uploads/qr_code.png') }}" alt="Donation QR Code">
+                <p class="lead">Scan to Donate via UPI</p>
+            </div>
+        </div>
     </div>
-
 </div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const buyNowButtons = document.querySelectorAll('.buy-now-btn');
-
-        buyNowButtons.forEach(button => {
+    document.addEventListener('DOMContentLoaded', () => {
+        // Add to Cart button functionality
+        document.querySelectorAll('.add-to-cart-btn').forEach(button => {
             button.addEventListener('click', function() {
                 const sku = this.dataset.sku;
                 const name = this.dataset.name;
                 const image = this.dataset.image;
-                const price = parseFloat(this.dataset.price); // Original price for Buy Now
-
-                // Create a temporary cart for this single item
-                const tempCart = {};
-                const itemId = `${sku}-Original-None-None`; // Use default options for direct buy
-
-                tempCart[itemId] = {
-                    id: itemId,
-                    sku: sku,
-                    name: name,
-                    image: image,
-                    unit_price: price,
-                    quantity: 1,
-                    total_price: price,
-                    size: "Original",
-                    frame: "None",
-                    glass: "None"
+                const originalPrice = parseFloat(this.dataset.originalPrice);
+                const options = {
+                    size: this.dataset.size,
+                    frame: this.dataset.frame,
+                    glass: this.dataset.glass,
+                    sizePrice: parseFloat(this.dataset.sizePrice || 0),
+                    framePrice: parseFloat(this.dataset.framePrice || 0),
+                    glassPrice: parseFloat(this.dataset.glassPrice || 0)
                 };
+                // Ensure addToCart is called, which should exist globally from base.html
+                if (typeof addToCart === 'function') {
+                    addToCart(sku, name, image, originalPrice, options);
+                } else {
+                    console.error("addToCart function not found. Is base.html loaded correctly?");
+                }
+            });
+        });
 
-                sessionStorage.setItem('cart', JSON.stringify(tempCart));
-                
-                // Immediately sync this temporary cart to the server session
-                syncCartToServer().then(() => {
-                    // Redirect to purchase form only after sync is attempted
-                    window.location.href = "{{ url_for('purchase_form') }}";
-                }).catch(error => {
-                    console.error("Error during buy now cart sync:", error);
-                    showCustomAlert('Could not initiate purchase. Please try again.', 'danger');
-                });
+        // Event listener for opening the modal for product images
+        // This is explicitly for images within product cards, not the global .card-img-top
+        document.querySelectorAll('.artwork-card .card-img-top').forEach(img => {
+            img.style.cursor = 'zoom-in';
+            img.addEventListener('click', (event) => {
+                event.preventDefault(); // Prevent default link behavior if applicable
+                document.getElementById('modalImage').src = img.src;
+                document.getElementById('imageModal').style.display = 'flex';
             });
         });
     });

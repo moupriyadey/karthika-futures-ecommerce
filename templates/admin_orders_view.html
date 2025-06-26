@@ -1,0 +1,127 @@
+{% extends '_base.html' %}
+
+{% block title %}Admin Orders - Karthika Futures{% endblock %}
+
+{% block content %}
+<div class="container main-content-area position-relative">
+    <h2 class="text-center mb-4">Admin Panel</h2>
+
+    <div class="d-flex border-bottom mb-4">
+        <a href="{{ url_for('admin_panel') }}" class="nav-link px-3 py-2">Dashboard</a>
+        <a href="{{ url_for('admin_artworks_view') }}" class="nav-link px-3 py-2">Artworks</a>
+        <a href="{{ url_for('admin_orders_view') }}" class="nav-link px-3 py-2 active border-bottom border-primary border-2">Orders</a>
+        <a href="{{ url_for('admin_categories_view') }}" class="nav-link px-3 py-2">Categories</a>
+    </div>
+
+    <h3 class="mb-4">Manage Orders</h3>
+
+    {% if orders %}
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Customer</th>
+                    <th>Contact</th>
+                    <th>Total (₹)</th>
+                    <th>Status</th>
+                    <th>Courier</th>
+                    <th>Tracking No.</th>
+                    <th>Placed On</th>
+                    <th>Invoice Status</th>
+                    <th>Remark</th> {# Keep remark as per current app.py, but ensure it's hidden if empty #}
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>{{ order.order_id }}</td>
+                    <td>
+                        {{ order.customer_name }}<br>
+                        <small class="text-muted">{{ order.user_email }}</small>
+                    </td>
+                    <td>
+                        {{ order.customer_phone | mask_phone_number }}<br>
+                        <small class="text-muted">{{ order.customer_address }}, {{ order.customer_pincode }}</small>
+                    </td>
+                    <td>₹{{ order.total_amount | float | int }}</td>
+                    <td>
+                        <span class="badge 
+                            {% if order.status == 'Shipped' %}bg-success
+                            {% elif order.status == 'Delivered' %}bg-primary
+                            {% elif order.status == 'Cancelled by User' or order.status == 'Cancelled by Admin' %}bg-danger
+                            {% elif order.status == 'Payment Submitted - Awaiting Verification' %}bg-warning text-dark
+                            {% else %}bg-info text-dark{% endif %}">
+                            {{ order.status }}
+                        </span>
+                    </td>
+                    <td>{{ order.courier if order.courier else 'N/A' }}</td>
+                    <td>{{ order.tracking_number if order.tracking_number else 'N/A' }}</td>
+                    <td>{{ order.placed_on }}</td>
+                    <td>
+                        <span class="badge 
+                            {% if order.invoice_details and order.invoice_details.invoice_status == 'Sent' %}bg-success
+                            {% elif order.invoice_details and order.invoice_details.invoice_status == 'Held' %}bg-warning text-dark
+                            {% elif order.invoice_details and (order.invoice_details.invoice_status == 'PDF Gen Failed' or order.invoice_details.invoice_status == 'Email Failed') %}bg-danger
+                            {% elif order.invoice_details and order.invoice_details.invoice_status == 'Edited' %}bg-info
+                            {% else %}bg-secondary{% endif %}">
+                            {{ order.invoice_details.invoice_status if order.invoice_details else 'N/A' }}
+                        </span>
+                    </td>
+                    <td>
+                        <textarea class="form-control form-control-sm" rows="2" disabled>{{ order.remark if order.remark else 'No remarks' }}</textarea>
+                    </td>
+                    <td>
+                        <div class="d-flex flex-column gap-2">
+                            <form action="{{ url_for('admin_orders_update') }}" method="POST">
+                                <input type="hidden" name="order_id" value="{{ order.order_id }}">
+                                <select name="status" class="form-select form-select-sm mb-2" onchange="this.form.submit()">
+                                    <option value="Pending Payment" {% if order.status == 'Pending Payment' %}selected{% endif %}>Pending Payment</option>
+                                    <option value="Payment Submitted - Awaiting Verification" {% if order.status == 'Payment Submitted - Awaiting Verification' %}selected{% endif %}>Awaiting Verification</option>
+                                    <option value="Processing" {% if order.status == 'Processing' %}selected{% endif %}>Processing</option>
+                                    <option value="Shipped" {% if order.status == 'Shipped' %}selected{% endif %}>Shipped</option>
+                                    <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                                    <option value="Cancelled by Admin" {% if order.status == 'Cancelled by Admin' %}selected{% endif %}>Cancelled by Admin</option>
+                                </select>
+                                <input type="text" name="courier" class="form-control form-control-sm mb-2" placeholder="Courier" value="{{ order.courier if order.courier }}">
+                                <input type="text" name="tracking_number" class="form-control form-control-sm mb-2" placeholder="Tracking Number" value="{{ order.tracking_number if order.tracking_number }}">
+                                <button type="submit" class="btn btn-sm btn-outline-primary w-100">Update Status</button>
+                            </form>
+                            
+                            <hr class="my-2">
+
+                            <a href="{{ url_for('admin_edit_invoice', order_id=order.order_id) }}" class="btn btn-sm btn-info w-100">Edit Invoice</a>
+                            
+                            {% if order.invoice_details and order.invoice_details.is_held_by_admin %}
+                            <form action="{{ url_for('admin_release_invoice', order_id=order.order_id) }}" method="POST">
+                                <button type="submit" class="btn btn-sm btn-warning w-100">Release Invoice</button>
+                            </form>
+                            {% else %}
+                            <form action="{{ url_for('admin_hold_invoice', order_id=order.order_id) }}" method="POST">
+                                <button type="submit" class="btn btn-sm btn-secondary w-100">Hold Invoice</button>
+                            </form>
+                            {% endif %}
+                            
+                            <form action="{{ url_for('admin_send_invoice_email', order_id=order.order_id) }}" method="POST" onsubmit="return confirm('Are you sure you want to manually send invoice email?');">
+                                <button type="submit" class="btn btn-sm btn-success w-100">Send Invoice Email</button>
+                            </form>
+                            <a href="{{ url_for('download_invoice', order_id=order.order_id) }}" class="btn btn-sm btn-dark w-100">Download Invoice</a>
+
+                            <form action="{{ url_for('delete_order', order_id=order.order_id) }}" method="get" onsubmit="return confirm('Are you sure you want to delete this order? This action cannot be undone.');">
+                                <button type="submit" class="btn btn-sm btn-danger w-100 mt-2">Delete Order</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info text-center" role="alert">
+        No orders found.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

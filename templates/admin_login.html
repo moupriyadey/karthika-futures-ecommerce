@@ -2,40 +2,26 @@
 
 {% block title %}Admin Login - Karthika Futures{% endblock %}
 
-{% block extra_css %}
-<style>
-    .login-container {
-        max-width: 400px;
-        margin: 50px auto;
-        padding: 30px;
-        border-radius: 8px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        background-color: #fff;
-    }
-    .form-label {
-        font-weight: bold;
-    }
-    .btn-primary {
-        width: 100%;
-        padding: 10px;
-        font-size: 1.1rem;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="container login-container">
-    <h2 class="text-center mb-4">Admin Login</h2>
-    <form method="POST">
-        <div class="mb-3">
-            <label for="email" class="form-label">Email address</label>
-            <input type="email" class="form-control" id="email" name="email" required autocomplete="off" placeholder="Enter admin email">
+<div class="container d-flex justify-content-center align-items-center min-vh-100" style="padding-top: 56px;">
+    <div class="card shadow-lg p-4" style="max-width: 400px; width: 100%;">
+        <div class="card-body">
+            <h2 class="card-title text-center mb-4">Admin Login</h2>
+            <form method="POST" action="{{ url_for('admin_login') }}">
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email address</label>
+                    <input type="email" class="form-control" id="email" name="email" required autofocus>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary btn-lg">Login</button>
+                </div>
+            </form>
         </div>
-        <div class="mb-3">
-            <label for="password" class="form-label">Password</label>
-            <input type="password" class="form-control" id="password" name="password" required autocomplete="new-password" placeholder="Enter password">
-        </div>
-        <button type="submit" class="btn btn-primary">Login</button>
-    </form>
+    </div>
 </div>
 {% endblock %}
+

@@ -1,446 +1,174 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Cart - Karthika Futures</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-            color: #333;
-            line-height: 1.6;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-        .header {
-            background-color: #ffffff;
-            padding: 1.5rem 2rem;
-            border-bottom: 1px solid #e2e8f0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            border-radius: 0.75rem;
-            margin-bottom: 2rem;
-        }
-        .logo {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: #4a5568;
-        }
-        .nav-link {
-            padding: 0.5rem 1rem;
-            color: #4a5568;
-            font-weight: 500;
-            transition: color 0.2s ease-in-out;
-        }
-        .nav-link:hover {
-            color: #2d3748;
-        }
-        .btn-primary {
-            background-color: #4f46e5;
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            transition: background-color 0.2s ease-in-out;
-        }
-        .btn-primary:hover {
-            background-color: #4338ca;
-        }
-        .card {
-            background-color: #ffffff;
-            border-radius: 0.75rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 2rem;
-        }
-        .flash-messages {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            z-index: 1000;
-        }
-        .flash-message {
-            padding: 1rem;
-            border-radius: 0.5rem;
-            margin-bottom: 0.5rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            opacity: 0;
-            animation: fadeInOut 5s forwards;
-        }
-        .flash-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .flash-danger {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .flash-info {
-            background-color: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-        @keyframes fadeInOut {
-            0% { opacity: 0; transform: translateY(-20px); }
-            10% { opacity: 1; transform: translateY(0); }
-            90% { opacity: 1; transform: translateY(0); }
-            100% { opacity: 0; transform: translateY(-20px); }
-        }
-        /* Item specific styles */
-        .cart-item {
-            display: flex;
-            align-items: center;
-            padding: 1rem 0;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        .cart-item:last-child {
-            border-bottom: none;
-        }
-        .cart-item-image {
-            width: 80px;
-            height: 80px;
-            object-fit: cover;
-            border-radius: 0.5rem;
-            margin-right: 1rem;
-        }
-        .cart-item-details {
-            flex-grow: 1;
-        }
-        .cart-item-name {
-            font-weight: 600;
-            font-size: 1.125rem;
-            color: #1f2937;
-        }
-        .cart-item-options {
-            font-size: 0.875rem;
-            color: #6b7280;
-        }
-        .cart-item-price {
-            font-weight: 600;
-            font-size: 1rem;
-            color: #4b5563;
-            margin-left: 1rem;
-            width: 100px;
-            text-align: right;
-        }
-        .quantity-control {
-            display: flex;
-            align-items: center;
-            margin-left: 1rem;
-        }
-        .quantity-control button {
-            background-color: #e5e7eb;
-            color: #374151;
-            padding: 0.25rem 0.6rem;
-            border-radius: 0.25rem;
-            font-weight: 600;
-            transition: background-color 0.2s ease;
-        }
-        .quantity-control button:hover:not(:disabled) {
-            background-color: #d1d5db;
-        }
-        .quantity-control button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .quantity-control input {
-            width: 50px;
-            text-align: center;
-            border: 1px solid #d1d5db;
-            border-radius: 0.25rem;
-            margin: 0 0.5rem;
-        }
-        .remove-button {
-            background-color: #ef4444;
-            color: white;
-            padding: 0.25rem 0.6rem;
-            border-radius: 0.25rem;
-            font-weight: 600;
-            transition: background-color 0.2s ease;
-            margin-left: 1rem;
-        }
-        .remove-button:hover {
-            background-color: #dc2626;
-        }
-    </style>
-</head>
-<body class="bg-gray-100 min-h-screen flex flex-col">
-    <header class="header">
-        <div class="logo">Karthika Futures</div>
-        <nav>
-            <a href="{{ url_for('index') }}" class="nav-link">Home</a>
-            <a href="{{ url_for('all_products') }}" class="nav-link">All Products</a>
-            {% if current_user.is_authenticated %}
-                <a href="{{ url_for('user_dashboard') }}" class="nav-link">Dashboard</a>
-                <a href="{{ url_for('my_orders') }}" class="nav-link">My Orders</a>
-                <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
-            {% else %}
-                <a href="{{ url_for('user_login') }}" class="nav-link">Login</a>
-                <a href="{{ url_for('signup') }}" class="nav-link">Signup</a>
-            {% endif %}
-            <a href="{{ url_for('cart') }}" class="btn-primary flex items-center justify-center space-x-2">
-                <i class="fas fa-shopping-cart"></i> <span>Cart (<span id="cart-item-count">0</span>)</span>
-            </a>
-        </nav>
-    </header>
+{% extends 'base.html' %}
 
-    <div class="flash-messages">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="flash-message flash-{{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-    </div>
+{% block content %}
+<div class="container mx-auto p-4 bg-white bg-opacity-90 rounded-lg shadow-lg">
+    <h2 class="text-4xl font-bold text-gray-800 mb-6 text-center">Your Shopping Cart</h2>
 
-    <main class="flex-grow container">
-        <h1 class="text-3xl font-bold text-gray-800 mb-8 text-center">Your Shopping Cart</h1>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div class="md:col-span-2 card">
-                {% if cart_items %}
-                    <div id="cart-items-list">
-                        {% for item in cart_items %}
-                        <div class="cart-item" data-item-id="{{ item.id | default('N/A') }}" data-sku="{{ item.sku | default('N/A') }}" data-original-unit-price="{{ item.unit_price_before_gst | default(0.0) }}" data-gst-percentage="{{ item.gst_percentage | default(0.0) }}" data-stock="{{ item.stock | default(0) }}">
-                            <img src="{{ url_for('static', filename=item.image | default('images/placeholder.png')) }}" alt="{{ item.name }}" class="cart-item-image">
-                            <div class="cart-item-details">
-                                <div class="cart-item-name">{{ item.name | default('N/A') }}</div>
-                                <div class="cart-item-options">
-                                    Size: {{ item.size | default('Original') }} | Frame: {{ item.frame | default('None') }} | Glass: {{ item.glass | default('None') }}
-                                </div>
-                                <div class="cart-item-options">
-                                    Unit Price (Pre-GST): ₹{{ item.unit_price_before_gst | default(0.0) | round(2) }} | GST: {{ item.gst_percentage | default(0.0) | round(2) }}%
-                                </div>
-                            </div>
-                            <div class="quantity-control">
-                                <button class="quantity-decrease rounded-l-md" data-item-id="{{ item.id }}">-</button>
-                                <input type="number" value="{{ item.quantity | default(1) }}" min="1" max="{{ item.stock | default(0) }}" class="quantity-input" data-item-id="{{ item.id }}" readonly>
-                                <button class="quantity-increase rounded-r-md" data-item-id="{{ item.id }}">+</button>
-                            </div>
-                            <div class="cart-item-price">₹<span class="item-total-price-display">{{ item.calculated_display_price | default(0.0) | round(2) }}</span></div>
-                            <button class="remove-button rounded-md" data-item-id="{{ item.id }}"><i class="fas fa-trash-alt"></i></button>
-                        </div>
-                        {% endfor %}
+    {% if cart_items %}
+    <div class="flex flex-col lg:flex-row gap-8">
+        <!-- Cart Items List -->
+        <div class="lg:w-2/3 space-y-4">
+            {% for item in cart_items %}
+            <div class="flex items-center bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200">
+                <img src="{{ url_for('static', filename=item.image) }}" alt="{{ item.name }}" class="w-24 h-24 object-cover rounded-md mr-4 shadow-md">
+                <div class="flex-grow">
+                    <h3 class="text-xl font-bold text-gray-900">{{ item.name }}</h3>
+                    <p class="text-gray-600 text-sm">
+                        {% if item.size and item.size != 'Original' %}Size: {{ item.size }} &nbsp;{% endif %}
+                        {% if item.frame and item.frame != 'None' %}Frame: {{ item.frame }} &nbsp;{% endif %}
+                        {% if item.glass and item.glass != 'None' %}Glass: {{ item.glass }}{% endif %}
+                    </p>
+                    <p class="text-gray-700 font-semibold mt-1">Unit Price: ₹{{ item.unit_price | float | int }}</p>
+                    <div class="flex items-center mt-2">
+                        <label for="quantity-{{ item.id }}" class="mr-2 text-gray-700">Quantity:</label>
+                        <input type="number" id="quantity-{{ item.id }}" value="{{ item.quantity }}" min="1"
+                               class="w-20 p-2 border border-gray-300 rounded-md text-center quantity-input"
+                               data-item-id="{{ item.id }}">
                     </div>
-                {% else %}
-                    <p class="text-center text-gray-600 text-lg">Your cart is empty.</p>
-                {% endif %}
+                </div>
+                <div class="text-right flex flex-col items-end">
+                    <p class="text-lg font-bold text-blue-600">Total: ₹{{ item.calculated_display_price | float | int }}</p>
+                    <button class="bg-red-500 hover:bg-red-600 text-white py-1.5 px-3 rounded-md mt-2 text-sm remove-from-cart-btn"
+                            data-item-id="{{ item.id }}">
+                        Remove
+                    </button>
+                </div>
             </div>
+            {% endfor %}
+        </div>
 
-            <div class="md:col-span-1 card flex flex-col justify-between">
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-800 mb-6">Order Summary</h2>
-                    <div class="space-y-3 text-lg">
-                        <div class="flex justify-between">
-                            <span>Subtotal (Pre-GST):</span>
-                            <span>₹<span id="summary-subtotal">{{ subtotal_before_gst | default(0.0) | round(2) }}</span></span>
-                        </div>
-                        <div class="flex justify-between text-sm text-gray-600 ml-4">
-                            <span>Total GST:</span>
-                            <span>₹<span id="summary-total-gst">{{ total_gst_amount | default(0.0) | round(2) }}</span></span>
-                        </div>
-                        <div class="flex justify-between text-sm text-gray-600 ml-8">
-                            <span>CGST:</span>
-                            <span>₹<span id="summary-cgst">{{ cgst_amount | default(0.0) | round(2) }}</span></span>
-                        </div>
-                        <div class="flex justify-between text-sm text-gray-600 ml-8">
-                            <span>SGST:</span>
-                            <span>₹<span id="summary-sgst">{{ sgst_amount | default(0.0) | round(2) }}</span></span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span>Shipping Charges:</span>
-                            <span>₹<span id="summary-shipping">{{ shipping_charge | default(0.0) | round(2) }}</span></span>
-                        </div>
-                        <div class="border-t pt-4 mt-4 flex justify-between font-bold text-xl text-gray-900">
-                            <span>Grand Total:</span>
-                            <span>₹<span id="summary-grand-total">{{ grand_total | default(0.0) | round(2) }}</span></span>
-                        </div>
-                    </div>
+        <!-- Order Summary -->
+        <div class="lg:w-1/3 bg-gray-50 p-6 rounded-lg shadow-md border border-gray-200 h-fit sticky top-24">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4">Order Summary</h3>
+            <div class="space-y-3 text-gray-700">
+                <div class="flex justify-between">
+                    <span>Subtotal (before GST):</span>
+                    <span class="font-semibold">₹{{ subtotal_before_gst | float | int }}</span>
                 </div>
-                
-                <div class="mt-8">
-                    <form id="checkout-form" action="{{ url_for('purchase_form') }}" method="post">
-                        <input type="hidden" name="cart_json" id="cart-json-input" value="{{ cart_items | tojson }}">
-                        <input type="hidden" name="shipping_charge" id="shipping-charge-input" value="{{ shipping_charge | default(0.0) }}">
-                        <button type="submit" id="checkout-button" class="w-full btn-primary py-3 px-6 text-xl rounded-lg shadow-lg hover:shadow-xl transition duration-300">
-                            Proceed to Checkout
-                        </button>
-                    </form>
+                <div class="flex justify-between">
+                    <span>GST (Total):</span>
+                    <span class="font-semibold">₹{{ total_gst_amount | float | int }}</span>
                 </div>
+                <div class="flex justify-between text-sm ml-4">
+                    <span>CGST:</span>
+                    <span>₹{{ cgst_amount | float | int }}</span>
+                </div>
+                <div class="flex justify-between text-sm ml-4">
+                    <span>SGST:</span>
+                    <span>₹{{ sgst_amount | float | int }}</span>
+                </div>
+                <div class="flex justify-between border-t border-gray-200 pt-3 mt-3">
+                    <span>Shipping Charges:</span>
+                    <span class="font-semibold">
+                        {% if shipping_charge > 0 %}
+                            ₹{{ shipping_charge | float | int }}
+                        {% else %}
+                            Free Shipping
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="flex justify-between text-xl font-bold text-gray-900 border-t-2 border-gray-300 pt-4 mt-4">
+                    <span>Grand Total:</span>
+                    <span>₹{{ grand_total | float | int }}</span>
+                </div>
+            </div>
+            <form action="{{ url_for('purchase_form') }}" method="POST" class="mt-6">
+                <input type="hidden" name="cart_json" id="cart-json-input">
+                <input type="hidden" name="shipping_charge" value="{{ shipping_charge }}">
+                <button type="submit"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 transform hover:scale-105 shadow-md">
+                    Proceed to Checkout
+                </button>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <p class="text-center text-gray-600 text-lg py-8">Your cart is empty. Start shopping now!</p>
+    <div class="lg:w-1/3 mx-auto bg-gray-50 p-6 rounded-lg shadow-md border border-gray-200 h-fit">
+        <h3 class="text-2xl font-bold text-gray-800 mb-4">Order Summary</h3>
+        <div class="space-y-3 text-gray-700">
+            <div class="flex justify-between">
+                <span>Subtotal (before GST):</span>
+                <span class="font-semibold">₹0</span>
+            </div>
+            <div class="flex justify-between">
+                <span>GST (Total):</span>
+                <span class="font-semibold">₹0</span>
+            </div>
+            <div class="flex justify-between text-sm ml-4">
+                <span>CGST:</span>
+                <span>₹0</span>
+            </div>
+            <div class="flex justify-between text-sm ml-4">
+                <span>SGST:</span>
+                <span>₹0</span>
+            </div>
+            <div class="flex justify-between border-t border-gray-200 pt-3 mt-3">
+                <span>Shipping Charges:</span>
+                <span class="font-semibold">Free Shipping</span>
+            </div>
+            <div class="flex justify-between text-xl font-bold text-gray-900 border-t-2 border-gray-300 pt-4 mt-4">
+                <span>Grand Total:</span>
+                <span>₹0</span>
             </div>
         </div>
-    </main>
+        <a href="{{ url_for('all_products') }}" class="w-full text-center block bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 transform hover:scale-105 shadow-md mt-6">
+            Continue Shopping
+        </a>
+    </div>
+    {% endif %}
+</div>
 
-    <script>
-        // Global variable for default shipping charge, keep in sync with Flask
-        // Make sure this is correctly passed from Flask context to match your app.py DEFAULT_SHIPPING_CHARGE
-        const DEFAULT_SHIPPING_CHARGE_JS = parseFloat("{{ shipping_charge | default(0.0) | round(2) }}"); 
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Function to update cart item quantity and trigger server sync
+        const quantityInputs = document.querySelectorAll('.quantity-input');
+        quantityInputs.forEach(input => {
+            input.addEventListener('change', (event) => {
+                const itemId = event.target.dataset.itemId;
+                let newQuantity = parseInt(event.target.value);
 
-        const cartItemCountSpan = document.getElementById('cart-item-count');
-        const cartItemsListDiv = document.getElementById('cart-items-list');
-        const summarySubtotalSpan = document.getElementById('summary-subtotal');
-        const summaryTotalGstSpan = document.getElementById('summary-total-gst');
-        const summaryCgstSpan = document.getElementById('summary-cgst');
-        const summarySgstSpan = document.getElementById('summary-sgst');
-        const summaryShippingSpan = document.getElementById('summary-shipping');
-        const summaryGrandTotalSpan = document.getElementById('summary-grand-total');
-        const checkoutButton = document.getElementById('checkout-button');
-        const cartJsonInput = document.getElementById('cart-json-input');
-        const shippingChargeInput = document.getElementById('shipping-charge-input');
-
-        let cart = JSON.parse(sessionStorage.getItem('cart')) || {};
-
-        function updateCartDisplay() {
-            let totalItems = 0;
-            let currentSubtotalBeforeGst = 0;
-            let currentTotalGstAmount = 0;
-
-            cartItemsListDiv.innerHTML = ''; // Clear existing items
-
-            if (Object.keys(cart).length === 0) {
-                cartItemsListDiv.innerHTML = '<p class="text-center text-gray-600 text-lg">Your cart is empty.</p>';
-                checkoutButton.disabled = true;
-                checkoutButton.classList.add('opacity-50', 'cursor-not-allowed');
-            } else {
-                checkoutButton.disabled = false;
-                checkoutButton.classList.remove('opacity-50', 'cursor-not-allowed');
-
-                for (const itemId in cart) {
-                    const item = cart[itemId];
-                    totalItems += item.quantity;
-
-                    // Recalculate item totals to ensure consistency with backend
-                    const itemPriceBeforeGst = (item.unit_price_before_gst || 0) * (item.quantity || 1);
-                    const itemGstAmount = itemPriceBeforeGst * ((item.gst_percentage || 0) / 100);
-                    const itemTotalPriceWithGst = itemPriceBeforeGst + itemGstAmount;
-
-                    item.total_price_before_gst = itemPriceBeforeGst;
-                    item.gst_amount = itemGstAmount;
-                    item.total_price = itemTotalPriceWithGst; // This is the total for this item WITH GST
-                    item.calculated_display_price = itemTotalPriceWithGst; // For display in cart
-
-                    currentSubtotalBeforeGst += item.total_price_before_gst;
-                    currentTotalGstAmount += item.gst_amount;
-
-                    const itemHtml = `
-                        <div class="cart-item" data-item-id="${item.id || 'N/A'}" data-sku="${item.sku || 'N/A'}" data-original-unit-price="${item.unit_price_before_gst || 0}" data-gst-percentage="${item.gst_percentage || 0}" data-stock="${item.stock || 0}">
-                            <img src="${Flask.url_for('static', filename=item.image || 'images/placeholder.png')}" alt="${item.name || 'N/A'}" class="cart-item-image">
-                            <div class="cart-item-details">
-                                <div class="cart-item-name">${item.name || 'N/A'}</div>
-                                <div class="cart-item-options">
-                                    Size: ${item.size || 'Original'} | Frame: ${item.frame || 'None'} | Glass: ${item.glass || 'None'}
-                                </div>
-                                <div class="cart-item-options">
-                                    Unit Price (Pre-GST): ₹${(item.unit_price_before_gst || 0).toFixed(2)} | GST: ${(item.gst_percentage || 0).toFixed(2)}%
-                                </div>
-                            </div>
-                            <div class="quantity-control">
-                                <button class="quantity-decrease rounded-l-md" data-item-id="${item.id}">-</button>
-                                <input type="number" value="${item.quantity || 1}" min="1" max="${item.stock || 0}" class="quantity-input" data-item-id="${item.id}" readonly>
-                                <button class="quantity-increase rounded-r-md" data-item-id="${item.id}">+</button>
-                            </div>
-                            <div class="cart-item-price">₹<span class="item-total-price-display">${(item.calculated_display_price || 0).toFixed(2)}</span></div>
-                            <button class="remove-button rounded-md" data-item-id="${item.id}"><i class="fas fa-trash-alt"></i></button>
-                        </div>
-                    `;
-                    cartItemsListDiv.insertAdjacentHTML('beforeend', itemHtml);
+                if (isNaN(newQuantity) || newQuantity < 0) {
+                    newQuantity = 1; // Default to 1 if invalid
+                    event.target.value = 1;
                 }
-            }
 
-            const currentCgstAmount = currentTotalGstAmount / 2;
-            const currentSgstAmount = currentTotalGstAmount / 2;
-            let currentShippingCharge = DEFAULT_SHIPPING_CHARGE_JS;
-
-            // If subtotal is 0 (empty cart), shipping is also 0
-            if (currentSubtotalBeforeGst === 0 && currentTotalGstAmount === 0) {
-                currentShippingCharge = 0;
-            }
-
-            const currentGrandTotal = currentSubtotalBeforeGst + currentTotalGstAmount + currentShippingCharge;
-
-            cartItemCountSpan.textContent = totalItems;
-            summarySubtotalSpan.textContent = currentSubtotalBeforeGst.toFixed(2);
-            summaryTotalGstSpan.textContent = currentTotalGstAmount.toFixed(2);
-            summaryCgstSpan.textContent = currentCgstAmount.toFixed(2);
-            summarySgstSpan.textContent = currentSgstAmount.toFixed(2);
-            summaryShippingSpan.textContent = currentShippingCharge.toFixed(2);
-            summaryGrandTotalSpan.textContent = currentGrandTotal.toFixed(2);
-
-            // Update hidden inputs for checkout form submission
-            cartJsonInput.value = JSON.stringify(Object.values(cart)); // Send cart as a list of values
-            shippingChargeInput.value = currentShippingCharge.toFixed(2); // Ensure shipping is passed to purchase_form
-            
-            // Send updated cart to Flask session
-            sendCartToServer(cart); 
-        }
-
-        async function sendCartToServer(updatedCart) {
-            try {
-                const response = await fetch('/update_cart_session', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ cart: updatedCart })
-                });
-                const data = await response.json();
-                if (!data.success) {
-                    console.error("Failed to update server session cart:", data.message);
-                    // Optionally alert user or handle error gracefully
-                }
-            } catch (error) {
-                console.error("Error sending cart to server:", error);
-                // Optionally alert user or handle error gracefully
-            }
-        }
-
-        // Event listeners for quantity changes and removal
-        cartItemsListDiv.addEventListener('click', async (event) => {
-            const button = event.target.closest('button');
-            if (!button) return;
-
-            const itemId = button.dataset.itemId;
-            const itemElement = cartItemsListDiv.querySelector(`[data-item-id="${itemId}"]`);
-            const quantityInput = itemElement.querySelector('.quantity-input');
-            const currentStock = parseInt(itemElement.dataset.stock || 0); // Default to 0
-
-            if (button.classList.contains('quantity-increase')) {
-                let newQuantity = parseInt(quantityInput.value || 1) + 1; // Default to 1
-                if (newQuantity <= currentStock) {
-                    quantityInput.value = newQuantity;
-                    cart[itemId].quantity = newQuantity;
-                } else {
-                    alert(`Maximum stock for this item is ${currentStock}.`);
-                }
-            } else if (button.classList.contains('quantity-decrease')) {
-                let newQuantity = parseInt(quantityInput.value || 1) - 1; // Default to 1
-                if (newQuantity >= 1) {
-                    quantityInput.value = newQuantity;
-                    cart[itemId].quantity = newQuantity;
-                }
-            } else if (button.classList.contains('remove-button')) {
-                if (confirm('Are you sure you want to remove this item from your cart?')) {
-                    delete cart[itemId];
-                } else {
-                    return; // Do not update if cancellation
-                }
-            }
-            updateCartDisplay();
+                updateCartItemQuantity(itemId, newQuantity);
+                // Reload the page after updating to reflect new totals.
+                // In a real application, you might update the UI dynamically with AJAX.
+                window.location.reload(); 
+            });
         });
 
-        // Initial display update on page load
-        updateCartDisplay();
-    </script>
-</body>
-</html>
+        // Function to remove item from cart
+        const removeButtons = document.querySelectorAll('.remove-from-cart-btn');
+        removeButtons.forEach(button => {
+            button.addEventListener('click', (event) => {
+                const itemId = event.target.dataset.itemId;
+                removeFromCart(itemId);
+                // Reload the page after removing to reflect new totals.
+                window.location.reload(); 
+            });
+        });
+
+        // Populate hidden input with cart data before form submission
+        const purchaseForm = document.querySelector('form[action*="purchase-form"]');
+        if (purchaseForm) {
+            purchaseForm.addEventListener('submit', (event) => {
+                document.getElementById('cart-json-input').value = JSON.stringify(Object.values(cart));
+            });
+        }
+    });
+
+    // Client-side cart functions (from base.html, repeated here for clarity if this file is viewed standalone)
+    // Should generally be loaded once via base.html's script block
+    // These are placeholders/references, actual functions are in base.html script tag
+    // let cart = JSON.parse(localStorage.getItem('cart')) || {}; // Already defined in base.html
+    // function updateCartCount() { /* ... defined in base.html ... */ }
+    // function addToCart() { /* ... defined in base.html ... */ }
+    // function removeFromCart() { /* ... defined in base.html ... */ }
+    // function updateCartItemQuantity() { /* ... defined in base.html ... */ }
+    // function syncCartWithServer() { /* ... defined in base.html ... */ }
+
+</script>
+{% endblock %}

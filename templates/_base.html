@@ -6,22 +6,43 @@
     <title>{% block title %}Karthika Futures{% endblock %}</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" xintegrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <!-- Google Fonts: Inter (if preferred, or keep your Segoe UI) -->
+    <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     
-    <!-- Your custom global CSS (e.g., style.css if you have one) -->
-    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"> -->
-
     <style>
         body {
-            font-family: 'Inter', sans-serif; /* Changed from Segoe UI for consistency with Inter from my side */
-            background-color: #f0f2f5; 
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5; /* Light grey base */
             display: flex;
             flex-direction: column;
             min-height: 100vh;
+            /* Peacock feather background with subtle fade */
+            background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Peacock_Feather_at_RHS_Wisley.jpg/1024px-Peacock_Feather_at_RHS_Wisley.jpg'); 
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            position: relative;
+            z-index: 1; /* Ensure content is above background */
         }
+
+        /* Overlay for the peacock feather to give a fade shade and professionalism */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* A subtle gradient overlay from a light, warm tone to transparent */
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.5) 50%, rgba(255, 255, 255, 0.3) 100%); 
+            backdrop-filter: blur(1px); /* Slight blur for more ethereal feel */
+            -webkit-backdrop-filter: blur(1px); /* For Safari */
+            z-index: -1; /* Place behind content but above the image */
+        }
+
         .navbar {
             background-color: #fff;
             box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
@@ -138,7 +159,9 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-light fixed-top shadow">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{{ url_for('index') }}">🖼️ Karthika Futures</a>
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-palette me-2"></i> Karthika Futures
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -146,6 +169,17 @@
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('index') }}">Home</a>
+                    </li>
+                    <!-- Categories Dropdown (Dynamic) -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="categoriesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Categories
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="categoriesDropdown">
+                            {% for category in categories %}
+                            <li><a class="dropdown-item" href="{{ url_for('search_products', query=category) }}">{{ category }}</a></li>
+                            {% endfor %}
+                        </ul>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('all_products') }}">Explore Artworks</a>
@@ -157,6 +191,14 @@
                     </li>
                     {% endif %}
                 </ul>
+                <!-- Search Bar within Navbar -->
+                <form class="d-flex me-3" action="{{ url_for('search_products') }}" method="GET">
+                    <div class="input-group">
+                        <input class="form-control" type="search" placeholder="Search..." aria-label="Search" name="query" id="navbar-search-input">
+                        <button class="btn btn-outline-secondary" type="submit"><i class="fas fa-search"></i></button>
+                    </div>
+                </form>
+
                 <ul class="navbar-nav">
                     {# User login/profile links, conditional on login status #}
                     {% if current_user.is_authenticated %}
@@ -219,7 +261,7 @@
             <img src="{{ url_for('static', filename='uploads/qr_code.png') }}" alt="Donation QR Code" style="max-width:150px;"> 
             <hr class="bg-light"> 
             <p class="mb-1">🛕 <strong>Karthika Futures</strong> - Divine Art Marketplace</p> 
-            <p class="text-muted small mb-0">© {{ current_year | default(2024) }} Karthika Futures. All rights reserved.</p> 
+            <p class="text-muted small mb-0">© {{ g.current_year | default(2024) }} Karthika Futures. All rights reserved.</p> 
         </div>
     </footer>
 
@@ -245,7 +287,7 @@
 
         // Global function to update the cart count in the navbar
         function updateCartCountDisplay() {
-            const cart = JSON.parse(sessionStorage.getItem('cart') || '{}'); // Cart stored as object
+            const cart = JSON.parse(localStorage.getItem('cart') || '{}'); // Use localStorage consistently
             const cartCountElement = document.getElementById('cart-count'); 
             if (cartCountElement) {
                 // Sum quantities from all items in the cart object
@@ -263,7 +305,7 @@
         // Global function to sync client-side cart to server session (AJAX call)
         async function syncCartToServer() {
             console.log("DEBUG: Attempting to sync client-side cart to server...");
-            const clientCart = JSON.parse(sessionStorage.getItem('cart') || '{}');
+            const clientCart = JSON.parse(localStorage.getItem('cart') || '{}'); // Use localStorage consistently
 
             try {
                 const response = await fetch('{{ url_for("update_cart_session") }}', {
@@ -295,7 +337,6 @@
             }
 
             // Remove any existing alerts in this container before adding a new one
-            // This ensures only one custom cart alert is visible at a time
             while (alertContainer.firstChild) {
                 alertContainer.removeChild(alertContainer.firstChild);
             }
@@ -324,9 +365,8 @@
 
         // --- Global Image Modal Logic (moved from original index.html) ---
         document.addEventListener('DOMContentLoaded', function() {
-            // Event listener for opening the modal from any image with class 'card-img-top'
-            // This is for thumbnails that directly trigger the modal
-            document.querySelectorAll('.card-img-top').forEach(img => { 
+            // Event listener for opening the modal from any image with class 'clickable-image'
+            document.querySelectorAll('.clickable-image').forEach(img => { 
                 img.style.cursor = 'zoom-in'; 
                 img.addEventListener('click', () => { 
                     document.getElementById('modalImage').src = img.src; 

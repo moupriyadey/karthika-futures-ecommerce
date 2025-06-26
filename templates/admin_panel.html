@@ -1,336 +1,142 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - Karthika Futures</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-        }
-        .sidebar {
-            width: 250px;
-            background-color: #1a202c; /* Darker sidebar */
-            color: #e2e8f0;
-            padding: 1.5rem;
-            min-height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            display: flex;
-            flex-direction: column;
-            border-top-right-radius: 1rem; /* Rounded corner */
-            border-bottom-right-radius: 1rem; /* Rounded corner */
-        }
-        .sidebar a {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1rem;
-            margin-bottom: 0.5rem;
-            border-radius: 0.5rem;
-            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
-        }
-        .sidebar a:hover {
-            background-color: #2d3748; /* Slightly lighter on hover */
-            color: #ffffff;
-        }
-        .sidebar a.active {
-            background-color: #4a5568; /* Active item background */
-            color: #ffffff;
-            font-weight: 600;
-        }
-        .sidebar .icon {
-            margin-right: 0.75rem;
-            font-size: 1.25rem;
-        }
-        .main-content {
-            margin-left: 250px; /* Offset by sidebar width */
-            padding: 2rem;
-            flex-grow: 1;
-        }
-        .table-container {
-            overflow-x: auto;
-            background-color: #ffffff;
-            border-radius: 0.75rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 1.5rem;
-        }
-        th, td {
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid #e2e8f0;
-            white-space: nowrap; /* Prevent wrapping for better CSV viewing */
-        }
-        th {
-            background-color: #edf2f7;
-            font-weight: 600;
-            text-align: left;
-        }
-        tr:last-child td {
-            border-bottom: none;
-        }
-        .flash-messages {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            z-index: 1000;
-        }
-        .flash-message {
-            padding: 1rem;
-            border-radius: 0.5rem;
-            margin-bottom: 0.5rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            opacity: 0;
-            animation: fadeInOut 5s forwards;
-        }
-        .flash-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .flash-danger {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .flash-info {
-            background-color: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-        @keyframes fadeInOut {
-            0% { opacity: 0; transform: translateY(-20px); }
-            10% { opacity: 1; transform: translateY(0); }
-            90% { opacity: 1; transform: translateY(0); }
-            100% { opacity: 0; transform: translateY(-20px); }
-        }
+{% extends '_base.html' %}
 
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
-                border-radius: 0;
-                min-height: auto;
-            }
-            .main-content {
-                margin-left: 0;
-                padding: 1rem;
-            }
-            .sidebar-menu {
-                flex-direction: row;
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-            .sidebar a {
-                flex: 1 1 auto; /* Allow items to grow and shrink */
-                text-align: center;
-                padding: 0.5rem;
-                margin: 0.25rem;
-            }
-            .sidebar .icon {
-                margin-right: 0;
-                margin-bottom: 0.25rem;
-            }
-        }
-    </style>
-</head>
-<body class="flex">
-    <aside class="sidebar">
-        <div class="text-2xl font-bold mb-8 text-center">Admin Panel</div>
-        <nav class="sidebar-menu flex-grow">
-            <a href="{{ url_for('admin_panel') }}" class="active">
-                <i class="fas fa-tachometer-alt icon"></i> Dashboard
-            </a>
-            <a href="{{ url_for('add_artwork') }}">
-                <i class="fas fa-plus-circle icon"></i> Add Artwork
-            </a>
-            <a href="{{ url_for('export_orders_csv') }}">
-                <i class="fas fa-file-csv icon"></i> Export Orders
-            </a>
-            <a href="{{ url_for('export_artworks_csv') }}">
-                <i class="fas fa-file-csv icon"></i> Export Artworks
-            </a>
-            <a href="{{ url_for('admin_logout') }}">
-                <i class="fas fa-sign-out-alt icon"></i> Logout
-            </a>
-        </nav>
-        <div class="mt-auto text-sm text-gray-500 text-center">
-            &copy; {{ current_year }} Karthika Futures
-        </div>
-    </aside>
+{% block title %}Admin Dashboard - Karthika Futures{% endblock %}
 
-    <main class="main-content">
-        <h1 class="text-3xl font-bold text-gray-800 mb-8">Admin Dashboard</h1>
+{% block content %}
+<div class="container main-content-area position-relative">
+    <h2 class="text-center mb-4">Admin Panel</h2>
 
-        <div class="flash-messages">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="flash-message flash-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
+    <div class="d-flex border-bottom mb-4">
+        <a href="{{ url_for('admin_panel') }}" class="nav-link px-3 py-2 active border-bottom border-primary border-2">Dashboard</a>
+        <a href="{{ url_for('admin_artworks_view') }}" class="nav-link px-3 py-2">Artworks</a>
+        <a href="{{ url_for('admin_orders_view') }}" class="nav-link px-3 py-2">Orders</a>
+        <a href="{{ url_for('admin_categories_view') }}" class="nav-link px-3 py-2">Categories</a>
+    </div>
+
+    <div class="space-y-4">
+        <h3 class="h4 mb-3">Quick Overview</h3>
+
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-4">
+            <!-- Total Artworks Card -->
+            <div class="col">
+                <div class="card text-white bg-info mb-3 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title">{{ artworks | length }}</h5>
+                            <i class="fas fa-palette fa-2x"></i>
+                        </div>
+                        <p class="card-text">Total Artworks</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Orders Card -->
+            <div class="col">
+                <div class="card text-white bg-success mb-3 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title">{{ orders | length }}</h5>
+                            <i class="fas fa-shopping-bag fa-2x"></i>
+                        </div>
+                        <p class="card-text">Total Orders</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Orders Card -->
+            <div class="col">
+                <div class="card text-white bg-warning mb-3 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title">
+                                {{ orders | selectattr('status', 'equalto', 'Pending Payment') | list | length }}
+                            </h5>
+                            <i class="fas fa-hourglass-half fa-2x"></i>
+                        </div>
+                        <p class="card-text">Pending Payments</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shipped Orders Card -->
+            <div class="col">
+                <div class="card text-white bg-primary mb-3 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title">
+                                {{ orders | selectattr('status', 'equalto', 'Shipped') | list | length }}
+                            </h5>
+                            <i class="fas fa-truck fa-2x"></i>
+                        </div>
+                        <p class="card-text">Shipped Orders</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delivered Orders Card -->
+            <div class="col">
+                <div class="card text-white bg-secondary mb-3 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title">
+                                {{ orders | selectattr('status', 'equalto', 'Delivered') | list | length }}
+                            </h5>
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                        <p class="card-text">Delivered Orders</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Invoices to Send (Prepared) -->
+            <div class="col">
+                <div class="card text-white bg-dark mb-3 shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title">
+                                {{ orders | selectattr('invoice_details.invoice_status', 'equalto', 'Prepared') | list | length }}
+                            </h5>
+                            <i class="fas fa-file-invoice-dollar fa-2x"></i>
+                        </div>
+                        <p class="card-text">Invoices to Send</p>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <section class="mb-12">
-            <h2 class="text-2xl font-semibold text-gray-700 mb-6">Artworks Management</h2>
-            <div class="table-container">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead>
-                        <tr>
-                            <th>SKU</th>
-                            <th>Name</th>
-                            <th>Category</th>
-                            <th>Original Price (₹)</th>
-                            <th>GST (%)</th>
-                            <th>Stock</th>
-                            <th>Description</th>
-                            <th>Image</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for artwork in artworks %}
-                        <tr>
-                            <td>{{ artwork.sku | default('N/A') }}</td>
-                            <td>{{ artwork.name | default('N/A') }}</td>
-                            <td>{{ artwork.category | default('N/A') }}</td>
-                            <td>₹{{ artwork.original_price | default(0.0) | round(2) }}</td>
-                            <td>{{ artwork.gst_percentage | default(0.0) | round(2) }}%</td> {# Display GST #}
-                            <td>{{ artwork.stock | default(0) }}</td>
-                            <td>{{ artwork.description | default('N/A') }}</td>
-                            <td>
-                                {% if artwork.image %}
-                                    <img src="{{ url_for('static', filename=artwork.image) }}" alt="{{ artwork.name }}" class="w-16 h-16 object-cover rounded-md">
-                                {% else %}
-                                    No Image
-                                {% endif %}
-                            </td>
-                            <td class="flex flex-wrap gap-2">
-                                <a href="{{ url_for('edit_artwork', sku=artwork.sku) }}" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md text-xs transition duration-200">Edit</a>
-                                <form action="{{ url_for('delete_artwork', sku=artwork.sku) }}" method="get" onsubmit="return confirm('Are you sure you want to delete this artwork? This action cannot be undone.');">
-                                    <button type="submit" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md text-xs transition duration-200">Delete</button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        <h3 class="h4 mb-3 mt-4">Quick Actions</h3>
+        <div class="row row-cols-1 row-cols-md-2 g-3">
+            <div class="col">
+                <a href="{{ url_for('add_artwork') }}" class="btn btn-primary d-block py-3">
+                    <i class="fas fa-plus-circle me-2"></i> Add New Artwork
+                </a>
             </div>
-        </section>
-
-        <section>
-            <h2 class="text-2xl font-semibold text-gray-700 mb-6">Orders Management</h2>
-            <div class="table-container">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead>
-                        <tr>
-                            <th>Order ID</th>
-                            <th>Customer Name</th>
-                            <th>Customer Phone</th>
-                            <th>Artwork(s)</th>
-                            <th>Subtotal (Pre-GST)</th> {# New Field #}
-                            <th>GST Amount (₹)</th> {# New Field #}
-                            <th>CGST (₹)</th> {# New Field #}
-                            <th>SGST (₹)</th> {# New Field #}
-                            <th>Shipping (₹)</th> {# New Field #}
-                            <th>Grand Total (₹)</th> {# New Field #}
-                            <th>Status</th>
-                            <th>Transaction ID</th>
-                            <th>Payment Screenshot</th>
-                            <th>Placed On</th>
-                            <th>Shipped On</th>
-                            <th>Invoice Status</th> {# New Field #}
-                            <th>Invoice PDF</th> {# New Field #}
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for order in orders | sort(attribute='placed_on', reverse=true) %}
-                        <tr>
-                            <td>{{ order.order_id | default('N/A') }}</td>
-                            <td>{{ order.customer_name | default('N/A') }}</td>
-                            <td>{{ order.customer_phone | mask_phone_number | default('N/A') }}</td>
-                            <td>
-                                {% for item in order.get('items', []) %} {# FIX: Use .get() with default empty list #}
-                                    {{ item.name | default('N/A') }} ({{ item.quantity | default(1) }}x) - Size: {{ item.size | default('Original') }}, Frame: {{ item.frame | default('None') }}, Glass: {{ item.glass | default('None') }}, GST: {{ item.gst_percentage | default(0.0) | round(2) }}%<br>
-                                {% endfor %}
-                            </td>
-                            <td>₹{{ order.subtotal_before_gst | default(0.0) | round(2) }}</td> {# Display Subtotal #}
-                            <td>₹{{ order.invoice_details.total_gst_amount | default(0.0) | round(2) }}</td> {# Display Total GST #}
-                            <td>₹{{ order.invoice_details.cgst_amount | default(0.0) | round(2) }}</td> {# Display CGST #}
-                            <td>₹{{ order.invoice_details.sgst_amount | default(0.0) | round(2) }}</td> {# Display SGST #}
-                            <td>₹{{ order.invoice_details.shipping_charge | default(0.0) | round(2) }}</td> {# Display Shipping #}
-                            <td>₹{{ order.invoice_details.final_invoice_amount | default(0.0) | round(2) }}</td> {# Display Grand Total #}
-                            <td>{{ order.status | default('N/A') }}</td>
-                            <td>{{ order.transaction_id | default('N/A') }}</td>
-                            <td>
-                                {% if order.payment_screenshot %}
-                                    <a href="{{ url_for('static', filename=order.payment_screenshot) }}" target="_blank" class="text-blue-500 hover:underline">View Screenshot</a>
-                                {% else %}
-                                    N/A
-                                {% endif %}
-                            </td>
-                            <td>{{ order.placed_on | default('N/A') }}</td>
-                            <td>{{ order.shipped_on | default('N/A') }}</td>
-                            <td>
-                                {{ order.invoice_details.invoice_status | default('N/A') }}
-                                {% if order.invoice_details.is_held_by_admin | default(False) %} (Held) {% endif %}
-                            </td>
-                            <td>
-                                {% if order.invoice_details.invoice_pdf_path %}
-                                    <a href="{{ url_for('static', filename=order.invoice_details.invoice_pdf_path) }}" target="_blank" class="text-blue-500 hover:underline">Download Invoice</a>
-                                {% else %}
-                                    N/A
-                                {% endif %}
-                            </td>
-                            <td class="flex flex-wrap gap-2">
-                                <form action="{{ url_for('admin_orders') }}" method="post" class="inline-block">
-                                    <input type="hidden" name="order_id" value="{{ order.order_id }}">
-                                    <select name="status" class="border rounded-md px-2 py-1 text-xs" onchange="this.form.submit()">
-                                        <option value="Pending Payment" {% if order.status == 'Pending Payment' %}selected{% endif %}>Pending Payment</option>
-                                        <option value="Payment Submitted - Awaiting Verification" {% if order.status == 'Payment Submitted - Awaiting Verification' %}selected{% endif %}>Awaiting Verification</option>
-                                        <option value="Processing" {% if order.status == 'Processing' %}selected{% endif %}>Processing</option>
-                                        <option value="Shipped" {% if order.status == 'Shipped' %}selected{% endif %}>Shipped</option>
-                                        <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
-                                        <option value="Cancelled by User" {% if order.status == 'Cancelled by User' %}selected{% endif %}>Cancelled by User</option>
-                                        <option value="Refunded" {% if order.status == 'Refunded' %}selected{% endif %}>Refunded</option>
-                                        <option value="Problem" {% if order.status == 'Problem' %}selected{% endif %}>Problem</option>
-                                    </select>
-                                    <input type="text" name="courier" placeholder="Courier (Optional)" value="{{ order.courier | default('') }}" class="border rounded-md px-2 py-1 mt-1 text-xs w-full">
-                                    <input type="text" name="tracking_number" placeholder="Tracking # (Optional)" value="{{ order.tracking_number | default('') }}" class="border rounded-md px-2 py-1 mt-1 text-xs w-full">
-                                    <button type="submit" class="bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-2 rounded-md text-xs mt-1 w-full">Update</button>
-                                </form>
-                                <form action="{{ url_for('delete_order', order_id=order.order_id) }}" method="get" onsubmit="return confirm('Are you sure you want to delete order {{ order.order_id }}? This will remove it permanently.');" class="inline-block">
-                                    <button type="submit" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md text-xs">Delete Order</button>
-                                </form>
-                                <a href="{{ url_for('admin_edit_invoice', order_id=order.order_id) }}" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-md text-xs">Edit Invoice</a>
-                                {% if not order.invoice_details.is_held_by_admin | default(False) %}
-                                <form action="{{ url_for('admin_hold_invoice', order_id=order.order_id) }}" method="post" class="inline-block">
-                                    <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-md text-xs">Hold Invoice</button>
-                                </form>
-                                {% else %}
-                                <form action="{{ url_for('admin_release_invoice', order_id=order.order_id) }}" method="post" class="inline-block">
-                                    <button type="submit" class="bg-yellow-700 hover:bg-yellow-800 text-white font-bold py-2 px-4 rounded-md text-xs">Release Invoice</button>
-                                </form>
-                                {% endif %}
-                                {% if order.status == 'Shipped' %}
-                                <form action="{{ url_for('admin_send_invoice_email', order_id=order.order_id) }}" method="post" onsubmit="return confirm('Are you sure you want to manually send the invoice email for order {{ order.order_id }}?');" class="inline-block">
-                                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md text-xs">Send Invoice Email</button>
-                                </form>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="col">
+                <a href="{{ url_for('admin_artworks_view') }}" class="btn btn-secondary d-block py-3">
+                    <i class="fas fa-images me-2"></i> Manage Artworks
+                </a>
             </div>
-        </section>
-    </main>
-</body>
-</html>
+            <div class="col">
+                <a href="{{ url_for('admin_orders_view') }}" class="btn btn-info d-block py-3">
+                    <i class="fas fa-truck-loading me-2"></i> Manage Orders
+                </a>
+            </div>
+            <div class="col">
+                <a href="{{ url_for('admin_categories_view') }}" class="btn btn-success d-block py-3">
+                    <i class="fas fa-tags me-2"></i> Manage Categories
+                </a>
+            </div>
+            <div class="col">
+                <a href="{{ url_for('export_orders_csv') }}" class="btn btn-dark d-block py-3">
+                    <i class="fas fa-file-excel me-2"></i> Export Orders CSV
+                </a>
+            </div>
+            <div class="col">
+                <a href="{{ url_for('export_artworks_csv') }}" class="btn btn-dark d-block py-3">
+                    <i class="fas fa-file-image me-2"></i> Export Artworks CSV
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

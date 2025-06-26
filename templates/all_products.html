@@ -2,104 +2,83 @@
 
 {% block title %}All Artworks - Karthika Futures{% endblock %}
 
-{% block extra_css %}
-<style>
-    .products-container {
-        padding: 2rem;
-        background-color: #ffffff;
-        border-radius: 0.75rem;
-        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
-        margin-top: 2rem;
-        margin-bottom: 2rem;
-    }
-    .card.artwork-card {
-        border: none;
-        border-radius: 0.75rem;
-        overflow: hidden;
-        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-        box-shadow: 0 0.25rem 0.75rem rgba(0,0,0,0.05);
-        height: 100%; /* Ensures all cards in a row have equal height */
-        display: flex;
-        flex-direction: column;
-    }
-    .card.artwork-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 0.5rem 1.5rem rgba(0,0,0,0.1);
-    }
-    .artwork-card img {
-        width: 100%;
-        height: 200px; /* Fixed height for images */
-        object-fit: cover;
-        border-bottom: 1px solid #eee;
-    }
-    .card-body {
-        flex-grow: 1; /* Allows card body to expand and take available space */
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between; /* Pushes button to the bottom if needed */
-    }
-    .card-title {
-        font-size: 1.25rem;
-        font-weight: bold;
-        color: #333;
-        margin-bottom: 0.5rem;
-    }
-    .card-text {
-        font-size: 0.95rem;
-        color: #666;
-        margin-bottom: 0.75rem;
-    }
-    .artwork-price {
-        font-size: 1.3rem;
-        font-weight: bold;
-        color: #28a745; /* Green for price */
-        margin-bottom: 1rem;
-    }
-    .btn-details {
-        width: 100%;
-        margin-top: auto; /* Pushes the button to the bottom */
-    }
-    .no-products-message {
-        text-align: center;
-        padding: 3rem;
-        color: #6c757d;
-        font-size: 1.2rem;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="container products-container">
-    <h2 class="text-center mb-5">All Available Artworks</h2>
+<div class="container main-content-area position-relative">
+    <h2 class="text-center mb-4">Explore All Artworks</h2>
 
+    {% if artworks %}
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-        {% if artworks %}
-            {% for artwork in artworks %}
-            <div class="col">
-                <div class="card artwork-card">
-                    {% if artwork.image %}
-                        <img src="{{ url_for('static', filename=artwork.image) }}" class="card-img-top" alt="{{ artwork.name }}">
-                    {% else %}
-                        <img src="https://placehold.co/400x200/cccccc/333333?text=No+Image" class="card-img-top" alt="No Image Available">
-                    {% endif %}
-                    <div class="card-body">
-                        <h5 class="card-title">{{ artwork.name }}</h5>
-                        <p class="card-text">Category: {{ artwork.category | default('N/A') }}</p>
-                        <p class="artwork-price">₹{{ artwork.original_price | default(0.0) | round(2) }}</p>
-                        <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary btn-details">View Details</a>
+        {% for artwork in artworks %}
+        <div class="col">
+            <div class="card artwork-card">
+                {% if artwork.images and artwork.images[0] %}
+                <img src="{{ url_for('static', filename=artwork.images[0]) }}" class="card-img-top clickable-image" alt="{{ artwork.name }}">
+                {% else %}
+                <img src="https://placehold.co/400x200/cccccc/333333?text=No+Image" class="card-img-top clickable-image" alt="No Image">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ artwork.name }}</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">{{ artwork.category }}</h6>
+                    <p class="card-text">₹{{ artwork.original_price | int }}</p>
+                    <div class="btn-group">
+                        <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary">View Details</a>
+                        {% if artwork.stock > 0 %}
+                        <button class="btn btn-success add-to-cart-btn"
+                                data-sku="{{ artwork.sku }}"
+                                data-name="{{ artwork.name }}"
+                                data-image="{{ url_for('static', filename=artwork.images[0]) if artwork.images else 'https://placehold.co/240x240/cccccc/333333?text=No+Image' }}"
+                                data-original-price="{{ artwork.original_price }}"
+                                data-size="Original"
+                                data-frame="None"
+                                data-glass="None"
+                                data-size-price="0"
+                                data-frame-price="0"
+                                data-glass-price="0">
+                            Add to Cart
+                        </button>
+                        {% else %}
+                        <button class="btn btn-secondary" disabled>Out of Stock</button>
+                        {% endif %}
                     </div>
                 </div>
             </div>
-            {% endfor %}
-        {% else %}
-            <div class="col-12">
-                <div class="no-products-message">
-                    <p>No artworks are available at the moment. Please check back later!</p>
-                </div>
-            </div>
-        {% endif %}
+        </div>
+        {% endfor %}
     </div>
+    {% else %}
+    <div class="alert alert-info text-center" role="alert">
+        No artworks are available yet. Please check back later!
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
 
-{% block extra_js %}{% endblock %}
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Add to Cart button functionality
+        document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const sku = this.dataset.sku;
+                const name = this.dataset.name;
+                const image = this.dataset.image;
+                const originalPrice = parseFloat(this.dataset.originalPrice);
+                const options = {
+                    size: this.dataset.size,
+                    frame: this.dataset.frame,
+                    glass: this.dataset.glass,
+                    sizePrice: parseFloat(this.dataset.sizePrice || 0),
+                    framePrice: parseFloat(this.dataset.framePrice || 0),
+                    glassPrice: parseFloat(this.dataset.glassPrice || 0)
+                };
+                // Ensure addToCart is called, which should exist globally from _base.html
+                if (typeof addToCart === 'function') {
+                    addToCart(sku, name, image, originalPrice, options);
+                } else {
+                    console.error("addToCart function not found. Is _base.html loaded correctly?");
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

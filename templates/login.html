@@ -1,40 +1,33 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Login - Karthika Futures</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-  <div class="container mt-5">
-    <h2 class="text-center mb-4">🔐 Login to Your Account</h2>
-    
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <div class="alert alert-info">
-          {{ messages[0] }}
-        </div>
-      {% endif %}
-    {% endwith %}
+{% extends 'base.html' %}
 
-    <form method="POST" action="{{ url_for('login') }}">
-      <div class="mb-3">
-        <label for="email" class="form-label">📧 Email address</label>
-        <input type="email" class="form-control" id="email" name="email" required placeholder="Enter your email">
-      </div>
-      {# --- ADD THIS HIDDEN FIELD --- #}
-      {% if next_url %}
-      <input type="hidden" name="next" value="{{ next_url }}">
-      {% endif %}
-      {# --- END ADDITION --- #}
-      <div class="d-grid">
-        <button type="submit" class="btn btn-primary">Send OTP</button>
-      </div>
-    </form>
-
-    <div class="text-center mt-3">
-      <a href="{{ url_for('index') }}">← Back to Home</a>
+{% block content %}
+<div class="flex items-center justify-center min-h-screen -mt-16"> {# Negative margin to pull it up slightly under navbar #}
+    <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md bg-opacity-95 border border-gray-200">
+        <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">User Login</h2>
+        <form method="POST" action="{{ url_for('user_login', next=request.args.get('next', '')) }}" class="space-y-5">
+            <div>
+                <label for="email" class="block text-gray-700 text-sm font-semibold mb-2">Email Address</label>
+                <input type="email" id="email" name="email" value="{{ email if email else '' }}" required
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                       placeholder="Enter your email">
+            </div>
+            <div>
+                <label for="password" class="block text-gray-700 text-sm font-semibold mb-2">Password</label>
+                <input type="password" id="password" name="password" required
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                       placeholder="Enter your password">
+            </div>
+            <button type="submit"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-md transition duration-300 transform hover:scale-105 shadow-md">
+                Login
+            </button>
+        </form>
+        <p class="text-center text-gray-600 mt-6">
+            Don't have an account? <a href="{{ url_for('signup') }}" class="text-blue-600 hover:underline font-semibold">Sign Up</a>
+        </p>
+        <p class="text-center text-gray-600 mt-3">
+            <a href="{{ url_for('forgot_password') }}" class="text-blue-600 hover:underline text-sm">Forgot Password?</a>
+        </p>
     </div>
-  </div>
-</body>
-</html>
+</div>
+{% endblock %}

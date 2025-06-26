@@ -1,409 +1,100 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Orders - Karthika Futures</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-            color: #333;
-            line-height: 1.6;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-        .header {
-            background-color: #ffffff;
-            padding: 1.5rem 2rem;
-            border-bottom: 1px solid #e2e8f0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            border-radius: 0.75rem;
-            margin-bottom: 2rem;
-        }
-        .logo {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: #4a5568;
-        }
-        .nav-link {
-            padding: 0.5rem 1rem;
-            color: #4a5568;
-            font-weight: 500;
-            transition: color 0.2s ease-in-out;
-        }
-        .nav-link:hover {
-            color: #2d3748;
-        }
-        .btn-primary {
-            background-color: #4f46e5;
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            transition: background-color 0.2s ease-in-out;
-        }
-        .btn-primary:hover {
-            background-color: #4338ca;
-        }
-        .card {
-            background-color: #ffffff;
-            border-radius: 0.75rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 2rem;
-        }
-        .flash-messages {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            z-index: 1000;
-        }
-        .flash-message {
-            padding: 1rem;
-            border-radius: 0.5rem;
-            margin-bottom: 0.5rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            opacity: 0;
-            animation: fadeInOut 5s forwards;
-        }
-        .flash-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .flash-danger {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .flash-info {
-            background-color: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-        @keyframes fadeInOut {
-            0% { opacity: 0; transform: translateY(-20px); }
-            10% { opacity: 1; transform: translateY(0); }
-            90% { opacity: 1; transform: translateY(0); }
-            100% { opacity: 0; transform: translateY(-20px); }
-        }
-        .order-card {
-            border: 1px solid #e2e8f0;
-            border-radius: 0.75rem;
-            margin-bottom: 1.5rem;
-            padding: 1.5rem;
-            background-color: #ffffff;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-        .order-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        .order-details-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-        .order-details-grid div strong {
-            display: block;
-            margin-bottom: 0.25rem;
-            color: #4a5568;
-        }
-        .item-list {
-            margin-top: 1rem;
-            border-top: 1px solid #e2e8f0;
-            padding-top: 1rem;
-        }
-        .item-list-header {
-            font-weight: 600;
-            margin-bottom: 0.75rem;
-            color: #2d3748;
-        }
-        .item-row {
-            display: flex;
-            align-items: flex-start;
-            margin-bottom: 0.5rem;
-        }
-        .item-row img {
-            width: 60px;
-            height: 60px;
-            object-fit: cover;
-            border-radius: 0.5rem;
-            margin-right: 0.75rem;
-        }
-        .item-info {
-            flex-grow: 1;
-        }
-        .item-name {
-            font-weight: 500;
-            color: #1f2937;
-        }
-        .item-options {
-            font-size: 0.875rem;
-            color: #6b7280;
-        }
-        .item-price {
-            font-weight: 500;
-            color: #4b5563;
-        }
-        .totals-summary {
-            margin-top: 1.5rem;
-            border-top: 1px solid #e2e8f0;
-            padding-top: 1.5rem;
-        }
-        .totals-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.5rem;
-            font-size: 1rem;
-        }
-        .totals-row.sub-item {
-            padding-left: 1.5rem; /* Indent for CGST/SGST */
-            font-size: 0.9rem;
-            color: #555;
-        }
-        .grand-total-row {
-            font-size: 1.25rem;
-            font-weight: 700;
-            border-top: 1px solid #e2e8f0;
-            padding-top: 0.75rem;
-            margin-top: 0.75rem;
-        }
-        .action-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-            margin-top: 1.5rem;
-            justify-content: flex-end;
-        }
-        .action-buttons button, .action-buttons a {
-            padding: 0.6rem 1.2rem;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            transition: background-color 0.2s ease-in-out;
-            text-align: center;
-            flex: 1 1 auto; /* Allow buttons to wrap and resize */
-        }
-        .btn-cancel {
-            background-color: #ef4444;
-            color: white;
-        }
-        .btn-cancel:hover {
-            background-color: #dc2626;
-        }
-        .btn-download {
-            background-color: #3b82f6;
-            color: white;
-        }
-        .btn-download:hover {
-            background-color: #2563eb;
-        }
+{% extends 'base.html' %}
 
-        @media (max-width: 768px) {
-            .order-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            .order-id {
-                margin-bottom: 0.5rem;
-            }
-            .order-status {
-                margin-top: 0.5rem;
-            }
-            .action-buttons {
-                justify-content: stretch;
-            }
-            .action-buttons button, .action-buttons a {
-                flex: 1 1 100%;
-            }
-        }
-    </style>
-</head>
-<body class="bg-gray-100 min-h-screen flex flex-col">
-    <header class="header">
-        <div class="logo">Karthika Futures</div>
-        <nav>
-            <a href="{{ url_for('index') }}" class="nav-link">Home</a>
-            <a href="{{ url_for('all_products') }}" class="nav-link">All Products</a>
-            {% if current_user.is_authenticated %}
-                <a href="{{ url_for('user_dashboard') }}" class="nav-link">Dashboard</a>
-                <a href="{{ url_for('my_orders') }}" class="nav-link active">My Orders</a>
-                <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
-            {% else %}
-                <a href="{{ url_for('user_login') }}" class="nav-link">Login</a>
-                <a href="{{ url_for('signup') }}" class="nav-link">Signup</a>
-            {% endif %}
-            <a href="{{ url_for('cart') }}" class="btn-primary flex items-center justify-center space-x-2">
-                <i class="fas fa-shopping-cart"></i> <span>Cart (<span id="cart-item-count">0</span>)</span>
-            </a>
-        </nav>
-    </header>
+{% block content %}
+<div class="container mx-auto p-4 bg-white bg-opacity-90 rounded-lg shadow-lg">
+    <h2 class="text-4xl font-bold text-gray-800 mb-6 text-center">My Orders</h2>
 
-    <div class="flash-messages">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="flash-message flash-{{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+    <!-- Return and Refund Message -->
+    <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-md shadow-sm mb-8" role="alert">
+        <p class="font-bold">Returns & Refunds:</p>
+        <p>For returns and refunds, please contact us via WhatsApp on <a href="https://wa.me/919123700057" class="text-blue-600 hover:underline font-semibold">+91 9123700057</a>. We will happily arrange for return pickup.</p>
     </div>
 
-    <main class="flex-grow container">
-        <h1 class="text-3xl font-bold text-gray-800 mb-8 text-center">My Orders</h1>
-
-        {% if orders %}
-            <div class="orders-list">
-                {% for order in orders | sort(attribute='placed_on', reverse=true) %}
-                <div class="order-card">
-                    <div class="order-header">
-                        <h2 class="text-xl font-bold text-gray-800 order-id">Order ID: {{ order.order_id }}</h2>
-                        <span class="text-lg font-semibold order-status">Status: {{ order.status }}</span>
-                    </div>
-
-                    <div class="order-details-grid">
-                        <div><strong>Placed On:</strong> {{ order.placed_on | default('N/A') }}</div>
-                        <div><strong>Customer Name:</strong> {{ order.customer_name | default('N/A') }}</div>
-                        <div><strong>Delivery Address:</strong> {{ order.customer_address | default('N/A') }}, {{ order.customer_pincode | default('N/A') }}</div>
-                        <div><strong>Contact:</strong> {{ order.customer_phone | mask_phone_number | default('N/A') }}</div>
-                        <div><strong>Payment Status:</strong> {% if order.transaction_id %} Submitted (ID: {{ order.transaction_id }}) {% else %} Pending Submission {% endif %}</div>
-                        {% if order.payment_screenshot %}
-                            <div><strong>Payment Proof:</strong> <a href="{{ url_for('static', filename=order.payment_screenshot) }}" target="_blank" class="text-blue-500 hover:underline">View Screenshot</a></div>
-                        {% endif %}
-                        {% if order.courier and order.tracking_number %}
-                            <div><strong>Shipped Via:</strong> {{ order.courier | default('N/A') }}</div>
-                            <div><strong>Tracking No:</strong> {{ order.tracking_number | default('N/A') }}</div>
-                        {% endif %}
-                        {% if order.shipped_on %}
-                            <div><strong>Shipped On:</strong> {{ order.shipped_on | default('N/A') }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="item-list">
-                        <h3 class="item-list-header">Items:</h3>
-                        {% for item in order.get('items', []) %}
-                            <div class="item-row">
-                                <img src="{{ url_for('static', filename=item.image | default('images/placeholder.png')) }}" alt="{{ item.name }}" class="flex-shrink-0">
-                                <div class="item-info">
-                                    <div class="item-name">{{ item.name | default('N/A') }} (x{{ item.quantity | default(1) }})</div>
-                                    <div class="item-options">
-                                        Size: {{ item.size | default('Original') }} | Frame: {{ item.frame | default('None') }} | Glass: {{ item.glass | default('None') }}
-                                    </div>
-                                    <div class="item-options text-sm text-gray-500">
-                                        Unit Price (Pre-GST): ₹{{ item.unit_price_before_gst | default(0.0) | round(2) }} | GST: {{ item.gst_percentage | default(0.0) | round(2) }}%
-                                    </div>
-                                </div>
-                                <div class="item-price">₹{{ item.total_price | default(0.0) | round(2) }}</div>
-                            </div>
-                        {% endfor %}
-                    </div>
-
-                    <div class="totals-summary">
-                        <div class="totals-row">
-                            <span>Subtotal (Pre-GST):</span>
-                            <span>₹{{ order.subtotal_before_gst | default(0.0) | round(2) }}</span>
-                        </div>
-                        <div class="totals-row sub-item">
-                            <span>Total GST:</span>
-                            <span>₹{{ order.invoice_details.total_gst_amount | default(0.0) | round(2) }}</span>
-                        </div>
-                        <div class="totals-row sub-item">
-                            <span>CGST:</span>
-                            <span>₹{{ order.invoice_details.cgst_amount | default(0.0) | round(2) }}</span>
-                        </div>
-                        <div class="totals-row sub-item">
-                            <span>SGST:</span>
-                            <span>₹{{ order.invoice_details.sgst_amount | default(0.0) | round(2) }}</span>
-                        </div>
-                        <div class="totals-row">
-                            <span>Shipping Charges:</span>
-                            <span>
-                                ₹{{ order.invoice_details.shipping_charge | default(0.0) | round(2) }}
-                                {% if order.invoice_details.shipping_charge | default(0.0) == 0 %}<span class="text-green-600 font-bold ml-1">FREE Shipping!</span>{% endif %}
-                            </span>
-                        </div>
-                        <div class="totals-row grand-total-row">
-                            <span>Grand Total:</span>
-                            <span>₹{{ order.invoice_details.final_invoice_amount | default(order.total_amount, 0.0) | round(2) }}</span>
-                        </div>
-
-                        <div class="totals-row mt-4">
-                            <span><strong>Invoice Status:</strong></span>
-                            <span>
-                                {{ order.invoice_details.invoice_status | default('N/A') }}
-                                {% if order.invoice_details.is_held_by_admin | default(False) %} (Held by Admin) {% endif %}
-                            </span>
-                        </div>
-                        <div class="totals-row">
-                            <span><strong>Invoice Number:</strong></span>
-                            <span>{{ order.invoice_details.invoice_number | default('N/A') }}</span>
-                        </div>
-                        <div class="totals-row">
-                            <span><strong>Invoice Date:</strong></span>
-                            <span>{{ order.invoice_details.invoice_date | default('N/A') }}</span>
-                        </div>
-                    </div>
-
-                    <div class="action-buttons">
-                        {% if order.status in ["Pending Payment", "Payment Submitted - Awaiting Verification"] %}
-                            <form action="{{ url_for('cancel_order', order_id=order.order_id) }}" method="post" onsubmit="return confirm('Are you sure you want to cancel this order? This action cannot be undone if already shipped.');">
-                                <button type="submit" class="btn-cancel"><i class="fas fa-times-circle mr-1"></i> Cancel Order</button>
+    {% if orders %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white rounded-lg shadow-md">
+            <thead class="bg-gray-200">
+                <tr>
+                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Order ID</th>
+                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Placed On</th>
+                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Items</th>
+                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Total Amount (₹)</th>
+                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Status</th>
+                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Invoice Status</th>
+                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Remark</th>
+                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr class="border-b border-gray-200 hover:bg-gray-50">
+                    <td class="py-3 px-4 text-sm text-gray-800 font-medium">{{ order.order_id }}</td>
+                    <td class="py-3 px-4 text-sm text-gray-700">{{ order.placed_on }}</td>
+                    <td class="py-3 px-4 text-sm text-gray-700">
+                        <ul class="list-disc list-inside space-y-1">
+                            {% for item in order.items %}
+                                <li>{{ item.name }} (x{{ item.quantity }}) - ₹{{ item.total_price | float | int }}</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                    <td class="py-3 px-4 text-sm text-gray-800 font-bold">₹{{ order.total_amount | float | int }}</td>
+                    <td class="py-3 px-4 text-sm text-gray-700">
+                        <span class="px-2 py-1 rounded-full text-xs font-semibold
+                            {% if order.status == 'Shipped' %}bg-green-100 text-green-800
+                            {% elif order.status == 'Delivered' %}bg-purple-100 text-purple-800
+                            {% elif order.status == 'Cancelled by User' or order.status == 'Cancelled by Admin' %}bg-red-100 text-red-800
+                            {% elif order.status == 'Payment Submitted - Awaiting Verification' %}bg-yellow-100 text-yellow-800
+                            {% else %}bg-blue-100 text-blue-800{% endif %}">
+                            {{ order.status }}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 text-sm text-gray-700">
+                        <span class="px-2 py-1 rounded-full text-xs font-semibold
+                            {% if order.invoice_details.invoice_status == 'Sent' %}bg-green-100 text-green-800
+                            {% elif order.invoice_details.invoice_status == 'Held' %}bg-yellow-100 text-yellow-800
+                            {% elif order.invoice_details.invoice_status == 'PDF Gen Failed' or order.invoice_details.invoice_status == 'Email Failed' %}bg-red-100 text-red-800
+                            {% elif order.invoice_details.invoice_status == 'Edited' %}bg-orange-100 text-orange-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ order.invoice_details.invoice_status if order.invoice_details else 'N/A' }}
+                        </span>
+                    </td>
+                     <td class="py-3 px-4 text-sm text-gray-700">
+                        {{ order.remark if order.remark else 'No remarks' }}
+                    </td>
+                    <td class="py-3 px-4 text-sm">
+                        <div class="flex flex-col space-y-2">
+                            {% if order.status in ["Pending Payment", "Payment Submitted - Awaiting Verification"] %}
+                            <form action="{{ url_for('cancel_order', order_id=order.order_id) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this order?');">
+                                <button type="submit" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-1.5 px-3 rounded-md text-xs transition duration-200">
+                                    Cancel Order
+                                </button>
                             </form>
-                        {% endif %}
-                        {% if order.invoice_details.invoice_pdf_path %}
-                            <a href="{{ url_for('download_invoice', order_id=order.order_id) }}" class="btn-download flex items-center justify-center">
-                                <i class="fas fa-download mr-1"></i> Download Invoice
+                            {% endif %}
+                            {% if order.status == 'Pending Payment' %}
+                            <a href="{{ url_for('payment_initiate', order_id=order.order_id, amount=order.total_amount) }}" 
+                               class="w-full text-center bg-green-500 hover:bg-green-600 text-white font-bold py-1.5 px-3 rounded-md text-xs transition duration-200">
+                                Complete Payment
                             </a>
-                        {% elif order.status == 'Shipped' %}
-                             <span class="text-gray-500 text-sm italic">Invoice will be available for download soon.</span>
-                        {% endif %}
-                    </div>
-                </div>
+                            {% endif %}
+                            {% if order.invoice_details and order.invoice_details.invoice_pdf_path and order.invoice_details.invoice_status in ['Prepared', 'Sent', 'Held', 'Edited', 'Email Failed', 'PDF Gen Failed'] %}
+                            <a href="{{ url_for('download_invoice', order_id=order.order_id) }}" 
+                               class="w-full text-center bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-1.5 px-3 rounded-md text-xs transition duration-200" download>
+                                Download Invoice
+                            </a>
+                            {% else %}
+                            <span class="w-full text-center bg-gray-400 text-white font-bold py-1.5 px-3 rounded-md text-xs cursor-not-allowed">
+                                Invoice N/A
+                            </span>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
                 {% endfor %}
-            </div>
-        {% else %}
-            <p class="text-center text-gray-600 text-xl">You have not placed any orders yet.</p>
-            <p class="text-center mt-4">
-                <a href="{{ url_for('all_products') }}" class="btn-primary inline-block py-2 px-4">Start Shopping</a>
-            </p>
-        {% endif %}
-    </main>
-
-    <script>
-        // Update cart item count in header
-        const cartItemCountSpan = document.getElementById('cart-item-count');
-        let cart = JSON.parse(sessionStorage.getItem('cart')) || {};
-        let totalItemsInCart = 0;
-        for (const itemId in cart) {
-            totalItemsInCart += cart[itemId].quantity;
-        }
-        cartItemCountSpan.textContent = totalItemsInCart;
-
-        // Function to handle flash messages disappearance
-        document.addEventListener('DOMContentLoaded', () => {
-            document.querySelectorAll('.flash-message').forEach(message => {
-                setTimeout(() => {
-                    message.style.opacity = '0';
-                    message.style.transform = 'translateY(-20px)';
-                    message.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
-                    message.addEventListener('transitionend', () => message.remove());
-                }, 4500); // Start fading out after 4.5 seconds
-            });
-        });
-    </script>
-</body>
-</html>
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-center text-gray-600 text-lg">You haven't placed any orders yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

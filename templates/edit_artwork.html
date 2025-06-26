@@ -1,240 +1,137 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Artwork - Admin Panel</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-        }
-        .sidebar {
-            width: 250px;
-            background-color: #1a202c; /* Darker sidebar */
-            color: #e2e8f0;
-            padding: 1.5rem;
-            min-height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            display: flex;
-            flex-direction: column;
-            border-top-right-radius: 1rem; /* Rounded corner */
-            border-bottom-right-radius: 1rem; /* Rounded corner */
-        }
-        .sidebar a {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1rem;
-            margin-bottom: 0.5rem;
-            border-radius: 0.5rem;
-            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
-        }
-        .sidebar a:hover {
-            background-color: #2d3748; /* Slightly lighter on hover */
-            color: #ffffff;
-        }
-        .sidebar a.active {
-            background-color: #4a5568; /* Active item background */
-            color: #ffffff;
-            font-weight: 600;
-        }
-        .sidebar .icon {
-            margin-right: 0.75rem;
-            font-size: 1.25rem;
-        }
-        .main-content {
-            margin-left: 250px; /* Offset by sidebar width */
-            padding: 2rem;
-            flex-grow: 1;
-        }
-        .flash-messages {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            z-index: 1000;
-        }
-        .flash-message {
-            padding: 1rem;
-            border-radius: 0.5rem;
-            margin-bottom: 0.5rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            opacity: 0;
-            animation: fadeInOut 5s forwards;
-        }
-        .flash-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .flash-danger {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .flash-info {
-            background-color: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-        @keyframes fadeInOut {
-            0% { opacity: 0; transform: translateY(-20px); }
-            10% { opacity: 1; transform: translateY(0); }
-            90% { opacity: 1; transform: translateY(0); }
-            100% { opacity: 0; transform: translateY(-20px); }
-        }
+{% extends '_base.html' %}
 
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
-                border-radius: 0;
-                min-height: auto;
-            }
-            .main-content {
-                margin-left: 0;
-                padding: 1rem;
-            }
-            .sidebar-menu {
-                flex-direction: row;
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-            .sidebar a {
-                flex: 1 1 auto; /* Allow items to grow and shrink */
-                text-align: center;
-                padding: 0.5rem;
-                margin: 0.25rem;
-            }
-            .sidebar .icon {
-                margin-right: 0;
-                margin-bottom: 0.25rem;
-            }
-        }
-    </style>
-</head>
-<body class="flex">
-    <aside class="sidebar">
-        <div class="text-2xl font-bold mb-8 text-center">Admin Panel</div>
-        <nav class="sidebar-menu flex-grow">
-            <a href="{{ url_for('admin_panel') }}">
-                <i class="fas fa-tachometer-alt icon"></i> Dashboard
-            </a>
-            <a href="{{ url_for('add_artwork') }}">
-                <i class="fas fa-plus-circle icon"></i> Add Artwork
-            </a>
-            <a href="{{ url_for('export_orders_csv') }}">
-                <i class="fas fa-file-csv icon"></i> Export Orders
-            </a>
-            <a href="{{ url_for('export_artworks_csv') }}">
-                <i class="fas fa-file-csv icon"></i> Export Artworks
-            </a>
-            <a href="{{ url_for('admin_logout') }}">
-                <i class="fas fa-sign-out-alt icon"></i> Logout
-            </a>
-        </nav>
-        <div class="mt-auto text-sm text-gray-500 text-center">
-            &copy; {{ current_year }} Karthika Futures
+{% block title %}Edit Artwork: {{ artwork.name }} - Karthika Futures{% endblock %}
+
+{% block content %}
+<div class="container main-content-area position-relative">
+    <h2 class="text-center mb-4">Edit Artwork: {{ artwork.name }}</h2>
+    
+    <form action="{{ url_for('edit_artwork', sku=artwork.sku) }}" method="POST" enctype="multipart/form-data" class="p-4 border rounded shadow-sm bg-light">
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <label for="name" class="form-label">Artwork Name</label>
+                <input type="text" class="form-control" id="name" name="name" value="{{ artwork.name }}" required>
+            </div>
+            <div class="col-md-6">
+                <label for="sku" class="form-label">SKU (Unique Identifier)</label>
+                <input type="text" class="form-control" id="sku" name="sku" value="{{ artwork.sku }}" readonly disabled>
+                <input type="hidden" name="sku" value="{{ artwork.sku }}"> {# Send SKU as hidden for POST #}
+            </div>
         </div>
-    </aside>
 
-    <main class="main-content">
-        <h1 class="text-3xl font-bold text-gray-800 mb-8">Edit Artwork: {{ artwork.name }} (SKU: {{ artwork.sku }})</h1>
-
-        <div class="flash-messages">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="flash-message flash-{{ category }}">{{ message }}</div>
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <label for="category" class="form-label">Category</label>
+                <select class="form-select" id="category" name="category" required>
+                    <option value="">Select a Category</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.name }}" {% if artwork.category == cat.name %}selected{% endif %}>{{ cat.name }}</option>
                     {% endfor %}
-                {% endif %}
-            {% endwith %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label for="original_price" class="form-label">Original Price (₹)</label>
+                <input type="number" class="form-control" id="original_price" name="original_price" step="0.01" min="0" value="{{ artwork.original_price }}" required>
+            </div>
+        </div>
+        
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <label for="stock" class="form-label">Stock Quantity</label>
+                <input type="number" class="form-control" id="stock" name="stock" min="0" value="{{ artwork.stock }}" required>
+            </div>
+            <div class="col-md-6">
+                <label for="gst_percentage" class="form-label">GST Percentage (%)</label>
+                <input type="number" class="form-control" id="gst_percentage" name="gst_percentage" step="0.01" min="0" max="100" value="{{ artwork.gst_percentage | default(default_gst_percentage) }}" required>
+            </div>
         </div>
 
-        <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-2xl mx-auto">
-            <form action="{{ url_for('edit_artwork', sku=artwork.sku) }}" method="post" enctype="multipart/form-data" class="space-y-6">
-                <div>
-                    <label for="name" class="block text-sm font-medium text-gray-700">Artwork Name</label>
-                    <input type="text" id="name" name="name" value="{{ artwork.name }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
-                </div>
-                <div>
-                    <label for="category" class="block text-sm font-medium text-gray-700">Category</label>
-                    <input type="text" id="category" name="category" value="{{ artwork.category }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
-                </div>
-                <div>
-                    <label for="original_price" class="block text-sm font-medium text-gray-700">Original Price (₹)</label>
-                    <input type="number" id="original_price" name="original_price" step="0.01" value="{{ artwork.original_price }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
-                </div>
-                <div>
-                    <label for="gst_percentage" class="block text-sm font-medium text-gray-700">GST Percentage (%)</label>
-                    <input type="number" id="gst_percentage" name="gst_percentage" step="0.01" value="{{ artwork.gst_percentage | default(default_gst_percentage) }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
-                </div>
-                <div>
-                    <label for="stock" class="block text-sm font-medium text-gray-700">Stock</label>
-                    <input type="number" id="stock" name="stock" value="{{ artwork.stock }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
-                </div>
-                <div>
-                    <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
-                    <textarea id="description" name="description" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">{{ artwork.description }}</textarea>
-                </div>
-                <div>
-                    <label for="image" class="block text-sm font-medium text-gray-700">Current Image</label>
-                    {% if artwork.image %}
-                        <img src="{{ url_for('static', filename=artwork.image) }}" alt="{{ artwork.name }}" class="w-32 h-32 object-cover rounded-md mt-2 mb-4">
-                    {% else %}
-                        <p class="text-gray-500 mt-2 mb-4">No image uploaded.</p>
-                    {% endif %}
-                    <label for="new_image" class="block text-sm font-medium text-gray-700">Upload New Image (Optional)</label>
-                    <input type="file" id="new_image" name="image" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
-                </div>
+        <div class="mb-4">
+            <label for="description" class="form-label">Description</label>
+            <textarea class="form-control" id="description" name="description" rows="4">{{ artwork.description }}</textarea>
+        </div>
 
-                <div class="mt-8 pt-4 border-t border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-700 mb-4">Pricing for Customizations (Optional)</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="frame_wooden" class="block text-sm font-medium text-gray-700">Wooden Frame Price (₹)</label>
-                            <input type="number" id="frame_wooden" name="frame_wooden" step="0.01" value="{{ artwork.frame_wooden | default(0.00) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
-                        </div>
-                        <div>
-                            <label for="frame_metal" class="block text-sm font-medium text-gray-700">Metal Frame Price (₹)</label>
-                            <input type="number" id="frame_metal" name="frame_metal" step="0.01" value="{{ artwork.frame_metal | default(0.00) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
-                        </div>
-                        <div>
-                            <label for="frame_pvc" class="block text-sm font-medium text-gray-700">PVC Frame Price (₹)</label>
-                            <input type="number" id="frame_pvc" name="frame_pvc" step="0.01" value="{{ artwork.frame_pvc | default(0.00) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
-                        </div>
-                        <div>
-                            <label for="glass_price" class="block text-sm font-medium text-gray-700">Glass Price (₹)</label>
-                            <input type="number" id="glass_price" name="glass_price" step="0.01" value="{{ artwork.glass_price | default(0.00) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
-                        </div>
-                        <div>
-                            <label for="size_a4" class="block text-sm font-medium text-gray-700">Size A4 Add-on Price (₹)</label>
-                            <input type="number" id="size_a4" name="size_a4" step="0.01" value="{{ artwork.size_a4 | default(0.00) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
-                        </div>
-                        <div>
-                            <label for="size_a5" class="block text-sm font-medium text-gray-700">Size A5 Add-on Price (₹)</label>
-                            <input type="number" id="size_a5" name="size_a5" step="0.01" value="{{ artwork.size_a5 | default(0.00) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
-                        </div>
-                        <div>
-                            <label for="size_letter" class="block text-sm font-medium text-gray-700">Size Letter Add-on Price (₹)</label>
-                            <input type="number" id="size_letter" name="size_letter" step="0.01" value="{{ artwork.size_letter | default(0.00) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
-                        </div>
-                        <div>
-                            <label for="size_legal" class="block text-sm font-medium text-gray-700">Size Legal Add-on Price (₹)</label>
-                            <input type="number" id="size_legal" name="size_legal" step="0.01" value="{{ artwork.size_legal | default(0.00) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
+        <!-- Existing Images Display and Management -->
+        <div class="mb-4">
+            <h4 class="mb-3">Existing Images</h4>
+            {% if artwork.images %}
+                <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">
+                    {% for image_url in artwork.images %}
+                    <div class="col">
+                        <div class="card h-100 shadow-sm position-relative">
+                            <img src="{{ url_for('static', filename=image_url) }}" class="card-img-top" alt="Artwork Image" style="height: 120px; object-fit: cover;">
+                            <div class="form-check position-absolute top-0 end-0 m-2">
+                                <input class="form-check-input" type="checkbox" name="images_to_keep" value="{{ image_url }}" checked id="image-{{ loop.index }}">
+                                <label class="form-check-label visually-hidden" for="image-{{ loop.index }}">Keep Image</label>
+                            </div>
+                            <div class="card-footer text-center bg-transparent border-top-0 pt-1 pb-0">
+                                <small class="text-muted">Keep</small>
+                            </div>
                         </div>
                     </div>
+                    {% endfor %}
                 </div>
-
-                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-200">Update Artwork</button>
-            </form>
+                <div class="form-text mt-2">Uncheck images you wish to delete.</div>
+            {% else %}
+                <p class="text-muted">No images currently uploaded for this artwork.</p>
+            {% endif %}
         </div>
-    </main>
-</body>
-</html>
+
+        <!-- New Images Upload -->
+        <div class="mb-4">
+            <label for="new_images" class="form-label">Upload New Images (Max 16MB per file)</label>
+            <input type="file" class="form-control" id="new_images" name="new_images" accept="image/*" multiple>
+            <div class="form-text">Select one or more new image files to add.</div>
+        </div>
+
+        <h4 class="mb-3 mt-5">Pricing for Options</h4>
+        <p class="text-muted mb-4">Enter additional prices for different sizes, frames, and glass. Enter 0 if not applicable.</p>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <label for="frame_wooden" class="form-label">Frame: Wooden Price (₹)</label>
+                <input type="number" class="form-control" id="frame_wooden" name="frame_wooden" step="0.01" min="0" value="{{ artwork.frame_wooden | default('0.00') }}">
+            </div>
+            <div class="col-md-4">
+                <label for="frame_metal" class="form-label">Frame: Metal Price (₹)</label>
+                <input type="number" class="form-control" id="frame_metal" name="frame_metal" step="0.01" min="0" value="{{ artwork.frame_metal | default('0.00') }}">
+            </div>
+            <div class="col-md-4">
+                <label for="frame_pvc" class="form-label">Frame: PVC Price (₹)</label>
+                <input type="number" class="form-control" id="frame_pvc" name="frame_pvc" step="0.01" min="0" value="{{ artwork.frame_pvc | default('0.00') }}">
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <label for="glass_price" class="form-label">Glass Price (₹)</label>
+                <input type="number" class="form-control" id="glass_price" name="glass_price" step="0.01" min="0" value="{{ artwork.glass_price | default('0.00') }}">
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <label for="size_a4" class="form-label">Size: A4 Price (₹)</label>
+                <input type="number" class="form-control" id="size_a4" name="size_a4" step="0.01" min="0" value="{{ artwork.size_a4 | default('0.00') }}">
+            </div>
+            <div class="col-md-3">
+                <label for="size_a5" class="form-label">Size: A5 Price (₹)</label>
+                <input type="number" class="form-control" id="size_a5" name="size_a5" step="0.01" min="0" value="{{ artwork.size_a5 | default('0.00') }}">
+            </div>
+            <div class="col-md-3">
+                <label for="size_letter" class="form-label">Size: Letter Price (₹)</label>
+                <input type="number" class="form-control" id="size_letter" name="size_letter" step="0.01" min="0" value="{{ artwork.size_letter | default('0.00') }}">
+            </div>
+            <div class="col-md-3">
+                <label for="size_legal" class="form-label">Size: Legal Price (₹)</label>
+                <input type="number" class="form-control" id="size_legal" name="size_legal" step="0.01" min="0" value="{{ artwork.size_legal | default('0.00') }}">
+            </div>
+        </div>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+            <button type="submit" class="btn btn-primary btn-lg">Update Artwork</button>
+            <a href="{{ url_for('admin_artworks_view') }}" class="btn btn-secondary btn-lg">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

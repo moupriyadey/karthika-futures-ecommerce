@@ -143,7 +143,8 @@
     <main class="flex-grow container">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 card">
             <div class="lg:col-span-1">
-                <img src="{{ url_for('static', filename=artwork.image | default('images/placeholder.png')) }}" alt="{{ artwork.name }}" class="w-full h-auto object-cover rounded-lg shadow-md">
+                {# Display the first image from the 'images' list, or a placeholder #}
+                <img src="{{ url_for('static', filename=artwork.images[0] if artwork.images else 'images/placeholder.png') }}" alt="{{ artwork.name }}" class="w-full h-auto object-cover rounded-lg shadow-md">
             </div>
             <div class="lg:col-span-1 flex flex-col justify-between">
                 <div>
@@ -338,7 +339,8 @@
                     id: itemId,
                     sku: artworkData.sku,
                     name: artworkData.name,
-                    image: artworkData.image,
+                    // Use the first image from the 'images' list or a placeholder
+                    image: artworkData.images && artworkData.images.length > 0 ? artworkData.images[0] : 'images/placeholder.png', 
                     unit_price: unitPriceBeforeGst, // Store the unit price including customization, BEFORE GST for this item
                     unit_price_before_gst: unitPriceBeforeGst, // Explicitly store it here for clarity
                     quantity: quantity,
