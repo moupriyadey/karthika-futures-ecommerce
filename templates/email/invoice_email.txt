@@ -1,0 +1,26 @@
+Dear {{ order.customer_name }},
+
+Thank you for your recent purchase from Karthika Futures!
+
+Your order #{{ order.order_id }} has been shipped.
+Please find your invoice attached to this email.
+
+Order Details:
+Order ID: {{ order.order_id }}
+Order Date: {{ order.placed_on }}
+Total Amount (incl. GST & Shipping): ₹{{ order.invoice_details.final_invoice_amount | round(2) }}
+
+Items:
+{% for item in order.items %}
+- {{ item.name }} (SKU: {{ item.sku }}) x {{ item.quantity }}
+  Unit Price: ₹{{ item.unit_price | round(2) }}
+  Total for item: ₹{{ item.total_price | round(2) }}
+{% endfor %}
+
+You can also view your order details and download the invoice by logging into your account and visiting the 'My Orders' section.
+
+If you have any questions, please do not hesitate to contact us.
+
+Hare Rama.. Hare Krishna
+Karthika Futures Team
+{{ OUR_BUSINESS_ADDRESS }}

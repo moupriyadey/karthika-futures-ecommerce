@@ -6,7 +6,7 @@
 <style>
     body {
         /* Placeholder for Veda Era/Manuscript background */
-        background-image: url('https://placehold.co/1920x1080/f5e8d8/6b4e28?text=Vedic+Manuscript+Background'); 
+        background-image: url('https://placehold.co/1920x1080/c8b29c/362a22?text=Ancient+Parchment+Background'); 
         background-size: cover;
         background-position: center;
         background-attachment: fixed; /* Keeps background fixed when scrolling */
@@ -144,12 +144,26 @@
         color: #007bff; /* Primary color for price */
         margin-top: auto; /* Push price to bottom */
     }
-    .artwork-card .btn-primary {
+    .artwork-card .btn-group {
+        display: flex; /* For side-by-side buttons */
+        gap: 0.5rem; /* Space between buttons */
         margin-top: 1rem;
-        width: 100%; /* Full width button */
+    }
+    .artwork-card .btn {
+        flex: 1; /* Make buttons take equal space */
         border-radius: 0.5rem;
         font-weight: 600;
+        text-align: center;
     }
+    .artwork-card .btn-primary {
+        background-color: #007bff;
+        border-color: #007bff;
+    }
+    .artwork-card .btn-success {
+        background-color: #28a745;
+        border-color: #28a745;
+    }
+
 
     .qr-code-section {
         background-color: rgba(255, 255, 255, 0.95);
@@ -177,6 +191,66 @@
         font-size: 1.1rem;
         color: #4a4a4a;
         margin-bottom: 0.5rem;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 767.98px) {
+        .main-content-area {
+            padding: 1rem;
+            margin-top: 4rem; /* Adjust for smaller navbar on mobile */
+        }
+        .page-header h1 {
+            font-size: 2.5rem; /* Smaller heading on mobile */
+        }
+        .page-header p.lead {
+            font-size: 1rem;
+        }
+        .sanskrit-word {
+            font-size: 3rem; /* Smaller Sanskrit words on mobile */
+        }
+        .sanskrit-word:nth-child(1) { top: 3%; left: 5%; font-size: 2.5rem; }
+        .sanskrit-word:nth-child(2) { top: 15%; right: 3%; font-size: 2.8rem; }
+        .sanskrit-word:nth-child(3) { bottom: 10%; left: 10%; font-size: 2.2rem; }
+        .sanskrit-word:nth-child(4) { bottom: 3%; right: 5%; font-size: 2.6rem; }
+        .sanskrit-word:nth-child(5) { font-size: 4rem; } /* Central one */
+
+        .banner-img {
+            height: 120px; /* Smaller banner height on mobile */
+        }
+        .kurukshetra-img {
+            height: 200px; /* Smaller Kurukshetra image height */
+        }
+        .artwork-card .card-img-top {
+            height: 180px; /* Slightly smaller card image height */
+        }
+        .artwork-card .card-body {
+            padding: 1rem;
+        }
+        .artwork-card .card-title {
+            font-size: 1.1rem;
+        }
+        .artwork-card .card-subtitle {
+            font-size: 0.85rem;
+        }
+        .artwork-card .card-text {
+            font-size: 1rem;
+        }
+        .artwork-card .btn-group {
+            flex-direction: column; /* Stack buttons vertically on small screens */
+            gap: 0.25rem;
+        }
+        .qr-code-section {
+            padding: 1.5rem;
+        }
+        .qr-code-section h3 {
+            font-size: 1.5rem;
+        }
+        .qr-code-section img {
+            max-width: 120px;
+        }
+        .qr-code-section p {
+            font-size: 0.95rem;
+        }
     }
 </style>
 {% endblock %}
@@ -226,7 +300,16 @@
                     <h5 class="card-title">{{ artwork.name }}</h5>
                     <h6 class="card-subtitle mb-2 text-muted">{{ artwork.category }}</h6>
                     <p class="card-text">₹{{ artwork.original_price | round(2) }}</p>
-                    <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary mt-auto">View Details</a>
+                    <div class="btn-group">
+                        <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary">View Details</a>
+                        <button class="btn btn-success buy-now-btn"
+                                data-sku="{{ artwork.sku }}"
+                                data-name="{{ artwork.name }}"
+                                data-image="{{ url_for('static', filename=artwork.image) if artwork.image else 'https://placehold.co/400x200/cccccc/333333?text=No+Image' }}"
+                                data-price="{{ artwork.original_price | round(2) }}">
+                            Buy Now
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -246,4 +329,49 @@
     </div>
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const buyNowButtons = document.querySelectorAll('.buy-now-btn');
+
+        buyNowButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const sku = this.dataset.sku;
+                const name = this.dataset.name;
+                const image = this.dataset.image;
+                const price = parseFloat(this.dataset.price); // Original price for Buy Now
+
+                // Create a temporary cart for this single item
+                const tempCart = {};
+                const itemId = `${sku}-Original-None-None`; // Use default options for direct buy
+
+                tempCart[itemId] = {
+                    id: itemId,
+                    sku: sku,
+                    name: name,
+                    image: image,
+                    unit_price: price,
+                    quantity: 1,
+                    total_price: price,
+                    size: "Original",
+                    frame: "None",
+                    glass: "None"
+                };
+
+                sessionStorage.setItem('cart', JSON.stringify(tempCart));
+                
+                // Immediately sync this temporary cart to the server session
+                syncCartToServer().then(() => {
+                    // Redirect to purchase form only after sync is attempted
+                    window.location.href = "{{ url_for('purchase_form') }}";
+                }).catch(error => {
+                    console.error("Error during buy now cart sync:", error);
+                    showCustomAlert('Could not initiate purchase. Please try again.', 'danger');
+                });
+            });
+        });
+    });
+</script>
 {% endblock %}

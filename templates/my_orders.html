@@ -40,6 +40,17 @@
     .status-cancelled-by-user { background-color: #6c757d; color: #fff; font-weight: bold; } /* Gray for user cancellation */
 
 
+    /* Invoice Status Badges */
+    .invoice-status-not-applicable { background-color: #e9ecef; color: #6c757d; } /* Light Gray */
+    .invoice-status-prepared { background-color: #0dcaf0; color: #fff; } /* Cyan (info-like) */
+    .invoice-status-sent { background-color: #28a745; color: #fff; } /* Green (success) */
+    .invoice-status-held { background-color: #ffc107; color: #333; } /* Orange (warning) */
+    .invoice-status-edited { background-color: #6f42c1; color: #fff; } /* Purple */
+    .invoice-status-email-failed { background-color: #dc3545; color: #fff; } /* Red (danger) */
+    .invoice-status-pdf-gen-failed { background-color: #6c757d; color: #fff; } /* Darker Gray */
+    .invoice-status-cancelled { background-color: #adb5bd; color: #fff; } /* Lighter gray for cancelled invoice */
+
+
     .no-orders-message {
         text-align: center;
         padding: 3rem 0;
@@ -97,6 +108,71 @@
         text-decoration: none;
         cursor: pointer;
     }
+
+    /* Responsive table styles */
+    @media (max-width: 767.98px) {
+        .my-orders-container {
+            padding: 1rem;
+            margin-top: 4.5rem;
+        }
+        .table thead {
+            display: none; /* Hide table headers on small screens */
+        }
+        .table, .table tbody, .table tr, .table td {
+            display: block; /* Make table elements behave like block elements */
+            width: 100%;
+        }
+        .table tr {
+            margin-bottom: 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .table td {
+            text-align: right;
+            padding-left: 50%; /* Space for pseudo-element label */
+            position: relative;
+            border: none; /* Remove individual cell borders */
+        }
+        .table td::before {
+            content: attr(data-label); /* Use data-label for content */
+            position: absolute;
+            left: 0;
+            width: 45%; /* Width for the label */
+            padding-left: 0.75rem;
+            font-weight: bold;
+            text-align: left;
+        }
+        /* Specific label styles for tables */
+        td[data-label="Actions"] .btn-group {
+            width: 100%; /* Make button group full width */
+            flex-direction: column; /* Stack buttons vertically */
+            gap: 0.25rem;
+        }
+        td[data-label="Actions"] .btn {
+            width: 100%;
+        }
+        td[data-label="Items Ordered"] ul {
+            text-align: right;
+            width: 100%;
+        }
+        td[data-label="Items Ordered"] ul li {
+            text-align: right;
+        }
+        td[data-label="Payment Details"] p, td[data-label="Payment Details"] small {
+            text-align: right;
+            width: 100%;
+        }
+        td[data-label="Payment Details"] .img-thumbnail {
+            display: block;
+            margin-left: auto; /* Center image */
+            margin-right: auto;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -124,17 +200,25 @@
                     <th>Placed On</th>
                     <th>Courier</th>
                     <th>Tracking Number</th>
+                    <th>Invoice Status</th> {# New column #}
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% if orders %}
                     {% for order in orders %}
+                        {# Safely access invoice_details, defaulting to an empty dict if not present #}
+                        {% set invoice_details_data = order.invoice_details | default({}) %}
+                        {% set invoice_status = invoice_details_data.invoice_status | default('Not Applicable') %}
+                        {% set invoice_pdf_path = invoice_details_data.invoice_pdf_path | default(none) %}
+
                         <tr>
-                            <td>{{ order.order_id }}</td>
-                            <td>₹{{ order.total_amount | default(0.0) | round(2) }}</td>
-                            <td><span class="status-badge status-{{ order.status | lower | replace(' ', '-') | replace('-', '.') }}">{{ order.status }}</span></td>
-                            <td>
+                            <td data-label="Order ID">{{ order.order_id }}</td>
+                            <td data-label="Total Amount">₹{{ order.total_amount | default(0.0) | round(2) }}</td>
+                            <td data-label="Status">
+                                <span class="status-badge status-{{ order.status | lower | replace(' ', '-') | replace('-', '.') }}">{{ order.status }}</span>
+                            </td>
+                            <td data-label="Items Ordered">
                                 <ul class="order-item-list">
                                     {% for item in order['items'] | default([]) %}
                                         <li>
@@ -147,7 +231,7 @@
                                     {% endfor %}
                                 </ul>
                             </td>
-                            <td>
+                            <td data-label="Payment Details">
                                 {% if order.transaction_id %}
                                     <p class="mb-0"><strong>Ref ID:</strong> {{ order.transaction_id }}</p>
                                 {% endif %}
@@ -167,27 +251,41 @@
                                     <small class="text-muted">No payment details provided yet.</small>
                                 {% endif %}
                             </td>
-                            <td>{{ order.placed_on }}</td>
-                            <td>{{ order.courier | default('N/A') }}</td>
-                            <td>{{ order.tracking_number | default('N/A') }}</td>
-                            <td>
-                                {% if order.status == 'Pending Payment' %}
-                                    <a href="{{ url_for('payment_initiate', order_id=order.order_id, amount=order.total_amount) }}" class="btn btn-sm btn-success mb-1">Complete Payment</a>
-                                {% endif %}
-                                {# Show Cancel button only if status allows #}
-                                {% if order.status in ['Pending Payment', 'Payment Submitted - Awaiting Verification'] %}
-                                    <form action="{{ url_for('cancel_order', order_id=order.order_id) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this order? This action cannot be undone.');" class="d-inline-block">
-                                        <button type="submit" class="btn btn-sm btn-danger mb-1">Cancel Order</button>
-                                    </form>
-                                {% else %}
-                                    <button type="button" class="btn btn-sm btn-secondary mb-1" disabled>Cannot Cancel</button>
-                                {% endif %}
+                            <td data-label="Placed On">{{ order.placed_on }}</td>
+                            <td data-label="Courier">{{ order.courier | default('N/A') }}</td>
+                            <td data-label="Tracking Number">{{ order.tracking_number | default('N/A') }}</td>
+                            <td data-label="Invoice Status">
+                                <span class="status-badge invoice-status-{{ invoice_status | lower | replace(' ', '-') | replace('-', '.') }}">{{ invoice_status }}</span>
+                            </td>
+                            <td data-label="Actions">
+                                <div class="btn-group-vertical">
+                                    {% if order.status == 'Pending Payment' %}
+                                        <a href="{{ url_for('payment_initiate', order_id=order.order_id, amount=order.total_amount) }}" class="btn btn-sm btn-success mb-1">Complete Payment</a>
+                                    {% endif %}
+                                    {# Show Cancel button only if status allows #}
+                                    {% if order.status in ['Pending Payment', 'Payment Submitted - Awaiting Verification'] %}
+                                        <form action="{{ url_for('cancel_order', order_id=order.order_id) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this order? This action cannot be undone.');" class="d-inline-block">
+                                            <button type="submit" class="btn btn-sm btn-danger mb-1">Cancel Order</button>
+                                        </form>
+                                    {% else %}
+                                        <button type="button" class="btn btn-sm btn-secondary mb-1" disabled>Cannot Cancel</button>
+                                    {% endif %}
+
+                                    {# Invoice Download Button for users #}
+                                    {% if invoice_pdf_path and invoice_status in ['Sent', 'Prepared', 'Edited', 'Held', 'Email Failed', 'PDF Gen Failed'] %}
+                                        <a href="{{ url_for('download_invoice', order_id=order.order_id) }}" class="btn btn-sm btn-dark mt-1">Download Invoice</a>
+                                    {% elif order.status == 'Shipped' %}
+                                        <button type="button" class="btn btn-sm btn-outline-secondary mt-1" disabled>Invoice Pending</button>
+                                    {% else %}
+                                        <button type="button" class="btn btn-sm btn-outline-secondary mt-1" disabled>Invoice N/A</button>
+                                    {% endif %}
+                                </div>
                             </td>
                         </tr>
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="9" class="text-center no-orders-message">You have not placed any orders yet.</td>
+                        <td colspan="10" class="text-center no-orders-message">You have not placed any orders yet.</td>
                     </tr>
                 {% endif %}
             </tbody>
@@ -232,6 +330,19 @@
                 modal.style.display = "none";
             }
         }
+
+        // Apply data-label for responsive tables on mobile
+        const tables = document.querySelectorAll('.table');
+        tables.forEach(table => {
+            const headers = table.querySelectorAll('thead th');
+            table.querySelectorAll('tbody tr').forEach(row => {
+                row.querySelectorAll('td').forEach((cell, index) => {
+                    if (headers[index]) {
+                        cell.setAttribute('data-label', headers[index].textContent.trim());
+                    }
+                });
+            });
+        });
     });
 </script>
 {% endblock %}

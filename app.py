@@ -1,7 +1,7 @@
 import json
 import uuid
-from datetime import datetime, timedelta # Import timedelta for session lifetime
-from flask import Flask, render_template, request, flash, redirect, url_for, session, jsonify, current_app, Response
+from datetime import datetime, timedelta
+from flask import Flask, render_template, request, flash, redirect, url_for, session, jsonify, current_app, Response, make_response
 from flask_mail import Mail, Message
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import random
@@ -16,6 +16,14 @@ from PIL import Image
 from werkzeug.utils import secure_filename
 import csv 
 import io 
+
+# --- ReportLab Imports for PDF Generation ---
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_RIGHT, TA_LEFT, TA_CENTER
 
 # --- Import and Load dotenv ---
 from dotenv import load_dotenv
@@ -49,12 +57,24 @@ ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
 ADMIN_PASSWORD_HASH = os.environ.get('ADMIN_PASSWORD_HASH', generate_password_hash('admin123')) 
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL') 
 
-# UPI Payment Details
-UPI_ID = "smarasada@okaxis"
-BANKING_NAME = "SUBHASH S" 
+# --- YOUR BUSINESS DETAILS (for Invoicing) ---
+OUR_BUSINESS_NAME = "Karthikafutures"
+OUR_BUSINESS_ADDRESS = "Annapoornna Apartment, Sahapur Colony, New Alipore, Kolkata - 700053"
+OUR_GSTIN = "08EXIPR1212L1ZO"
+OUR_PAN = "CTMPS6841J"
+DEFAULT_GST_RATE = 0.18 # 18% as a default example
+DEFAULT_SHIPPING_CHARGE = 150.00 # Default shipping charge
 
+# --- FOLDERS FOR UPLOADS AND INVOICES ---
 PAYMENT_SCREENSHOTS_FOLDER = os.path.join(app.config['UPLOAD_FOLDER'], 'payment_screenshots')
 QR_CODES_FOLDER = os.path.join(app.config['UPLOAD_FOLDER'], 'qr_codes') 
+INVOICE_PDFS_FOLDER = os.path.join('static', 'invoices') # IMPORTANT: This needs to be static to be served
+
+# Ensure necessary directories exist on startup
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(PAYMENT_SCREENSHOTS_FOLDER, exist_ok=True)
+os.makedirs(QR_CODES_FOLDER, exist_ok=True)
+os.makedirs(INVOICE_PDFS_FOLDER, exist_ok=True)
 
 
 # --- Helper Functions for JSON Data Management ---
@@ -241,7 +261,7 @@ def admin_required(f):
     return decorated_function
 
 
-# --- Utility Functions (OTP generation, email sending, Order ID generation) ---
+# --- Utility Functions (OTP generation, email sending, Order ID generation, Phone Masking) ---
 def generate_otp(otp_type='general', length=6): 
     """Generates a 6-digit OTP."""
     return str(random.randint(10**(length-1), (10**length) - 1))
@@ -289,6 +309,278 @@ def generate_unique_order_id():
         if new_id not in existing_ids:
             return new_id
 
+def generate_unique_invoice_number():
+    """Generates a unique invoice number (e.g., KFI-YYYYMMDD-XXXX)."""
+    # Using a simple timestamp-based ID with a random suffix for uniqueness
+    timestamp_part = datetime.now().strftime("%Y%m%d")
+    random_part = ''.join(random.choices('0123456789', k=4))
+    return f"KFI-{timestamp_part}-{random_part}"
+
+def mask_phone_number(phone_number):
+    """Masks a phone number for privacy (e.g., +91XXXXX1234)."""
+    if not phone_number or len(phone_number) < 4:
+        return phone_number # Not enough digits to mask meaningfully
+    
+    # Assuming standard international format for now.
+    # Keep first 3 digits and last 4 digits visible, mask middle.
+    # Example: +919876543210 -> +91XXXXX3210
+    visible_prefix_len = 3 # e.g., for +91
+    visible_suffix_len = 4 # last 4 digits
+    
+    # Handle numbers shorter than required visible parts
+    if len(phone_number) <= visible_prefix_len + visible_suffix_len:
+        return phone_number[:visible_prefix_len] + 'X' * (len(phone_number) - visible_prefix_len - visible_suffix_len) + phone_number[-visible_suffix_len:]
+
+    return phone_number[:visible_prefix_len] + 'X' * (len(phone_number) - visible_prefix_len - visible_suffix_len) + phone_number[-visible_suffix_len:]
+
+
+# --- PDF GENERATION LOGIC (Invoice) ---
+def generate_invoice_pdf(order_data):
+    """
+    Generates an invoice PDF for a given order and returns the path to the saved PDF.
+    Order data must include 'invoice_details' sub-dictionary.
+    """
+    if not order_data or 'invoice_details' not in order_data:
+        print("ERROR: Invalid order_data or missing invoice_details for PDF generation.")
+        return None
+
+    invoice_details = order_data['invoice_details']
+    
+    # Define PDF filename and path
+    invoice_filename = f"invoice_{order_data['order_id']}_{invoice_details['invoice_number']}.pdf"
+    pdf_filepath = os.path.join(INVOICE_PDFS_FOLDER, invoice_filename)
+
+    doc = SimpleDocTemplate(pdf_filepath, pagesize=letter,
+                            rightMargin=inch/2, leftMargin=inch/2,
+                            topMargin=inch/2, bottomMargin=inch/2)
+    
+    styles = getSampleStyleSheet()
+    
+    # Define custom styles
+    styles.add(ParagraphStyle(name='TitleStyle', fontSize=24, leading=28, alignment=TA_CENTER, fontName='Helvetica-Bold'))
+    styles.add(ParagraphStyle(name='Heading2', fontSize=14, leading=16, fontName='Helvetica-Bold'))
+    styles.add(ParagraphStyle(name='NormalRight', alignment=TA_RIGHT, fontName='Helvetica'))
+    styles.add(ParagraphStyle(name='NormalLeft', alignment=TA_LEFT, fontName='Helvetica'))
+    styles.add(ParagraphStyle(name='NormalBold', fontName='Helvetica-Bold'))
+    styles.add(ParagraphStyle(name='SmallText', fontSize=8, leading=10, fontName='Helvetica'))
+    
+    story = []
+
+    # --- Header ---
+    story.append(Paragraph("TAX INVOICE", styles['TitleStyle']))
+    story.append(Spacer(1, 0.2 * inch))
+
+    # Business Details and Invoice Details (Side by Side Table)
+    header_data = [
+        [Paragraph(f"<b>Sold By:</b> {OUR_BUSINESS_NAME}", styles['NormalLeft']),
+         Paragraph(f"<b>Invoice No:</b> {invoice_details.get('invoice_number', 'N/A')}", styles['NormalRight'])],
+        [Paragraph(OUR_BUSINESS_ADDRESS, styles['NormalLeft']),
+         Paragraph(f"<b>Invoice Date:</b> {invoice_details.get('invoice_date', 'N/A')}", styles['NormalRight'])],
+        [Paragraph(f"GSTIN: {OUR_GSTIN}", styles['NormalLeft']),
+         Paragraph(f"<b>Order ID:</b> {order_data.get('order_id', 'N/A')}", styles['NormalRight'])],
+        [Paragraph(f"PAN: {OUR_PAN}", styles['NormalLeft']),
+         Paragraph(f"<b>Order Date:</b> {order_data.get('placed_on', 'N/A')}", styles['NormalRight'])],
+    ]
+    header_table = Table(header_data, colWidths=[4.25 * inch, 3.25 * inch])
+    header_table.setStyle(TableStyle([
+        ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+    ]))
+    story.append(header_table)
+    story.append(Spacer(1, 0.2 * inch))
+
+    # Customer and Shipping Details
+    customer_name = order_data.get('customer_name', 'N/A')
+    customer_phone = mask_phone_number(order_data.get('customer_phone', 'N/A'))
+    customer_address = order_data.get('customer_address', 'N/A')
+    customer_pincode = order_data.get('customer_pincode', 'N/A')
+    customer_email = order_data.get('user_email', 'N/A')
+
+    story.append(Paragraph("<b>Bill To / Ship To:</b>", styles['Heading2']))
+    story.append(Paragraph(customer_name, styles['NormalLeft']))
+    story.append(Paragraph(customer_address, styles['NormalLeft']))
+    story.append(Paragraph(f"Pincode: {customer_pincode}", styles['NormalLeft']))
+    story.append(Paragraph(f"Phone: {customer_phone}", styles['NormalLeft']))
+    story.append(Paragraph(f"Email: {customer_email}", styles['NormalLeft']))
+    story.append(Spacer(1, 0.2 * inch))
+
+    # Items Table
+    item_data = [['#', 'Description', 'Qty', 'Unit Price (₹)', 'Total (₹)']]
+    for i, item in enumerate(order_data.get('items', [])):
+        description = f"{item.get('name', 'N/A')}"
+        if item.get('size') and item['size'] != 'Original': description += f" (Size: {item['size']})"
+        if item.get('frame') and item['frame'] != 'None': description += f" (Frame: {item['frame']})"
+        if item.get('glass') and item['glass'] != 'None': description += f" (Glass: {item['glass']})"
+        
+        item_data.append([
+            str(i + 1),
+            Paragraph(description, styles['NormalLeft']),
+            str(item.get('quantity', 1)),
+            f"{item.get('unit_price', 0.0):.2f}",
+            f"{item.get('total_price', 0.0):.2f}"
+        ])
+
+    item_table = Table(item_data, colWidths=[0.5 * inch, 4 * inch, 0.75 * inch, 1.25 * inch, 1.25 * inch])
+    item_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#007bff')), # Header background
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white), # Header text color
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'), # Header alignment
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#f8f9fa')), # Row background
+        ('GRID', (0,0), (-1,-1), 1, colors.grey), # Grid lines
+        ('BOX', (0,0), (-1,-1), 1, colors.black), # Box around table
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('ALIGN', (0, 0), (0, -1), 'CENTER'), # # column
+        ('ALIGN', (2, 1), (2, -1), 'CENTER'), # Qty column
+        ('ALIGN', (3, 1), (-1, -1), 'RIGHT'), # Prices columns
+        ('RIGHTPADDING', (3, 1), (-1, -1), 10),
+        ('LEFTPADDING', (3, 1), (-1, -1), 10),
+    ]))
+    story.append(item_table)
+    story.append(Spacer(1, 0.2 * inch))
+
+    # Totals Section
+    total_amount = order_data.get('total_amount', 0.0) # This is the item subtotal
+    gst_amount = invoice_details.get('total_gst_amount', 0.0)
+    shipping_charge = invoice_details.get('shipping_charge', 0.0)
+    final_invoice_amount = invoice_details.get('final_invoice_amount', total_amount + gst_amount + shipping_charge)
+
+    totals_data = [
+        ['Subtotal:', f"₹{total_amount:.2f}"],
+        [f'GST ({DEFAULT_GST_RATE*100:.0f}%):', f"₹{gst_amount:.2f}"],
+        ['Shipping Charges:', f"₹{shipping_charge:.2f}"],
+        ['Total Invoice Amount:', f"₹{final_invoice_amount:.2f}"]
+    ]
+    totals_table = Table(totals_data, colWidths=[5.5 * inch, 2 * inch])
+    totals_table.setStyle(TableStyle([
+        ('ALIGN', (0,0), (-1,-1), 'RIGHT'),
+        ('FONTNAME', (0,0), (-1,2), 'Helvetica-Bold'),
+        ('FONTNAME', (0,3), (-1,3), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0,0), (-1,2), 6),
+        ('TOPPADDING', (0,3), (-1,3), 6),
+        ('LINEBELOW', (0,2), (-1,2), 1, colors.black), # Line above final total
+        ('LINEABOVE', (0,3), (-1,3), 1, colors.black), # Line above final total
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#e0e0e0')),
+        ('BOX', (0,0), (-1,-1), 1, colors.black),
+    ]))
+    story.append(totals_table)
+    story.append(Spacer(1, 0.5 * inch))
+
+    # Footer/Terms
+    story.append(Paragraph("Thank you for your business!", styles['NormalBold']))
+    story.append(Paragraph("This is a system generated invoice and does not require a signature.", styles['SmallText']))
+    story.append(Spacer(1, 0.2 * inch))
+
+    try:
+        doc.build(story)
+        print(f"DEBUG: Invoice PDF generated successfully at {pdf_filepath}")
+        return os.path.join('invoices', invoice_filename) # Return path relative to static
+    except Exception as e:
+        print(f"ERROR: Failed to build invoice PDF: {e}")
+        return None
+
+
+# --- Invoice Automation Logic (Simulated Background Task) ---
+def process_pending_invoices():
+    """
+    Checks for orders that need an invoice generated and emailed.
+    This simulates a background task for the demo.
+    """
+    orders = load_json('orders.json')
+    updated_orders = False
+
+    for order_idx, order in enumerate(orders):
+        # Only process orders marked 'Shipped' that haven't had an invoice 'Sent' or 'Held'
+        if order.get('status') == 'Shipped' and \
+           order.get('invoice_details', {}).get('invoice_status') not in ['Sent', 'Held']:
+            
+            shipped_time_str = order.get('shipped_on')
+            if not shipped_time_str:
+                print(f"WARNING: Order {order.get('order_id')} shipped but no 'shipped_on' timestamp.")
+                continue
+
+            try:
+                shipped_time = datetime.fromisoformat(shipped_time_str)
+                # Check if 24 hours have passed AND invoice is not 'Held' by admin
+                if (datetime.now() - shipped_time) >= timedelta(hours=24) and \
+                   not order.get('invoice_details', {}).get('is_held_by_admin', False):
+                    
+                    print(f"DEBUG: Processing invoice for Order ID: {order.get('order_id')}")
+
+                    # Initialize invoice_details if not present
+                    if 'invoice_details' not in order:
+                        order['invoice_details'] = {}
+                    
+                    # Calculate GST and Final Amount
+                    total_amount_items = order.get('total_amount', 0.0)
+                    gst_amount = total_amount_items * DEFAULT_GST_RATE
+                    shipping_charge = order['invoice_details'].get('shipping_charge', DEFAULT_SHIPPING_CHARGE) # Use existing or default
+                    final_amount = total_amount_items + gst_amount + shipping_charge
+
+                    order['invoice_details']['invoice_number'] = order['invoice_details'].get('invoice_number', generate_unique_invoice_number())
+                    order['invoice_details']['invoice_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    order['invoice_details']['total_gst_amount'] = round(gst_amount, 2)
+                    order['invoice_details']['shipping_charge'] = round(shipping_charge, 2)
+                    order['invoice_details']['final_invoice_amount'] = round(final_amount, 2)
+                    order['invoice_details']['gst_number'] = OUR_GSTIN # Store our details in invoice
+                    order['invoice_details']['pan_number'] = OUR_PAN
+                    order['invoice_details']['business_name'] = OUR_BUSINESS_NAME
+                    order['invoice_details']['business_address'] = OUR_BUSINESS_ADDRESS
+                    order['invoice_details']['customer_phone_camouflaged'] = mask_phone_number(order.get('customer_phone', 'N/A'))
+                    # Assuming billing address is same as shipping for now
+                    order['invoice_details']['billing_address'] = order.get('customer_address', 'N/A')
+
+
+                    pdf_relative_path = generate_invoice_pdf(order)
+
+                    if pdf_relative_path:
+                        order['invoice_details']['invoice_pdf_path'] = pdf_relative_path
+                        
+                        # Send email
+                        try:
+                            msg = Message(f"Karthika Futures - Your Invoice for Order #{order['order_id']}",
+                                          recipients=[order.get('user_email')])
+                            msg.body = render_template('email/invoice_email.txt', order=order) # Use a text template
+                            
+                            # Attach PDF
+                            with app.open_resource(os.path.join('static', pdf_relative_path)) as fp:
+                                msg.attach(f"invoice_{order['order_id']}.pdf", "application/pdf", fp.read())
+                            
+                            mail.send(msg)
+                            order['invoice_details']['invoice_status'] = 'Sent'
+                            print(f"DEBUG: Invoice for Order {order['order_id']} emailed successfully.")
+                            flash(f"Invoice for Order {order['order_id']} sent to customer.", "success")
+                            updated_orders = True
+                        except Exception as e:
+                            order['invoice_details']['invoice_status'] = 'Email Failed'
+                            print(f"ERROR: Failed to send invoice email for Order {order['order_id']}: {e}")
+                            flash(f"Failed to send invoice email for Order {order['order_id']}.", "danger")
+                            updated_orders = True
+                    else:
+                        order['invoice_details']['invoice_status'] = 'PDF Gen Failed'
+                        print(f"ERROR: PDF generation failed for Order {order['order_id']}.")
+                        flash(f"Failed to generate invoice PDF for Order {order['order_id']}.", "danger")
+                        updated_orders = True
+                elif order.get('invoice_details', {}).get('is_held_by_admin', False):
+                    print(f"DEBUG: Invoice for Order {order.get('order_id')} is on HOLD by admin.")
+                    order['invoice_details']['invoice_status'] = 'Held' # Ensure status reflects held
+                    updated_orders = True # Mark as updated if status changed
+                else:
+                    # Update status to Prepared if not sent/held and time not passed
+                    if order.get('invoice_details', {}).get('invoice_status') not in ['Prepared', 'Sent', 'Email Failed', 'PDF Gen Failed']:
+                         order['invoice_details']['invoice_status'] = 'Prepared' # Ready to be sent
+                         updated_orders = True
+                    print(f"DEBUG: Invoice for Order {order.get('order_id')} not yet due for sending.")
+
+            except ValueError as ve:
+                print(f"ERROR: Invalid date format for order {order.get('order_id')} shipped_on: {shipped_time_str} - {ve}")
+            except Exception as ex:
+                print(f"ERROR: Unexpected error in process_pending_invoices for order {order.get('order_id')}: {ex}")
+
+    if updated_orders:
+        save_json('orders.json', orders)
 
 # --- ROUTES ---
 
@@ -380,6 +672,10 @@ def admin_login():
 @admin_required
 def admin_panel():
     print("\n--- DEBUG: Entering /admin-panel route ---")
+    
+    # Trigger pending invoice processing on admin panel load
+    process_pending_invoices()
+
     artworks = load_json('artworks.json') 
     orders = load_json('orders.json') 
 
@@ -573,6 +869,17 @@ def admin_orders():
                 order['status'] = new_status
                 order['courier'] = courier
                 order['tracking_number'] = tracking_number
+                
+                # If status changes to Shipped, record timestamp and set initial invoice status
+                if new_status == 'Shipped':
+                    order['shipped_on'] = datetime.now().isoformat()
+                    if 'invoice_details' not in order:
+                        order['invoice_details'] = {}
+                    order['invoice_details']['invoice_status'] = 'Prepared' # Mark as prepared
+                    order['invoice_details']['is_held_by_admin'] = False # Ensure not held by default
+                    order['invoice_details']['last_edited_by_admin'] = datetime.now().isoformat() # Track last edit
+                    print(f"DEBUG: Order {order_id} marked as Shipped. Invoice status set to 'Prepared'.")
+
                 break
         
         if order_found:
@@ -584,6 +891,233 @@ def admin_orders():
         return redirect(url_for('admin_panel')) 
 
     return redirect(url_for('admin_panel')) 
+
+# Admin: Hold Invoice
+@app.route('/admin/invoice/hold/<order_id>', methods=['POST'])
+@admin_required
+def admin_hold_invoice(order_id):
+    orders = load_json('orders.json')
+    order_found = False
+    for order in orders:
+        if order.get('order_id') == order_id:
+            if 'invoice_details' not in order:
+                order['invoice_details'] = {}
+            order['invoice_details']['is_held_by_admin'] = True
+            order['invoice_details']['invoice_status'] = 'Held'
+            order['invoice_details']['last_edited_by_admin'] = datetime.now().isoformat()
+            save_json('orders.json', orders)
+            flash(f"Invoice for Order {order_id} has been put on hold.", "info")
+            order_found = True
+            break
+    if not order_found:
+        flash(f"Order {order_id} not found.", "danger")
+    return redirect(url_for('admin_panel'))
+
+# Admin: Release/Un-hold Invoice
+@app.route('/admin/invoice/release/<order_id>', methods=['POST'])
+@admin_required
+def admin_release_invoice(order_id):
+    orders = load_json('orders.json')
+    order_found = False
+    for order in orders:
+        if order.get('order_id') == order_id:
+            if 'invoice_details' not in order:
+                order['invoice_details'] = {}
+            order['invoice_details']['is_held_by_admin'] = False
+            # Reset status to 'Prepared' or 'Shipped' if it was 'Held' and not yet sent
+            if order['invoice_details'].get('invoice_status') == 'Held':
+                 order['invoice_details']['invoice_status'] = 'Prepared'
+            order['invoice_details']['last_edited_by_admin'] = datetime.now().isoformat()
+            save_json('orders.json', orders)
+            flash(f"Invoice for Order {order_id} has been released (no longer on hold).", "info")
+            order_found = True
+            break
+    if not order_found:
+        flash(f"Order {order_id} not found.", "danger")
+    return redirect(url_for('admin_panel'))
+
+# Admin: Edit Invoice Details
+@app.route('/admin/invoice/edit/<order_id>', methods=['GET', 'POST'])
+@admin_required
+def admin_edit_invoice(order_id):
+    orders = load_json('orders.json')
+    order = next((o for o in orders if o.get('order_id') == order_id), None)
+
+    if not order:
+        flash('Order not found.', 'danger')
+        return redirect(url_for('admin_panel'))
+
+    # Ensure invoice_details exists
+    if 'invoice_details' not in order:
+        order['invoice_details'] = {}
+    
+    # Pre-populate some invoice details if not already present
+    order['invoice_details'].setdefault('invoice_number', generate_unique_invoice_number())
+    order['invoice_details'].setdefault('invoice_date', datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    order['invoice_details'].setdefault('total_gst_amount', round(order.get('total_amount', 0.0) * DEFAULT_GST_RATE, 2))
+    order['invoice_details'].setdefault('shipping_charge', DEFAULT_SHIPPING_CHARGE)
+    order['invoice_details'].setdefault('final_invoice_amount', round(order.get('total_amount', 0.0) + order['invoice_details']['total_gst_amount'] + order['invoice_details']['shipping_charge'], 2))
+    order['invoice_details'].setdefault('gst_number', OUR_GSTIN)
+    order['invoice_details'].setdefault('pan_number', OUR_PAN)
+    order['invoice_details'].setdefault('business_name', OUR_BUSINESS_NAME)
+    order['invoice_details'].setdefault('business_address', OUR_BUSINESS_ADDRESS)
+    order['invoice_details'].setdefault('customer_phone_camouflaged', mask_phone_number(order.get('customer_phone', 'N/A')))
+    order['invoice_details'].setdefault('billing_address', order.get('customer_address', 'N/A')) # Assuming same as shipping
+
+    if request.method == 'POST':
+        # Update business details
+        order['invoice_details']['business_name'] = request.form.get('business_name', OUR_BUSINESS_NAME)
+        order['invoice_details']['business_address'] = request.form.get('business_address', OUR_BUSINESS_ADDRESS)
+        order['invoice_details']['gst_number'] = request.form.get('gst_number', OUR_GSTIN)
+        order['invoice_details']['pan_number'] = request.form.get('pan_number', OUR_PAN)
+
+        # Update invoice specific details
+        order['invoice_details']['invoice_number'] = request.form.get('invoice_number', order['invoice_details']['invoice_number'])
+        order['invoice_details']['invoice_date'] = request.form.get('invoice_date', order['invoice_details']['invoice_date'])
+        
+        # Update charges and recalculate final amount
+        try:
+            shipping_charge = float(request.form.get('shipping_charge', DEFAULT_SHIPPING_CHARGE))
+            gst_rate_from_form = float(request.form.get('gst_rate', DEFAULT_GST_RATE * 100)) / 100 # Convert % back to decimal
+            
+            # Recalculate GST and final amounts based on potentially edited values
+            base_total = order.get('total_amount', 0.0)
+            calculated_gst = base_total * gst_rate_from_form
+            final_invoice_amount = base_total + calculated_gst + shipping_charge
+            
+            order['invoice_details']['shipping_charge'] = round(shipping_charge, 2)
+            order['invoice_details']['total_gst_amount'] = round(calculated_gst, 2)
+            order['invoice_details']['final_invoice_amount'] = round(final_invoice_amount, 2)
+            
+            flash('Invoice details updated successfully!', 'success')
+            order['invoice_details']['invoice_status'] = 'Edited' # Mark as edited
+            order['invoice_details']['is_held_by_admin'] = True # Automatically put on hold if manually edited
+            order['invoice_details']['last_edited_by_admin'] = datetime.now().isoformat()
+
+        except ValueError:
+            flash("Invalid number format for charges. Please enter numeric values.", "danger")
+            # Don't save if values are invalid, let the form render with old values or error
+            return render_template('admin_edit_invoice.html', order=order,
+                                   our_business_name=OUR_BUSINESS_NAME,
+                                   our_business_address=OUR_BUSINESS_ADDRESS,
+                                   our_gstin=OUR_GSTIN,
+                                   our_pan=OUR_PAN,
+                                   default_gst_rate=DEFAULT_GST_RATE * 100) # Pass as percentage for form
+
+        save_json('orders.json', orders)
+        return redirect(url_for('admin_edit_invoice', order_id=order_id))
+
+    return render_template('admin_edit_invoice.html', order=order,
+                           our_business_name=OUR_BUSINESS_NAME,
+                           our_business_address=OUR_BUSINESS_ADDRESS,
+                           our_gstin=OUR_GSTIN,
+                           our_pan=OUR_PAN,
+                           default_gst_rate=DEFAULT_GST_RATE * 100) # Pass as percentage for form
+
+# Admin: Send Invoice Email Manually
+@app.route('/admin/invoice/send_email/<order_id>', methods=['POST'])
+@admin_required
+def admin_send_invoice_email(order_id):
+    orders = load_json('orders.json')
+    order = next((o for o in orders if o.get('order_id') == order_id), None)
+
+    if not order:
+        flash('Order not found.', 'danger')
+        return redirect(url_for('admin_panel'))
+
+    if 'invoice_details' not in order or not order['invoice_details'].get('invoice_number'):
+        flash(f"Invoice for Order {order_id} not yet prepared. Please edit and save it first.", "warning")
+        return redirect(url_for('admin_edit_invoice', order_id=order_id))
+
+    pdf_relative_path = generate_invoice_pdf(order) # Re-generate PDF with current details
+
+    if pdf_relative_path:
+        order['invoice_details']['invoice_pdf_path'] = pdf_relative_path
+        
+        try:
+            msg = Message(f"Karthika Futures - Your Invoice for Order #{order['order_id']} (Manual Send)",
+                          recipients=[order.get('user_email')])
+            msg.body = render_template('email/invoice_email.txt', order=order)
+            
+            with app.open_resource(os.path.join('static', pdf_relative_path)) as fp:
+                msg.attach(f"invoice_{order['order_id']}.pdf", "application/pdf", fp.read())
+            
+            mail.send(msg)
+            order['invoice_details']['invoice_status'] = 'Sent'
+            order['invoice_details']['is_held_by_admin'] = False # Release hold if sent manually
+            order['invoice_details']['last_edited_by_admin'] = datetime.now().isoformat()
+            save_json('orders.json', orders)
+            flash(f"Invoice for Order {order_id} manually sent to customer.", "success")
+        except Exception as e:
+            order['invoice_details']['invoice_status'] = 'Email Failed'
+            save_json('orders.json', orders)
+            flash(f"Failed to send invoice email for Order {order_id}: {e}", "danger")
+            print(f"ERROR: Manual invoice email send failed for Order {order_id}: {e}")
+    else:
+        order['invoice_details']['invoice_status'] = 'PDF Gen Failed'
+        save_json('orders.json', orders)
+        flash(f"Failed to generate invoice PDF for Order {order_id}.", "danger")
+        print(f"ERROR: Manual invoice PDF generation failed for Order {order_id}.")
+
+    return redirect(url_for('admin_panel'))
+
+
+# Route to download the generated invoice PDF
+@app.route('/download-invoice/<order_id>')
+@login_required
+def download_invoice(order_id):
+    orders = load_json('orders.json')
+    order = next((o for o in orders if o.get('order_id') == order_id), None)
+
+    if not order:
+        flash("Invoice not found for this order.", "danger")
+        return redirect(url_for('my_orders'))
+
+    # Security check: Ensure the current user owns this order OR is an admin
+    if str(order.get('user_id')) != str(current_user.id) and not current_user.is_admin:
+        flash("You do not have permission to download this invoice.", "danger")
+        return redirect(url_for('my_orders'))
+
+    # Check if invoice PDF path exists and status allows download
+    invoice_details = order.get('invoice_details', {})
+    pdf_relative_path = invoice_details.get('invoice_pdf_path')
+    invoice_status = invoice_details.get('invoice_status')
+
+    if not pdf_relative_path or not os.path.exists(os.path.join('static', pdf_relative_path)):
+        flash("Invoice PDF not found or not yet generated.", "warning")
+        # Attempt to generate if status is 'Prepared'/'Edited' and path is missing
+        if invoice_status in ['Prepared', 'Edited', 'Held', 'Email Failed'] and order.get('status') == 'Shipped':
+             flash("Attempting to generate invoice PDF now...", "info")
+             # Regenerate PDF with current details
+             pdf_relative_path = generate_invoice_pdf(order)
+             if pdf_relative_path:
+                 order['invoice_details']['invoice_pdf_path'] = pdf_relative_path
+                 save_json('orders.json', orders)
+                 return redirect(url_for('download_invoice', order_id=order_id)) # Retry download
+
+        return redirect(url_for('my_orders'))
+
+    # Only allow download if status is appropriate (e.g., Sent, Prepared, Edited, Email Failed)
+    # This prevents users from downloading invoices for cancelled/pending orders even if a PDF somehow exists
+    allowed_invoice_statuses = ['Prepared', 'Sent', 'Held', 'Edited', 'Email Failed', 'PDF Gen Failed']
+    if invoice_status not in allowed_invoice_statuses:
+        flash("Invoice is not yet available for download due to its current status.", "warning")
+        return redirect(url_for('my_orders'))
+
+    # Provide the PDF for download
+    try:
+        full_path = os.path.join('static', pdf_relative_path)
+        return Response(
+            open(full_path, 'rb').read(),
+            mimetype='application/pdf',
+            headers={"Content-Disposition": f"attachment;filename=invoice_{order_id}.pdf"}
+        )
+    except FileNotFoundError:
+        flash("Invoice PDF file not found on server.", "danger")
+        return redirect(url_for('my_orders'))
+    except Exception as e:
+        flash(f"Error serving invoice PDF: {e}", "danger")
+        return redirect(url_for('my_orders'))
 
 
 # Home Route
@@ -853,7 +1387,7 @@ def signup():
             msg = Message('Your Signup OTP', recipients=[email])
             msg.body = f'Your One-Time Password for Karthika Futures signup is: {otp_code}\n\nThis OTP is valid for a short period. Do not share it.'
             mail.send(msg)
-            flash('An OTP has been sent to your email address. Please check your inbox (and spam folder).', 'info')
+            flash('An OTP has been been sent to your email address. Please check your inbox (and spam folder).', 'info')
             print("DEBUG: Signup OTP email sent successfully.")
             return redirect(url_for('verify_otp', otp_type='signup'))
 
@@ -1093,7 +1627,25 @@ def purchase_form():
                     "status": "Pending Payment",
                     "courier": "",
                     "tracking_number": "",
-                    "placed_on": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    "placed_on": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    # New invoice details
+                    "invoice_details": {
+                        "invoice_status": "Not Applicable", # Default status before Shipped
+                        "is_held_by_admin": False,
+                        "last_edited_by_admin": None,
+                        "invoice_number": None,
+                        "invoice_date": None,
+                        "gst_number": OUR_GSTIN,
+                        "pan_number": OUR_PAN,
+                        "business_name": OUR_BUSINESS_NAME,
+                        "business_address": OUR_BUSINESS_ADDRESS,
+                        "total_gst_amount": 0.0,
+                        "shipping_charge": 0.0,
+                        "final_invoice_amount": grand_total_from_server_calc, # Initially just item total
+                        "invoice_pdf_path": None,
+                        "customer_phone_camouflaged": mask_phone_number(phone),
+                        "billing_address": address # Assuming shipping address is billing address
+                    }
                 }
                 orders.append(new_order)
                 save_json('orders.json', orders)
@@ -1185,8 +1737,9 @@ def payment_initiate(order_id, amount):
     print(f"\n--- DEBUG: Entering /payment-initiate route ---")
     print(f"DEBUG: Received order_id: {order_id}, amount: {amount}")
 
-    upi_id = UPI_ID
-    banking_name = BANKING_NAME
+    # UPI Payment Details
+    upi_id = "smarasada@okaxis"
+    banking_name = "SUBHASH S" 
     
     orders = load_json('orders.json') 
     order = next((o for o in orders if o['order_id'] == order_id), None)
@@ -1277,6 +1830,10 @@ def thank_you_page():
 @login_required
 def my_orders():
     print("\n--- DEBUG: Entering /my-orders route ---")
+    
+    # Trigger pending invoice processing on admin panel load
+    process_pending_invoices() # Also check here, so user sees updated invoice status
+
     print(f"DEBUG: Current user ID for /my-orders: {current_user.id}") 
     orders = load_json('orders.json') 
     user_orders = []
@@ -1302,6 +1859,10 @@ def cancel_order(order_id):
                 # Only allow cancellation if the order is in a "cancellable" state
                 if order.get('status') in ["Pending Payment", "Payment Submitted - Awaiting Verification"]:
                     orders[order_idx]['status'] = "Cancelled by User" # Update using index
+                    # Also update invoice status if it exists
+                    if 'invoice_details' in orders[order_idx]:
+                        orders[order_idx]['invoice_details']['invoice_status'] = 'Cancelled'
+                        orders[order_idx]['invoice_details']['is_held_by_admin'] = True # Prevent automatic sending if cancelled
                     save_json('orders.json', orders)
                     flash(f"Order {order_id} has been cancelled.", "success")
                     print(f"DEBUG: Order {order_id} cancelled by user {current_user.id}.")
@@ -1355,6 +1916,9 @@ def export_orders_csv():
         "order_id", "user_id", "user_email", "customer_name", "customer_phone", 
         "customer_address", "customer_pincode", "total_amount", "status", 
         "transaction_id", "courier", "tracking_number", "placed_on", "payment_submitted_on",
+        "shipped_on", # New field
+        "invoice_status", "invoice_number", "invoice_date", "total_gst_amount", 
+        "shipping_charge", "final_invoice_amount", "invoice_held_by_admin", # New fields for invoice
         "items_details" # Combined item details
     ]
 
@@ -1382,6 +1946,16 @@ def export_orders_csv():
                     items_details.append(details)
             items_details_str = "; ".join(items_details) 
 
+            # Extract invoice details with defaults
+            invoice_det = order.get('invoice_details', {})
+            invoice_status = invoice_det.get('invoice_status', 'N/A')
+            invoice_number = invoice_det.get('invoice_number', 'N/A')
+            invoice_date = invoice_det.get('invoice_date', 'N/A')
+            total_gst_amount = f"{invoice_det.get('total_gst_amount', 0.0):.2f}"
+            shipping_charge_inv = f"{invoice_det.get('shipping_charge', 0.0):.2f}"
+            final_invoice_amount = f"{invoice_det.get('final_invoice_amount', 0.0):.2f}"
+            invoice_held = str(invoice_det.get('is_held_by_admin', False))
+
             row = [
                 str(order.get('order_id', 'N/A')),
                 str(order.get('user_id', 'N/A')),
@@ -1397,6 +1971,9 @@ def export_orders_csv():
                 str(order.get('tracking_number', 'N/A')),
                 str(order.get('placed_on', 'N/A')),
                 str(order.get('payment_submitted_on', 'N/A')),
+                str(order.get('shipped_on', 'N/A')), # New field
+                invoice_status, invoice_number, invoice_date, total_gst_amount, 
+                shipping_charge_inv, final_invoice_amount, invoice_held, # New fields
                 items_details_str
             ]
             cw.writerow(row)
@@ -1470,10 +2047,12 @@ if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True) 
     os.makedirs(PAYMENT_SCREENSHOTS_FOLDER, exist_ok=True)
     os.makedirs(QR_CODES_FOLDER, exist_ok=True)
-    print(f"Ensured upload directories exist: {app.config['UPLOAD_FOLDER']}, {PAYMENT_SCREENSHOTS_FOLDER}, {QR_CODES_FOLDER}")
+    os.makedirs(INVOICE_PDFS_FOLDER, exist_ok=True) # Ensure invoices directory exists
+    print(f"Ensured upload directories exist: {app.config['UPLOAD_FOLDER']}, {PAYMENT_SCREENSHOTS_FOLDER}, {QR_CODES_FOLDER}, {INVOICE_PDFS_FOLDER}")
 
     if os.environ.get('ADMIN_PASSWORD_HASH') is None:
         print("WARNING: ADMIN_PASSWORD_HASH not found in environment variables. Using default 'admin123'. Change this in production!")
         pass 
 
     app.run(debug=True)
+

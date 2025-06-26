@@ -325,6 +325,7 @@
         // --- Global Image Modal Logic (moved from original index.html) ---
         document.addEventListener('DOMContentLoaded', function() {
             // Event listener for opening the modal from any image with class 'card-img-top'
+            // This is for thumbnails that directly trigger the modal
             document.querySelectorAll('.card-img-top').forEach(img => { 
                 img.style.cursor = 'zoom-in'; 
                 img.addEventListener('click', () => { 

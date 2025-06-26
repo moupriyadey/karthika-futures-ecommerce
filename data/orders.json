@@ -182,5 +182,84 @@
         "placed_on": "2025-06-25 17:11:27",
         "transaction_id": "12345698712",
         "payment_submitted_on": "2025-06-25 17:12:14"
+    },
+    {
+        "order_id": "75788662",
+        "user_id": "2a6b52b4-992c-470a-ba0d-a9022216adb0",
+        "user_email": "covcorres@gmail.com",
+        "customer_name": "covcorres",
+        "customer_phone": "2222222222",
+        "customer_address": "kolkata",
+        "customer_pincode": "121323",
+        "total_amount": 1000.0,
+        "items": [
+            {
+                "frame": "None",
+                "glass": "None",
+                "id": "GLA313TN-Original-None-None",
+                "image": "/static/uploads/ganesha_with_ma1.png",
+                "name": "Lord Ganesha",
+                "quantity": 1,
+                "size": "Original",
+                "sku": "GLA313TN",
+                "total_price": 1000,
+                "unit_price": 1000,
+                "price": 1000
+            }
+        ],
+        "status": "Payment Submitted - Awaiting Verification",
+        "courier": "",
+        "tracking_number": "",
+        "placed_on": "2025-06-26 11:47:29",
+        "transaction_id": "121122112",
+        "payment_submitted_on": "2025-06-26 11:48:33"
+    },
+    {
+        "order_id": "41078485",
+        "user_id": "2a6b52b4-992c-470a-ba0d-a9022216adb0",
+        "user_email": "covcorres@gmail.com",
+        "customer_name": "covcorres",
+        "customer_phone": "2222222222",
+        "customer_address": "kolkata",
+        "customer_pincode": "121323",
+        "total_amount": 1000.0,
+        "items": [
+            {
+                "frame": "None",
+                "glass": "None",
+                "id": "GLA313TN-Original-None-None",
+                "image": "/static/uploads/ganesha_with_ma1.png",
+                "name": "Lord Ganesha",
+                "quantity": 1,
+                "size": "Original",
+                "sku": "GLA313TN",
+                "total_price": 1000,
+                "unit_price": 1000,
+                "price": 1000
+            }
+        ],
+        "status": "Payment Submitted - Awaiting Verification",
+        "courier": "",
+        "tracking_number": "",
+        "placed_on": "2025-06-26 12:27:40",
+        "invoice_details": {
+            "invoice_status": "Not Applicable",
+            "is_held_by_admin": false,
+            "last_edited_by_admin": null,
+            "invoice_number": null,
+            "invoice_date": null,
+            "gst_number": "08EXIPR1212L1ZO",
+            "pan_number": "CTMPS6841J",
+            "business_name": "Karthikafutures",
+            "business_address": "Annapoornna Apartment, Sahapur Colony, New Alipore, Kolkata - 700053",
+            "total_gst_amount": 0.0,
+            "shipping_charge": 0.0,
+            "final_invoice_amount": 1000.0,
+            "invoice_pdf_path": null,
+            "customer_phone_camouflaged": "222XXX2222",
+            "billing_address": "kolkata"
+        },
+        "transaction_id": "000000000000000",
+        "payment_submitted_on": "2025-06-26 12:28:10"
     }
 ]

@@ -4,98 +4,297 @@
 
 {% block extra_css %}
 <style>
-    .admin-container {
-        margin-top: 5rem; /* Space from fixed navbar */
-        margin-bottom: 2rem;
+    .admin-panel-container {
+        padding: 2rem;
         background-color: #ffffff;
         border-radius: 0.75rem;
         box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
-        padding: 2rem;
+        margin-top: 5rem; /* Adjust from fixed navbar */
+        margin-bottom: 2rem;
     }
     h2 {
         color: #333;
         margin-bottom: 1.5rem;
     }
-    .card {
-        border: none; /* Remove default card border for cleaner look */
-        box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.05); /* Lighter shadow */
-    }
-    .card-header {
-        background-color: #f0f2f5; /* Lighter background for headers */
-        font-weight: 600; /* Slightly bolder */
-        color: #333;
-        border-bottom: 1px solid #e0e2e5;
-        padding: 1rem 1.5rem; /* More padding */
-        border-radius: 0.75rem 0.75rem 0 0; /* Rounded top corners */
-    }
-    .table thead th {
-        background-color: #e9ecef;
-        border-bottom: 2px solid #dee2e6;
-        font-weight: 600;
-        color: #555;
-        padding: 0.75rem; /* Consistent padding */
-    }
-    .table tbody td {
-        vertical-align: middle;
-        padding: 0.75rem; /* Consistent padding */
-    }
     .table-responsive {
         margin-top: 1.5rem;
-        border-radius: 0.5rem; /* Rounded corners for the table container */
-        overflow: hidden; /* Ensures table corners are rounded */
     }
-    .table img.img-thumbnail {
+    .table th, .table td {
+        vertical-align: middle;
+        word-break: break-word; /* Ensure long text breaks */
+        padding: 0.75rem; /* Standardize padding */
+    }
+    .img-thumbnail {
         max-width: 80px;
-        height: 80px; /* Fixed height for consistent image size */
-        object-fit: cover; /* Ensures images cover the area without distortion */
-        border-radius: 0.25rem;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        max-height: 80px;
+        object-fit: cover;
     }
-    .btn-action {
-        margin-right: 5px;
-        min-width: 70px; /* Ensure buttons have a minimum consistent width */
+    .list-unstyled {
+        padding-left: 0;
+        margin-bottom: 0;
     }
-    .status-dropdown {
-        width: 180px; 
-        font-size: 0.875rem; /* Slightly smaller font for compactness */
+    .list-unstyled li {
+        margin-bottom: 0.25rem;
     }
-    .form-control-sm { /* Applied to courier/tracking inputs for compactness */
-        font-size: 0.875rem;
-        padding: 0.25rem 0.5rem;
-        height: auto; /* Adjust height automatically */
+    /* Status badges similar to my_orders.html */
+    .status-badge {
+        display: inline-block;
+        padding: .35em .65em;
+        font-size: .75em;
+        font-weight: 700;
+        line-height: 1;
+        color: #fff;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: baseline;
+        border-radius: .375rem;
     }
-    .d-inline-flex {
-        align-items: center; /* Align items vertically in flex containers */
-        flex-wrap: wrap; /* Allow wrapping on smaller screens */
-        gap: 0.5rem; /* Small gap between elements */
+    .status-pending-payment { background-color: #ffc107; color: #333;} /* Warning yellow */
+    .status-payment-submitted---awaiting-verification { background-color: #fd7e14; color: #fff;} /* Orange */
+    .status-payment-verified---processing { background-color: #007bff; color: #fff; } /* Primary blue */
+    .status-processing { background-color: #17a2b8; color: #fff; } /* Info blue */
+    .status-shipped { background-color: #28a745; color: #fff; } /* Success green */
+    .status-delivered { background-color: #6f42c1; color: #fff; } /* Purple */
+    .status-cancelled { background-color: #dc3545; color: #fff; } /* Danger red */
+    .status-cancelled-by-user { background-color: #6c757d; color: #fff; } /* Gray for user cancellation */
+    
+    /* Invoice Status Badges */
+    .invoice-status-not-applicable { background-color: #e9ecef; color: #6c757d; } /* Light Gray */
+    .invoice-status-prepared { background-color: #0dcaf0; color: #fff; } /* Cyan (info-like) */
+    .invoice-status-sent { background-color: #28a745; color: #fff; } /* Green (success) */
+    .invoice-status-held { background-color: #ffc107; color: #333; } /* Orange (warning) */
+    .invoice-status-edited { background-color: #6f42c1; color: #fff; } /* Purple */
+    .invoice-status-email-failed { background-color: #dc3545; color: #fff; } /* Red (danger) */
+    .invoice-status-pdf-gen-failed { background-color: #6c757d; color: #fff; } /* Darker Gray */
+    .invoice-status-cancelled { background-color: #adb5bd; color: #fff; } /* Lighter gray for cancelled invoice */
+
+
+    /* Specific styles for buttons in tables for mobile/small screens */
+    .table td .btn-group {
+        display: flex;
+        flex-wrap: wrap; /* Allow buttons to wrap to next line */
+        gap: 0.25rem; /* Small gap between buttons */
+        justify-content: center;
     }
-    .card-body .btn { /* General button styling within card body */
-        padding: 0.5rem 1rem;
-        font-size: 0.9rem;
-        border-radius: 0.5rem; /* Rounded buttons */
+    .table td .btn {
+        flex-grow: 1; /* Allow buttons to grow to fill space */
+        min-width: 80px; /* Minimum width for readability */
+        padding: .4em .6em; /* Adjust padding for smaller buttons */
+        font-size: .85em; /* Adjust font size */
+    }
+
+    /* General responsive utility for spacing */
+    .mb-md-0 { margin-bottom: 0 !important; }
+
+    @media (max-width: 767.98px) {
+        .admin-panel-container {
+            padding: 1rem;
+            margin-top: 4.5rem; /* Adjust for smaller screens */
+        }
+        .table thead {
+            display: none; /* Hide table headers on small screens */
+        }
+        .table, .table tbody, .table tr, .table td {
+            display: block; /* Make table elements behave like block elements */
+            width: 100%;
+        }
+        .table tr {
+            margin-bottom: 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .table td {
+            text-align: right;
+            padding-left: 50%; /* Space for pseudo-element label */
+            position: relative;
+            border: none; /* Remove individual cell borders */
+        }
+        .table td::before {
+            content: attr(data-label); /* Use data-label for content */
+            position: absolute;
+            left: 0;
+            width: 45%; /* Width for the label */
+            padding-left: 0.75rem;
+            font-weight: bold;
+            text-align: left;
+        }
+        /* Specific label styles for tables */
+        td[data-label="Actions"] .btn-group {
+            width: 100%; /* Make button group full width */
+            flex-direction: column; /* Stack buttons vertically */
+            gap: 0.25rem;
+        }
+        td[data-label="Actions"] .btn {
+            width: 100%;
+        }
+        td[data-label="Items Ordered"] ul {
+            text-align: right;
+            width: 100%;
+        }
+        td[data-label="Items Ordered"] ul li {
+            text-align: right;
+        }
+        td[data-label="Payment Details"] p, td[data-label="Payment Details"] small {
+            text-align: right;
+            width: 100%;
+        }
+        td[data-label="Payment Details"] .img-thumbnail {
+            display: block;
+            margin-left: auto; /* Center image */
+            margin-right: auto;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container admin-container">
-    <h2 class="text-center mb-4">Admin Dashboard</h2>
+<div class="container admin-panel-container">
+    <h2 class="text-center mb-4">👑 Admin Panel</h2>
 
-    <div class="card mb-5"> {# Increased margin-bottom #}
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span>Manage Artworks</span>
-            <a href="{{ url_for('add_artwork') }}" class="btn btn-success">Add New Artwork</a>
+    <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders" type="button" role="tab" aria-controls="orders" aria-selected="true">Recent Orders</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="artworks-tab" data-bs-toggle="tab" data-bs-target="#artworks" type="button" role="tab" aria-controls="artworks" aria-selected="false">Manage Artworks</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="exports-tab" data-bs-toggle="tab" data-bs-target="#exports" type="button" role="tab" aria-controls="exports" aria-selected="false">Export Data</button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="adminTabsContent">
+        {# Recent Orders Tab #}
+        <div class="tab-pane fade show active" id="orders" role="tabpanel" aria-labelledby="orders-tab">
+            <h3 class="mb-3">Recent Orders</h3>
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Shipped On</th>
+                            <th>Courier/Tracking</th>
+                            <th>Invoice Status</th> {# New column #}
+                            <th>Invoice No.</th> {# New column #}
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if orders %}
+                            {% for order in orders | reverse %} {# Display most recent orders first #}
+                                {# Safely access invoice_details, defaulting to an empty dict if not present #}
+                                {% set invoice_details_data = order.invoice_details | default({}) %}
+                                {% set invoice_status = invoice_details_data.invoice_status | default('Not Applicable') %}
+                                {% set invoice_pdf_path = invoice_details_data.invoice_pdf_path | default(none) %}
+                                {% set is_held_by_admin = invoice_details_data.is_held_by_admin | default(false) %}
+
+                                <tr>
+                                    <td data-label="Order ID">{{ order.order_id }}</td>
+                                    <td data-label="Customer">
+                                        <strong>{{ order.customer_name }}</strong><br>
+                                        <small>{{ order.user_email }}</small><br>
+                                        <small>{{ order.customer_phone }}</small>
+                                    </td>
+                                    <td data-label="Amount">₹{{ order.total_amount | default(0.0) | round(2) }}</td>
+                                    <td data-label="Status">
+                                        <span class="status-badge status-{{ order.status | lower | replace(' ', '-') | replace('-', '.') }}">{{ order.status }}</span>
+                                        <p class="small text-muted mb-0">Placed: {{ order.placed_on }}</p>
+                                        {% if order.payment_submitted_on %}<p class="small text-muted mb-0">Paid: {{ order.payment_submitted_on }}</p>{% endif %}
+                                    </td>
+                                    <td data-label="Shipped On">{{ order.shipped_on | default('N/A') }}</td>
+                                    <td data-label="Courier/Tracking">
+                                        {{ order.courier | default('N/A') }}<br>
+                                        {{ order.tracking_number | default('N/A') }}
+                                    </td>
+                                    <td data-label="Invoice Status">
+                                        <span class="status-badge invoice-status-{{ invoice_status | lower | replace(' ', '-') | replace('-', '.') }}">{{ invoice_status }}</span>
+                                    </td>
+                                    <td data-label="Invoice No.">{{ invoice_details_data.invoice_number | default('N/A') }}</td>
+                                    <td data-label="Actions">
+                                        <div class="btn-group-vertical"> {# Use vertical for better mobile stacking #}
+                                            <form action="{{ url_for('admin_orders') }}" method="POST" class="d-inline-block mb-1">
+                                                <input type="hidden" name="order_id" value="{{ order.order_id }}">
+                                                <div class="input-group">
+                                                    <select name="status" class="form-select form-select-sm">
+                                                        <option value="Pending Payment" {% if order.status == 'Pending Payment' %}selected{% endif %}>Pending Payment</option>
+                                                        <option value="Payment Submitted - Awaiting Verification" {% if order.status == 'Payment Submitted - Awaiting Verification' %}selected{% endif %}>Payment Submitted - Awaiting Verification</option>
+                                                        <option value="Payment Verified - Processing" {% if order.status == 'Payment Verified - Processing' %}selected{% endif %}>Payment Verified - Processing</option>
+                                                        <option value="Processing" {% if order.status == 'Processing' %}selected{% endif %}>Processing</option>
+                                                        <option value="Shipped" {% if order.status == 'Shipped' %}selected{% endif %}>Shipped</option>
+                                                        <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                                                        <option value="Cancelled" {% if order.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                                                        <option value="Cancelled by User" {% if order.status == 'Cancelled by User' %}selected{% endif %}>Cancelled by User</option>
+                                                    </select>
+                                                    <button type="submit" class="btn btn-sm btn-primary">Update Status</button>
+                                                </div>
+                                                <div class="input-group mt-1">
+                                                    <input type="text" name="courier" class="form-control form-control-sm" placeholder="Courier" value="{{ order.courier | default('') }}">
+                                                    <input type="text" name="tracking_number" class="form-control form-control-sm" placeholder="Tracking #" value="{{ order.tracking_number | default('') }}">
+                                                    <button type="submit" class="btn btn-sm btn-info">Update Shipping</button>
+                                                </div>
+                                            </form>
+                                            
+                                            {# Invoice Action Buttons #}
+                                            <div class="d-flex flex-wrap gap-1 mt-1 justify-content-center">
+                                                {# Show invoice options only if order is shipped or previously had an invoice #}
+                                                {% if order.status == 'Shipped' or invoice_details_data.invoice_status != 'Not Applicable' %}
+                                                    {% if not is_held_by_admin %}
+                                                        <form action="{{ url_for('admin_hold_invoice', order_id=order.order_id) }}" method="POST" class="d-inline-block">
+                                                            <button type="submit" class="btn btn-sm btn-warning">Hold Invoice</button>
+                                                        </form>
+                                                    {% else %}
+                                                        <form action="{{ url_for('admin_release_invoice', order_id=order.order_id) }}" method="POST" class="d-inline-block">
+                                                            <button type="submit" class="btn btn-sm btn-info">Release Invoice</button>
+                                                        </form>
+                                                    {% endif %}
+                                                    <a href="{{ url_for('admin_edit_invoice', order_id=order.order_id) }}" class="btn btn-sm btn-secondary">Edit Invoice</a>
+                                                    <form action="{{ url_for('admin_send_invoice_email', order_id=order.order_id) }}" method="POST" class="d-inline-block">
+                                                        <button type="submit" class="btn btn-sm btn-success" {% if invoice_status == 'Sent' %}disabled{% endif %}>Send Invoice Email</button>
+                                                    </form>
+                                                {% elif order.status == 'Cancelled' or order.status == 'Cancelled by User' %}
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled>Invoice N/A</button>
+                                                {% endif %}
+
+                                                {% if invoice_pdf_path %}
+                                                    <a href="{{ url_for('static', filename=invoice_pdf_path) }}" target="_blank" class="btn btn-sm btn-dark">Download Invoice</a>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            <a href="{{ url_for('delete_order', order_id=order.order_id) }}" class="btn btn-sm btn-danger mt-1" onclick="return confirm('Are you sure you want to delete order {{ order.order_id }}? This action is irreversible.');">Delete Order</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="9" class="text-center text-muted">No orders placed yet.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
         </div>
-        <div class="card-body">
-            <div class="mb-3">
-                <a href="{{ url_for('export_artworks_csv') }}" class="btn btn-outline-primary btn-sm">Download Artworks (CSV)</a>
+
+        {# Manage Artworks Tab #}
+        <div class="tab-pane fade" id="artworks" role="tabpanel" aria-labelledby="artworks-tab">
+            <h3 class="mb-3">Manage Artworks</h3>
+            <div class="mb-3 text-end">
+                <a href="{{ url_for('add_artwork') }}" class="btn btn-primary">Add New Artwork</a>
             </div>
             <div class="table-responsive">
-                <table class="table table-striped table-hover align-middle">
-                    <thead>
+                <table class="table table-hover table-striped">
+                    <thead class="table-dark">
                         <tr>
-                            <th>SKU</th>
                             <th>Image</th>
+                            <th>SKU</th>
                             <th>Name</th>
                             <th>Category</th>
                             <th>Price</th>
@@ -104,102 +303,85 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for artwork in artworks %}
-                        <tr>
-                            <td>{{ artwork.sku }}</td>
-                            <td>
-                                {% if artwork.image %}
-                                <img src="{{ url_for('static', filename=artwork.image) }}" alt="{{ artwork.name }}" class="img-thumbnail">
-                                {% else %}
-                                <img src="https://placehold.co/80x80/cccccc/333333?text=No+Img" alt="No Image" class="img-thumbnail">
-                                {% endif %}
-                            </td>
-                            <td>{{ artwork.name }}</td>
-                            <td>{{ artwork.category }}</td>
-                            <td>₹{{ artwork.original_price | round(2) }}</td>
-                            <td>{{ artwork.stock }}</td>
-                            <td>
-                                <a href="{{ url_for('edit_artwork', sku=artwork.sku) }}" class="btn btn-sm btn-info btn-action">Edit</a>
-                                <a href="{{ url_for('delete_artwork', sku=artwork.sku) }}" class="btn btn-sm btn-danger btn-action" onclick="return confirm('Are you sure you want to delete this artwork?');">Delete</a>
-                            </td>
-                        </tr>
+                        {% if artworks %}
+                            {% for artwork in artworks %}
+                                <tr>
+                                    <td data-label="Image">
+                                        {% if artwork.image %}
+                                            <img src="{{ url_for('static', filename=artwork.image) }}" alt="{{ artwork.name }}" class="img-thumbnail">
+                                        {% else %}
+                                            <img src="https://placehold.co/80x80/cccccc/333333?text=No+Image" alt="No Image" class="img-thumbnail">
+                                        {% endif %}
+                                    </td>
+                                    <td data-label="SKU">{{ artwork.sku }}</td>
+                                    <td data-label="Name">{{ artwork.name }}</td>
+                                    <td data-label="Category">{{ artwork.category }}</td>
+                                    <td data-label="Price">₹{{ artwork.original_price | round(2) }}</td>
+                                    <td data-label="Stock">{{ artwork.stock }}</td>
+                                    <td data-label="Actions">
+                                        <div class="btn-group-vertical">
+                                            <a href="{{ url_for('edit_artwork', sku=artwork.sku) }}" class="btn btn-sm btn-secondary mb-1">Edit</a>
+                                            <a href="{{ url_for('delete_artwork', sku=artwork.sku) }}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete artwork {{ artwork.name }} ({{ artwork.sku }})? This action is irreversible and will remove the image file.');">Delete</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
                         {% else %}
-                        <tr>
-                            <td colspan="7" class="text-center">No artworks found.</td>
-                        </tr>
-                        {% endfor %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted">No artworks added yet.</td>
+                            </tr>
+                        {% endif %}
                     </tbody>
                 </table>
             </div>
         </div>
-    </div>
 
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span>Manage Orders</span>
-            <a href="{{ url_for('export_orders_csv') }}" class="btn btn-outline-primary btn-sm">Download Orders (CSV)</a>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-striped table-hover align-middle">
-                    <thead>
-                        <tr>
-                            <th>Order ID</th>
-                            <th>Date</th>
-                            <th>Customer Email</th>
-                            <th>Total Amount</th>
-                            <th>Payment Status</th>
-                            <th>Transaction ID / UTR</th> {# UTR COLUMN CONFIRMED HERE #}
-                            <th>Courier</th>
-                            <th>Tracking Number</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for order in orders %}
-                        <tr>
-                            <td>{{ order.order_id }}</td>
-                            <td>{{ order.placed_on | default('N/A') }}</td>
-                            <td>{{ order.user_email | default('N/A') }}</td>
-                            <td>₹{{ order.total_amount | default(0.0) | round(2) }}</td>
-                            <td>
-                                <form action="{{ url_for('admin_orders') }}" method="POST" class="d-inline-flex align-items-center">
-                                    <input type="hidden" name="order_id" value="{{ order.order_id }}">
-                                    <select name="status" class="form-select form-select-sm status-dropdown me-2">
-                                        <option value="Pending Payment" {% if order.status == 'Pending Payment' %}selected{% endif %}>Pending Payment</option>
-                                        <option value="Payment Submitted - Awaiting Verification" {% if order.status == 'Payment Submitted - Awaiting Verification' %}selected{% endif %}>Payment Submitted - Awaiting Verification</option>
-                                        <option value="Payment Confirmed" {% if order.status == 'Payment Confirmed' %}selected{% endif %}>Payment Confirmed</option>
-                                        <option value="Processing" {% if order.status == 'Processing' %}selected{% endif %}>Processing</option>
-                                        <option value="Shipped" {% if order.status == 'Shipped' %}selected{% endif %}>Shipped</option>
-                                        <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
-                                        <option value="Cancelled" {% if order.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
-                                    </select>
-                                    <button type="submit" class="btn btn-sm btn-primary">Update</button> {# Changed text to 'Update' #}
-                                </form>
-                            </td>
-                            <td>{{ order.transaction_id | default('N/A') }}</td> {# DISPLAY UTR HERE #}
-                            <td>
-                                <form action="{{ url_for('admin_orders') }}" method="POST" class="d-inline-flex align-items-center">
-                                    <input type="hidden" name="order_id" value="{{ order.order_id }}">
-                                    <input type="hidden" name="status" value="{{ order.status }}"> 
-                                    <input type="text" name="courier" class="form-control form-control-sm me-1" value="{{ order.courier | default('') }}" placeholder="Courier Name" style="width: 100px;">
-                                    <input type="text" name="tracking_number" class="form-control form-control-sm me-1" value="{{ order.tracking_number | default('') }}" placeholder="Tracking #" style="width: 120px;">
-                                    <button type="submit" class="btn btn-sm btn-secondary">Set</button> {# Changed text to 'Set' #}
-                                                </form>
-                            </td>
-                            <td>
-                                <a href="{{ url_for('delete_order', order_id=order.order_id) }}" class="btn btn-sm btn-danger btn-action" onclick="return confirm('Are you sure you want to delete this order?');">Delete</a>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="9" class="text-center">No orders found.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        {# Export Data Tab #}
+        <div class="tab-pane fade" id="exports" role="tabpanel" aria-labelledby="exports-tab">
+            <h3 class="mb-3">Export Data</h3>
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('export_orders_csv') }}" class="btn btn-primary btn-lg">Download All Orders (CSV)</a>
+                <a href="{{ url_for('export_artworks_csv') }}" class="btn btn-success btn-lg">Download All Artworks (CSV)</a>
             </div>
+            <p class="text-muted mt-3">Exports will include all available data for orders and artworks respectively.</p>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Restore active tab on page load
+        const adminTabs = document.getElementById('adminTabs');
+        if (adminTabs) {
+            const activeTab = localStorage.getItem('adminActiveTab');
+            if (activeTab) {
+                const tabButton = document.getElementById(activeTab);
+                if (tabButton) {
+                    new bootstrap.Tab(tabButton).show();
+                }
+            }
+
+            adminTabs.querySelectorAll('.nav-link').forEach(tabButton => {
+                tabButton.addEventListener('shown.bs.tab', function (event) {
+                    localStorage.setItem('adminActiveTab', event.target.id);
+                });
+            });
+        }
+
+        // Handle specific table responsiveness for mobile - apply data-label
+        const tables = document.querySelectorAll('.table');
+        tables.forEach(table => {
+            const headers = table.querySelectorAll('thead th');
+            table.querySelectorAll('tbody tr').forEach(row => {
+                row.querySelectorAll('td').forEach((cell, index) => {
+                    if (headers[index]) {
+                        cell.setAttribute('data-label', headers[index].textContent.trim());
+                    }
+                });
+            });
+        });
+    });
+</script>
 {% endblock %}
