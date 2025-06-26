@@ -1,7 +1,7 @@
 import json
 import uuid
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, flash, redirect, url_for, session, jsonify, current_app, Response, make_response
+from flask import Flask, render_template, request, flash, redirect, url_for, session, jsonify, current_app, Response, make_response, g
 from flask_mail import Mail, Message
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import random
@@ -62,7 +62,7 @@ OUR_BUSINESS_NAME = "Karthikafutures"
 OUR_BUSINESS_ADDRESS = "Annapoornna Apartment, Sahapur Colony, New Alipore, Kolkata - 700053"
 OUR_GSTIN = "08EXIPR1212L1ZO"
 OUR_PAN = "CTMPS6841J"
-DEFAULT_GST_RATE = 0.18 # 18% as a default example
+DEFAULT_GST_RATE_PERCENTAGE = 18.0 # 18% as a default example, stored as percentage
 DEFAULT_SHIPPING_CHARGE = 150.00 # Default shipping charge
 
 # --- FOLDERS FOR UPLOADS AND INVOICES ---
@@ -83,54 +83,58 @@ def load_json(filename):
     filepath = os.path.join(os.path.dirname(__file__), 'data', filename)
     
     if not os.path.exists(filepath):
-        print(f"DEBUG: {filename} not found at {filepath}. Returning empty structure: {{}} if users.json, [] otherwise.")
+        print(f"DEBUG: load_json: {filename} not found at {filepath}. Returning empty structure: {{}} if users.json, [] otherwise.")
         return {} if filename == 'users.json' else []
     
     if os.path.getsize(filepath) == 0:
-        print(f"DEBUG: {filename} is empty. Returning empty structure: {{}} if users.json, [] otherwise.")
+        print(f"DEBUG: load_json: {filename} is empty. Returning empty structure: {{}} if users.json, [] otherwise.")
         return {} if filename == 'users.json' else []
 
     try:
         with open(filepath, 'r') as f:
             data = json.load(f)
+            print(f"DEBUG: load_json: Successfully loaded {len(data) if isinstance(data, (list, dict)) else 'N/A'} items from {filename}.")
             
             if filename == 'users.json':
                 if isinstance(data, list): 
                     converted_data = {item.get('email'): item for item in data if item.get('email')}
-                    print(f"DEBUG: Converted {filename} list to dictionary.")
+                    print(f"DEBUG: load_json: Converted {filename} list to dictionary.")
                     return converted_data
                 elif isinstance(data, dict):
                     return data
                 else:
-                    print(f"WARNING: Unexpected JSON structure in {filename}. Expected dict or list. Returning empty dict.")
+                    print(f"WARNING: load_json: Unexpected JSON structure in {filename}. Expected dict or list. Returning empty dict.")
                     return {}
             else: 
                 if isinstance(data, list):
                     return data
                 elif isinstance(data, dict) and filename == 'artworks.json': 
-                    print(f"DEBUG: Converted {filename} dictionary to list.")
+                    print(f"DEBUG: load_json: Converted {filename} dictionary to list.")
                     return list(data.values())
                 else:
-                    print(f"WARNING: Unexpected JSON structure in {filename}. Expected list. Returning empty list.")
+                    print(f"WARNING: load_json: Unexpected JSON structure in {filename}. Expected list. Returning empty list.")
                     return []
     except json.JSONDecodeError as e:
-        print(f"ERROR: JSONDecodeError in {filename}: {e}. File might be corrupted. Returning empty structure: {{}} if users.json, [] otherwise.")
+        print(f"ERROR: load_json: JSONDecodeError in {filename}: {e}. File might be corrupted. Returning empty structure: {{}} if users.json, [] otherwise.")
         return {} if filename == 'users.json' else []
     except Exception as e:
-        print(f"ERROR: An unexpected error occurred loading {filename}: {e}. Returning empty structure: {{}} if users.json, [] otherwise.")
+        print(f"ERROR: load_json: An unexpected error occurred loading {filename}: {e}. Returning empty structure: {{}} if users.json, [] otherwise.")
         return {} if filename == 'users.json' else []
 
 def save_json(filename, data):
     """Saves data (dict or list) to a JSON file."""
     filepath = os.path.join(os.path.dirname(__file__), 'data', filename)
     try:
-        if filename == 'users.json' and isinstance(data, dict):
+        # For artworks and users, if they are lists, convert to dict first if original format was dict
+        # This prevents accidental overwriting with a list if the file was originally a dict
+        if filename == 'artworks.json':
+             with open(filepath, 'w') as f:
+                # Always save artworks as a list now
+                json.dump(data if isinstance(data, list) else list(data.values()), f, indent=4)
+        elif filename == 'users.json' and isinstance(data, dict):
             with open(filepath, 'w') as f:
                 json.dump(data, f, indent=4)
-        elif filename == 'artworks.json' and isinstance(data, dict):
-             with open(filepath, 'w') as f:
-                json.dump(data, f, indent=4)
-        elif isinstance(data, list):
+        elif isinstance(data, list): # For orders.json and any other list-based JSON
             with open(filepath, 'w') as f:
                 json.dump(data, f, indent=4)
         else:
@@ -138,9 +142,9 @@ def save_json(filename, data):
             with open(filepath, 'w') as f:
                 json.dump(data, f, indent=4) 
 
-        print(f"DEBUG: Saved data to {filename}.")
+        print(f"DEBUG: save_json: Saved data to {filename}.")
     except Exception as e:
-        print(f"ERROR: Failed to save data to {filename}: {e}")
+        print(f"ERROR: save_json: Failed to save data to {filename}: {e}")
 
 # --- User Model for Flask-Login ---
 class User(UserMixin):
@@ -305,7 +309,7 @@ def generate_unique_order_id():
     existing_ids = {order.get('order_id') for order in orders}
     
     while True:
-        new_id = str(random.randint(10**7, 10**8 - 1)) 
+        new_id = str(random.randint(10**7, (10**8) - 1)) 
         if new_id not in existing_ids:
             return new_id
 
@@ -318,8 +322,8 @@ def generate_unique_invoice_number():
 
 def mask_phone_number(phone_number):
     """Masks a phone number for privacy (e.g., +91XXXXX1234)."""
-    if not phone_number or len(phone_number) < 4:
-        return phone_number # Not enough digits to mask meaningfully
+    if not phone_number or not isinstance(phone_number, str) or len(phone_number) < 4:
+        return phone_number # Not enough digits or not a string to mask meaningfully
     
     # Assuming standard international format for now.
     # Keep first 3 digits and last 4 digits visible, mask middle.
@@ -329,9 +333,13 @@ def mask_phone_number(phone_number):
     
     # Handle numbers shorter than required visible parts
     if len(phone_number) <= visible_prefix_len + visible_suffix_len:
-        return phone_number[:visible_prefix_len] + 'X' * (len(phone_number) - visible_prefix_len - visible_suffix_len) + phone_number[-visible_suffix_len:]
+        # Mask all but the last 4 if too short, or show as is if extremely short
+        return 'X' * max(0, len(phone_number) - visible_suffix_len) + phone_number[-visible_suffix_len:] if len(phone_number) >= 4 else phone_number
 
     return phone_number[:visible_prefix_len] + 'X' * (len(phone_number) - visible_prefix_len - visible_suffix_len) + phone_number[-visible_suffix_len:]
+
+# Register mask_phone_number as a Jinja2 filter
+app.jinja_env.filters['mask_phone_number'] = mask_phone_number
 
 
 # --- PDF GENERATION LOGIC (Invoice) ---
@@ -347,7 +355,7 @@ def generate_invoice_pdf(order_data):
     invoice_details = order_data['invoice_details']
     
     # Define PDF filename and path
-    invoice_filename = f"invoice_{order_data['order_id']}_{invoice_details['invoice_number']}.pdf"
+    invoice_filename = f"invoice_{order_data['order_id']}_{invoice_details.get('invoice_number', 'N/A')}.pdf" # Use get with default
     pdf_filepath = os.path.join(INVOICE_PDFS_FOLDER, invoice_filename)
 
     doc = SimpleDocTemplate(pdf_filepath, pagesize=letter,
@@ -372,13 +380,13 @@ def generate_invoice_pdf(order_data):
 
     # Business Details and Invoice Details (Side by Side Table)
     header_data = [
-        [Paragraph(f"<b>Sold By:</b> {OUR_BUSINESS_NAME}", styles['NormalLeft']),
+        [Paragraph(f"<b>Sold By:</b> {invoice_details.get('business_name', OUR_BUSINESS_NAME)}", styles['NormalLeft']),
          Paragraph(f"<b>Invoice No:</b> {invoice_details.get('invoice_number', 'N/A')}", styles['NormalRight'])],
-        [Paragraph(OUR_BUSINESS_ADDRESS, styles['NormalLeft']),
+        [Paragraph(invoice_details.get('business_address', OUR_BUSINESS_ADDRESS), styles['NormalLeft']),
          Paragraph(f"<b>Invoice Date:</b> {invoice_details.get('invoice_date', 'N/A')}", styles['NormalRight'])],
-        [Paragraph(f"GSTIN: {OUR_GSTIN}", styles['NormalLeft']),
+        [Paragraph(f"GSTIN: {invoice_details.get('gst_number', OUR_GSTIN)}", styles['NormalLeft']),
          Paragraph(f"<b>Order ID:</b> {order_data.get('order_id', 'N/A')}", styles['NormalRight'])],
-        [Paragraph(f"PAN: {OUR_PAN}", styles['NormalLeft']),
+        [Paragraph(f"PAN: {invoice_details.get('pan_number', OUR_PAN)}", styles['NormalLeft']),
          Paragraph(f"<b>Order Date:</b> {order_data.get('placed_on', 'N/A')}", styles['NormalRight'])],
     ]
     header_table = Table(header_data, colWidths=[4.25 * inch, 3.25 * inch])
@@ -392,16 +400,19 @@ def generate_invoice_pdf(order_data):
 
     # Customer and Shipping Details
     customer_name = order_data.get('customer_name', 'N/A')
-    customer_phone = mask_phone_number(order_data.get('customer_phone', 'N/A'))
+    # Use the camouflaged phone from invoice_details if available, else mask directly
+    customer_phone_display = invoice_details.get('customer_phone_camouflaged', mask_phone_number(order_data.get('customer_phone', 'N/A')))
     customer_address = order_data.get('customer_address', 'N/A')
     customer_pincode = order_data.get('customer_pincode', 'N/A')
     customer_email = order_data.get('user_email', 'N/A')
+    billing_address = invoice_details.get('billing_address', customer_address) # Use stored billing address
+
 
     story.append(Paragraph("<b>Bill To / Ship To:</b>", styles['Heading2']))
     story.append(Paragraph(customer_name, styles['NormalLeft']))
-    story.append(Paragraph(customer_address, styles['NormalLeft']))
+    story.append(Paragraph(billing_address, styles['NormalLeft'])) # Use billing address from invoice details
     story.append(Paragraph(f"Pincode: {customer_pincode}", styles['NormalLeft']))
-    story.append(Paragraph(f"Phone: {customer_phone}", styles['NormalLeft']))
+    story.append(Paragraph(f"Phone: {customer_phone_display}", styles['NormalLeft']))
     story.append(Paragraph(f"Email: {customer_email}", styles['NormalLeft']))
     story.append(Spacer(1, 0.2 * inch))
 
@@ -413,12 +424,13 @@ def generate_invoice_pdf(order_data):
         if item.get('frame') and item['frame'] != 'None': description += f" (Frame: {item['frame']})"
         if item.get('glass') and item['glass'] != 'None': description += f" (Glass: {item['glass']})"
         
+        # item.get('total_price') now includes GST for the item in cart calculations
         item_data.append([
             str(i + 1),
             Paragraph(description, styles['NormalLeft']),
             str(item.get('quantity', 1)),
-            f"{item.get('unit_price', 0.0):.2f}",
-            f"{item.get('total_price', 0.0):.2f}"
+            f"{item.get('unit_price_before_gst', 0.0):.2f}", # Display unit price before GST
+            f"{item.get('total_price', 0.0):.2f}" # Display total price of item WITH GST
         ])
 
     item_table = Table(item_data, colWidths=[0.5 * inch, 4 * inch, 0.75 * inch, 1.25 * inch, 1.25 * inch])
@@ -442,26 +454,33 @@ def generate_invoice_pdf(order_data):
     story.append(Spacer(1, 0.2 * inch))
 
     # Totals Section
-    total_amount = order_data.get('total_amount', 0.0) # This is the item subtotal
-    gst_amount = invoice_details.get('total_gst_amount', 0.0)
+    subtotal_before_gst = order_data.get('subtotal_before_gst', 0.0)
+    gst_rate_for_display = invoice_details.get('gst_rate_applied', DEFAULT_GST_RATE_PERCENTAGE)
+    total_gst_amount = invoice_details.get('total_gst_amount', 0.0)
+    cgst_amount = invoice_details.get('cgst_amount', 0.0)
+    sgst_amount = invoice_details.get('sgst_amount', 0.0)
     shipping_charge = invoice_details.get('shipping_charge', 0.0)
-    final_invoice_amount = invoice_details.get('final_invoice_amount', total_amount + gst_amount + shipping_charge)
+    final_invoice_amount = invoice_details.get('final_invoice_amount', subtotal_before_gst + total_gst_amount + shipping_charge)
 
     totals_data = [
-        ['Subtotal:', f"₹{total_amount:.2f}"],
-        [f'GST ({DEFAULT_GST_RATE*100:.0f}%):', f"₹{gst_amount:.2f}"],
+        ['Subtotal:', f"₹{subtotal_before_gst:.2f}"],
+        [f'GST ({gst_rate_for_display:.2f}%):', ''], # GST row, no amount here for main row
+        ['&nbsp;&nbsp;&nbsp;&nbsp;CGST:', f"₹{cgst_amount:.2f}"], # CGST indented
+        ['&nbsp;&nbsp;&nbsp;&nbsp;SGST:', f"₹{sgst_amount:.2f}"], # SGST indented
         ['Shipping Charges:', f"₹{shipping_charge:.2f}"],
         ['Total Invoice Amount:', f"₹{final_invoice_amount:.2f}"]
     ]
     totals_table = Table(totals_data, colWidths=[5.5 * inch, 2 * inch])
     totals_table.setStyle(TableStyle([
         ('ALIGN', (0,0), (-1,-1), 'RIGHT'),
-        ('FONTNAME', (0,0), (-1,2), 'Helvetica-Bold'),
-        ('FONTNAME', (0,3), (-1,3), 'Helvetica-Bold'),
-        ('BOTTOMPADDING', (0,0), (-1,2), 6),
-        ('TOPPADDING', (0,3), (-1,3), 6),
-        ('LINEBELOW', (0,2), (-1,2), 1, colors.black), # Line above final total
-        ('LINEABOVE', (0,3), (-1,3), 1, colors.black), # Line above final total
+        ('FONTNAME', (0,0), (-1,1), 'Helvetica-Bold'), # Subtotal and GST % label
+        ('FONTNAME', (0,2), (-1,3), 'Helvetica'), # CGST/SGST amounts
+        ('FONTNAME', (0,4), (-1,4), 'Helvetica-Bold'), # Shipping
+        ('FONTNAME', (0,5), (-1,5), 'Helvetica-Bold'), # Final Total
+        ('BOTTOMPADDING', (0,0), (-1,4), 6),
+        ('TOPPADDING', (0,5), (-1,5), 6),
+        ('LINEBELOW', (0,4), (-1,4), 1, colors.black), # Line above shipping
+        ('LINEABOVE', (0,5), (-1,5), 1, colors.black), # Line above final total
         ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#e0e0e0')),
         ('BOX', (0,0), (-1,-1), 1, colors.black),
     ]))
@@ -489,48 +508,103 @@ def process_pending_invoices():
     This simulates a background task for the demo.
     """
     orders = load_json('orders.json')
+    artworks_data = load_json('artworks.json') # Load artworks once for efficiency
+    artworks_dict_by_sku = {art.get('sku'): art for art in artworks_data}
     updated_orders = False
 
     for order_idx, order in enumerate(orders):
+        # Ensure 'invoice_details' exists for existing orders before processing
+        if 'invoice_details' not in order:
+            order['invoice_details'] = {
+                "invoice_status": "Not Applicable",
+                "is_held_by_admin": False,
+                "last_edited_by_admin": None,
+                "invoice_number": None,
+                "invoice_date": None,
+                "gst_number": OUR_GSTIN,
+                "pan_number": OUR_PAN,
+                "business_name": OUR_BUSINESS_NAME,
+                "business_address": OUR_BUSINESS_ADDRESS,
+                "total_gst_amount": 0.0,
+                "cgst_amount": 0.0,
+                "sgst_amount": 0.0,
+                "gst_rate_applied": 0.0, # Will be set on shipping or edit
+                "shipping_charge": 0.0,
+                "final_invoice_amount": order.get('total_amount', 0.0), # Initial subtotal (pre-GST)
+                "invoice_pdf_path": None,
+                "customer_phone_camouflaged": mask_phone_number(order.get('customer_phone', 'N/A')),
+                "billing_address": order.get('customer_address', 'N/A')
+            }
+            updated_orders = True # Mark as updated if we just added invoice_details
+
         # Only process orders marked 'Shipped' that haven't had an invoice 'Sent' or 'Held'
         if order.get('status') == 'Shipped' and \
-           order.get('invoice_details', {}).get('invoice_status') not in ['Sent', 'Held']:
+           order['invoice_details'].get('invoice_status') not in ['Sent', 'Held']:
             
             shipped_time_str = order.get('shipped_on')
             if not shipped_time_str:
-                print(f"WARNING: Order {order.get('order_id')} shipped but no 'shipped_on' timestamp.")
+                print(f"WARNING: Order {order.get('order_id')} shipped but no 'shipped_on' timestamp. Skipping invoice processing.")
                 continue
 
             try:
-                shipped_time = datetime.fromisoformat(shipped_time_str)
+                shipped_time = datetime.fromisoformat(shpped_time_str)
                 # Check if 24 hours have passed AND invoice is not 'Held' by admin
                 if (datetime.now() - shipped_time) >= timedelta(hours=24) and \
-                   not order.get('invoice_details', {}).get('is_held_by_admin', False):
+                   not order['invoice_details'].get('is_held_by_admin', False):
                     
                     print(f"DEBUG: Processing invoice for Order ID: {order.get('order_id')}")
 
-                    # Initialize invoice_details if not present
-                    if 'invoice_details' not in order:
-                        order['invoice_details'] = {}
-                    
-                    # Calculate GST and Final Amount
-                    total_amount_items = order.get('total_amount', 0.0)
-                    gst_amount = total_amount_items * DEFAULT_GST_RATE
-                    shipping_charge = order['invoice_details'].get('shipping_charge', DEFAULT_SHIPPING_CHARGE) # Use existing or default
-                    final_amount = total_amount_items + gst_amount + shipping_charge
-
+                    # Use existing invoice number or generate new one
                     order['invoice_details']['invoice_number'] = order['invoice_details'].get('invoice_number', generate_unique_invoice_number())
                     order['invoice_details']['invoice_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    order['invoice_details']['total_gst_amount'] = round(gst_amount, 2)
-                    order['invoice_details']['shipping_charge'] = round(shipping_charge, 2)
+                    
+                    # Recalculate amounts for consistency and to apply GST from artwork
+                    total_amount_items_subtotal = 0.0 # This will be the sum of item prices BEFORE GST
+                    total_gst_on_items = 0.0
+
+                    for item in order.get('items', []):
+                        # Use unit_price_before_gst from item data if present, otherwise calculate from total_price / (1+GST)
+                        # This ensures consistency even if data was older
+                        item_price_before_gst_calc = float(item.get('unit_price_before_gst', 0.0)) * int(item.get('quantity', 1))
+                        total_amount_items_subtotal += item_price_before_gst_calc
+                        
+                        # Use item's stored gst_percentage, or artwork's, or default
+                        item_gst_rate_percent = item.get('gst_percentage') 
+                        if item_gst_rate_percent is None:
+                            artwork_for_gst = artworks_dict_by_sku.get(item.get('sku'))
+                            item_gst_rate_percent = artwork_for_gst.get('gst_percentage', DEFAULT_GST_RATE_PERCENTAGE) if artwork_for_gst else DEFAULT_GST_RATE_PERCENTAGE
+                        
+                        total_gst_on_items += item_price_before_gst_calc * (item_gst_rate_percent / 100)
+
+                    # Update order's total_amount with the re-calculated subtotal (before GST)
+                    order['subtotal_before_gst'] = round(total_amount_items_subtotal, 2)
+
+                    # If invoice_details had a total_gst_amount, prioritize it, otherwise use the dynamically calculated one
+                    if 'total_gst_amount' in order['invoice_details'] and order['invoice_details']['total_gst_amount'] > 0:
+                        calculated_gst_amount = order['invoice_details']['total_gst_amount'] 
+                    else:
+                        calculated_gst_amount = total_gst_on_items
+                        order['invoice_details']['total_gst_amount'] = round(calculated_gst_amount, 2)
+
+                    order['invoice_details']['cgst_amount'] = round(calculated_gst_amount / 2, 2)
+                    order['invoice_details']['sgst_amount'] = round(calculated_gst_amount / 2, 2)
+                    order['invoice_details']['gst_rate_applied'] = round((calculated_gst_amount / total_amount_items_subtotal) * 100, 2) if total_amount_items_subtotal else 0.0
+
+                    # Use admin's edited shipping charge if present, otherwise default
+                    shipping_charge = order['invoice_details'].get('shipping_charge', DEFAULT_SHIPPING_CHARGE) 
+                    final_amount = total_amount_items_subtotal + calculated_gst_amount + shipping_charge
+                    
+                    order['invoice_details']['shipping_charge'] = round(shipping_charge, 2) 
                     order['invoice_details']['final_invoice_amount'] = round(final_amount, 2)
-                    order['invoice_details']['gst_number'] = OUR_GSTIN # Store our details in invoice
-                    order['invoice_details']['pan_number'] = OUR_PAN
-                    order['invoice_details']['business_name'] = OUR_BUSINESS_NAME
-                    order['invoice_details']['business_address'] = OUR_BUSINESS_ADDRESS
-                    order['invoice_details']['customer_phone_camouflaged'] = mask_phone_number(order.get('customer_phone', 'N/A'))
-                    # Assuming billing address is same as shipping for now
-                    order['invoice_details']['billing_address'] = order.get('customer_address', 'N/A')
+                    
+                    # Ensure OUR details are always current in the invoice_details sub-dict,
+                    # but allow admin edits to override for specific invoice if they exist.
+                    order['invoice_details'].setdefault('gst_number', OUR_GSTIN)
+                    order['invoice_details'].setdefault('pan_number', OUR_PAN)
+                    order['invoice_details'].setdefault('business_name', OUR_BUSINESS_NAME)
+                    order['invoice_details'].setdefault('business_address', OUR_BUSINESS_ADDRESS)
+                    order['invoice_details'].setdefault('customer_phone_camouflaged', mask_phone_number(order.get('customer_phone', 'N/A')))
+                    order['invoice_details'].setdefault('billing_address', order.get('customer_address', 'N/A'))
 
 
                     pdf_relative_path = generate_invoice_pdf(order)
@@ -542,7 +616,9 @@ def process_pending_invoices():
                         try:
                             msg = Message(f"Karthika Futures - Your Invoice for Order #{order['order_id']}",
                                           recipients=[order.get('user_email')])
-                            msg.body = render_template('email/invoice_email.txt', order=order) # Use a text template
+                            msg.body = render_template('email/invoice_email.txt', order=order, 
+                                                       OUR_BUSINESS_NAME=OUR_BUSINESS_NAME, # Pass business details
+                                                       OUR_BUSINESS_ADDRESS=OUR_BUSINESS_ADDRESS) 
                             
                             # Attach PDF
                             with app.open_resource(os.path.join('static', pdf_relative_path)) as fp:
@@ -563,16 +639,16 @@ def process_pending_invoices():
                         print(f"ERROR: PDF generation failed for Order {order['order_id']}.")
                         flash(f"Failed to generate invoice PDF for Order {order['order_id']}.", "danger")
                         updated_orders = True
-                elif order.get('invoice_details', {}).get('is_held_by_admin', False):
+                elif order['invoice_details'].get('is_held_by_admin', False):
                     print(f"DEBUG: Invoice for Order {order.get('order_id')} is on HOLD by admin.")
                     order['invoice_details']['invoice_status'] = 'Held' # Ensure status reflects held
-                    updated_orders = True # Mark as updated if status changed
+                    # No need to mark updated_orders = True if status is already Held
                 else:
                     # Update status to Prepared if not sent/held and time not passed
-                    if order.get('invoice_details', {}).get('invoice_status') not in ['Prepared', 'Sent', 'Email Failed', 'PDF Gen Failed']:
+                    if order['invoice_details'].get('invoice_status') not in ['Prepared', 'Sent', 'Email Failed', 'PDF Gen Failed', 'Edited', 'Cancelled']:
                          order['invoice_details']['invoice_status'] = 'Prepared' # Ready to be sent
                          updated_orders = True
-                    print(f"DEBUG: Invoice for Order {order.get('order_id')} not yet due for sending.")
+                    print(f"DEBUG: Invoice for Order {order.get('order_id')} not yet due for sending or processing.")
 
             except ValueError as ve:
                 print(f"ERROR: Invalid date format for order {order.get('order_id')} shipped_on: {shipped_time_str} - {ve}")
@@ -581,6 +657,12 @@ def process_pending_invoices():
 
     if updated_orders:
         save_json('orders.json', orders)
+
+# Context processor to make current_year available globally
+@app.before_request
+def before_request():
+    g.current_year = datetime.now().year
+
 
 # --- ROUTES ---
 
@@ -682,6 +764,7 @@ def admin_panel():
     artworks_dict_by_sku = {art.get('sku'): art for art in artworks}
 
     print(f"DEBUG: Admin user '{getattr(current_user, 'email', 'N/A')}' successfully accessed admin dashboard.")
+    print(f"DEBUG: Number of orders loaded for admin panel: {len(orders)}") # Add log for order count
     return render_template('admin_panel.html', artworks=artworks_dict_by_sku.values(), orders=orders) 
 
 # Add Artwork
@@ -695,6 +778,7 @@ def add_artwork():
         original_price = float(request.form['original_price'])
         stock = int(request.form['stock'])
         description = request.form.get('description', '')
+        gst_percentage = float(request.form.get('gst_percentage', DEFAULT_GST_RATE_PERCENTAGE)) # New GST field
 
         frame_wooden = float(request.form.get('frame_wooden', 0.0))
         frame_metal = float(request.form.get('frame_metal', 0.0))
@@ -708,7 +792,7 @@ def add_artwork():
         image_file = request.files['image']
 
         artworks = load_json('artworks.json') 
-        artworks_dict_by_sku = {art.get('sku'): art for art in artworks} 
+        # artworks_dict_by_sku = {art.get('sku'): art for art in artworks} # Not needed here, used for existence check
 
         if any(a.get('sku') == sku for a in artworks): 
             flash('Artwork with this SKU already exists.', 'danger')
@@ -737,6 +821,7 @@ def add_artwork():
             'stock': stock,
             'description': description,
             'image': image_url,
+            'gst_percentage': gst_percentage, # Save GST percentage
             'frame_wooden': frame_wooden,
             'frame_metal': frame_metal,
             'frame_pvc': frame_pvc,
@@ -752,7 +837,7 @@ def add_artwork():
         flash('Artwork added successfully!', 'success')
         return redirect(url_for('admin_panel'))
     
-    return render_template('add_artwork.html')
+    return render_template('add_artwork.html', default_gst_percentage=DEFAULT_GST_RATE_PERCENTAGE)
 
 # Edit Artwork
 @app.route('/edit-artwork/<sku>', methods=['GET', 'POST'])
@@ -771,6 +856,7 @@ def edit_artwork(sku):
         artwork_obj['original_price'] = float(request.form.get('original_price', artwork_obj['original_price']))
         artwork_obj['stock'] = int(request.form.get('stock', artwork_obj['stock']))
         artwork_obj['description'] = request.form.get('description', artwork_obj['description'])
+        artwork_obj['gst_percentage'] = float(request.form.get('gst_percentage', artwork_obj.get('gst_percentage', DEFAULT_GST_RATE_PERCENTAGE))) # Update GST
 
         artwork_obj['frame_wooden'] = float(request.form.get('frame_wooden', artwork_obj.get('frame_wooden', 0.0)))
         artwork_obj['frame_metal'] = float(request.form.get('frame_metal', artwork_obj.get('frame_metal', 0.0)))
@@ -802,7 +888,7 @@ def edit_artwork(sku):
         flash('Artwork updated successfully!', 'success')
         return redirect(url_for('edit_artwork', sku=sku))
 
-    return render_template('edit_artwork.html', artwork=artwork_obj) 
+    return render_template('edit_artwork.html', artwork=artwork_obj, default_gst_percentage=DEFAULT_GST_RATE_PERCENTAGE) 
 
 # Delete Artwork (Admin only)
 @app.route('/delete-artwork/<sku>')
@@ -836,15 +922,22 @@ def delete_artwork(sku):
 @admin_required
 def delete_order(order_id):
     orders = load_json('orders.json') 
-    initial_count = len(orders)
     
-    updated_orders = [o for o in orders if o.get('order_id') != order_id] 
+    # Find the order to delete using its ID
+    order_to_delete_from_list = None
+    for order in orders:
+        if order.get('order_id') == order_id:
+            order_to_delete_from_list = order
+            break
 
-    if len(updated_orders) < initial_count:
-        save_json('orders.json', updated_orders)
+    if order_to_delete_from_list:
+        orders.remove(order_to_delete_from_list) # Remove the found order from the list
+        save_json('orders.json', orders) # Save the modified list
         flash(f"Order {order_id} deleted successfully!", "success")
+        print(f"DEBUG: Order {order_id} deleted by admin. {len(orders)} orders remaining.")
     else:
         flash(f"Order {order_id} not found.", "warning")
+        print(f"DEBUG: Admin attempted to delete non-existent order {order_id}.")
 
     return redirect(url_for('admin_panel'))
 
@@ -873,8 +966,28 @@ def admin_orders():
                 # If status changes to Shipped, record timestamp and set initial invoice status
                 if new_status == 'Shipped':
                     order['shipped_on'] = datetime.now().isoformat()
+                    # Ensure invoice_details exists or initialize it
                     if 'invoice_details' not in order:
-                        order['invoice_details'] = {}
+                        order['invoice_details'] = {
+                            "invoice_status": "Not Applicable", # Will be updated below
+                            "is_held_by_admin": False,
+                            "last_edited_by_admin": None,
+                            "invoice_number": None,
+                            "invoice_date": None,
+                            "gst_number": OUR_GSTIN,
+                            "pan_number": OUR_PAN,
+                            "business_name": OUR_BUSINESS_NAME,
+                            "business_address": OUR_BUSINESS_ADDRESS,
+                            "total_gst_amount": 0.0, # Placeholder, will be calculated by process_pending_invoices
+                            "cgst_amount": 0.0,
+                            "sgst_amount": 0.0,
+                            "gst_rate_applied": 0.0,
+                            "shipping_charge": 0.0, # Placeholder
+                            "final_invoice_amount": order.get('subtotal_before_gst', order.get('total_amount', 0.0)), # Initial subtotal
+                            "invoice_pdf_path": None,
+                            "customer_phone_camouflaged": mask_phone_number(order.get('customer_phone', 'N/A')),
+                            "billing_address": order.get('customer_address', 'N/A')
+                        }
                     order['invoice_details']['invoice_status'] = 'Prepared' # Mark as prepared
                     order['invoice_details']['is_held_by_admin'] = False # Ensure not held by default
                     order['invoice_details']['last_edited_by_admin'] = datetime.now().isoformat() # Track last edit
@@ -885,6 +998,8 @@ def admin_orders():
         if order_found:
             save_json('orders.json', orders)
             flash(f"Order {order_id} updated to '{new_status}'.", "success")
+            # After status update, immediately process pending invoices to update the current list for admin view
+            process_pending_invoices() 
         else:
             flash(f"Order {order_id} not found.", "danger")
         
@@ -900,8 +1015,9 @@ def admin_hold_invoice(order_id):
     order_found = False
     for order in orders:
         if order.get('order_id') == order_id:
+            # Ensure invoice_details exists before trying to access
             if 'invoice_details' not in order:
-                order['invoice_details'] = {}
+                order['invoice_details'] = {} # Initialize if missing
             order['invoice_details']['is_held_by_admin'] = True
             order['invoice_details']['invoice_status'] = 'Held'
             order['invoice_details']['last_edited_by_admin'] = datetime.now().isoformat()
@@ -921,12 +1037,13 @@ def admin_release_invoice(order_id):
     order_found = False
     for order in orders:
         if order.get('order_id') == order_id:
+            # Ensure invoice_details exists before trying to access
             if 'invoice_details' not in order:
-                order['invoice_details'] = {}
+                order['invoice_details'] = {} # Initialize if missing
             order['invoice_details']['is_held_by_admin'] = False
             # Reset status to 'Prepared' or 'Shipped' if it was 'Held' and not yet sent
             if order['invoice_details'].get('invoice_status') == 'Held':
-                 order['invoice_details']['invoice_status'] = 'Prepared'
+                 order['invoice_details']['invoice_status'] = 'Prepared' # Re-queue for auto-send
             order['invoice_details']['last_edited_by_admin'] = datetime.now().isoformat()
             save_json('orders.json', orders)
             flash(f"Invoice for Order {order_id} has been released (no longer on hold).", "info")
@@ -951,18 +1068,30 @@ def admin_edit_invoice(order_id):
     if 'invoice_details' not in order:
         order['invoice_details'] = {}
     
-    # Pre-populate some invoice details if not already present
+    # Pre-populate some invoice details if not already present or needs recalculation
+    # Use order's subtotal_before_gst for base if present, else total_amount (which was prior subtotal)
+    subtotal_before_gst = order.get('subtotal_before_gst', order.get('total_amount', 0.0))
+
+    # Determine default GST rate for form display
+    default_gst_rate_for_form = DEFAULT_GST_RATE_PERCENTAGE
+    if subtotal_before_gst > 0 and 'total_gst_amount' in order['invoice_details'] and order['invoice_details']['total_gst_amount'] > 0:
+        default_gst_rate_for_form = (order['invoice_details']['total_gst_amount'] / subtotal_before_gst) * 100
+
     order['invoice_details'].setdefault('invoice_number', generate_unique_invoice_number())
     order['invoice_details'].setdefault('invoice_date', datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-    order['invoice_details'].setdefault('total_gst_amount', round(order.get('total_amount', 0.0) * DEFAULT_GST_RATE, 2))
+    order['invoice_details'].setdefault('total_gst_amount', round(subtotal_before_gst * (default_gst_rate_for_form / 100), 2))
+    order['invoice_details'].setdefault('cgst_amount', round(order['invoice_details']['total_gst_amount'] / 2, 2))
+    order['invoice_details'].setdefault('sgst_amount', round(order['invoice_details']['total_gst_amount'] / 2, 2))
+    order['invoice_details'].setdefault('gst_rate_applied', default_gst_rate_for_form) # Store as percentage
     order['invoice_details'].setdefault('shipping_charge', DEFAULT_SHIPPING_CHARGE)
-    order['invoice_details'].setdefault('final_invoice_amount', round(order.get('total_amount', 0.0) + order['invoice_details']['total_gst_amount'] + order['invoice_details']['shipping_charge'], 2))
+    order['invoice_details'].setdefault('final_invoice_amount', round(subtotal_before_gst + order['invoice_details']['total_gst_amount'] + order['invoice_details']['shipping_charge'], 2))
     order['invoice_details'].setdefault('gst_number', OUR_GSTIN)
     order['invoice_details'].setdefault('pan_number', OUR_PAN)
     order['invoice_details'].setdefault('business_name', OUR_BUSINESS_NAME)
     order['invoice_details'].setdefault('business_address', OUR_BUSINESS_ADDRESS)
     order['invoice_details'].setdefault('customer_phone_camouflaged', mask_phone_number(order.get('customer_phone', 'N/A')))
     order['invoice_details'].setdefault('billing_address', order.get('customer_address', 'N/A')) # Assuming same as shipping
+
 
     if request.method == 'POST':
         # Update business details
@@ -978,15 +1107,19 @@ def admin_edit_invoice(order_id):
         # Update charges and recalculate final amount
         try:
             shipping_charge = float(request.form.get('shipping_charge', DEFAULT_SHIPPING_CHARGE))
-            gst_rate_from_form = float(request.form.get('gst_rate', DEFAULT_GST_RATE * 100)) / 100 # Convert % back to decimal
+            gst_rate_from_form_percent = float(request.form.get('gst_rate', DEFAULT_GST_RATE_PERCENTAGE))
+            gst_rate_from_form_decimal = gst_rate_from_form_percent / 100 # Convert % back to decimal
             
             # Recalculate GST and final amounts based on potentially edited values
-            base_total = order.get('total_amount', 0.0)
-            calculated_gst = base_total * gst_rate_from_form
+            base_total = order.get('subtotal_before_gst', order.get('total_amount', 0.0)) # Subtotal of items in order
+            calculated_gst = base_total * gst_rate_from_form_decimal
             final_invoice_amount = base_total + calculated_gst + shipping_charge
             
             order['invoice_details']['shipping_charge'] = round(shipping_charge, 2)
             order['invoice_details']['total_gst_amount'] = round(calculated_gst, 2)
+            order['invoice_details']['cgst_amount'] = round(calculated_gst / 2, 2)
+            order['invoice_details']['sgst_amount'] = round(calculated_gst / 2, 2)
+            order['invoice_details']['gst_rate_applied'] = round(gst_rate_from_form_percent, 2) # Store as percentage
             order['invoice_details']['final_invoice_amount'] = round(final_invoice_amount, 2)
             
             flash('Invoice details updated successfully!', 'success')
@@ -1002,7 +1135,8 @@ def admin_edit_invoice(order_id):
                                    our_business_address=OUR_BUSINESS_ADDRESS,
                                    our_gstin=OUR_GSTIN,
                                    our_pan=OUR_PAN,
-                                   default_gst_rate=DEFAULT_GST_RATE * 100) # Pass as percentage for form
+                                   default_gst_rate=DEFAULT_GST_RATE_PERCENTAGE, # Pass as percentage for form
+                                   now=datetime.now)
 
         save_json('orders.json', orders)
         return redirect(url_for('admin_edit_invoice', order_id=order_id))
@@ -1012,7 +1146,8 @@ def admin_edit_invoice(order_id):
                            our_business_address=OUR_BUSINESS_ADDRESS,
                            our_gstin=OUR_GSTIN,
                            our_pan=OUR_PAN,
-                           default_gst_rate=DEFAULT_GST_RATE * 100) # Pass as percentage for form
+                           default_gst_rate=DEFAULT_GST_RATE_PERCENTAGE, # Pass as percentage for form
+                           now=datetime.now)
 
 # Admin: Send Invoice Email Manually
 @app.route('/admin/invoice/send_email/<order_id>', methods=['POST'])
@@ -1025,11 +1160,43 @@ def admin_send_invoice_email(order_id):
         flash('Order not found.', 'danger')
         return redirect(url_for('admin_panel'))
 
-    if 'invoice_details' not in order or not order['invoice_details'].get('invoice_number'):
-        flash(f"Invoice for Order {order_id} not yet prepared. Please edit and save it first.", "warning")
-        return redirect(url_for('admin_edit_invoice', order_id=order_id))
+    # Ensure invoice_details exists and populate all necessary fields for PDF generation and email
+    if 'invoice_details' not in order:
+        order['invoice_details'] = {} 
+    
+    # Recalculate based on current order data (items, subtotal)
+    subtotal_before_gst = order.get('subtotal_before_gst', order.get('total_amount', 0.0))
+    # Determine GST rate to apply for this manual send if not already present
+    gst_rate_to_apply = order['invoice_details'].get('gst_rate_applied', DEFAULT_GST_RATE_PERCENTAGE)
 
-    pdf_relative_path = generate_invoice_pdf(order) # Re-generate PDF with current details
+    total_gst_calc = round(subtotal_before_gst * (gst_rate_to_apply / 100), 2)
+    shipping_charge_calc = order['invoice_details'].get('shipping_charge', DEFAULT_SHIPPING_CHARGE)
+    final_invoice_calc = round(subtotal_before_gst + total_gst_calc + shipping_charge_calc, 2)
+
+    order['invoice_details'].setdefault("invoice_status", "Not Applicable")
+    order['invoice_details'].setdefault("is_held_by_admin", False)
+    order['invoice_details'].setdefault("last_edited_by_admin", None)
+    order['invoice_details'].setdefault("invoice_number", generate_unique_invoice_number())
+    order['invoice_details'].setdefault("invoice_date", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    order['invoice_details'].setdefault("gst_number", OUR_GSTIN)
+    order['invoice_details'].setdefault("pan_number", OUR_PAN)
+    order['invoice_details'].setdefault("business_name", OUR_BUSINESS_NAME)
+    order['invoice_details'].setdefault("business_address", OUR_BUSINESS_ADDRESS)
+    order['invoice_details'].setdefault("total_gst_amount", total_gst_calc)
+    order['invoice_details'].setdefault("cgst_amount", round(total_gst_calc / 2, 2))
+    order['invoice_details'].setdefault("sgst_amount", round(total_gst_calc / 2, 2))
+    order['invoice_details'].setdefault("gst_rate_applied", gst_rate_to_apply)
+    order['invoice_details'].setdefault("shipping_charge", shipping_charge_calc)
+    order['invoice_details'].setdefault("final_invoice_amount", final_invoice_calc)
+    order['invoice_details'].setdefault("invoice_pdf_path", None) # Will be set by generate_invoice_pdf
+    order['invoice_details'].setdefault("customer_phone_camouflaged", mask_phone_number(order.get('customer_phone', 'N/A')))
+    order['invoice_details'].setdefault("billing_address", order.get('customer_address', 'N/A'))
+    
+    # If PDF path is missing or status is not 'Sent', generate/re-generate the PDF
+    pdf_relative_path = order['invoice_details'].get('invoice_pdf_path')
+    if not pdf_relative_path or not os.path.exists(os.path.join('static', pdf_relative_path)) or \
+       order['invoice_details'].get('invoice_status') != 'Sent': # Re-generate if status isn't sent
+        pdf_relative_path = generate_invoice_pdf(order)
 
     if pdf_relative_path:
         order['invoice_details']['invoice_pdf_path'] = pdf_relative_path
@@ -1037,7 +1204,9 @@ def admin_send_invoice_email(order_id):
         try:
             msg = Message(f"Karthika Futures - Your Invoice for Order #{order['order_id']} (Manual Send)",
                           recipients=[order.get('user_email')])
-            msg.body = render_template('email/invoice_email.txt', order=order)
+            msg.body = render_template('email/invoice_email.txt', order=order,
+                                       OUR_BUSINESS_NAME=OUR_BUSINESS_NAME, # Pass business details
+                                       OUR_BUSINESS_ADDRESS=OUR_BUSINESS_ADDRESS) 
             
             with app.open_resource(os.path.join('static', pdf_relative_path)) as fp:
                 msg.attach(f"invoice_{order['order_id']}.pdf", "application/pdf", fp.read())
@@ -1047,17 +1216,17 @@ def admin_send_invoice_email(order_id):
             order['invoice_details']['is_held_by_admin'] = False # Release hold if sent manually
             order['invoice_details']['last_edited_by_admin'] = datetime.now().isoformat()
             save_json('orders.json', orders)
-            flash(f"Invoice for Order {order_id} manually sent to customer.", "success")
+            flash(f"Invoice for Order {order['order_id']} manually sent to customer.", "success")
         except Exception as e:
             order['invoice_details']['invoice_status'] = 'Email Failed'
             save_json('orders.json', orders)
-            flash(f"Failed to send invoice email for Order {order_id}: {e}", "danger")
-            print(f"ERROR: Manual invoice email send failed for Order {order_id}: {e}")
+            flash(f"Failed to send invoice email for Order {order['order_id']}: {e}", "danger")
+            print(f"ERROR: Manual invoice email send failed for Order {order['order_id']}: {e}")
     else:
         order['invoice_details']['invoice_status'] = 'PDF Gen Failed'
         save_json('orders.json', orders)
-        flash(f"Failed to generate invoice PDF for Order {order_id}.", "danger")
-        print(f"ERROR: Manual invoice PDF generation failed for Order {order_id}.")
+        flash(f"Failed to generate invoice PDF for Order {order['order_id']}.", "danger")
+        print(f"ERROR: Manual invoice PDF generation failed for Order {order['order_id']}.")
 
     return redirect(url_for('admin_panel'))
 
@@ -1078,23 +1247,57 @@ def download_invoice(order_id):
         flash("You do not have permission to download this invoice.", "danger")
         return redirect(url_for('my_orders'))
 
+    # Ensure invoice_details exists
+    if 'invoice_details' not in order:
+        order['invoice_details'] = {} # Initialize to prevent error
+
     # Check if invoice PDF path exists and status allows download
     invoice_details = order.get('invoice_details', {})
     pdf_relative_path = invoice_details.get('invoice_pdf_path')
     invoice_status = invoice_details.get('invoice_status')
 
-    if not pdf_relative_path or not os.path.exists(os.path.join('static', pdf_relative_path)):
-        flash("Invoice PDF not found or not yet generated.", "warning")
-        # Attempt to generate if status is 'Prepared'/'Edited' and path is missing
-        if invoice_status in ['Prepared', 'Edited', 'Held', 'Email Failed'] and order.get('status') == 'Shipped':
-             flash("Attempting to generate invoice PDF now...", "info")
+    # If PDF doesn't exist on disk but order status indicates it *should* have one, try generating
+    if (not pdf_relative_path or not os.path.exists(os.path.join('static', pdf_relative_path))) and \
+       order.get('status') == 'Shipped' and \
+       invoice_status in ['Prepared', 'Edited', 'Held', 'Email Failed', 'PDF Gen Failed', 'Not Applicable']: # 'Not Applicable' means it hasn't been processed yet
+             flash("Invoice PDF not found or outdated. Attempting to generate/regenerate now...", "info")
              # Regenerate PDF with current details
+             # Ensure the invoice_details are correctly populated before regeneration
+             # This block ensures all needed fields are there for PDF generation if missing
+             subtotal_before_gst_for_gen = order.get('subtotal_before_gst', order.get('total_amount', 0.0))
+             gst_rate_for_gen = invoice_details.get('gst_rate_applied', DEFAULT_GST_RATE_PERCENTAGE)
+             total_gst_for_gen = round(subtotal_before_gst_for_gen * (gst_rate_for_gen / 100), 2)
+             shipping_for_gen = invoice_details.get('shipping_charge', DEFAULT_SHIPPING_CHARGE)
+             final_for_gen = round(subtotal_before_gst_for_gen + total_gst_for_gen + shipping_for_gen, 2)
+
+             order['invoice_details'].setdefault('invoice_number', generate_unique_invoice_number())
+             order['invoice_details'].setdefault('invoice_date', datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+             order['invoice_details'].setdefault('total_gst_amount', total_gst_for_gen)
+             order['invoice_details'].setdefault('cgst_amount', round(total_gst_for_gen / 2, 2))
+             order['invoice_details'].setdefault('sgst_amount', round(total_gst_for_gen / 2, 2))
+             order['invoice_details'].setdefault('gst_rate_applied', gst_rate_for_gen)
+             order['invoice_details'].setdefault('shipping_charge', shipping_for_gen)
+             order['invoice_details'].setdefault('final_invoice_amount', final_for_gen)
+             order['invoice_details'].setdefault('gst_number', OUR_GSTIN)
+             order['invoice_details'].setdefault('pan_number', OUR_PAN)
+             order['invoice_details'].setdefault('business_name', OUR_BUSINESS_NAME)
+             order['invoice_details'].setdefault('business_address', OUR_BUSINESS_ADDRESS)
+             order['invoice_details'].setdefault('customer_phone_camouflaged', mask_phone_number(order.get('customer_phone', 'N/A')))
+             order['invoice_details'].setdefault('billing_address', order.get('customer_address', 'N/A'))
+
              pdf_relative_path = generate_invoice_pdf(order)
              if pdf_relative_path:
                  order['invoice_details']['invoice_pdf_path'] = pdf_relative_path
-                 save_json('orders.json', orders)
-                 return redirect(url_for('download_invoice', order_id=order_id)) # Retry download
+                 save_json('orders.json', orders) # Save updated path
+                 # Redirect and try download again immediately
+                 return redirect(url_for('download_invoice', order_id=order_id)) 
+             else:
+                flash("Failed to generate invoice PDF. Please contact support.", "danger")
+                return redirect(url_for('my_orders'))
 
+    # If after potential generation, still no path or file, then fail
+    if not pdf_relative_path or not os.path.exists(os.path.join('static', pdf_relative_path)):
+        flash("Invoice PDF not found or not yet generated.", "warning")
         return redirect(url_for('my_orders'))
 
     # Only allow download if status is appropriate (e.g., Sent, Prepared, Edited, Email Failed)
@@ -1132,7 +1335,7 @@ def index():
     return render_template(
         'index.html', 
         artworks=all_artworks, # Pass all artworks directly
-        current_year=datetime.now().year
+        current_year=g.current_year # Use g.current_year from before_request
     )
 
 # All Products Route
@@ -1409,33 +1612,60 @@ def update_cart_session():
     try:
         data = request.get_json()
         client_cart = data.get('cart', {})
+        # client_cart is expected to be a list of item objects or a dict where keys are item_ids
 
-        processed_cart = {}
+        # Load artworks to get GST percentage for each item
+        artworks_data = load_json('artworks.json')
+        artworks_dict_by_sku = {art.get('sku'): art for art in artworks_data}
+
+        processed_cart = {} # This will store items as a dictionary for easier lookup by ID
+        
+        items_to_process = []
         if isinstance(client_cart, list):
-            for item in client_cart:
-                if item.get('id'):
-                    if 'total_price' not in item and 'unit_price' in item and 'quantity' in item:
-                        try:
-                            item['total_price'] = float(item['unit_price']) * int(item['quantity'])
-                        except (ValueError, TypeError):
-                            item['total_price'] = 0.0
-                    processed_cart[item['id']] = item
-            print("DEBUG: Client sent list, converted to dict for session.")
+            items_to_process = client_cart
         elif isinstance(client_cart, dict):
-            for item_id, item_data in client_cart.items():
-                if 'total_price' not in item_data and 'unit_price' in item_data and 'quantity' in item_data:
-                    try:
-                        item_data['total_price'] = float(item_data['unit_price']) * int(item_data['quantity'])
-                    except (ValueError, TypeError):
-                        item_data['total_price'] = 0.0
-                processed_cart[item_id] = item_data
-            print("DEBUG: Client sent dict, processed for session.")
+            items_to_process = list(client_cart.values()) # Convert dict to list of values for consistent iteration
         else:
-            print(f"WARNING: Unexpected client_cart type: {type(client_cart)}. Resetting session cart.")
+            print(f"WARNING: Unexpected client_cart type in update_cart_session: {type(client_cart)}. Resetting session cart.")
+            session['cart'] = {}
+            return jsonify(success=False, message="Invalid cart data received."), 400
 
+        for item_data_from_client in items_to_process:
+            item = item_data_from_client.copy() # Work on a copy
+
+            item_id = item.get('id')
+            if not item_id:
+                print(f"WARNING: Item without ID found in cart: {item}. Skipping.")
+                continue
+
+            sku = item.get('sku')
+            artwork_info = artworks_dict_by_sku.get(sku)
+
+            # Get artwork-specific GST percentage, default if not found
+            gst_percentage = artwork_info.get('gst_percentage', DEFAULT_GST_RATE_PERCENTAGE) if artwork_info else DEFAULT_GST_RATE_PERCENTAGE
+            item['gst_percentage'] = gst_percentage # Store in cart item
+
+            unit_price_val = float(item.get('unit_price', 0.0))
+            quantity_val = int(item.get('quantity', 1))
+
+            # Calculate price before GST
+            item_price_before_gst = unit_price_val * quantity_val
+            item['unit_price_before_gst'] = unit_price_val # Store unit price before GST
+            item['total_price_before_gst'] = item_price_before_gst # Store total price of this item before GST
+
+            # Calculate GST amount for this item
+            item_gst_amount = item_price_before_gst * (gst_percentage / 100)
+            item['gst_amount'] = round(item_gst_amount, 2) # Store GST amount for this item
+
+            # Calculate total price including GST for this item
+            item_total_price_with_gst = item_price_before_gst + item_gst_amount
+            item['total_price'] = round(item_total_price_with_gst, 2) # Store total price including GST
+
+            processed_cart[item_id] = item
+        
         session['cart'] = processed_cart
         
-        print(f"\n--- DEBUG: Server session['cart'] updated via AJAX: {session['cart']} ---")
+        print(f"\n--- DEBUG: Server session['cart'] updated via AJAX. Items: {len(session['cart']) if session['cart'] else 0} ---")
         return jsonify(success=True, message="Cart session updated successfully"), 200
     except Exception as e:
         print(f"ERROR: Failed to update server session cart: {e}")
@@ -1448,7 +1678,12 @@ def cart():
     print(f"DEBUG: session['cart'] at /cart start: {session.get('cart')}")
 
     cart_items_for_display = []
-    grand_total_cart = 0.0
+    subtotal_before_gst = 0.0
+    total_gst_amount = 0.0
+    cgst_amount = 0.0
+    sgst_amount = 0.0
+    shipping_charge = DEFAULT_SHIPPING_CHARGE # Default for display
+    grand_total = 0.0
 
     current_session_cart = session.get('cart', {})
 
@@ -1467,18 +1702,29 @@ def cart():
             for item_id, item_data_original in current_session_cart.items():
                 item_data = item_data_original.copy()
                 
-                unit_price_val = float(item_data.get('unit_price', 0.0))
-                quantity_val = int(item_data.get('quantity', 1))
+                # These values should already be calculated by update_cart_session
+                item_total_price_before_gst = item_data.get('total_price_before_gst', 0.0)
+                item_gst_amount = item_data.get('gst_amount', 0.0)
+                item_total_price_with_gst = item_data.get('total_price', 0.0)
 
-                item_total_price = unit_price_val * quantity_val
-                grand_total_cart += item_total_price
+                subtotal_before_gst += item_total_price_before_gst
+                total_gst_amount += item_gst_amount
                 
-                item_data['calculated_display_price'] = item_total_price 
+                item_data['calculated_display_price'] = item_total_price_with_gst 
                 cart_items_for_display.append(item_data)
                 
-                print(f"  Item ID: {item_id}, Name: {item_data.get('name')}, Qty: {quantity_val}, Unit Price: {unit_price_val}, Total for item: {item_total_price}")
+                print(f"  Item ID: {item_id}, Name: {item_data.get('name')}, Qty: {item_data.get('quantity')}, Unit Price (Pre-GST): {item_data.get('unit_price_before_gst')}, Item Total (With GST): {item_total_price_with_gst}")
             
-            print(f"  FINAL grand_total_cart for /cart page: {grand_total_cart:.2f}")
+            cgst_amount = round(total_gst_amount / 2, 2)
+            sgst_amount = round(total_gst_amount / 2, 2)
+            grand_total = round(subtotal_before_gst + total_gst_amount + shipping_charge, 2)
+
+            print(f"  FINAL Subtotal (Pre-GST) for /cart page: {subtotal_before_gst:.2f}")
+            print(f"  FINAL Total GST Amount for /cart page: {total_gst_amount:.2f}")
+            print(f"  FINAL CGST Amount for /cart page: {cgst_amount:.2f}")
+            print(f"  FINAL SGST Amount for /cart page: {sgst_amount:.2f}")
+            print(f"  FINAL Shipping Charge for /cart page: {shipping_charge:.2f}")
+            print(f"  FINAL Grand Total for /cart page: {grand_total:.2f}")
             print("--------------------------------------------------\n")
 
             if not cart_items_for_display:
@@ -1488,11 +1734,23 @@ def cart():
             print(f"ERROR: Error processing cart from session for /cart page: {e}")
             flash('There was an error loading your cart. Please try again.', 'danger')
             cart_items_for_display = []
-            grand_total_cart = 0.0
+            subtotal_before_gst = 0.0
+            total_gst_amount = 0.0
+            cgst_amount = 0.0
+            sgst_amount = 0.0
+            shipping_charge = DEFAULT_SHIPPING_CHARGE
+            grand_total = 0.0
     else:
         flash('Your cart is empty. Please add items before checking out.', 'info')
 
-    return render_template('cart.html', cart_items=cart_items_for_display, grand_total=grand_total_cart)
+    return render_template('cart.html', 
+                           cart_items=cart_items_for_display, 
+                           subtotal_before_gst=subtotal_before_gst,
+                           total_gst_amount=total_gst_amount,
+                           cgst_amount=cgst_amount,
+                           sgst_amount=sgst_amount,
+                           shipping_charge=shipping_charge,
+                           grand_total=grand_total)
 
 # Purchase Form
 @app.route('/purchase-form', methods=['GET', 'POST'])
@@ -1504,50 +1762,80 @@ def purchase_form():
     print(f"DEBUG: request.method: {request.method}")
     print(f"DEBUG: session['cart'] at /purchase-form start: {session.get('cart')}")
 
+    # Load artworks data once to get GST percentages
+    artworks_data = load_json('artworks.json')
+    artworks_dict_by_sku = {art.get('sku'): art for art in artworks_data}
+
     if request.method == 'POST':
         print(f"\n--- DEBUG: POST Request Form Data Received (Overall) ---")
         print(request.form)
         print(f"--------------------------------------------------\n")
 
         cart_json = request.form.get('cart_json')
+        shipping_charge_from_form = float(request.form.get('shipping_charge', DEFAULT_SHIPPING_CHARGE))
 
         if 'name' not in request.form: 
             print("DEBUG: This is the FIRST POST (from cart.html) to /purchase-form.")
             
             processed_items_for_display = [] 
-            calculated_grand_total = 0.0
+            subtotal_before_gst = 0.0
+            total_gst_amount = 0.0
 
             if not cart_json:
                 print("DEBUG: cart_json is empty in First POST, redirecting to /cart.")
                 return redirect(url_for('cart')) 
             
             try:
-                items_from_cart = json.loads(cart_json)
+                items_from_cart_raw = json.loads(cart_json)
                 
-                print(f"DEBUG (First POST): Result of json.loads(cart_json): {items_from_cart}")
-                print(f"DEBUG (First POST): Type of items_from_cart: {type(items_from_cart)}")
-                print(f"DEBUG (First POST): Is items_from_cart empty? {not items_from_cart}")
+                print(f"DEBUG (First POST): Result of json.loads(cart_json): {items_from_cart_raw}")
+                print(f"DEBUG (First POST): Type of items_from_cart_raw: {type(items_from_cart_raw)}")
+                print(f"DEBUG (First POST): Is items_from_cart_raw empty? {not items_from_cart_raw}")
 
-                if not items_from_cart:
-                    print("DEBUG: items_from_cart is empty after JSON load, redirecting to /cart.")
+                if not items_from_cart_raw:
+                    print("DEBUG: items_from_cart_raw is empty after JSON load, redirecting to /cart.")
                     return redirect(url_for('cart'))
 
-                print("\n--- DEBUG: Calculating grand_total for FIRST POST (rendering form) ---")
+                print("\n--- DEBUG: Calculating totals for FIRST POST (rendering form) ---")
                 
-                for item_data in items_from_cart:
+                for item_data in items_from_cart_raw:
                     item = item_data.copy() 
+                    
+                    sku = item.get('sku')
+                    artwork_info = artworks_dict_by_sku.get(sku)
+                    gst_percentage = artwork_info.get('gst_percentage', DEFAULT_GST_RATE_PERCENTAGE) if artwork_info else DEFAULT_GST_RATE_PERCENTAGE
                     
                     unit_price_val = float(item.get('unit_price', 0.0))
                     quantity_val = int(item.get('quantity', 1))
-                    item_total = unit_price_val * quantity_val
                     
-                    calculated_grand_total += item_total
-                    item['price'] = item_total 
+                    item_price_before_gst = unit_price_val * quantity_val
+                    item_gst_amount = item_price_before_gst * (gst_percentage / 100)
+                    item_total_price_with_gst = item_price_before_gst + item_gst_amount
+                    
+                    subtotal_before_gst += item_price_before_gst
+                    total_gst_amount += item_gst_amount
+                    
+                    item['price'] = round(item_total_price_with_gst, 2) # Price for display
+                    item['unit_price_before_gst'] = unit_price_val
+                    item['total_price_before_gst'] = round(item_price_before_gst, 2)
+                    item['gst_percentage'] = gst_percentage
+                    item['gst_amount'] = round(item_gst_amount, 2)
+                    item['total_price'] = round(item_total_price_with_gst, 2) # Final total for item
+                    
                     processed_items_for_display.append(item)
 
-                    print(f"  Item: {item.get('name', 'N/A')}, unit_price: {unit_price_val}, quantity: {quantity_val}, item_total: {item_total}")
+                    print(f"  Item: {item.get('name', 'N/A')}, Qty: {quantity_val}, Unit Price (Pre-GST): {unit_price_val}, Item GST%: {gst_percentage}, Item GST Amt: {item_gst_amount:.2f}, Item Total (With GST): {item_total_price_with_gst:.2f}")
 
-                print(f"  FINAL grand_total_from_server_calc (FIRST POST): {calculated_grand_total:.2f}")
+                cgst_amount = round(total_gst_amount / 2, 2)
+                sgst_amount = round(total_gst_amount / 2, 2)
+                grand_total_final = round(subtotal_before_gst + total_gst_amount + shipping_charge_from_form, 2)
+
+                print(f"  FINAL Subtotal (Pre-GST) (FIRST POST): {subtotal_before_gst:.2f}")
+                print(f"  FINAL Total GST Amount (FIRST POST): {total_gst_amount:.2f}")
+                print(f"  FINAL CGST Amount (FIRST POST): {cgst_amount:.2f}")
+                print(f"  FINAL SGST Amount (FIRST POST): {sgst_amount:.2f}")
+                print(f"  FINAL Shipping Charge (FIRST POST): {shipping_charge_from_form:.2f}")
+                print(f"  FINAL Grand Total (FIRST POST): {grand_total_final:.2f}")
                 print("--------------------------------------------------\n")
 
                 context = {
@@ -1557,9 +1845,14 @@ def purchase_form():
                     'prefill_phone': user.phone or '',
                     'prefill_address': user.address or '',
                     'prefill_pincode': user.pincode or '',
-                    'cart_json': cart_json,
+                    'cart_json': json.dumps(processed_items_for_display), # Save processed items back to JSON
                     'items_for_display': processed_items_for_display,
-                    'grand_total': calculated_grand_total
+                    'subtotal_before_gst': subtotal_before_gst,
+                    'total_gst_amount': total_gst_amount,
+                    'cgst_amount': cgst_amount,
+                    'sgst_amount': sgst_amount,
+                    'shipping_charge': shipping_charge_from_form, # Use value from form if present
+                    'grand_total': grand_total_final
                 }
                 return render_template('purchase-form.html', **context)
 
@@ -1573,24 +1866,60 @@ def purchase_form():
                 return redirect(url_for('cart'))
 
 
-        else: 
+        else: # This is the SECOND POST (from purchase-form.html)
             print("DEBUG: This is the SECOND POST (from purchase-form.html) to /purchase-form.")
             name = request.form.get('name')
             email = request.form.get('email')
             phone = request.form.get('phone')
             address = request.form.get('address')
             pincode = request.form.get('pincode')
+            shipping_charge_final = float(request.form.get('shipping_charge', DEFAULT_SHIPPING_CHARGE))
 
             if not all([name, phone, address, pincode]):
                 flash('All fields (Name, Phone, Address, Pincode) are required.', 'danger')
-                return redirect(url_for('purchase_form')) 
+                # Re-render form with current data if validation fails
+                current_cart_items_for_display = []
+                subtotal_before_gst = 0.0
+                total_gst_amount = 0.0
+                try:
+                    items_from_cart_raw = json.loads(cart_json)
+                    for item_data in items_from_cart_raw:
+                        item = item_data.copy()
+                        subtotal_before_gst += item.get('total_price_before_gst', 0.0)
+                        total_gst_amount += item.get('gst_amount', 0.0)
+                        current_cart_items_for_display.append(item)
+                except (json.JSONDecodeError, KeyError) as e:
+                    print(f"ERROR: Failed to re-process cart JSON on form validation error: {e}")
+                
+                cgst_amount = round(total_gst_amount / 2, 2)
+                sgst_amount = round(total_gst_amount / 2, 2)
+                grand_total_final_on_error = round(subtotal_before_gst + total_gst_amount + shipping_charge_final, 2)
+
+                context_on_error = {
+                    'prefill_name': name,
+                    'prefill_email': email,
+                    'prefill_email_type': 'text',
+                    'prefill_phone': phone,
+                    'prefill_address': address,
+                    'prefill_pincode': pincode,
+                    'cart_json': cart_json, # Send original back to preserve options
+                    'items_for_display': current_cart_items_for_display,
+                    'subtotal_before_gst': subtotal_before_gst,
+                    'total_gst_amount': total_gst_amount,
+                    'cgst_amount': cgst_amount,
+                    'sgst_amount': sgst_amount,
+                    'shipping_charge': shipping_charge_final,
+                    'grand_total': grand_total_final_on_error
+                }
+                return render_template('purchase-form.html', **context_on_error)
+            
             if not cart_json:
                 flash('Cart data is missing from the form. Please try adding items to your cart again.', 'danger')
                 print("DEBUG: cart_json is missing in Second POST, redirecting to /cart.")
                 return redirect(url_for('cart'))
 
             try:
-                items_from_cart = json.loads(cart_json)
+                items_from_cart = json.loads(cart_json) # This `items_from_cart` already has GST details from update_cart_session/first POST
                 
                 print(f"DEBUG (Second POST): Result of json.loads(cart_json): {items_from_cart}")
                 print(f"DEBUG (Second POST): Type of items_from_cart: {type(items_from_cart)}")
@@ -1600,15 +1929,27 @@ def purchase_form():
                     print("DEBUG: items_from_cart is empty after JSON load in Second POST, redirecting to /cart.")
                     return redirect(url_for('cart'))
 
-                grand_total_from_server_calc = 0.0
+                subtotal_before_gst = 0.0
+                total_gst_amount = 0.0
                 print("\n--- DEBUG: Calculating grand_total for SECOND POST (order processing) ---")
                 for item in items_from_cart:
-                    unit_price_val = float(item.get('unit_price', 0.0))
-                    quantity_val = int(item.get('quantity', 1))
-                    item_total = unit_price_val * quantity_val
-                    grand_total_from_server_calc += item_total
-                    print(f"  Item: {item.get('name', 'N/A')}, unit_price: {unit_price_val}, quantity: {quantity_val}, item_total: {item_total}")
-                print(f"  FINAL grand_total_from_server_calc (SECOND POST): {grand_total_from_server_calc:.2f}")
+                    item_price_before_gst = item.get('total_price_before_gst', 0.0)
+                    item_gst_amount = item.get('gst_amount', 0.0)
+                    
+                    subtotal_before_gst += item_price_before_gst
+                    total_gst_amount += item_gst_amount
+                    print(f"  Item: {item.get('name', 'N/A')}, Total Price (Pre-GST): {item_price_before_gst:.2f}, Item GST Amt: {item_gst_amount:.2f}")
+                
+                cgst_amount = round(total_gst_amount / 2, 2)
+                sgst_amount = round(total_gst_amount / 2, 2)
+                grand_total_final = round(subtotal_before_gst + total_gst_amount + shipping_charge_final, 2)
+
+                print(f"  FINAL Subtotal (Pre-GST) (SECOND POST): {subtotal_before_gst:.2f}")
+                print(f"  FINAL Total GST Amount (SECOND POST): {total_gst_amount:.2f}")
+                print(f"  FINAL CGST Amount (SECOND POST): {cgst_amount:.2f}")
+                print(f"  FINAL SGST Amount (SECOND POST): {sgst_amount:.2f}")
+                print(f"  FINAL Shipping Charge (SECOND POST): {shipping_charge_final:.2f}")
+                print(f"  FINAL Grand Total (SECOND POST): {grand_total_final:.2f}")
                 print("--------------------------------------------------\n")
 
                 orders = load_json('orders.json')
@@ -1622,8 +1963,9 @@ def purchase_form():
                     "customer_phone": phone,
                     "customer_address": address,
                     "customer_pincode": pincode,
-                    "total_amount": grand_total_from_server_calc,
-                    "items": items_from_cart, 
+                    "subtotal_before_gst": subtotal_before_gst, # Store subtotal before GST
+                    "total_amount": grand_total_final, # total_amount now represents the grand total for payment
+                    "items": items_from_cart, # Items now contain GST breakdown
                     "status": "Pending Payment",
                     "courier": "",
                     "tracking_number": "",
@@ -1639,21 +1981,24 @@ def purchase_form():
                         "pan_number": OUR_PAN,
                         "business_name": OUR_BUSINESS_NAME,
                         "business_address": OUR_BUSINESS_ADDRESS,
-                        "total_gst_amount": 0.0,
-                        "shipping_charge": 0.0,
-                        "final_invoice_amount": grand_total_from_server_calc, # Initially just item total
+                        "total_gst_amount": total_gst_amount,
+                        "cgst_amount": cgst_amount,
+                        "sgst_amount": sgst_amount,
+                        "gst_rate_applied": round((total_gst_amount / subtotal_before_gst) * 100, 2) if subtotal_before_gst else 0.0,
+                        "shipping_charge": shipping_charge_final,
+                        "final_invoice_amount": grand_total_final, # Matches total_amount
                         "invoice_pdf_path": None,
                         "customer_phone_camouflaged": mask_phone_number(phone),
                         "billing_address": address # Assuming shipping address is billing address
                     }
                 }
                 orders.append(new_order)
-                save_json('orders.json', orders)
+                save_json('orders.json', orders) # Ensure save is explicitly called here
 
                 session.pop('cart', None) 
 
                 flash('Your order has been created. Redirecting to payment!', 'info')
-                return redirect(url_for('payment_initiate', order_id=order_id, amount=grand_total_from_server_calc))
+                return redirect(url_for('payment_initiate', order_id=order_id, amount=grand_total_final))
 
             except json.JSONDecodeError:
                 flash('Error processing cart data. Please try again.', 'danger')
@@ -1667,7 +2012,9 @@ def purchase_form():
     elif request.method == 'GET':
         print("DEBUG: This is a GET request to /purchase-form.")
         current_cart_items_for_display = [] 
-        calculated_grand_total = 0.0
+        subtotal_before_gst = 0.0
+        total_gst_amount = 0.0
+        shipping_charge_for_display = DEFAULT_SHIPPING_CHARGE # Use default for initial GET
 
         cart_data_from_session = session.get('cart', {})
 
@@ -1680,26 +2027,35 @@ def purchase_form():
             cart_data_from_session = {}
             session['cart'] = cart_data_from_session 
 
-
-        cart_json_for_template = json.dumps(list(cart_data_from_session.values())) 
-
         if cart_data_from_session:
             try:
-                print("\n--- DEBUG: Calculating grand_total for GET request (rendering form) ---")
+                print("\n--- DEBUG: Calculating totals for GET request (rendering form) ---")
                 for item_id, item_data_original in cart_data_from_session.items():
                     item_data = item_data_original.copy() 
                     
-                    unit_price_val = float(item_data.get('unit_price', 0.0))
-                    quantity_val = int(item_data.get('quantity', 1))
+                    # These values should already be calculated by update_cart_session
+                    item_price_before_gst = item_data.get('total_price_before_gst', 0.0)
+                    item_gst_amount = item_data.get('gst_amount', 0.0)
+                    item_total_price_with_gst = item_data.get('total_price', 0.0)
 
-                    item_total_price = unit_price_val * quantity_val
-                    calculated_grand_total += item_total_price
-                    item_data['price'] = item_total_price 
+                    subtotal_before_gst += item_price_before_gst
+                    total_gst_amount += item_gst_amount
+                    
+                    item_data['price'] = round(item_total_price_with_gst, 2) # Price for display
                     current_cart_items_for_display.append(item_data)
 
-                    print(f"  Item ID: {item_id}, unit_price: {unit_price_val}, quantity: {quantity_val}, item_total_price: {item_total_price}")
+                    print(f"  Item ID: {item_id}, Unit Price (Pre-GST): {item_data.get('unit_price_before_gst')}, Item Total (With GST): {item_total_price_with_gst:.2f}")
 
-                print(f"  FINAL calculated_grand_total (GET): {calculated_grand_total:.2f}")
+                cgst_amount = round(total_gst_amount / 2, 2)
+                sgst_amount = round(total_gst_amount / 2, 2)
+                grand_total_final = round(subtotal_before_gst + total_gst_amount + shipping_charge_for_display, 2) # Use default shipping for initial GET
+
+                print(f"  FINAL Subtotal (Pre-GST) (GET): {subtotal_before_gst:.2f}")
+                print(f"  FINAL Total GST Amount (GET): {total_gst_amount:.2f}")
+                print(f"  FINAL CGST Amount (GET): {cgst_amount:.2f}")
+                print(f"  FINAL SGST Amount (GET): {sgst_amount:.2f}")
+                print(f"  FINAL Shipping Charge (GET): {shipping_charge_for_display:.2f}")
+                print(f"  FINAL Grand Total (GET): {grand_total_final:.2f}")
                 print("--------------------------------------------------\n")
 
                 if not current_cart_items_for_display:
@@ -1721,11 +2077,16 @@ def purchase_form():
             'prefill_address': user.address or '',
             'prefill_pincode': user.pincode or '',
             'cart_items': current_cart_items_for_display, 
-            'grand_total': calculated_grand_total,
-            'cart_json': json.dumps(current_cart_items_for_display) 
+            'subtotal_before_gst': subtotal_before_gst,
+            'total_gst_amount': total_gst_amount,
+            'cgst_amount': cgst_amount,
+            'sgst_amount': sgst_amount,
+            'shipping_charge': shipping_charge_for_display,
+            'grand_total': grand_total_final,
+            'cart_json': json.dumps(current_cart_items_for_display) # This passes the processed items back
         }
 
-        print(f"DEBUG (GET /purchase-form): Grand Total passed to template: {calculated_grand_total:.2f}")
+        print(f"DEBUG (GET /purchase-form): Grand Total passed to template: {grand_total_final:.2f}")
         return render_template('purchase-form.html', **context)
     
     return redirect(url_for('index'))
@@ -1749,9 +2110,10 @@ def payment_initiate(order_id, amount):
         print(f"ERROR: Order with ID {order_id} not found for payment initiation.")
         return redirect(url_for('my_orders')) 
 
-    if abs(order['total_amount'] - amount) > 0.01: 
+    # 'total_amount' in order now represents the final grand total after GST and shipping
+    if abs(order['total_amount'] - amount) > 0.01: # Use a small tolerance for float comparison
         flash('Payment amount mismatch. Please try again or contact support.', 'danger')
-        print(f"WARNING: Amount mismatch for order {order_id}. Expected {order['total_amount']}, Got {amount}.")
+        print(f"WARNING: Amount mismatch for order {order_id}. Expected {order['total_amount']:.2f}, Got {amount:.2f}.")
         return redirect(url_for('my_orders'))
 
     context = {
@@ -1914,11 +2276,15 @@ def export_orders_csv():
     # Define CSV headers
     fieldnames = [
         "order_id", "user_id", "user_email", "customer_name", "customer_phone", 
-        "customer_address", "customer_pincode", "total_amount", "status", 
+        "customer_address", "customer_pincode", 
+        "subtotal_before_gst", # New field
+        "total_amount", # This is now the Grand Total
+        "status", 
         "transaction_id", "courier", "tracking_number", "placed_on", "payment_submitted_on",
-        "shipped_on", # New field
-        "invoice_status", "invoice_number", "invoice_date", "total_gst_amount", 
-        "shipping_charge", "final_invoice_amount", "invoice_held_by_admin", # New fields for invoice
+        "shipped_on", 
+        "invoice_status", "invoice_number", "invoice_date", "gst_rate_applied", # New field
+        "total_gst_amount", "cgst_amount", "sgst_amount", # New fields for GST breakdown
+        "shipping_charge", "final_invoice_amount", "invoice_held_by_admin", 
         "items_details" # Combined item details
     ]
 
@@ -1932,14 +2298,21 @@ def export_orders_csv():
             items_details = []
             if 'items' in order and isinstance(order['items'], list):
                 for item in order['items']:
-                    item_unit_price = f"{item.get('unit_price', 0.0):.2f}"
-                    item_total_calc = float(item.get('unit_price', 0.0)) * int(item.get('quantity', 1))
-                    item_total_formatted = f"{item_total_calc:.2f}"
+                    # Retrieve the correct values, defaulting if not present in older orders
+                    item_unit_price_before_gst = f"{item.get('unit_price_before_gst', item.get('unit_price', 0.0)):.2f}"
+                    item_total_price_before_gst = f"{item.get('total_price_before_gst', item.get('unit_price', 0.0) * item.get('quantity', 1)):.2f}"
+                    item_gst_percent = item.get('gst_percentage', 0.0)
+                    item_gst_amount = f"{item.get('gst_amount', 0.0):.2f}"
+                    item_total_price_with_gst = f"{item.get('total_price', 0.0):.2f}"
+
 
                     details = f"{item.get('name', 'N/A')} (SKU: {item.get('sku', 'N/A')}," \
                               f" Qty: {item.get('quantity', 1)}," \
-                              f" UnitPrice: {item_unit_price}," \
-                              f" ItemTotal: {item_total_formatted}," \
+                              f" UnitPrice (pre-GST): {item_unit_price_before_gst}," \
+                              f" ItemTotal (pre-GST): {item_total_price_before_gst}," \
+                              f" Item GST%: {item_gst_percent:.2f}," \
+                              f" Item GST Amt: {item_gst_amount}," \
+                              f" ItemTotal (with GST): {item_total_price_with_gst}," \
                               f" Size: {item.get('size', 'N/A')}," \
                               f" Frame: {item.get('frame', 'N/A')}," \
                               f" Glass: {item.get('glass', 'N/A')})"
@@ -1951,7 +2324,10 @@ def export_orders_csv():
             invoice_status = invoice_det.get('invoice_status', 'N/A')
             invoice_number = invoice_det.get('invoice_number', 'N/A')
             invoice_date = invoice_det.get('invoice_date', 'N/A')
-            total_gst_amount = f"{invoice_det.get('total_gst_amount', 0.0):.2f}"
+            gst_rate_applied = f"{invoice_det.get('gst_rate_applied', 0.0):.2f}"
+            total_gst_amount_inv = f"{invoice_det.get('total_gst_amount', 0.0):.2f}"
+            cgst_amount_inv = f"{invoice_det.get('cgst_amount', 0.0):.2f}"
+            sgst_amount_inv = f"{invoice_det.get('sgst_amount', 0.0):.2f}"
             shipping_charge_inv = f"{invoice_det.get('shipping_charge', 0.0):.2f}"
             final_invoice_amount = f"{invoice_det.get('final_invoice_amount', 0.0):.2f}"
             invoice_held = str(invoice_det.get('is_held_by_admin', False))
@@ -1964,16 +2340,17 @@ def export_orders_csv():
                 str(order.get('customer_phone', 'N/A')),
                 str(order.get('customer_address', 'N/A')),
                 str(order.get('customer_pincode', 'N/A')),
-                f"{order.get('total_amount', 0.0):.2f}", 
+                f"{order.get('subtotal_before_gst', 0.0):.2f}", # Subtotal
+                f"{order.get('total_amount', 0.0):.2f}", # Grand Total
                 str(order.get('status', 'N/A')),
                 str(order.get('transaction_id', 'N/A')), 
                 str(order.get('courier', 'N/A')),
                 str(order.get('tracking_number', 'N/A')),
                 str(order.get('placed_on', 'N/A')),
                 str(order.get('payment_submitted_on', 'N/A')),
-                str(order.get('shipped_on', 'N/A')), # New field
-                invoice_status, invoice_number, invoice_date, total_gst_amount, 
-                shipping_charge_inv, final_invoice_amount, invoice_held, # New fields
+                str(order.get('shipped_on', 'N/A')), 
+                invoice_status, invoice_number, invoice_date, gst_rate_applied, total_gst_amount_inv, 
+                cgst_amount_inv, sgst_amount_inv, shipping_charge_inv, final_invoice_amount, invoice_held, 
                 items_details_str
             ]
             cw.writerow(row)
@@ -1993,6 +2370,7 @@ def export_artworks_csv():
     # Define CSV headers
     fieldnames = [
         "sku", "name", "category", "original_price", "stock", "description",
+        "gst_percentage", # New field
         "frame_wooden_price", "frame_metal_price", "frame_pvc_price", 
         "glass_price", "size_a4_price", "size_a5_price", "size_letter_price", "size_legal_price"
     ]
@@ -2011,6 +2389,7 @@ def export_artworks_csv():
                 f"{artwork.get('original_price', 0.0):.2f}", 
                 str(artwork.get('stock', 0)),
                 str(artwork.get('description', 'N/A')),
+                f"{artwork.get('gst_percentage', 0.0):.2f}", # New field
                 f"{artwork.get('frame_wooden', 0.0):.2f}", 
                 f"{artwork.get('frame_metal', 0.0):.2f}", 
                 f"{artwork.get('frame_pvc', 0.0):.2f}", 
@@ -2034,13 +2413,15 @@ if __name__ == '__main__':
     os.makedirs(data_dir, exist_ok=True)
     print(f"Ensured data directory exists: {data_dir}")
 
+    # Initialize data files only if they don't exist or are empty
+    # Exclude prices.json and ratings.json as they are not explicitly managed here
     for filename in ['users.json', 'artworks.json', 'orders.json']:
         filepath = os.path.join(data_dir, filename)
         if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
             with open(filepath, 'w') as f:
                 if filename in ['orders.json', 'artworks.json']: 
                     json.dump([], f) 
-                else: 
+                else: # users.json
                     json.dump({}, f) 
             print(f"Created empty {filename} in data/ directory.")
 

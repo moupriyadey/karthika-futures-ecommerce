@@ -1,329 +1,372 @@
-{% extends '_base.html' %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ artwork.name }} - Karthika Futures</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .header {
+            background-color: #ffffff;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            border-radius: 0.75rem;
+            margin-bottom: 2rem;
+        }
+        .logo {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #4a5568;
+        }
+        .nav-link {
+            padding: 0.5rem 1rem;
+            color: #4a5568;
+            font-weight: 500;
+            transition: color 0.2s ease-in-out;
+        }
+        .nav-link:hover {
+            color: #2d3748;
+        }
+        .btn-primary {
+            background-color: #4f46e5;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .btn-primary:hover {
+            background-color: #4338ca;
+        }
+        .card {
+            background-color: #ffffff;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+        }
+        .flash-messages {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+        }
+        .flash-message {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            animation: fadeInOut 5s forwards;
+        }
+        .flash-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .flash-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .flash-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-20px); }
+            10% { opacity: 1; transform: translateY(0); }
+            90% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
 
-{% block title %}{{ artwork.name }} - Karthika Futures{% endblock %}
+        /* Adjustments for dropdowns */
+        select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <header class="header">
+        <div class="logo">Karthika Futures</div>
+        <nav>
+            <a href="{{ url_for('index') }}" class="nav-link">Home</a>
+            <a href="{{ url_for('all_products') }}" class="nav-link">All Products</a>
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('user_dashboard') }}" class="nav-link">Dashboard</a>
+                <a href="{{ url_for('my_orders') }}" class="nav-link">My Orders</a>
+                <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
+            {% else %}
+                <a href="{{ url_for('user_login') }}" class="nav-link">Login</a>
+                <a href="{{ url_for('signup') }}" class="nav-link">Signup</a>
+            {% endif %}
+            <a href="{{ url_for('cart') }}" class="btn-primary flex items-center justify-center space-x-2">
+                <i class="fas fa-shopping-cart"></i> <span>Cart (<span id="cart-item-count">0</span>)</span>
+            </a>
+        </nav>
+    </header>
 
-{% block extra_css %}
-<style>
-    /* This CSS block ensures watermarks appear on the main product image. */
-    .product-detail-container {
-        padding: 2rem;
-        background-color: #ffffff;
-        border-radius: 0.75rem;
-        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
-        margin-top: 5rem; /* Space from fixed navbar */
-        margin-bottom: 2rem;
-    }
-    .product-image-container {
-        position: relative; /* Needed for absolute positioning of watermarks */
-        overflow: hidden; /* Ensures watermarks don't spill outside */
-        border-radius: 0.75rem;
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-        cursor: zoom-in; /* Indicates it's clickable for enlargement */
-        display: flex; /* For centering content vertically if needed */
-        justify-content: center;
-        align-items: center;
-        width: 100%;
-        max-width: 600px; /* Max width for the image container */
-        margin: 0 auto 2rem auto; /* Center and add margin below */
-        background-color: #f8f9fa; /* Light background for images that don't fill */
-    }
-    .product-main-image {
-        width: 100%;
-        height: auto; /* Maintain aspect ratio */
-        display: block;
-        border-radius: 0.75rem;
-        transition: transform 0.3s ease; /* Smooth zoom effect on hover */
-        z-index: 0; /* Ensure image is behind watermarks */
-    }
-    .product-image-container:hover .product-main-image {
-        transform: scale(1.02); /* Slight zoom on hover */
-    }
-    
-    /* Watermark styling specific to the product detail page's main image */
-    .product-image-container .watermark {
-        position: absolute;
-        color: rgba(255, 255, 255, 0.5); /* Lighter for visibility on image, but still subtle */
-        opacity: 0.3; /* Increased opacity for better visibility */
-        font-size: 2.5rem; /* Slightly smaller than modal watermarks */
-        font-weight: bold;
-        white-space: nowrap;
-        user-select: none;
-        pointer-events: none;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* Subtle shadow */
-        z-index: 1; /* Above image */
-    }
-
-    /* Positioning for watermarks on the main product image */
-    .product-image-container .watermark:nth-child(2) { top: 5%; left: 5%; transform: rotate(-15deg); }
-    .product-image-container .watermark:nth-child(3) { top: 5%; right: 5%; transform: rotate(15deg); }
-    .product-image-container .watermark:nth-child(4) { bottom: 5%; left: 5%; transform: rotate(15deg); }
-    .product-image-container .watermark:nth-child(5) { bottom: 5%; right: 5%; transform: rotate(-15deg); }
-    .product-image-container .watermark:nth-child(6) { top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(0deg); font-size: 5rem; opacity: 0.15; } /* Central, larger, also increased opacity */
-
-    .product-details h1 {
-        font-size: 2.5rem;
-        color: #333;
-        margin-bottom: 1rem;
-        font-weight: 700;
-    }
-    .product-details .price {
-        font-size: 1.8rem;
-        color: #007bff;
-        font-weight: 700;
-        margin-bottom: 1.5rem;
-    }
-    .product-details .description {
-        font-size: 1.1rem;
-        line-height: 1.6;
-        color: #555;
-        margin-bottom: 1.5rem;
-    }
-    .option-group label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-weight: 600;
-        color: #444;
-    }
-    .option-group select {
-        width: 100%;
-        max-width: 300px;
-        padding: 0.75rem;
-        border-radius: 0.5rem;
-        border: 1px solid #ced4da;
-        margin-bottom: 1rem;
-    }
-    .quantity-selector {
-        display: flex;
-        align-items: center;
-        margin-bottom: 1.5rem;
-    }
-    .quantity-selector button {
-        padding: 0.5rem 1rem;
-        border: 1px solid #007bff;
-        background-color: #007bff;
-        color: white;
-        border-radius: 0.5rem;
-        cursor: pointer;
-        font-size: 1.2rem;
-    }
-    .quantity-selector button:hover {
-        background-color: #0056b3;
-    }
-    .quantity-selector input {
-        width: 60px;
-        text-align: center;
-        margin: 0 0.5rem;
-        padding: 0.5rem;
-        border: 1px solid #ced4da;
-        border-radius: 0.5rem;
-        font-size: 1.1rem;
-    }
-    .add-to-cart-btn {
-        width: 100%;
-        max-width: 300px;
-        padding: 0.75rem 1.5rem;
-        font-size: 1.2rem;
-        font-weight: 600;
-        border-radius: 0.5rem;
-    }
-    .stock-info {
-        margin-top: 1rem;
-        font-weight: 500;
-        color: #666;
-    }
-</style>
-{% endblock %}
-
-{% block content %}
-<div class="container product-detail-container">
-    <div class="row">
-        <div class="col-lg-6 mb-4">
-            <div id="product-main-image-container" class="product-image-container">
-                {% if artwork.image %}
-                    <img src="{{ url_for('static', filename=artwork.image) }}" class="product-main-image" alt="{{ artwork.name }}" data-full-src="{{ url_for('static', filename=artwork.image) }}">
-                {% else %}
-                    <img src="https://placehold.co/600x400/cccccc/333333?text=No+Image" class="product-main-image" alt="No Image" data-full-src="https://placehold.co/600x400/cccccc/333333?text=No+Image">
-                {% endif %}
-                {# Watermarks overlaid on the image itself - ensures visibility on /product/ page #}
-                <div class="watermark">Karthikafutures</div> 
-                <div class="watermark">Karthikafutures</div> 
-                <div class="watermark">Karthikafutures</div> 
-                <div class="watermark">Karthikafutures</div> 
-                <div class="watermark">Karthikafutures</div> 
-                <div class="watermark">Karthikafutures</div> {# Added an extra watermark for better coverage #}
-            </div>
-            <a href="{{ url_for('all_products') }}" class="btn btn-outline-secondary mt-3">← Back to All Artworks</a>
-        </div>
-        <div class="col-lg-6 product-details">
-            <h1>{{ artwork.name }}</h1>
-            <p class="text-muted">{{ artwork.category }}</p>
-            <p class="price">₹<span id="display-price">{{ artwork.original_price | round(2) }}</span></p>
-
-            <p class="description">{{ artwork.description }}</p>
-
-            <div class="mb-3 option-group">
-                <label for="size-select">Size:</label>
-                <select id="size-select" class="form-select">
-                    <option value="Original" data-price="0">Original (No Change)</option>
-                    {% if artwork.size_a4 > 0 %}<option value="A4" data-price="{{ artwork.size_a4 }}">A4 (₹{{ artwork.size_a4 }})</option>{% endif %}
-                    {% if artwork.size_a5 > 0 %}<option value="A5" data-price="{{ artwork.size_a5 }}">A5 (₹{{ artwork.size_a5 }})</option>{% endif %}
-                    {% if artwork.size_letter > 0 %}<option value="Letter" data-price="{{ artwork.size_letter }}">Letter (₹{{ artwork.size_letter }})</option>{% endif %}
-                    {% if artwork.size_legal > 0 %}<option value="Legal" data-price="{{ artwork.size_legal }}">Legal (₹{{ artwork.size_legal }})</option>{% endif %}
-                </select>
-            </div>
-
-            <div class="mb-3 option-group">
-                <label for="frame-select">Frame:</label>
-                <select id="frame-select" class="form-select">
-                    <option value="None" data-price="0">None</option>
-                    {% if artwork.frame_wooden > 0 %}<option value="Wooden" data-price="{{ artwork.frame_wooden }}">Wooden (₹{{ artwork.frame_wooden }})</option>{% endif %}
-                    {% if artwork.frame_metal > 0 %}<option value="Metal" data-price="{{ artwork.frame_metal }}">Metal (₹{{ artwork.frame_metal }})</option>{% endif %}
-                    {% if artwork.frame_pvc > 0 %}<option value="PVC" data-price="{{ artwork.frame_pvc }}">PVC (₹{{ artwork.frame_pvc }})</option>{% endif %}
-                </select>
-            </div>
-
-            <div class="mb-3 option-group">
-                <label for="glass-select">Glass:</label>
-                <select id="glass-select" class="form-select">
-                    <option value="None" data-price="0">None</option>
-                    {% if artwork.glass_price > 0 %}<option value="Standard" data-price="{{ artwork.glass_price }}">Standard (₹{{ artwork.glass_price }})</option>{% endif %}
-                </select>
-            </div>
-
-            <div class="quantity-selector">
-                <button id="decrease-quantity">-</button>
-                <input type="text" id="quantity-input" value="1" readonly>
-                <button id="increase-quantity">+</button>
-            </div>
-
-            <button id="add-to-cart-btn" class="btn btn-primary add-to-cart-button">Add to Cart</button>
-            <p class="stock-info">
-                Stock: <span id="current-stock">{{ artwork.stock }}</span> available
-            </p>
-        </div>
+    <div class="flash-messages">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
     </div>
-</div>
-{% endblock %}
 
-{% block extra_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const originalPrice = {{ artwork.original_price | tojson }};
-        const displayPriceElement = document.getElementById('display-price');
+    <main class="flex-grow container">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 card">
+            <div class="lg:col-span-1">
+                <img src="{{ url_for('static', filename=artwork.image | default('images/placeholder.png')) }}" alt="{{ artwork.name }}" class="w-full h-auto object-cover rounded-lg shadow-md">
+            </div>
+            <div class="lg:col-span-1 flex flex-col justify-between">
+                <div>
+                    <h1 class="text-4xl font-bold text-gray-800 mb-4">{{ artwork.name | default('N/A') }}</h1>
+                    <p class="text-gray-600 text-lg mb-4">{{ artwork.description | default('N/A') }}</p>
+                    <p class="text-xl font-semibold text-gray-700 mb-2">Category: {{ artwork.category | default('N/A') }}</p>
+                    <p class="text-xl font-semibold text-gray-700 mb-2">SKU: {{ artwork.sku | default('N/A') }}</p>
+                    <p class="text-xl font-semibold text-gray-700 mb-4">Stock: <span id="artwork-stock">{{ artwork.stock | default(0) }}</span></p>
+
+                    <div class="mb-6 space-y-4">
+                        <div>
+                            <label for="size-select" class="block text-lg font-medium text-gray-700 mb-2">Select Size:</label>
+                            <select id="size-select" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
+                                <option value="Original" data-price="0">Original (No additional cost)</option>
+                                {% if artwork.size_a4 | default(0.0) > 0 %}<option value="A4" data-price="{{ artwork.size_a4 | default(0.0) }}">A4 (₹{{ artwork.size_a4 | default(0.0) | round(2) }})</option>{% endif %}
+                                {% if artwork.size_a5 | default(0.0) > 0 %}<option value="A5" data-price="{{ artwork.size_a5 | default(0.0) }}">A5 (₹{{ artwork.size_a5 | default(0.0) | round(2) }})</option>{% endif %}
+                                {% if artwork.size_letter | default(0.0) > 0 %}<option value="Letter" data-price="{{ artwork.size_letter | default(0.0) }}">Letter (₹{{ artwork.size_letter | default(0.0) | round(2) }})</option>{% endif %}
+                                {% if artwork.size_legal | default(0.0) > 0 %}<option value="Legal" data-price="{{ artwork.size_legal | default(0.0) }}">Legal (₹{{ artwork.size_legal | default(0.0) | round(2) }})</option>{% endif %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="frame-select" class="block text-lg font-medium text-gray-700 mb-2">Select Frame:</label>
+                            <select id="frame-select" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
+                                <option value="None" data-price="0">No Frame (No additional cost)</option>
+                                {% if artwork.frame_wooden | default(0.0) > 0 %}<option value="Wooden" data-price="{{ artwork.frame_wooden | default(0.0) }}">Wooden (₹{{ artwork.frame_wooden | default(0.0) | round(2) }})</option>{% endif %}
+                                {% if artwork.frame_metal | default(0.0) > 0 %}<option value="Metal" data-price="{{ artwork.frame_metal | default(0.0) }}">Metal (₹{{ artwork.frame_metal | default(0.0) | round(2) }})</option>{% endif %}
+                                {% if artwork.frame_pvc | default(0.0) > 0 %}<option value="PVC" data-price="{{ artwork.frame_pvc | default(0.0) }}">PVC (₹{{ artwork.frame_pvc | default(0.0) | round(2) }})</option>{% endif %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="glass-select" class="block text-lg font-medium text-gray-700 mb-2">Select Glass:</label>
+                            <select id="glass-select" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
+                                <option value="None" data-price="0">No Glass (No additional cost)</option>
+                                {% if artwork.glass_price | default(0.0) > 0 %}<option value="Standard" data-price="{{ artwork.glass_price | default(0.0) }}">Standard (₹{{ artwork.glass_price | default(0.0) | round(2) }})</option>{% endif %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between mb-6">
+                        <span class="text-3xl font-bold text-gray-900">Total Price: ₹<span id="display-price">{{ artwork.original_price | default(0.0) | round(2) }}</span></span>
+                        <input type="number" id="quantity" value="1" min="1" max="{{ artwork.stock | default(0) }}" class="w-24 p-2 border border-gray-300 rounded-md text-center" onchange="updatePrice()">
+                    </div>
+                </div>
+                
+                <div class="mt-auto">
+                    <button id="add-to-cart-btn" class="w-full btn-primary py-3 px-6 text-xl rounded-lg shadow-lg hover:shadow-xl transition duration-300">
+                        <i class="fas fa-cart-plus mr-2"></i> Add to Cart
+                    </button>
+                    {% if artwork.stock | default(0) == 0 %}
+                        <p class="text-red-600 text-center font-bold mt-2">Out of Stock</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Artwork data from Flask, converted to JSON in template
+        const artworkData = {{ artwork | tojson }}; 
+        const originalPrice = artworkData.original_price || 0; // Default to 0
+        const gstPercentage = artworkData.gst_percentage || 0; // Get GST from artwork, default to 0 if not set
+
         const sizeSelect = document.getElementById('size-select');
         const frameSelect = document.getElementById('frame-select');
         const glassSelect = document.getElementById('glass-select');
-        const quantityInput = document.getElementById('quantity-input');
-        const decreaseQuantityBtn = document.getElementById('decrease-quantity');
-        const increaseQuantityBtn = document.getElementById('increase-quantity');
+        const quantityInput = document.getElementById('quantity');
+        const displayPriceSpan = document.getElementById('display-price');
         const addToCartBtn = document.getElementById('add-to-cart-btn');
-        const currentStockElement = document.getElementById('current-stock');
+        const cartItemCountSpan = document.getElementById('cart-item-count');
+        const artworkStock = artworkData.stock || 0; // Default to 0
 
-        function calculatePrice() {
-            let currentPrice = originalPrice;
-            currentPrice += parseFloat(sizeSelect.selectedOptions[0].dataset.price || 0);
-            currentPrice += parseFloat(frameSelect.selectedOptions[0].dataset.price || 0);
-            currentPrice += parseFloat(glassSelect.selectedOptions[0].dataset.price || 0);
-            displayPriceElement.textContent = currentPrice.toFixed(2);
+        // Initialize cart from session storage on page load
+        let cart = JSON.parse(sessionStorage.getItem('cart')) || {};
+        updateCartCountDisplay();
+
+        // Disable add to cart if out of stock
+        if (artworkStock === 0) {
+            addToCartBtn.disabled = true;
+            addToCartBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        } else {
+            // Set max quantity to available stock
+            quantityInput.max = artworkStock;
         }
 
-        sizeSelect.addEventListener('change', calculatePrice);
-        frameSelect.addEventListener('change', calculatePrice);
-        glassSelect.addEventListener('change', calculatePrice);
+        // Function to update the displayed price based on selections
+        function updatePrice() {
+            let currentBasePrice = originalPrice;
+            
+            // Add size price
+            const selectedSizeOption = sizeSelect.options[sizeSelect.selectedIndex];
+            currentBasePrice += parseFloat(selectedSizeOption.dataset.price || 0);
 
-        decreaseQuantityBtn.addEventListener('click', function() {
+            // Add frame price
+            const selectedFrameOption = frameSelect.options[frameSelect.selectedIndex];
+            currentBasePrice += parseFloat(selectedFrameOption.dataset.price || 0);
+
+            // Add glass price
+            const selectedGlassOption = glassSelect.options[glassSelect.selectedIndex];
+            currentBasePrice += parseFloat(selectedGlassOption.dataset.price || 0);
+
+            // Apply quantity
             let quantity = parseInt(quantityInput.value);
-            if (quantity > 1) {
-                quantity--;
-                quantityInput.value = quantity;
+            if (isNaN(quantity) || quantity < 1) {
+                quantityInput.value = 1;
+                quantity = 1;
             }
-        });
-
-        increaseQuantityBtn.addEventListener('click', function() {
-            let quantity = parseInt(quantityInput.value);
-            let maxStock = parseInt({{ artwork.stock | tojson }}); // Use artwork.stock directly
-            if (quantity < maxStock) {
-                quantity++;
-                quantityInput.value = quantity;
-            } else {
-                showCustomAlert('Cannot add more than available stock.', 'warning');
+            if (quantity > artworkStock) {
+                quantityInput.value = artworkStock;
+                quantity = artworkStock;
+                alert(`You can only add a maximum of ${artworkStock} items to your cart.`);
             }
-        });
 
-        addToCartBtn.addEventListener('click', function() {
-            let quantity = parseInt(quantityInput.value);
-            let maxStock = parseInt({{ artwork.stock | tojson }});
+            let priceBeforeGst = currentBasePrice * quantity;
+            let gstAmount = priceBeforeGst * (gstPercentage / 100);
+            let finalPrice = priceBeforeGst + gstAmount;
 
-            if (quantity <= 0) {
-                showCustomAlert('Please enter a valid quantity.', 'danger');
+            displayPriceSpan.textContent = finalPrice.toFixed(2);
+        }
+
+        // Attach event listeners
+        sizeSelect.addEventListener('change', updatePrice);
+        frameSelect.addEventListener('change', updatePrice);
+        glassSelect.addEventListener('change', updatePrice);
+        quantityInput.addEventListener('input', updatePrice);
+
+        // Initial price update on page load
+        updatePrice();
+
+        // Function to send cart data to Flask session
+        async function sendCartToServer(updatedCart) {
+            try {
+                const response = await fetch('/update_cart_session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ cart: updatedCart })
+                });
+                const data = await response.json();
+                if (!data.success) {
+                    console.error("Failed to update server session cart:", data.message);
+                    alert("Failed to update cart on server. Please try again.");
+                }
+            } catch (error) {
+                console.error("Error sending cart to server:", error);
+                alert("Network error updating cart. Please check your connection.");
+            }
+        }
+
+        // Add to Cart functionality
+        addToCartBtn.addEventListener('click', async () => {
+            const quantity = parseInt(quantityInput.value);
+            if (isNaN(quantity) || quantity < 1 || quantity > artworkStock) {
+                alert(`Please enter a valid quantity between 1 and ${artworkStock}.`);
                 return;
             }
-            if (quantity > maxStock) {
-                showCustomAlert('Not enough stock available.', 'danger');
-                return;
-            }
 
-            const artworkSku = "{{ artwork.sku }}";
-            const artworkName = "{{ artwork.name }}";
-            const artworkImage = "{{ artwork.image }}";
-            const unitPrice = parseFloat(displayPriceElement.textContent);
-            const selectedSize = sizeSelect.value === "Original" ? "Original" : sizeSelect.value;
-            const selectedFrame = frameSelect.value === "None" ? "None" : frameSelect.value;
-            const selectedGlass = glassSelect.value === "None" ? "None" : glassSelect.value;
+            const selectedSize = sizeSelect.value;
+            const selectedFrame = frameSelect.value;
+            const selectedGlass = glassSelect.value;
+            
+            // Recalculate price and GST precisely for the item being added
+            let unitPriceBeforeGst = artworkData.original_price || 0; // Default to 0
+            unitPriceBeforeGst += parseFloat(sizeSelect.options[sizeSelect.selectedIndex].dataset.price || 0);
+            unitPriceBeforeGst += parseFloat(frameSelect.options[frameSelect.selectedIndex].dataset.price || 0);
+            unitPriceBeforeGst += parseFloat(glassSelect.options[glassSelect.selectedIndex].dataset.price || 0);
 
-            // Retrieve current cart from sessionStorage
-            let cart = JSON.parse(sessionStorage.getItem('cart')) || {};
+            const gstPercent = artworkData.gst_percentage || 0; // Default to 0
+            const itemPriceBeforeGstTotal = unitPriceBeforeGst * quantity;
+            const itemGstAmount = itemPriceBeforeGstTotal * (gstPercent / 100);
+            const finalItemTotalPrice = itemPriceBeforeGstTotal + itemGstAmount;
 
-            // Create a unique identifier for the item based on SKU and selected options
-            const itemId = `${artworkSku}-${selectedSize.replace(/\s/g, '_')}-${selectedFrame.replace(/\s/g, '_')}-${selectedGlass.replace(/\s/g, '_')}`;
 
+            const itemId = `${artworkData.sku}-${selectedSize}-${selectedFrame}-${selectedGlass}`;
+
+            // Check if item already exists in cart, update quantity
             if (cart[itemId]) {
-                // If item with same options exists, update quantity
-                if (cart[itemId].quantity + quantity > maxStock) {
-                    showCustomAlert(`Adding ${quantity} would exceed available stock. Only ${maxStock - cart[itemId].quantity} more can be added.`, 'warning');
+                const newQuantity = cart[itemId].quantity + quantity;
+                if (newQuantity > artworkStock) {
+                    alert(`Adding ${quantity} would exceed available stock. Current in cart: ${cart[itemId].quantity}. Available: ${artworkStock}.`);
                     return;
                 }
-                cart[itemId].quantity += quantity;
-                cart[itemId].total_price = cart[itemId].quantity * cart[itemId].unit_price;
+                cart[itemId].quantity = newQuantity;
+                cart[itemId].total_price_before_gst = unitPriceBeforeGst * newQuantity;
+                cart[itemId].gst_amount = (unitPriceBeforeGst * newQuantity) * (gstPercent / 100);
+                cart[itemId].total_price = cart[itemId].total_price_before_gst + cart[itemId].gst_amount;
+
+                console.log(`Updated quantity for existing item ${itemId}. New Qty: ${cart[itemId].quantity}`);
             } else {
                 // Add new item to cart
                 cart[itemId] = {
                     id: itemId,
-                    sku: artworkSku,
-                    name: artworkName,
-                    image: artworkImage,
-                    unit_price: unitPrice, // This is the calculated unit price with options
+                    sku: artworkData.sku,
+                    name: artworkData.name,
+                    image: artworkData.image,
+                    unit_price: unitPriceBeforeGst, // Store the unit price including customization, BEFORE GST for this item
+                    unit_price_before_gst: unitPriceBeforeGst, // Explicitly store it here for clarity
                     quantity: quantity,
-                    total_price: quantity * unitPrice,
                     size: selectedSize,
                     frame: selectedFrame,
-                    glass: selectedGlass
+                    glass: selectedGlass,
+                    gst_percentage: gstPercent, // Store the artwork's GST percentage in the cart item
+                    gst_amount: itemGstAmount, // Store the calculated GST amount for this quantity
+                    total_price_before_gst: itemPriceBeforeGstTotal, // Total price of this item for its quantity, BEFORE GST
+                    total_price: finalItemTotalPrice // Final total price of this item for its quantity, WITH GST
                 };
+                console.log(`Added new item ${itemId} to cart.`);
             }
 
             sessionStorage.setItem('cart', JSON.stringify(cart));
-            updateCartCountDisplay(); // Update navbar cart count
-            syncCartToServer(); // Sync cart to Flask session
-            showCustomAlert('Item added to cart!', 'success');
-            console.log("Cart contents:", cart);
+            updateCartCountDisplay();
+            await sendCartToServer(cart); // Send updated cart to Flask session
+            alert('Item added to cart!');
         });
 
-        // --- Trigger global image modal when the main product image container is clicked ---
-        const productMainImageContainer = document.getElementById('product-main-image-container');
-        if (productMainImageContainer) {
-            productMainImageContainer.addEventListener('click', function() {
-                const modalImage = document.getElementById('modalImage');
-                const imageModal = document.getElementById('imageModal');
-                const fullSrc = this.querySelector('.product-main-image').dataset.fullSrc;
-                
-                if (modalImage && imageModal && fullSrc) {
-                    modalImage.src = fullSrc;
-                    imageModal.style.display = 'flex'; // Show the modal
-                }
-            });
+        function updateCartCountDisplay() {
+            let totalItems = 0;
+            for (const itemId in cart) {
+                totalItems += cart[itemId].quantity;
+            }
+            cartItemCountSpan.textContent = totalItems;
         }
 
-        calculatePrice(); // Initial price calculation on page load
-    });
-</script>
-{% endblock %}
+    </script>
+</body>
+</html>

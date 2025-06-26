@@ -1,26 +1,35 @@
 Dear {{ order.customer_name }},
 
-Thank you for your recent purchase from Karthika Futures!
+Thank you for your recent purchase from {{ OUR_BUSINESS_NAME }}!
 
-Your order #{{ order.order_id }} has been shipped.
-Please find your invoice attached to this email.
+Your Order ID: {{ order.order_id }}
+Placed On: {{ order.placed_on }}
 
-Order Details:
-Order ID: {{ order.order_id }}
-Order Date: {{ order.placed_on }}
-Total Amount (incl. GST & Shipping): ₹{{ order.invoice_details.final_invoice_amount | round(2) }}
+Your invoice for this order is attached to this email. You can also download it from your "My Orders" section on our website.
 
-Items:
-{% for item in order.items %}
-- {{ item.name }} (SKU: {{ item.sku }}) x {{ item.quantity }}
-  Unit Price: ₹{{ item.unit_price | round(2) }}
-  Total for item: ₹{{ item.total_price | round(2) }}
+Order Summary:
+{% for item in order.items %} Item: {{ item.name }} SKU: {{ item.sku }} Quantity: {{ item.quantity }} Size: {{ item.size | default('Original') }} Frame: {{ item.frame | default('None') }} Glass: {{ item.glass | default('None') }} Unit Price (Pre-GST): ₹{{ item.unit_price_before_gst | round(2) }} GST ({{ item.gst_percentage | round(2) }}%): ₹{{ item.gst_amount | round(2) }} Item Total (with GST): ₹{{ item.total_price | round(2) }}
 {% endfor %}
 
-You can also view your order details and download the invoice by logging into your account and visiting the 'My Orders' section.
+Invoice Details:
+Subtotal (Pre-GST): ₹{{ order.subtotal_before_gst | default(0.0) | round(2) }} Total GST: ₹{{ order.invoice_details.total_gst_amount | default(0.0) | round(2) }} (CGST: ₹{{ order.invoice_details.cgst_amount | default(0.0) | round(2) }}, SGST: ₹{{ order.invoice_details.sgst_amount | default(0.0) | round(2) }}) Shipping Charges: ₹{{ order.invoice_details.shipping_charge | default(0.0) | round(2) }} {% if order.invoice_details.shipping_charge | default(0.0) == 0 %} (FREE Shipping!) {% endif %}
+FINAL INVOICE AMOUNT: ₹{{ order.invoice_details.final_invoice_amount | default(order.total_amount, 0.0) | round(2) }}
+Delivery Address:
+{{ order.customer_name }}
+{{ order.customer_address }}
+Pincode: {{ order.customer_pincode }}
+Phone: {{ order.customer_phone | mask_phone_number }}
 
-If you have any questions, please do not hesitate to contact us.
+Your order status is currently: {{ order.status }}
+{% if order.courier and order.tracking_number %}
+Courier: {{ order.courier }}
+Tracking Number: {{ order.tracking_number }}
+{% endif %}
 
-Hare Rama.. Hare Krishna
-Karthika Futures Team
+For any queries regarding your order, please contact us.
+
+Thank you again for shopping with us!
+
+Sincerely,
+The Team at {{ OUR_BUSINESS_NAME }}
 {{ OUR_BUSINESS_ADDRESS }}

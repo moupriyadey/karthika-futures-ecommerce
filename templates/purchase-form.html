@@ -1,279 +1,275 @@
-{% extends '_base.html' %}
-
-{% block title %}Checkout - Karthika Futures{% endblock %}
-
-{% block extra_css %}
-<style>
-    body {
-        background-color: #f5f7fa; /* Slightly off-white background for the page */
-    }
-    .form-popup-container {
-        background-color: #ffffff; /* White background for the form itself */
-        padding: 3rem; /* Generous padding inside the container */
-        border-radius: 1rem; /* More rounded corners for a softer look */
-        box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.1); /* Stronger, more professional shadow */
-        width: 100%;
-        max-width: 800px; /* Wider max-width for a more spacious feel */
-        margin: 3rem auto; /* Center horizontally with auto, add more vertical margin */
-        border: 1px solid #e0e0e0; /* Subtle border for definition */
-    }
-    h2 {
-        color: #333;
-        font-weight: 700;
-        margin-bottom: 2rem;
-    }
-    .card {
-        margin-bottom: 2rem; /* More space between cards */
-        border: 1px solid #e9ecef; /* Light border for inner cards */
-        border-radius: 0.75rem; /* Rounded corners for inner cards */
-        box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.05); /* Subtle shadow for inner cards */
-    }
-    .card-header {
-        background-color: #f8f9fa; /* Lighter header for cards */
-        border-bottom: 1px solid #e9ecef;
-        padding: 1rem 1.5rem;
-        font-weight: 600;
-        color: #495057;
-        border-top-left-radius: 0.75rem; /* Match card-border-radius */
-        border-top-right-radius: 0.75rem; /* Match card-border-radius */
-    }
-    .card-body {
-        padding: 1.5rem;
-    }
-    .list-group-item {
-        border-color: #f0f0f0; /* Lighter borders for list items */
-        padding: 1rem 0; /* Adjusted padding */
-    }
-    .list-group-item:first-child {
-        border-top: none; /* No top border for the first item */
-    }
-    .list-group-item:last-child {
-        border-bottom: none; /* No bottom border for the last item */
-    }
-    .list-group-item h6 {
-        font-weight: 500;
-        color: #333;
-    }
-    .text-muted {
-        color: #6c757d !important;
-    }
-    .grand-total-section {
-        border-top: 1px dashed #ced4da; /* Dashed line for total separation */
-        padding-top: 1.5rem;
-        margin-top: 1.5rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .grand-total-section span {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: #333;
-    }
-    #grand-total-display {
-        font-size: 2rem; /* Larger total font size */
-        color: #28a745; /* Prominent green for total */
-        font-weight: 700;
-    }
-    .form-label {
-        font-weight: 600; /* Bolder labels */
-        color: #495057;
-        margin-bottom: 0.5rem;
-    }
-    .form-control {
-        border-radius: 0.5rem; /* Rounded inputs */
-        border: 1px solid #ced4da;
-        padding: 0.75rem 1rem;
-        transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-    }
-    .form-control:focus {
-        border-color: #80bdff;
-        box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25); /* Bootstrap-like focus glow */
-    }
-    .form-text {
-        font-size: 0.875em;
-        color: #888;
-    }
-    .btn-success {
-        background-color: #28a745;
-        border-color: #28a745;
-        font-weight: 600;
-        padding: 0.75rem 1.5rem;
-        border-radius: 0.5rem;
-        transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, transform 0.1s ease;
-    }
-    .btn-success:hover {
-        background-color: #218838;
-        border-color: #1e7e34;
-        transform: translateY(-2px); /* Subtle lift on hover */
-    }
-    .d-grid {
-        margin-top: 2.5rem; /* More space above the button */
-    }
-
-    /* Make the overall form container scrollable on smaller screens if needed */
-    @media (max-width: 767.98px) {
-        .form-popup-container {
-            margin: 1rem; /* Smaller margin on small screens */
-            padding: 1.5rem; /* Less padding on small screens */
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase Form - Karthika Futures</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #333;
+            line-height: 1.6;
         }
-    }
-</style>
-{% endblock %}
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .header {
+            background-color: #ffffff;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            border-radius: 0.75rem;
+            margin-bottom: 2rem;
+        }
+        .logo {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #4a5568;
+        }
+        .nav-link {
+            padding: 0.5rem 1rem;
+            color: #4a5568;
+            font-weight: 500;
+            transition: color 0.2s ease-in-out;
+        }
+        .nav-link:hover {
+            color: #2d3748;
+        }
+        .btn-primary {
+            background-color: #4f46e5;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .btn-primary:hover {
+            background-color: #4338ca;
+        }
+        .card {
+            background-color: #ffffff;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+        }
+        .flash-messages {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+        }
+        .flash-message {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            animation: fadeInOut 5s forwards;
+        }
+        .flash-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .flash-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .flash-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-20px); }
+            10% { opacity: 1; transform: translateY(0); }
+            90% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+        .order-summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start; /* Align items to start for multi-line description */
+            padding-bottom: 0.5rem;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px dashed #e2e8f0;
+        }
+        .order-summary-item:last-child {
+            border-bottom: none;
+        }
+        .item-details {
+            flex: 1;
+            margin-right: 1rem;
+        }
+        .item-name {
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .item-options {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        .item-price-total {
+            font-weight: 600;
+            color: #4b5563;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <header class="header">
+        <div class="logo">Karthika Futures</div>
+        <nav>
+            <a href="{{ url_for('index') }}" class="nav-link">Home</a>
+            <a href="{{ url_for('all_products') }}" class="nav-link">All Products</a>
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('user_dashboard') }}" class="nav-link">Dashboard</a>
+                <a href="{{ url_for('my_orders') }}" class="nav-link">My Orders</a>
+                <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
+            {% else %}
+                <a href="{{ url_for('user_login') }}" class="nav-link">Login</a>
+                <a href="{{ url_for('signup') }}" class="nav-link">Signup</a>
+            {% endif %}
+            <a href="{{ url_for('cart') }}" class="btn-primary flex items-center justify-center space-x-2">
+                <i class="fas fa-shopping-cart"></i> <span>Cart (<span id="cart-item-count">0</span>)</span>
+            </a>
+        </nav>
+    </header>
 
-{% block content %}
-<div class="form-popup-container">
-    <h2 class="text-center">📋 Order Summary</h2>
-    
-    <form method="POST" action="{{ url_for('purchase_form') }}">
-        <div class="card">
-            <div class="card-header">Your Items</div>
-            <div class="card-body">
-                <ul class="list-group list-group-flush mb-3" id="cart-summary-list">
+    <div class="flash-messages">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <main class="flex-grow container">
+        <h1 class="text-3xl font-bold text-gray-800 mb-8 text-center">Confirm Details</h1>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Delivery Details Form -->
+            <div class="lg:col-span-1 card">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Delivery Details</h2>
+                <form action="{{ url_for('purchase_form') }}" method="post" class="space-y-6">
+                    <input type="hidden" name="cart_json" value="{{ cart_json }}">
+                    <input type="hidden" name="shipping_charge" id="shipping-charge-hidden" value="{{ shipping_charge | default(0.0) }}">
+                    
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700">Full Name</label>
+                        <input type="text" id="name" name="name" value="{{ prefill_name | default('') }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
+                    </div>
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="{{ prefill_email_type | default('text') }}" id="email" name="email" value="{{ prefill_email | default('') }}" required {% if prefill_email_type == 'hidden' %}readonly{% endif %} class="mt-1 block w-full rounded-md border-gray-300 shadow-sm bg-gray-100 cursor-not-allowed p-2">
+                    </div>
+                    <div>
+                        <label for="phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
+                        <input type="tel" id="phone" name="phone" value="{{ prefill_phone | default('') }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
+                    </div>
+                    <div>
+                        <label for="address" class="block text-sm font-medium text-gray-700">Delivery Address</label>
+                        <textarea id="address" name="address" rows="3" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">{{ prefill_address | default('') }}</textarea>
+                    </div>
+                    <div>
+                        <label for="pincode" class="block text-sm font-medium text-gray-700">Pincode</label>
+                        <input type="text" id="pincode" name="pincode" value="{{ prefill_pincode | default('') }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
+                    </div>
+                    <button type="submit" class="w-full btn-primary py-3 px-6 text-xl rounded-lg shadow-lg hover:shadow-xl transition duration-300">
+                        Confirm Details & Place Order
+                    </button>
+                </form>
+            </div>
+
+            <!-- Order Summary -->
+            <div class="lg:col-span-1 card">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Your Order</h2>
+                <div class="space-y-4">
                     {% if items_for_display %}
                         {% for item in items_for_display %}
-                        <li class="list-group-item d-flex justify-content-between lh-sm">
-                            <div>
-                                <h6 class="my-0">{{ item.name }} (x{{ item.quantity }})</h6>
-                                <small class="text-muted">
-                                    Size: {{ item.size | default('N/A') }}, 
-                                    Frame: {{ item.frame | default('N/A') }}, 
-                                    Glass: {{ item.glass | default('N/A') }}
-                                </small>
+                            <div class="order-summary-item">
+                                <div class="item-details">
+                                    <div class="item-name">{{ item.name | default('N/A') }} (x{{ item.quantity | default(1) }})</div>
+                                    <div class="item-options">
+                                        Size: {{ item.size | default('Original') }} | Frame: {{ item.frame | default('None') }} | Glass: {{ item.glass | default('None') }}
+                                    </div>
+                                    <div class="item-options text-sm text-gray-500">
+                                        Unit Price (Pre-GST): ₹{{ item.unit_price_before_gst | default(0.0) | round(2) }} | GST: {{ item.gst_percentage | default(0.0) | round(2) }}%
+                                    </div>
+                                </div>
+                                <div class="item-price-total">₹{{ item.total_price | default(0.0) | round(2) }}</div> {# This is the item's total price WITH GST #}
                             </div>
-                            <span class="text-muted">₹{{ (item.price | default(0.00)) | round(2) }}</span>
-                        </li>
                         {% endfor %}
                     {% else %}
-                        <li class="list-group-item text-muted text-center" id="empty-cart-message">No items in cart. Please add items.</li>
+                        <p class="text-center text-gray-600">No items in order summary. Please go back to cart.</p>
                     {% endif %}
-                </ul>
-                <div class="grand-total-section">
-                    <span>Grand Total</span>
-                    <strong id="grand-total-display">₹{{ grand_total | default(0.00) | round(2) }}</strong>
                 </div>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">Shipping Details</div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <label for="fullName" class="form-label">Full Name</label>
-                    <input type="text" class="form-control" id="fullName" name="name" value="{{ prefill_name if prefill_name else '' }}" required>
-                </div>
-                <div class="mb-3">
-                    <label for="email" class="form-label">Email</label>
-                    <input type="email" class="form-control" id="email" name="email" value="{{ prefill_email if prefill_email else '' }}" readonly required>
-                    <div class="form-text">Your email is pre-filled from your login.</div>
-                </div>
-                <div class="mb-3">
-                    <label for="phone" class="form-label">Phone</label>
-                    <input type="tel" class="form-control" id="phone" name="phone" value="{{ prefill_phone if prefill_phone else '' }}" required pattern="[0-9]{10}" title="Please enter a 10-digit phone number">
-                </div>
-                <div class="mb-3">
-                    <label for="address" class="form-label">Shipping Address</label>
-                    <textarea class="form-control" id="address" name="address" rows="3" required>{{ prefill_address if prefill_address else '' }}</textarea>
-                </div>
-                <div class="mb-3">
-                    <label for="pincode" class="form-label">Pincode</label>
-                    <input type="text" class="form-control" id="pincode" name="pincode" value="{{ prefill_pincode if prefill_pincode else '' }}" required pattern="[0-9]{6}" title="Please enter a 6-digit pincode">
-                </div>
-
-                {# This hidden input is crucial for passing cart data back to the server in the second POST #}
-                <input type="hidden" name="cart_json" id="hiddenCartJson" value="{{ cart_json }}">
                 
-                <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-success btn-lg">Confirm & Place Order</button>
+                <div class="border-t pt-4 mt-6 space-y-3 text-lg">
+                    <div class="flex justify-between">
+                        <span>Subtotal (Pre-GST):</span>
+                        <span>₹<span id="display-subtotal">{{ subtotal_before_gst | default(0.0) | round(2) }}</span></span>
+                    </div>
+                    <div class="flex justify-between text-sm text-gray-600 ml-4">
+                        <span>Total GST:</span>
+                        <span>₹<span id="display-total-gst">{{ total_gst_amount | default(0.0) | round(2) }}</span></span>
+                    </div>
+                    <div class="flex justify-between text-sm text-gray-600 ml-8">
+                        <span>CGST:</span>
+                        <span>₹<span id="display-cgst">{{ (total_gst_amount | default(0.0) / 2) | round(2) }}</span></span>
+                    </div>
+                    <div class="flex justify-between text-sm text-gray-600 ml-8">
+                        <span>SGST:</span>
+                        <span>₹<span id="display-sgst">{{ (total_gst_amount | default(0.0) / 2) | round(2) }}</span></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Shipping Charges:</span>
+                        <span>
+                            ₹<span id="display-shipping">{{ shipping_charge | default(0.0) | round(2) }}</span>
+                            {% if shipping_charge | default(0.0) == 0 %}<span class="text-green-600 font-bold ml-2">FREE Shipping!</span>{% endif %}
+                        </span>
+                    </div>
+                    <div class="border-t pt-4 mt-4 flex justify-between font-bold text-xl text-gray-900">
+                        <span>Grand Total:</span>
+                        <span>₹<span id="display-grand-total">{{ grand_total | default(0.0) | round(2) }}</span></span>
+                    </div>
                 </div>
             </div>
         </div>
-    </form>
-</div>
-{% endblock %}
+    </main>
 
-{% block extra_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const hiddenCartJsonInput = document.getElementById('hiddenCartJson');
-        const cartSummaryList = document.getElementById('cart-summary-list');
-        const grandTotalDisplay = document.getElementById('grand-total-display'); 
-        const emptyCartMessage = document.getElementById('empty-cart-message');
-
-        // cart variable should be populated from the hidden input if available,
-        // otherwise try sessionStorage. This ensures consistency when the page
-        // is re-rendered by Flask (after the first POST).
-        let cart = [];
-        if (hiddenCartJsonInput && hiddenCartJsonInput.value) {
-            try {
-                cart = JSON.parse(hiddenCartJsonInput.value);
-            } catch (e) {
-                console.error("Error parsing cart_json from hidden input:", e);
-                cart = [];
-            }
-        } else {
-            try {
-                // If this page is reached via direct GET (unlikely if /cart redirects empty),
-                // it would pull from sessionStorage.
-                let sessionCartObject = JSON.parse(sessionStorage.getItem('cart') || '{}');
-                cart = Object.values(sessionCartObject); // Convert object to array
-            } catch (e) {
-                console.error("Error parsing cart from session storage:", e);
-                cart = [];
-            }
+    <script>
+        // Update cart item count in header
+        const cartItemCountSpan = document.getElementById('cart-item-count');
+        let cart = JSON.parse(sessionStorage.getItem('cart')) || {};
+        let totalItemsInCart = 0;
+        for (const itemId in cart) {
+            totalItemsInCart += cart[itemId].quantity;
         }
-        
-        // Ensure hiddenCartJsonInput value is always synchronized with the current cart array
-        if (hiddenCartJsonInput) {
-            hiddenCartJsonInput.value = JSON.stringify(cart);
-            console.log("Purchase form loaded. hiddenCartJsonInput set to:", hiddenCartJsonInput.value);
-        } else {
-            console.error("Error: hiddenCartJsonInput element not found!");
-        }
+        cartItemCountSpan.textContent = totalItemsInCart;
 
-        // Populate cart summary (individual list items)
-        if (cart.length > 0) {
-            emptyCartMessage.style.display = 'none'; // Hide the "No items" message
-            // Note: The list items are primarily rendered by Jinja in the HTML.
-            // This JS block would be primarily for dynamic updates if the form allowed editing,
-            // or to ensure the message is hidden if Jinja rendering resulted in items.
-            // If you uncommented cartSummaryList.innerHTML = ''; and the loop below,
-            // it would overwrite the Jinja-rendered list, which is fine, but
-            // ensure consistency. For now, assuming Jinja populates it and JS just ensures visibility.
-            
-            // Example of how you *could* dynamically re-render if needed, but for purchase form,
-            // Jinja rendering from Flask context is usually sufficient on initial load.
-            /*
-            cartSummaryList.innerHTML = ''; // Clear existing items if any
-            let calculatedJsGrandTotal = 0; // If you need a client-side calculated total here
-            cart.forEach(item => {
-                const itemTotalPrice = parseFloat(item.unit_price || 0) * parseInt(item.quantity || 1);
-                calculatedJsGrandTotal += itemTotalPrice;
-
-                const listItem = document.createElement('li');
-                listItem.className = 'list-group-item d-flex justify-content-between lh-sm';
-                listItem.innerHTML = `
-                    <div>
-                        <h6 class="my-0">${item.name} (x${item.quantity})</h6>
-                        <small class="text-muted">
-                            Size: ${item.size || 'N/A'}, 
-                            Frame: ${item.frame || 'N/A'}, 
-                            Glass: ${item.glass || 'N/A'}
-                        </small>
-                    </div>
-                    <span class="text-muted">₹${itemTotalPrice.toFixed(2)}</span>
-                `;
-                cartSummaryList.appendChild(listItem);
+        // Function to handle flash messages disappearance
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.flash-message').forEach(message => {
+                setTimeout(() => {
+                    message.style.opacity = '0';
+                    message.style.transform = 'translateY(-20px)';
+                    message.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
+                    message.addEventListener('transitionend', () => message.remove());
+                }, 4500); // Start fading out after 4.5 seconds
             });
-            // If you want JS to update the grand total display, uncomment this:
-            // grandTotalDisplay.textContent = `₹${calculatedJsGrandTotal.toFixed(2)}`;
-            */
-        } else {
-            emptyCartMessage.textContent = 'No items in cart. Please add items from the homepage or your cart.';
-            emptyCartMessage.style.display = 'block';
-            // Also ensure the grand total displays 0 if cart is empty
-            grandTotalDisplay.textContent = '₹0.00';
-        }
-    });
-</script>
-{% endblock %}
+        });
+    </script>
+</body>
+</html>

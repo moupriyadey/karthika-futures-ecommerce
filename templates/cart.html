@@ -1,343 +1,446 @@
-{% extends '_base.html' %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Cart - Karthika Futures</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .header {
+            background-color: #ffffff;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            border-radius: 0.75rem;
+            margin-bottom: 2rem;
+        }
+        .logo {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #4a5568;
+        }
+        .nav-link {
+            padding: 0.5rem 1rem;
+            color: #4a5568;
+            font-weight: 500;
+            transition: color 0.2s ease-in-out;
+        }
+        .nav-link:hover {
+            color: #2d3748;
+        }
+        .btn-primary {
+            background-color: #4f46e5;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .btn-primary:hover {
+            background-color: #4338ca;
+        }
+        .card {
+            background-color: #ffffff;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+        }
+        .flash-messages {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+        }
+        .flash-message {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            animation: fadeInOut 5s forwards;
+        }
+        .flash-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .flash-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .flash-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-20px); }
+            10% { opacity: 1; transform: translateY(0); }
+            90% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+        /* Item specific styles */
+        .cart-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .cart-item:last-child {
+            border-bottom: none;
+        }
+        .cart-item-image {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 0.5rem;
+            margin-right: 1rem;
+        }
+        .cart-item-details {
+            flex-grow: 1;
+        }
+        .cart-item-name {
+            font-weight: 600;
+            font-size: 1.125rem;
+            color: #1f2937;
+        }
+        .cart-item-options {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        .cart-item-price {
+            font-weight: 600;
+            font-size: 1rem;
+            color: #4b5563;
+            margin-left: 1rem;
+            width: 100px;
+            text-align: right;
+        }
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            margin-left: 1rem;
+        }
+        .quantity-control button {
+            background-color: #e5e7eb;
+            color: #374151;
+            padding: 0.25rem 0.6rem;
+            border-radius: 0.25rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease;
+        }
+        .quantity-control button:hover:not(:disabled) {
+            background-color: #d1d5db;
+        }
+        .quantity-control button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .quantity-control input {
+            width: 50px;
+            text-align: center;
+            border: 1px solid #d1d5db;
+            border-radius: 0.25rem;
+            margin: 0 0.5rem;
+        }
+        .remove-button {
+            background-color: #ef4444;
+            color: white;
+            padding: 0.25rem 0.6rem;
+            border-radius: 0.25rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease;
+            margin-left: 1rem;
+        }
+        .remove-button:hover {
+            background-color: #dc2626;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <header class="header">
+        <div class="logo">Karthika Futures</div>
+        <nav>
+            <a href="{{ url_for('index') }}" class="nav-link">Home</a>
+            <a href="{{ url_for('all_products') }}" class="nav-link">All Products</a>
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('user_dashboard') }}" class="nav-link">Dashboard</a>
+                <a href="{{ url_for('my_orders') }}" class="nav-link">My Orders</a>
+                <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
+            {% else %}
+                <a href="{{ url_for('user_login') }}" class="nav-link">Login</a>
+                <a href="{{ url_for('signup') }}" class="nav-link">Signup</a>
+            {% endif %}
+            <a href="{{ url_for('cart') }}" class="btn-primary flex items-center justify-center space-x-2">
+                <i class="fas fa-shopping-cart"></i> <span>Cart (<span id="cart-item-count">0</span>)</span>
+            </a>
+        </nav>
+    </header>
 
-{% block title %}Your Shopping Cart - Karthika Futures{% endblock %}
+    <div class="flash-messages">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
 
-{% block extra_css %}
-<style>
-    /* Add any specific styles for your cart page here */
-    .cart-container {
-        padding: 2rem;
-        background-color: #ffffff;
-        border-radius: 0.75rem;
-        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
-        margin-top: 2rem; /* Give some space below the navbar */
-        margin-bottom: 2rem;
-    }
-    .list-group-item {
-        border-bottom: 1px solid #eee;
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-    }
-    .list-group-item:last-child {
-        border-bottom: none;
-    }
-    .item-details small {
-        display: block;
-        color: #6c757d;
-        margin-top: 0.25rem;
-    }
-    .item-quantity-control {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-    /* Removed specific input width as it's no longer an input */
-    .remove-item-btn {
-        margin-left: 10px;
-        font-size: 0.8em;
-    }
-    #grand-total-display {
-        font-size: 1.5rem;
-        font-weight: bold; /* Ensure total stands out */
-        color: #28a745; /* Green color for total */
-    }
-    .empty-cart-message {
-        text-align: center;
-        padding: 3rem 0;
-        color: #6c757d;
-    }
-</style>
-{% endblock %}
+    <main class="flex-grow container">
+        <h1 class="text-3xl font-bold text-gray-800 mb-8 text-center">Your Shopping Cart</h1>
 
-{% block content %}
-<div class="container cart-container">
-    <h2 class="mb-4 text-center">🛒 Your Shopping Cart</h2>
-
-    {# Flash messages are handled in _base.html #}
-
-    <div class="row">
-        <div class="col-12">
-            <div class="card p-4 shadow-sm mb-4">
-                <h4 class="mb-3">Items in your Cart</h4>
-                <ul class="list-group mb-3" id="cart-items-list">
-                    {# Jinja2 loop to render items from Flask context #}
-                    {% if cart_items %}
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="md:col-span-2 card">
+                {% if cart_items %}
+                    <div id="cart-items-list">
                         {% for item in cart_items %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center lh-sm">
-                            <div class="flex-grow-1 item-details">
-                                <h6 class="my-0">{{ item.name }}</h6>
-                                <small class="text-muted">Size: {{ item.size | default('N/A') }}, Frame: {{ item.frame | default('N/A') }}, Glass: {{ item.glass | default('N/A') }}</small>
-                                <div class="mt-1">
-                                    <small class="text-muted">Unit Price: ₹{{ item.unit_price | default(0.00) | round(2) }}</small>
+                        <div class="cart-item" data-item-id="{{ item.id | default('N/A') }}" data-sku="{{ item.sku | default('N/A') }}" data-original-unit-price="{{ item.unit_price_before_gst | default(0.0) }}" data-gst-percentage="{{ item.gst_percentage | default(0.0) }}" data-stock="{{ item.stock | default(0) }}">
+                            <img src="{{ url_for('static', filename=item.image | default('images/placeholder.png')) }}" alt="{{ item.name }}" class="cart-item-image">
+                            <div class="cart-item-details">
+                                <div class="cart-item-name">{{ item.name | default('N/A') }}</div>
+                                <div class="cart-item-options">
+                                    Size: {{ item.size | default('Original') }} | Frame: {{ item.frame | default('None') }} | Glass: {{ item.glass | default('None') }}
                                 </div>
-                                <div class="item-quantity-control mt-2">
-                                    {# Quantity is now displayed as text, not an editable input #}
-                                    <span>Quantity:</span>
-                                    <span class="fw-bold fs-5 ms-1" data-item-id="{{ item.id }}">{{ item.quantity }}</span>
-                                    <button type="button" class="btn btn-danger btn-sm remove-item-btn ms-2"
-                                        data-item-id="{{ item.id }}" data-item-size="{{ item.size | default('N/A') }}" 
-                                        data-item-frame="{{ item.frame | default('N/A') }}" data-item-glass="{{ item.glass | default('N/A') }}">Remove</button>
+                                <div class="cart-item-options">
+                                    Unit Price (Pre-GST): ₹{{ item.unit_price_before_gst | default(0.0) | round(2) }} | GST: {{ item.gst_percentage | default(0.0) | round(2) }}%
                                 </div>
                             </div>
-                            <span class="text-muted">₹{{ item.calculated_display_price | default(0.00) | round(2) }}</span>
-                            {# Image rendering. Assuming item.image is a path relative to static/ #}
-                            {% if item.image %}
-                                <img src="{{ STATIC_URL_PREFIX }}{{ item.image }}" class="img-thumbnail ms-3" alt="{{ item.name }}" style="width: 80px; height: 80px; object-fit: cover;">
-                            {% endif %}
-                        </li>
+                            <div class="quantity-control">
+                                <button class="quantity-decrease rounded-l-md" data-item-id="{{ item.id }}">-</button>
+                                <input type="number" value="{{ item.quantity | default(1) }}" min="1" max="{{ item.stock | default(0) }}" class="quantity-input" data-item-id="{{ item.id }}" readonly>
+                                <button class="quantity-increase rounded-r-md" data-item-id="{{ item.id }}">+</button>
+                            </div>
+                            <div class="cart-item-price">₹<span class="item-total-price-display">{{ item.calculated_display_price | default(0.0) | round(2) }}</span></div>
+                            <button class="remove-button rounded-md" data-item-id="{{ item.id }}"><i class="fas fa-trash-alt"></i></button>
+                        </div>
                         {% endfor %}
-                    {% else %}
-                        {# This is the only place the empty cart message should appear for initial load #}
-                        <li class="list-group-item empty-cart-message" id="empty-cart-message">
-                            Your cart is empty. Start shopping on the <a href="{{ url_for('index') }}">homepage</a>!
-                        </li>
-                    {% endif %}
-                </ul>
-                <h4 class="d-flex justify-content-between align-items-center mt-3">
-                    <span>Total Estimated Amount</span>
-                    <strong id="grand-total-display">₹{{ grand_total | default(0.00) | round(2) }}</strong>
-                </h4>
+                    </div>
+                {% else %}
+                    <p class="text-center text-gray-600 text-lg">Your cart is empty.</p>
+                {% endif %}
             </div>
-            <div class="d-flex justify-content-end gap-2">
-                <a href="{{ url_for('index') }}" class="btn btn-secondary">Continue Shopping</a>
-                <button type="button" class="btn btn-danger" id="clear-cart-btn" {% if not cart_items %}style="display: none;"{% endif %}>Clear Cart</button>
-                <button type="button" class="btn btn-primary" id="checkout-button" {% if not cart_items %}style="display: none;"{% endif %}>Proceed to Checkout</button>
+
+            <div class="md:col-span-1 card flex flex-col justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">Order Summary</h2>
+                    <div class="space-y-3 text-lg">
+                        <div class="flex justify-between">
+                            <span>Subtotal (Pre-GST):</span>
+                            <span>₹<span id="summary-subtotal">{{ subtotal_before_gst | default(0.0) | round(2) }}</span></span>
+                        </div>
+                        <div class="flex justify-between text-sm text-gray-600 ml-4">
+                            <span>Total GST:</span>
+                            <span>₹<span id="summary-total-gst">{{ total_gst_amount | default(0.0) | round(2) }}</span></span>
+                        </div>
+                        <div class="flex justify-between text-sm text-gray-600 ml-8">
+                            <span>CGST:</span>
+                            <span>₹<span id="summary-cgst">{{ cgst_amount | default(0.0) | round(2) }}</span></span>
+                        </div>
+                        <div class="flex justify-between text-sm text-gray-600 ml-8">
+                            <span>SGST:</span>
+                            <span>₹<span id="summary-sgst">{{ sgst_amount | default(0.0) | round(2) }}</span></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Shipping Charges:</span>
+                            <span>₹<span id="summary-shipping">{{ shipping_charge | default(0.0) | round(2) }}</span></span>
+                        </div>
+                        <div class="border-t pt-4 mt-4 flex justify-between font-bold text-xl text-gray-900">
+                            <span>Grand Total:</span>
+                            <span>₹<span id="summary-grand-total">{{ grand_total | default(0.0) | round(2) }}</span></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-8">
+                    <form id="checkout-form" action="{{ url_for('purchase_form') }}" method="post">
+                        <input type="hidden" name="cart_json" id="cart-json-input" value="{{ cart_items | tojson }}">
+                        <input type="hidden" name="shipping_charge" id="shipping-charge-input" value="{{ shipping_charge | default(0.0) }}">
+                        <button type="submit" id="checkout-button" class="w-full btn-primary py-3 px-6 text-xl rounded-lg shadow-lg hover:shadow-xl transition duration-300">
+                            Proceed to Checkout
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
-    </div>
-</div>
-{% endblock %}
+    </main>
 
-{% block extra_js %}
-<script>
-    // STATIC_URL_PREFIX is now defined in _base.html and available globally.
+    <script>
+        // Global variable for default shipping charge, keep in sync with Flask
+        // Make sure this is correctly passed from Flask context to match your app.py DEFAULT_SHIPPING_CHARGE
+        const DEFAULT_SHIPPING_CHARGE_JS = parseFloat("{{ shipping_charge | default(0.0) | round(2) }}"); 
 
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log("DEBUG: cart.html DOMContentLoaded fired."); // Debugging line
+        const cartItemCountSpan = document.getElementById('cart-item-count');
+        const cartItemsListDiv = document.getElementById('cart-items-list');
+        const summarySubtotalSpan = document.getElementById('summary-subtotal');
+        const summaryTotalGstSpan = document.getElementById('summary-total-gst');
+        const summaryCgstSpan = document.getElementById('summary-cgst');
+        const summarySgstSpan = document.getElementById('summary-sgst');
+        const summaryShippingSpan = document.getElementById('summary-shipping');
+        const summaryGrandTotalSpan = document.getElementById('summary-grand-total');
+        const checkoutButton = document.getElementById('checkout-button');
+        const cartJsonInput = document.getElementById('cart-json-input');
+        const shippingChargeInput = document.getElementById('shipping-charge-input');
 
-        const cartItemsList = document.getElementById('cart-items-list');
-        const grandTotalDisplay = document.getElementById('grand-total-display');
-        const emptyCartMessage = document.getElementById('empty-cart-message');
-        const clearCartBtn = document.getElementById('clear-cart-btn');
-        const proceedToCheckoutBtn = document.getElementById('checkout-button'); 
+        let cart = JSON.parse(sessionStorage.getItem('cart')) || {};
 
-        // Function to update the cart count in the navbar (this function is also global in _base.html)
-        // Re-defining it here for self-contained debugging, but typically it would be assumed global.
-        function updateCartCountDisplay() {
-            console.log("DEBUG: updateCartCountDisplay called."); // Debugging line
-            const cart = JSON.parse(sessionStorage.getItem('cart') || '{}');
-            const cartCountElement = document.getElementById('cart-count'); 
-            if (cartCountElement) {
-                const totalItems = Object.values(cart).reduce((sum, item) => sum + parseInt(item.quantity || 0), 0);
-                cartCountElement.textContent = totalItems;
-                if (totalItems > 0) {
-                    cartCountElement.classList.add('badge', 'bg-danger', 'ms-1'); 
-                } else {
-                    cartCountElement.classList.remove('badge', 'bg-danger', 'ms-1');
-                    cartCountElement.textContent = '0';
-                }
-                console.log("DEBUG: Cart count display updated to:", totalItems); // Debugging line
-            }
-        }
+        function updateCartDisplay() {
+            let totalItems = 0;
+            let currentSubtotalBeforeGst = 0;
+            let currentTotalGstAmount = 0;
 
-        // Function to re-render the cart content after a change (e.g., remove)
-        // This will now fetch from sessionStorage and update the visible DOM elements.
-        function renderCartDynamic() {
-            console.log("DEBUG: renderCartDynamic called."); // Debugging line
-            let cartObject = JSON.parse(sessionStorage.getItem('cart') || '{}');
-            let cartArray = Object.values(cartObject); // Convert object to array for easier iteration
-            console.log("DEBUG: Cart data from sessionStorage for rendering:", cartObject); // Debugging line
-            console.log("DEBUG: Cart array for rendering:", cartArray); // Debugging line
-            
-            cartItemsList.innerHTML = ''; // Clear existing items
+            cartItemsListDiv.innerHTML = ''; // Clear existing items
 
-            let grandTotal = 0;
-
-            if (cartArray.length === 0) {
-                emptyCartMessage.style.display = 'block'; 
-                console.log("DEBUG: Cart is empty, showing empty message."); // Debugging line
+            if (Object.keys(cart).length === 0) {
+                cartItemsListDiv.innerHTML = '<p class="text-center text-gray-600 text-lg">Your cart is empty.</p>';
+                checkoutButton.disabled = true;
+                checkoutButton.classList.add('opacity-50', 'cursor-not-allowed');
             } else {
-                emptyCartMessage.style.display = 'none'; // Hide Jinja's empty message if JS finds items
-                console.log("DEBUG: Cart has items, hiding empty message."); // Debugging line
-                
-                cartArray.forEach(item => {
-                    const itemUnitPrice = Number(item.unit_price || 0);    
-                    const itemQuantity = Number(item.quantity || 1);       
-                    let itemTotal = itemUnitPrice * itemQuantity;
-                    grandTotal += itemTotal;    
+                checkoutButton.disabled = false;
+                checkoutButton.classList.remove('opacity-50', 'cursor-not-allowed');
 
-                    // Construct the image HTML conditionally in JavaScript
-                    let imageHtml = '';
-                    // Use the globally available STATIC_URL_PREFIX
-                    if (item.image) {
-                        const imageUrl = STATIC_URL_PREFIX + item.image; 
-                        imageHtml = `<img src="${imageUrl}" alt="${item.name}" class="img-thumbnail ms-3" style="width: 80px; height: 80px; object-fit: cover;">`;
-                    }
+                for (const itemId in cart) {
+                    const item = cart[itemId];
+                    totalItems += item.quantity;
 
-                    const listItem = document.createElement('li');
-                    listItem.className = 'list-group-item d-flex justify-content-between align-items-center lh-sm';
-                    listItem.innerHTML = `
-                        <div class="flex-grow-1 item-details">
-                            <h6 class="my-0">${item.name}</h6>
-                            <small class="text-muted">Size: ${item.size || 'N/A'}, Frame: ${item.frame || 'N/A'}, Glass: ${item.glass || 'N/A'}</small>
-                            <div class="mt-1">
-                                <small class="text-muted">Unit Price: ₹${itemUnitPrice.toFixed(2)}</small>
+                    // Recalculate item totals to ensure consistency with backend
+                    const itemPriceBeforeGst = (item.unit_price_before_gst || 0) * (item.quantity || 1);
+                    const itemGstAmount = itemPriceBeforeGst * ((item.gst_percentage || 0) / 100);
+                    const itemTotalPriceWithGst = itemPriceBeforeGst + itemGstAmount;
+
+                    item.total_price_before_gst = itemPriceBeforeGst;
+                    item.gst_amount = itemGstAmount;
+                    item.total_price = itemTotalPriceWithGst; // This is the total for this item WITH GST
+                    item.calculated_display_price = itemTotalPriceWithGst; // For display in cart
+
+                    currentSubtotalBeforeGst += item.total_price_before_gst;
+                    currentTotalGstAmount += item.gst_amount;
+
+                    const itemHtml = `
+                        <div class="cart-item" data-item-id="${item.id || 'N/A'}" data-sku="${item.sku || 'N/A'}" data-original-unit-price="${item.unit_price_before_gst || 0}" data-gst-percentage="${item.gst_percentage || 0}" data-stock="${item.stock || 0}">
+                            <img src="${Flask.url_for('static', filename=item.image || 'images/placeholder.png')}" alt="${item.name || 'N/A'}" class="cart-item-image">
+                            <div class="cart-item-details">
+                                <div class="cart-item-name">${item.name || 'N/A'}</div>
+                                <div class="cart-item-options">
+                                    Size: ${item.size || 'Original'} | Frame: ${item.frame || 'None'} | Glass: ${item.glass || 'None'}
+                                </div>
+                                <div class="cart-item-options">
+                                    Unit Price (Pre-GST): ₹${(item.unit_price_before_gst || 0).toFixed(2)} | GST: ${(item.gst_percentage || 0).toFixed(2)}%
+                                </div>
                             </div>
-                            <div class="item-quantity-control mt-2">
-                                <span>Quantity:</span>
-                                <span class="fw-bold fs-5 ms-1" data-item-id="${item.id}">${item.quantity}</span>
-                                <button type="button" class="btn btn-danger btn-sm remove-item-btn"
-                                    data-item-id="${item.id}" data-item-size="${item.size || 'N/A'}" 
-                                    data-item-frame="${item.frame || 'N/A'}" data-item-glass="${item.glass || 'N/A'}">Remove</button>
+                            <div class="quantity-control">
+                                <button class="quantity-decrease rounded-l-md" data-item-id="${item.id}">-</button>
+                                <input type="number" value="${item.quantity || 1}" min="1" max="${item.stock || 0}" class="quantity-input" data-item-id="${item.id}" readonly>
+                                <button class="quantity-increase rounded-r-md" data-item-id="${item.id}">+</button>
                             </div>
+                            <div class="cart-item-price">₹<span class="item-total-price-display">${(item.calculated_display_price || 0).toFixed(2)}</span></div>
+                            <button class="remove-button rounded-md" data-item-id="${item.id}"><i class="fas fa-trash-alt"></i></button>
                         </div>
-                        <span class="text-muted">₹${itemTotal.toFixed(2)}</span>
-                        ${imageHtml}
                     `;
-                    cartItemsList.appendChild(listItem);
-                    console.log(`DEBUG: Added item "${item.name}" to DOM with total ₹${itemTotal.toFixed(2)}`); // Debugging line
+                    cartItemsListDiv.insertAdjacentHTML('beforeend', itemHtml);
+                }
+            }
+
+            const currentCgstAmount = currentTotalGstAmount / 2;
+            const currentSgstAmount = currentTotalGstAmount / 2;
+            let currentShippingCharge = DEFAULT_SHIPPING_CHARGE_JS;
+
+            // If subtotal is 0 (empty cart), shipping is also 0
+            if (currentSubtotalBeforeGst === 0 && currentTotalGstAmount === 0) {
+                currentShippingCharge = 0;
+            }
+
+            const currentGrandTotal = currentSubtotalBeforeGst + currentTotalGstAmount + currentShippingCharge;
+
+            cartItemCountSpan.textContent = totalItems;
+            summarySubtotalSpan.textContent = currentSubtotalBeforeGst.toFixed(2);
+            summaryTotalGstSpan.textContent = currentTotalGstAmount.toFixed(2);
+            summaryCgstSpan.textContent = currentCgstAmount.toFixed(2);
+            summarySgstSpan.textContent = currentSgstAmount.toFixed(2);
+            summaryShippingSpan.textContent = currentShippingCharge.toFixed(2);
+            summaryGrandTotalSpan.textContent = currentGrandTotal.toFixed(2);
+
+            // Update hidden inputs for checkout form submission
+            cartJsonInput.value = JSON.stringify(Object.values(cart)); // Send cart as a list of values
+            shippingChargeInput.value = currentShippingCharge.toFixed(2); // Ensure shipping is passed to purchase_form
+            
+            // Send updated cart to Flask session
+            sendCartToServer(cart); 
+        }
+
+        async function sendCartToServer(updatedCart) {
+            try {
+                const response = await fetch('/update_cart_session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ cart: updatedCart })
                 });
-            }
-            grandTotalDisplay.textContent = `₹${grandTotal.toFixed(2)}`;
-            console.log("DEBUG: Grand total updated to:", grandTotal.toFixed(2)); // Debugging line
-
-            // Control button visibility based on cartArray length
-            if (cartArray.length === 0) {
-                clearCartBtn.style.display = 'none';
-                proceedToCheckoutBtn.style.display = 'none';
-                console.log("DEBUG: Hiding Clear Cart and Checkout buttons."); // Debugging line
-            } else {
-                clearCartBtn.style.display = 'inline-block';
-                proceedToCheckoutBtn.style.display = 'inline-block';
-                console.log("DEBUG: Showing Clear Cart and Checkout buttons."); // Debugging line
+                const data = await response.json();
+                if (!data.success) {
+                    console.error("Failed to update server session cart:", data.message);
+                    // Optionally alert user or handle error gracefully
+                }
+            } catch (error) {
+                console.error("Error sending cart to server:", error);
+                // Optionally alert user or handle error gracefully
             }
         }
 
-        // Event listener for "Remove" buttons using event delegation
-        cartItemsList.addEventListener('click', async function(event) {
-            console.log("DEBUG: Click event on cartItemsList detected."); // Debugging line
-            if (event.target.classList.contains('remove-item-btn')) {
-                console.log("DEBUG: Remove button clicked for item:", event.target.dataset.itemId); // Debugging line
-                const itemIdToRemove = event.target.dataset.itemId; // This is the full unique ID
+        // Event listeners for quantity changes and removal
+        cartItemsListDiv.addEventListener('click', async (event) => {
+            const button = event.target.closest('button');
+            if (!button) return;
 
-                let cart = JSON.parse(sessionStorage.getItem('cart') || '{}');
-                console.log("DEBUG: Cart before removal:", JSON.stringify(cart)); // Debugging line
-                
-                if (cart[itemIdToRemove]) {
-                    delete cart[itemIdToRemove]; // Remove the item directly using its unique key
-                    console.log("DEBUG: Item removed from sessionStorage. New cart:", JSON.stringify(cart)); // Debugging line
+            const itemId = button.dataset.itemId;
+            const itemElement = cartItemsListDiv.querySelector(`[data-item-id="${itemId}"]`);
+            const quantityInput = itemElement.querySelector('.quantity-input');
+            const currentStock = parseInt(itemElement.dataset.stock || 0); // Default to 0
+
+            if (button.classList.contains('quantity-increase')) {
+                let newQuantity = parseInt(quantityInput.value || 1) + 1; // Default to 1
+                if (newQuantity <= currentStock) {
+                    quantityInput.value = newQuantity;
+                    cart[itemId].quantity = newQuantity;
                 } else {
-                    console.warn(`Item with ID ${itemIdToRemove} not found in cart for removal.`);
+                    alert(`Maximum stock for this item is ${currentStock}.`);
                 }
-                
-                sessionStorage.setItem('cart', JSON.stringify(cart));
-                renderCartDynamic(); // Re-render the cart after removal
-                updateCartCountDisplay(); // Update cart icon in navbar
-                // Check if syncCartToServer is available before calling
-                if (typeof syncCartToServer === 'function') {
-                    await syncCartToServer(); // Sync the cleared cart to the server
+            } else if (button.classList.contains('quantity-decrease')) {
+                let newQuantity = parseInt(quantityInput.value || 1) - 1; // Default to 1
+                if (newQuantity >= 1) {
+                    quantityInput.value = newQuantity;
+                    cart[itemId].quantity = newQuantity;
+                }
+            } else if (button.classList.contains('remove-button')) {
+                if (confirm('Are you sure you want to remove this item from your cart?')) {
+                    delete cart[itemId];
                 } else {
-                    console.error("syncCartToServer function not found. Cart not synced to server.");
+                    return; // Do not update if cancellation
                 }
             }
+            updateCartDisplay();
         });
 
-        // Removed the quantity change listener as per your request (as quantity input is replaced by span)
-
-        // Event listener for "Clear Cart" button
-        clearCartBtn.addEventListener('click', async function() {
-            console.log("DEBUG: Clear Cart button clicked."); // Debugging line
-            if (confirm('Are you sure you want to clear your entire cart?')) {
-                sessionStorage.removeItem('cart');
-                console.log("DEBUG: sessionStorage cart cleared."); // Debugging line
-                renderCartDynamic(); // Re-render to show empty cart
-                updateCartCountDisplay(); // Update cart icon in navbar
-                // Check if syncCartToServer is available before calling
-                if (typeof syncCartToServer === 'function') {
-                    await syncCartToServer(); // Sync the cleared cart to the server
-                } else {
-                    console.error("syncCartToServer function not found. Cart not synced to server.");
-                }
-            }
-        });
-
-        // Event listener for "Proceed to Checkout" button
-        if (proceedToCheckoutBtn) {
-            proceedToCheckoutBtn.addEventListener('click', async function(event) {
-                event.preventDefault(); // Prevent default button click
-                console.log("DEBUG: Proceed to Checkout button clicked."); // Debugging line
-                const cart = JSON.parse(sessionStorage.getItem('cart') || '{}');
-                console.log("DEBUG: Cart content before checkout form submission:", JSON.stringify(cart)); // Debugging line
-
-                if (Object.keys(cart).length > 0) { // Check if the cart object has any keys
-                    console.log("DEBUG: Cart is not empty. Attempting to sync and redirect."); // Debugging line
-                    // Ensure server session is updated with the latest cart state before redirecting
-                    // Check if syncCartToServer is available before calling
-                    if (typeof syncCartToServer === 'function') {
-                        await syncCartToServer(); // Await sync to ensure server has latest cart
-                        console.log("DEBUG: syncCartToServer completed for checkout."); // Debugging line
-                    } else {
-                        console.error("syncCartToServer function not found. Proceeding without server sync.");
-                    }
-                    
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = '{{ url_for("purchase_form") }}';    
-
-                    const hiddenInput = document.createElement('input');
-                    hiddenInput.type = 'hidden';
-                    hiddenInput.name = 'cart_json';
-                    hiddenInput.value = JSON.stringify(Object.values(cart)); // Send array of values
-
-                    form.appendChild(hiddenInput);
-                    document.body.appendChild(form);    
-                    form.submit();
-                    console.log("DEBUG: Form submitted for checkout to {{ url_for('purchase_form') }}."); // Debugging line
-                } else {
-                    // Replaced alert with flash message for better UX in Canvas environment
-                    flashMessage('Your cart is empty! Please add items before proceeding to checkout.', 'warning');
-                    console.log("DEBUG: Checkout attempted with empty cart."); // Debugging line
-                }
-            });
-        }
-
-        // Helper function for flashing messages (since alert is discouraged)
-        // This function is also now globally available in _base.html
-        function flashMessage(message, category = 'info') {
-            const flashMessagesContainer = document.querySelector('.flash-messages');
-            if (flashMessagesContainer) {
-                const alertDiv = document.createElement('div');
-                alertDiv.className = `alert alert-${category} alert-dismissible fade show`;
-                alertDiv.role = 'alert';
-                alertDiv.innerHTML = `
-                    ${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                `;
-                flashMessagesContainer.prepend(alertDiv); // Add at the top
-                setTimeout(() => {
-                    const bootstrapAlert = bootstrap.Alert.getInstance(alertDiv);
-                    if (bootstrapAlert) {
-                        bootstrapAlert.dispose(); // Use Bootstrap's method to close
-                    } else {
-                        alertDiv.remove(); // Fallback if Bootstrap JS isn't loaded or initialized
-                    }
-                }, 5000); // Auto-dismiss after 5 seconds
-            } else {
-                console.warn("Flash messages container not found. Cannot display message:", message);
-                // Fallback to console if no flash messages container
-            }
-        }
-
-        // Initial render of the cart when the page loads
-        renderCartDynamic(); 
-        updateCartCountDisplay();
-        // Also sync the cart to server on initial page load if any items are already in session storage
-        // Ensure syncCartToServer is available before calling
-        if (typeof syncCartToServer === 'function') {
-            syncCartToServer();
-        } else {
-            console.error("syncCartToServer function not found for initial page load.");
-        }
-    });
-</script>
-{% endblock %}
+        // Initial display update on page load
+        updateCartDisplay();
+    </script>
+</body>
+</html>
