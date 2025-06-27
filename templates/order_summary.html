@@ -1,0 +1,122 @@
+{% extends '_base.html' %}
+
+{% block title %}Order Summary - Karthika Futures{% endblock %}
+
+{% block content %}
+<div class="container main-content-area py-5">
+    <h2 class="text-center mb-4">Order Summary</h2>
+
+    <div class="card shadow-lg mb-5 border-0 rounded-lg">
+        <div class="card-header bg-primary text-white text-center py-3 rounded-top-lg">
+            <h4 class="mb-0">Order ID: {{ order.order_id }}</h4>
+        </div>
+        <div class="card-body p-4">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h5>Customer Details</h5>
+                    <p><strong>Name:</strong> {{ order.customer_name | default('N/A') }}</p>
+                    <p><strong>Email:</strong> {{ order.user_email | default('N/A') }}</p>
+                    <p><strong>Phone:</strong> {{ order.customer_phone | default('N/A') }}</p>
+                    <p><strong>Address:</strong> {{ order.customer_address | default('N/A') }}, {{ order.customer_pincode | default('N/A') }}</p>
+                    <p><strong>Placed On:</strong> {{ order.placed_on | default('N/A') }}</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <h5>Order Status</h5>
+                    <p class="fs-5 fw-bold text-success">{{ order.status | default('Unknown') }}</p>
+                    <p><strong>Invoice Status:</strong> {{ order.invoice_details.invoice_status | default('N/A') }}</p>
+                    {% if order.transaction_id %}
+                        <p><strong>Transaction ID:</strong> {{ order.transaction_id }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <hr class="my-4">
+
+            <h5>Order Items</h5>
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">Image</th>
+                            <th scope="col">Product Name</th>
+                            <th scope="col">SKU</th>
+                            <th scope="col">Options</th>
+                            <th scope="col">Qty</th>
+                            <th scope="col" class="text-end">Unit Price (excl. GST)</th>
+                            <th scope="col" class="text-end">GST %</th>
+                            <th scope="col" class="text-end">GST Amt</th>
+                            <th scope="col" class="text-end">Item Total (incl. GST)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in order.items %}
+                        <tr>
+                            <td>
+                                <img src="{{ url_for('static', filename=item.image | default('images/placeholder.png')) }}" 
+                                     alt="{{ item.name }}" style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px;">
+                            </td>
+                            <td>{{ item.name | default('N/A') }}</td>
+                            <td>{{ item.sku | default('N/A') }}</td>
+                            <td>
+                                Size: {{ item.size | default('N/A') }}<br>
+                                Frame: {{ item.frame | default('N/A') }}<br>
+                                Glass: {{ item.glass | default('N/A') }}
+                            </td>
+                            <td>{{ item.quantity | default(0) }}</td>
+                            <td class="text-end">₹{{ item.unit_price_before_gst | default(0.0) | floatformat(2) }}</td>
+                            <td class="text-end">{{ item.gst_percentage | default(0.0) | floatformat(2) }}%</td>
+                            <td class="text-end">₹{{ item.gst_amount | default(0.0) | floatformat(2) }}</td>
+                            <td class="text-end fw-bold">₹{{ item.total_price | default(0.0) | floatformat(2) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-3">No items in this order.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <hr class="my-4">
+
+            <div class="row justify-content-end">
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-info">
+                        <div class="card-body">
+                            <h5 class="card-title text-info mb-3">Order Totals</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Subtotal (excl. GST):
+                                    <span>₹{{ order.subtotal_before_gst | default(0.0) | floatformat(2) }}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Total GST:
+                                    <span>₹{{ order.total_gst_amount | default(0.0) | floatformat(2) }}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Shipping Charge:
+                                    <span>₹{{ order.shipping_charge | default(0.0) | floatformat(2) }}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center fs-5 fw-bold bg-light">
+                                    Grand Total:
+                                    <span>₹{{ order.total_amount | default(0.0) | floatformat(2) }}</span>
+                                </li>
+                            </ul>
+                            
+                            {% if order.status == "Pending Payment" %}
+                            <div class="d-grid mt-4">
+                                <a href="{{ url_for('payment_initiate', order_id=order.order_id, amount=order.total_amount) }}" class="btn btn-success btn-lg">Proceed to Payment</a>
+                            </div>
+                            {% else %}
+                            <div class="mt-4 text-center">
+                                <p class="text-muted fw-bold">Payment for this order has been processed.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

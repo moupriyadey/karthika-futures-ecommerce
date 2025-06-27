@@ -1,133 +1,201 @@
 {% extends '_base.html' %}
 
-{% block title %}Edit Invoice for Order {{ order.order_id }} - Karthika Futures{% endblock %}
+{% block title %}Edit Invoice - Admin - Karthika Futures{% endblock %}
 
 {% block content %}
-<div class="container main-content-area position-relative">
-    <h2 class="text-center mb-4">Edit Invoice for Order #{{ order.order_id }}</h2>
+<div class="container main-content-area position-relative pt-5">
+    <h2 class="text-center mb-4 text-primary font-bold">Edit Invoice for Order {{ order.order_id }}</h2>
 
-    <div class="d-flex border-bottom mb-4">
-        <a href="{{ url_for('admin_panel') }}" class="nav-link px-3 py-2">Dashboard</a>
-        <a href="{{ url_for('admin_artworks_view') }}" class="nav-link px-3 py-2">Artworks</a>
-        <a href="{{ url_for('admin_orders_view') }}" class="nav-link px-3 py-2 active border-bottom border-primary border-2">Orders</a>
-        <a href="{{ url_for('admin_categories_view') }}" class="nav-link px-3 py-2">Categories</a>
+    {# Admin Navigation Tabs #}
+    <ul class="nav nav-tabs nav-justified mb-4">
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('admin_panel') }}">Dashboard</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('admin_artworks_view') }}">Artworks</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="{{ url_for('admin_orders_view') }}">Orders</a> {# Keep 'Orders' active as this is a sub-page of order management #}
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('admin_categories_view') }}">Categories</a>
+        </li>
+    </ul>
+
+    <div class="card bg-white rounded-lg shadow-lg p-6 mb-4">
+        <div class="card-header bg-light py-3 border-bottom rounded-top-lg">
+            <h4 class="card-title mb-0 text-secondary">Invoice Details</h4>
+        </div>
+        <div class="card-body">
+            <form method="POST" id="invoiceEditForm">
+                <input type="hidden" id="baseTotalAmount" value="{{ order.subtotal_before_gst | round(2) }}">
+
+                {# Business Details Section #}
+                <div class="mb-4">
+                    <h5 class="text-info mb-3">Our Business Details (Editable)</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="business_name" class="form-label">Business Name</label>
+                            <input type="text" class="form-control" id="business_name" name="business_name" 
+                                value="{{ order.invoice_details.business_name | default(our_business_name) }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="gst_number" class="form-label">GSTIN</label>
+                            <input type="text" class="form-control" id="gst_number" name="gst_number" 
+                                value="{{ order.invoice_details.gst_number | default(our_gstin) }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="pan_number" class="form-label">PAN Number</label>
+                            <input type="text" class="form-control" id="pan_number" name="pan_number" 
+                                value="{{ order.invoice_details.pan_number | default(our_pan) }}" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="business_address" class="form-label">Business Address</label>
+                            <textarea class="form-control" id="business_address" name="business_address" rows="2" required>{{ order.invoice_details.business_address | default(our_business_address) }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                {# Customer & Invoice Specifics #}
+                <div class="mb-4">
+                    <h5 class="text-info mb-3">Customer & Invoice Specifics (Some Editable)</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Customer Name</label>
+                            <p class="form-control-plaintext"><strong>{{ order.customer_name }}</strong></p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Customer Email</label>
+                            <p class="form-control-plaintext">{{ order.user_email }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Customer Phone</label>
+                            <p class="form-control-plaintext">{{ order.invoice_details.customer_phone_camouflaged | default(order.customer_phone) }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="invoice_number" class="form-label">Invoice Number</label>
+                            <input type="text" class="form-control" id="invoice_number" name="invoice_number" 
+                                value="{{ order.invoice_details.invoice_number | default('') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="invoice_date" class="form-label">Invoice Date</label>
+                            <input type="datetime-local" class="form-control" id="invoice_date" name="invoice_date" 
+                                value="{{ (order.invoice_details.invoice_date | default(now().strftime('%Y-%m-%d %H:%M:%S'))).split('.')[0].replace(' ', 'T') }}">
+                        </div>
+                        <div class="col-md-12">
+                            <label for="billing_address" class="form-label">Customer Billing Address</label>
+                            <textarea class="form-control" id="billing_address" name="billing_address" rows="3" required>{{ order.invoice_details.billing_address | default(order.customer_address) }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                {# Order Items #}
+                <div class="mb-4">
+                    <h5 class="text-info mb-3">Order Items</h5>
+                    <ul class="list-group mb-3">
+                        {% for item in order.items %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ item.name }} (SKU: {{ item.sku }})</strong> x {{ item.quantity }}
+                                {% if item.size and item.size != 'Original' %}<br><small>Size: {{ item.size }}</small>{% endif %}
+                                {% if item.frame and item.frame != 'None' %}<br><small>Frame: {{ item.frame }}</small>{% endif %}
+                                {% if item.glass and item.glass != 'None' %}<br><small>Glass: {{ item.glass }}</small>{% endif %}
+                            </div>
+                            <div>
+                                <small class="text-muted">Unit Price (Pre-GST): ₹{{ item.unit_price_before_gst | round(2) }}</small><br>
+                                <small class="text-muted">Item Total (Pre-GST): ₹{{ item.total_price_before_gst | round(2) }}</small><br>
+                                <small class="text-muted">GST ({{ item.gst_percentage | round(2) }}%): ₹{{ item.gst_amount | round(2) }}</small><br>
+                                <strong>Total: ₹{{ item.total_price | round(2) }}</strong>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                {# Financials #}
+                <div class="mb-4">
+                    <h5 class="text-info mb-3">Financial Summary (Editable)</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Subtotal of Items (Before GST)</label>
+                            <p class="form-control-plaintext">₹{{ order.subtotal_before_gst | round(2) }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="gst_rate" class="form-label">GST Rate Applied (%)</label>
+                            <input type="number" step="0.01" class="form-control" id="gst_rate" name="gst_rate" 
+                                value="{{ order.invoice_details.gst_rate_applied | default(default_gst_rate) }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="total_gst_amount" class="form-label">Total GST Amount</label>
+                            <p class="form-control-plaintext">₹<span id="display_total_gst_amount">{{ order.invoice_details.total_gst_amount | default(0.0) | round(2) }}</span></p>
+                            <small class="text-muted">CGST: ₹<span id="display_cgst_amount">{{ order.invoice_details.cgst_amount | default(0.0) | round(2) }}</span>, SGST: ₹<span id="display_sgst_amount">{{ order.invoice_details.sgst_amount | default(0.0) | round(2) }}</span></small>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="shipping_charge" class="form-label">Shipping Charge</label>
+                            <input type="number" step="0.01" class="form-control" id="shipping_charge" name="shipping_charge" 
+                                value="{{ order.invoice_details.shipping_charge | default(0.0) | round(2) }}" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="final_invoice_amount" class="form-label">Final Invoice Amount</label>
+                            <p class="form-control-plaintext"><strong>₹<span id="display_final_invoice_amount">{{ order.invoice_details.final_invoice_amount | default(0.0) | round(2) }}</span></strong></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end mt-4">
+                    <button type="submit" class="btn btn-success btn-lg shadow-sm">
+                        <i class="fas fa-save me-2"></i> Save Invoice Changes
+                    </button>
+                    <a href="{{ url_for('admin_orders_view') }}" class="btn btn-outline-secondary btn-lg ms-3">
+                        <i class="fas fa-arrow-left me-2"></i> Back to Orders
+                    </a>
+                </div>
+            </form>
+        </div>
     </div>
-
-    <form method="POST" action="{{ url_for('admin_edit_invoice', order_id=order.order_id) }}" class="p-4 border rounded shadow-sm bg-light">
-        <input type="hidden" name="order_id" value="{{ order.order_id }}">
-        
-        <h4 class="mb-3">Invoice Details</h4>
-
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <label for="invoice_number" class="form-label">Invoice Number</label>
-                <input type="text" class="form-control" id="invoice_number" name="invoice_number" value="{{ order.invoice_details.invoice_number if order.invoice_details else '' }}">
-            </div>
-            <div class="col-md-6">
-                <label for="invoice_date" class="form-label">Invoice Date</label>
-                <input type="date" class="form-control" id="invoice_date" name="invoice_date" value="{{ order.invoice_details.invoice_date if order.invoice_details and order.invoice_details.invoice_date else '' }}">
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <label for="gst_number" class="form-label">GST Number</label>
-                <input type="text" class="form-control" id="gst_number" name="gst_number" value="{{ order.invoice_details.gst_number if order.invoice_details else '' }}" required>
-            </div>
-            <div class="col-md-6">
-                <label for="pan_number" class="form-label">PAN Number</label>
-                <input type="text" class="form-control" id="pan_number" name="pan_number" value="{{ order.invoice_details.pan_number if order.invoice_details else '' }}">
-            </div>
-        </div>
-
-        <div class="mb-3">
-            <label for="business_name" class="form-label">Business Name</label>
-            <input type="text" class="form-control" id="business_name" name="business_name" value="{{ order.invoice_details.business_name if order.invoice_details else '' }}" required>
-        </div>
-
-        <div class="mb-3">
-            <label for="business_address" class="form-label">Business Address</label>
-            <textarea class="form-control" id="business_address" name="business_address" rows="3" required>{{ order.invoice_details.business_address if order.invoice_details else '' }}</textarea>
-        </div>
-
-        <div class="row mb-3">
-            <div class="col-md-4">
-                <label for="total_gst_amount" class="form-label">Total GST Amount (₹)</label>
-                <input type="number" step="0.01" class="form-control" id="total_gst_amount" name="total_gst_amount" value="{{ order.invoice_details.total_gst_amount if order.invoice_details else '0.00' }}" readonly>
-            </div>
-             <div class="col-md-4">
-                <label for="cgst_amount" class="form-label">CGST Amount (₹)</label>
-                <input type="number" step="0.01" class="form-control" id="cgst_amount" name="cgst_amount" value="{{ order.invoice_details.cgst_amount if order.invoice_details else '0.00' }}" readonly>
-            </div>
-             <div class="col-md-4">
-                <label for="sgst_amount" class="form-label">SGST Amount (₹)</label>
-                <input type="number" step="0.01" class="form-control" id="sgst_amount" name="sgst_amount" value="{{ order.invoice_details.sgst_amount if order.invoice_details else '0.00' }}" readonly>
-            </div>
-        </div>
-
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <label for="gst_rate_applied" class="form-label">GST Rate Applied (%)</label>
-                <input type="number" step="0.01" class="form-control" id="gst_rate_applied" name="gst_rate_applied" value="{{ order.invoice_details.gst_rate_applied if order.invoice_details else '0.00' }}" readonly>
-            </div>
-            <div class="col-md-6">
-                <label for="shipping_charge" class="form-label">Shipping Charge (₹)</label>
-                <input type="number" step="0.01" class="form-control" id="shipping_charge" name="shipping_charge" value="{{ order.invoice_details.shipping_charge if order.invoice_details else '0.00' }}">
-            </div>
-        </div>
-
-        <div class="mb-3">
-            <label for="final_invoice_amount" class="form-label">Final Invoice Amount (₹)</label>
-            <input type="number" step="0.01" class="form-control" id="final_invoice_amount" name="final_invoice_amount" value="{{ order.invoice_details.final_invoice_amount if order.invoice_details else '0.00' }}" readonly>
-        </div>
-
-        <div class="mb-3">
-            <label for="invoice_status" class="form-label">Invoice Status</label>
-            <select class="form-select" id="invoice_status" name="invoice_status" required>
-                <option value="Prepared" {% if order.invoice_details and order.invoice_details.invoice_status == 'Prepared' %}selected{% endif %}>Prepared</option>
-                <option value="Sent" {% if order.invoice_details and order.invoice_details.invoice_status == 'Sent' %}selected{% endif %}>Sent</option>
-                <option value="Held" {% if order.invoice_details and order.invoice_details.invoice_status == 'Held' %}selected{% endif %}>Held</option>
-                <option value="Edited" {% if order.invoice_details and order.invoice_details.invoice_status == 'Edited' %}selected{% endif %}>Edited</option>
-                <option value="PDF Gen Failed" {% if order.invoice_details and order.invoice_details.invoice_status == 'PDF Gen Failed' %}selected{% endif %}>PDF Gen Failed</option>
-                <option value="Email Failed" {% if order.invoice_details and order.invoice_details.invoice_status == 'Email Failed' %}selected{% endif %}>Email Failed</option>
-                <option value="Cancelled" {% if order.invoice_details and order.invoice_details.invoice_status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
-            </select>
-        </div>
-
-        <div class="mb-3 form-check">
-            <input type="checkbox" class="form-check-input" id="is_held_by_admin" name="is_held_by_admin" {% if order.invoice_details and order.invoice_details.is_held_by_admin %}checked{% endif %}>
-            <label class="form-check-label" for="is_held_by_admin">Hold Invoice (Prevent automatic sending)</label>
-        </div>
-
-        <div class="d-grid gap-2">
-            <button type="submit" class="btn btn-primary btn-lg">Save Invoice Changes</button>
-            <a href="{{ url_for('admin_orders_view') }}" class="btn btn-secondary btn-lg">Back to Orders</a>
-        </div>
-    </form>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        const baseTotalAmount = parseFloat(document.getElementById('baseTotalAmount').value);
+        const gstRateInput = document.getElementById('gst_rate');
         const shippingChargeInput = document.getElementById('shipping_charge');
-        const finalInvoiceAmountInput = document.getElementById('final_invoice_amount');
-        const subtotalBeforeGst = parseFloat('{{ order.subtotal_before_gst | float }}'); // From order object
-        const totalGstAmount = parseFloat('{{ order.invoice_details.total_gst_amount | float }}'); // From invoice details
 
-        function calculateFinalInvoiceAmount() {
-            const currentShippingCharge = parseFloat(shippingChargeInput.value) || 0;
-            // The logic here should reflect how final invoice amount is calculated:
-            // It's usually (subtotal_before_gst + total_gst_amount + shipping_charge)
-            const calculatedFinalAmount = subtotalBeforeGst + totalGstAmount + currentShippingCharge;
-            finalInvoiceAmountInput.value = calculatedFinalAmount.toFixed(2);
+        const displayTotalGstAmount = document.getElementById('display_total_gst_amount');
+        const displayCgstAmount = document.getElementById('display_cgst_amount');
+        const displaySgstAmount = document.getElementById('display_sgst_amount');
+        const displayFinalInvoiceAmount = document.getElementById('display_final_invoice_amount');
+
+        function recalculateInvoiceTotals() {
+            let gstRate = parseFloat(gstRateInput.value) || 0;
+            let shippingCharge = parseFloat(shippingChargeInput.value) || 0;
+
+            // Ensure non-negative values
+            if (gstRate < 0) gstRate = 0;
+            if (shippingCharge < 0) shippingCharge = 0;
+
+            // Recalculate GST amounts
+            const totalGstAmount = (baseTotalAmount * (gstRate / 100));
+            const cgstAmount = totalGstAmount / 2;
+            const sgstAmount = totalGstAmount / 2;
+
+            // Recalculate final invoice amount
+            const finalInvoiceAmount = baseTotalAmount + totalGstAmount + shippingCharge;
+
+            // Update displayed values
+            displayTotalGstAmount.textContent = totalGstAmount.toFixed(2);
+            displayCgstAmount.textContent = cgstAmount.toFixed(2);
+            displaySgstAmount.textContent = sgstAmount.toFixed(2);
+            displayFinalInvoiceAmount.textContent = finalInvoiceAmount.toFixed(2);
         }
 
-        // Add event listener to recalculate when shipping charge changes
-        shippingChargeInput.addEventListener('input', calculateFinalInvoiceAmount);
+        // Add event listeners for input changes
+        gstRateInput.addEventListener('input', recalculateInvoiceTotals);
+        shippingChargeInput.addEventListener('input', recalculateInvoiceTotals);
 
-        // Initial calculation on page load
-        calculateFinalInvoiceAmount();
+        // Initial calculation on page load to ensure all values are correctly displayed
+        recalculateInvoiceTotals();
     });
 </script>
 {% endblock %}

@@ -3,28 +3,37 @@
 {% block title %}User Login - Karthika Futures{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <h3 class="text-center mb-4">User Login via Email OTP</h3>
+<div class="container main-content-area"> {# Added container and main-content-area for consistent styling #}
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <h3 class="text-center mb-4">User Login</h3> {# Changed "via Email OTP" to reflect password login #}
 
-        {# Flash messages are now handled in _base.html #}
+            {# Flash messages are now handled in _base.html #}
 
-        <form method="POST" action="{{ url_for('user_login', next=next_url) }}" class="p-4 border rounded shadow-sm bg-white">
-            <div class="mb-3">
-                <label for="email" class="form-label">Email</label>
-                <input type="email" class="form-control" id="email" name="email" required>
-            </div>
-            {# --- CRITICAL: Hidden field to pass 'next_url' back to the Flask route --- #}
-            {% if next_url %}
-            <input type="hidden" name="next" value="{{ next_url }}">
-            {% endif %}
-            <div class="d-grid gap-2">
-                   <button type="submit" class="btn btn-primary">Send OTP</button>
-            </div>
-        </form>
-        <p class="text-center mt-3">
-            Don't have an account? <a href="{{ url_for('signup') }}">Register here</a>
-        </p>
-    </div>
+            {# IMPORTANT: next_url is handled by app.py via session, not directly in form action #}
+            {# The form action should just be 'user_login'. Flask-Login's redirect handles 'next' #}
+            <form method="POST" action="{{ url_for('user_login') }}" class="p-4 border rounded shadow-sm bg-white">
+                <div class="mb-3"> {# <-- FIXED: Added missing opening '<' here #}
+                    <label for="email" class="form-label">Email address</label>
+                    <input type="email" class="form-control" id="email" name="email" required>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+                {# The 'next' hidden field is typically not needed if Flask-Login handles the redirect properly #}
+                {# Flask-Login will automatically pass `next` in the URL if it initiated the redirect #}
+                {# If you explicitly pass `next_url` as a context variable to the template, #}
+                {# then having the hidden input is fine, but `action="{{ url_for('user_login') }}"` is sufficient. #}
+                
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">Login</button> {# Changed button text from "Send OTP" to "Login" #}
+                </div>
+            </form>
+            <p class="text-center mt-3">
+                Don't have an account? <a href="{{ url_for('signup') }}">Register here</a>
+            </p>
+        </div>
+    </div>
 </div>
 {% endblock %}

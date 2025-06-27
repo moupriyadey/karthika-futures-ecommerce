@@ -1,12 +1,22 @@
-{
-    "smarasada@gmail.com": {
+[
+    {
         "id": "admin",
         "email": "smarasada@gmail.com",
-        "password_hash": "scrypt:32768:8:1$iGXxqtM4a7RJDXmF$001af8005a92d670af60f6755210049f5232bc80d1560417b9b5b72c2fc61d2927732a9a0fa7f08ea905fc4c01818c0dbcfd1b8ef35c7a25965c010a32cd58b7",
+        "password": "scrypt:32768:8:1$iGXxqtM4a7RJDXmF$001af8005a92d670af60f6755210049f5232bc80d1560417b9b5b72c2fc61d2927732a9a0fa7f08ea905fc4c01818c0dbcfd1b8ef35c7a25965c010a32cd58b7",
         "name": "Karthika Futures Admin",
         "phone": "9999999999",
         "address": "Annapoornna Apartment, Sahapur Colony, New Alipore, Kolkata - 700053",
         "pincode": "000000",
         "role": "admin"
+    },
+    {
+        "id": "53201b5c-7602-4b3c-8229-307130f78541",
+        "email": "covcorres@gmail.com",
+        "password": "scrypt:32768:8:1$NaoG3pHZbRnNE7xY$4528e09fcfcb04455e373809bf25b31571ee820f15664b7db8adefeb6fa60eb676064297412b64b49326dc41b5df171e85d972712846aa828f4f0a58e0802bf6",
+        "name": "covcorres",
+        "phone": "8989898989",
+        "address": "KOLKATA",
+        "pincode": "111222",
+        "role": "user"
     }
-}
+]

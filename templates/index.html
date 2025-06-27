@@ -4,158 +4,255 @@
 
 {% block extra_css %}
 <style>
+    /* Main Content Area - A clean, central block */
     .main-content-area {
-        background-color: rgba(255, 255, 255, 0.9); /* Slightly transparent white background for content */
-        padding: 2rem;
-        border-radius: 0.75rem;
-        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15);
+        background-color: rgba(255, 255, 255, 0.98); /* Near-opaque white */
+        padding: 2.5rem;
+        border-radius: 1rem; /* More prominent rounded corners */
+        box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.08); /* Soft, professional shadow */
         margin-top: 2rem; /* Space from fixed navbar */
         margin-bottom: 2rem;
-        position: relative; /* For Sanskrit words positioning */
-        overflow: hidden; /* To contain Sanskrit words */
-        z-index: 10; /* Ensure content is above the body::before overlay */
+        position: relative;
+        overflow: hidden; /* Contains any floating elements */
+        z-index: 10; /* Ensures it's above the body background */
+        border: 1px solid #e0e0e0; /* Subtle border for definition */
     }
 
-    .sanskrit-words-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none; /* Allows clicks to pass through */
-        overflow: hidden;
-    }
-
-    .sanskrit-word {
-        position: absolute;
-        font-family: 'Times New Roman', serif; /* Classic font for Sanskrit */
-        font-size: 5rem; /* Larger for more impact */
-        color: rgba(100, 70, 0, 0.05); /* Very subtle, earthy brown/gold */
-        text-shadow: 
-            1px 1px 2px rgba(0,0,0,0.1),
-            -1px -1px 2px rgba(255,255,255,0.2); /* Shady embossed effect */
-        opacity: 0.8; /* Subtle visibility */
-        transform: rotate(-15deg); /* Slight rotation for manuscript feel */
-        white-space: nowrap; /* Prevent wrapping */
-        user-select: none; /* Prevent text selection */
-        animation: floatAndFade 20s infinite linear; /* Gentle animation */
-        z-index: 0; /* Ensure it's behind content */
-    }
-
-    .sanskrit-word:nth-child(1) { top: 5%; left: 10%; font-size: 4rem; animation-delay: 0s; }
-    .sanskrit-word:nth-child(2) { top: 20%; right: 5%; transform: rotate(10deg); animation-delay: 5s; }
-    .sanskrit-word:nth-child(3) { bottom: 15%; left: 20%; font-size: 4.5rem; animation-delay: 10s; }
-    .sanskrit-word:nth-child(4) { bottom: 5%; right: 20%; transform: rotate(-8deg); animation-delay: 15s; }
-    .sanskrit-word:nth-child(5) { top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(25deg); font-size: 6rem; opacity: 0.03; animation-delay: 20s; } /* Larger, fainter central one */
-
-    @keyframes floatAndFade {
-        0% { transform: translateY(0) scale(1); opacity: 0.05; }
-        50% { transform: translateY(-10px) scale(1.02); opacity: 0.08; }
-        100% { transform: translateY(0) scale(1); opacity: 0.05; }
-    }
-
-    .page-header {
-        text-align: center;
-        margin-bottom: 2rem;
-        position: relative; /* For z-index to be above Sanskrit words */
-        z-index: 1;
-    }
-
-    .page-header h1 {
-        font-size: 3.5rem;
-        font-weight: 700;
-        color: #6b4e28; /* Earthy tone */
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-    }
-    .page-header p.lead {
-        font-size: 1.25rem;
-        color: #4a4a4a;
-        margin-top: 1rem;
-    }
-
-    .banner-img {
-        width: 100%;
-        height: 200px; /* Standard YouTube banner height approx */
-        object-fit: cover;
-        border-radius: 0.5rem;
-        box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
-        margin-bottom: 2rem;
-        display: block; /* Ensure no extra space below */
-    }
-
-    .kurukshetra-img {
-        width: 100%;
-        height: 350px; /* Fixed height for consistency */
-        object-fit: cover; /* Ensures image covers area */
+    /* Hero Section - Simple and inviting */
+    .hero-section {
+        background: linear-gradient(to right, rgba(200, 220, 255, 0.9), rgba(255, 240, 200, 0.9)); /* Soft gradient */
+        padding: 4rem 2rem;
         border-radius: 0.75rem;
-        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.2);
-        margin-bottom: 3rem; /* Space below image */
-        display: block;
+        text-align: center;
+        color: #333; /* Darker text for contrast */
+        margin-bottom: 3rem;
+        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        border: 1px solid #c0c0c0;
+    }
+    .hero-section h1 {
+        font-size: 3.8rem;
+        font-weight: 800;
+        margin-bottom: 1rem;
+        color: #4a4a4a; /* A strong, but not harsh, headline color */
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
+    .hero-section p.lead {
+        font-size: 1.3rem;
+        margin-bottom: 2rem;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+        line-height: 1.6;
+        color: #555;
+    }
+    .hero-section .btn-light {
+        background-color: white;
+        color: #007bff; /* Primary blue accent */
+        border: 2px solid #007bff;
+        font-weight: 600;
+    }
+    .hero-section .btn-light:hover {
+        background-color: #e6f0ff;
+        color: #0056b3;
+        transform: translateY(-2px);
     }
 
-    .artwork-card {
+    /* Section Headers */
+    .section-header {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #6b4e28; /* Earthy tone from previous version, good for theme */
+        text-align: center;
+        margin-bottom: 2.5rem;
+        position: relative;
+        padding-bottom: 0.5rem;
+    }
+    .section-header::after {
+        content: '';
+        display: block;
+        width: 80px;
+        height: 4px;
+        background-color: #007bff; /* Accent color for underline */
+        margin: 0.5rem auto 0;
+        border-radius: 2px;
+    }
+
+    /* Artwork Card Styling - Highly refined */
+    .card.artwork-card {
         border: none;
         border-radius: 0.75rem;
         overflow: hidden;
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        height: 100%; /* Ensure cards in a row have same height */
+        transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        box-shadow: 0 0.25rem 1rem rgba(0,0,0,0.07); /* Subtle card shadow */
+        height: 100%;
         display: flex;
         flex-direction: column;
+        background-color: #ffffff; /* White background for card */
+        border: 1px solid #f0f0f0; /* Very light border */
     }
-    .artwork-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.2);
+    .card.artwork-card:hover {
+        transform: translateY(-8px); /* More pronounced lift on hover */
+        box-shadow: 0 0.8rem 2rem rgba(0,0,0,0.15); /* Stronger shadow on hover */
     }
-    .artwork-card .card-img-top {
-        height: 200px; /* Consistent image height for all cards */
+    .artwork-card img {
+        width: 100%;
+        height: 220px; /* Consistent image height */
         object-fit: cover;
-        border-radius: 0.75rem 0.75rem 0 0;
-        cursor: zoom-in; /* Indicate clickability for modal */
+        border-bottom: 1px solid #f0f0f0; /* Lighter border below image */
+        border-top-left-radius: 0.75rem; /* Match card radius */
+        border-top-right-radius: 0.75rem; /* Match card radius */
+        cursor: zoom-in;
     }
-    .artwork-card .card-body {
-        padding: 1.25rem;
-        flex-grow: 1; /* Allows body to expand and push footer down */
+    .card-body {
+        flex-grow: 1;
         display: flex;
         flex-direction: column;
+        padding: 1.5rem; /* More padding inside card body */
     }
-    .artwork-card .card-title {
-        font-size: 1.25rem;
+    .card-title {
+        font-size: 1.4rem; /* Larger title */
         font-weight: 600;
         color: #333;
-        margin-bottom: 0.5rem;
-    }
-    .artwork-card .card-subtitle {
-        font-size: 0.95rem;
-        color: #666;
         margin-bottom: 0.75rem;
     }
-    .artwork-card .card-text {
-        font-size: 1.1rem;
+    .card-text-description { /* Specific class for description */
+        font-size: 0.95rem;
+        color: #555;
+        margin-bottom: 1rem;
+        line-height: 1.5;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 3; /* Limit to 3 lines */
+        -webkit-box-orient: vertical;
+        flex-grow: 1; /* Allows it to take available space */
+    }
+    .final-price {
+        font-size: 1.75rem; /* Larger final price */
         font-weight: 700;
-        color: #007bff; /* Primary color for price */
-        margin-top: auto; /* Push price to bottom */
-    }
-    .artwork-card .btn-group {
-        display: flex; /* For side-by-side buttons */
-        gap: 0.5rem; /* Space between buttons */
+        color: #28a745; /* Prominent green for price */
         margin-top: 1rem;
+        margin-bottom: 1rem;
     }
-    .artwork-card .btn {
-        flex: 1; /* Make buttons take equal space */
-        border-radius: 0.5rem;
-        font-weight: 600;
-        text-align: center;
-    }
-    .artwork-card .btn-primary {
-        background-color: #007bff;
-        border-color: #007bff;
-    }
-    .artwork-card .btn-success {
-        background-color: #28a745;
-        border-color: #28a745;
+    .price-old {
+        color: #999;
+        font-size: 1rem;
+        margin-right: 0.5rem;
+        text-decoration: line-through; /* Strikethrough for old price */
     }
 
+    /* Form Selects & Inputs within Cards */
+    .form-select, .form-control {
+        border-radius: 0.4rem; /* Rounded inputs */
+        border: 1px solid #dee2e6;
+        padding: 0.6rem 0.9rem;
+        font-size: 0.9rem;
+        color: #333;
+    }
+    .form-select:focus, .form-control:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25);
+    }
+    .form-label {
+        font-weight: 500;
+        color: #495057;
+        margin-bottom: 0.4rem;
+        font-size: 0.95rem;
+    }
+    /* Adjusted margin for form elements to match the original intent */
+    .option-group {
+        margin-bottom: 1rem; 
+    }
+    .option-group:last-of-type {
+        margin-bottom: 0.5rem; /* Less margin for last option group before quantity */
+    }
+    .quantity-group {
+        margin-bottom: 1.5rem;
+    }
+
+    /* Buttons */
+    .btn {
+        font-weight: 600;
+        padding: 0.75rem 1.25rem;
+        border-radius: 0.5rem;
+        transition: all 0.2s ease-in-out;
+        box-shadow: 0 0.2rem 0.5rem rgba(0,0,0,0.1); /* Button shadow */
+    }
+    .add-to-cart-btn {
+        background-color: #007bff; /* Primary blue */
+        border-color: #007bff;
+        color: white;
+    }
+    .add-to-cart-btn:hover {
+        background-color: #0056b3;
+        border-color: #0056b3;
+        transform: translateY(-2px);
+    }
+    .buy-now-btn {
+        background-color: #6f42c1; /* Purple accent */
+        border-color: #6f42c1;
+        color: white;
+    }
+    .buy-now-btn:hover {
+        background-color: #563d7c;
+        border-color: #563d7c;
+        transform: translateY(-2px);
+    }
+    .d-grid.gap-2 {
+        margin-top: auto; /* Push buttons to the bottom of the card body */
+        padding-top: 1rem; /* Space above buttons */
+        border-top: 1px solid #f0f0f0; /* Separator line */
+    }
+
+    /* Testimonials Section */
+    .testimonials-section {
+        background-color: #f8f9fa; /* Light background for testimonials */
+        padding: 3rem 2rem;
+        border-radius: 1rem;
+        box-shadow: inset 0 0 10px rgba(0,0,0,0.05); /* Inner shadow */
+        margin-top: 4rem;
+        text-align: center;
+        border: 1px solid #e0e0e0;
+    }
+    .testimonial-card {
+        background-color: white;
+        border-radius: 0.75rem;
+        padding: 2rem;
+        box-shadow: 0 0.25rem 0.75rem rgba(0,0,0,0.1);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        border: 1px solid #f0f0f0;
+    }
+    .testimonial-card .testimonial-image {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin: 0 auto 1rem;
+        border: 3px solid #007bff;
+    }
+    .testimonial-card .rating .fas {
+        color: #ffc107; /* Gold stars */
+    }
+    .testimonial-card .feedback {
+        font-style: italic;
+        color: #555;
+        margin-bottom: 1rem;
+        flex-grow: 1;
+        line-height: 1.6;
+    }
+    .testimonial-card .author {
+        font-weight: 600;
+        color: #333;
+    }
+    .testimonial-card .product-sku {
+        font-size: 0.85rem;
+        color: #888;
+        margin-top: 0.5rem;
+    }
+
+    /* QR Code Section (re-used) */
     .qr-code-section {
         background-color: rgba(255, 255, 255, 0.95);
         padding: 2.5rem;
@@ -163,6 +260,7 @@
         box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15);
         text-align: center;
         margin-top: 3rem;
+        border: 1px solid #e0e0e0;
     }
     .qr-code-section h3 {
         color: #6b4e28;
@@ -173,7 +271,7 @@
     .qr-code-section img {
         max-width: 180px;
         height: auto;
-        border: 5px solid #007bff; /* Accent border */
+        border: 5px solid #007bff;
         border-radius: 0.5rem;
         box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
         margin-bottom: 1.5rem;
@@ -184,143 +282,258 @@
         margin-bottom: 0.5rem;
     }
 
-    /* Responsive adjustments */
-    @media (max-width: 767.98px) {
+    /* Responsive Adjustments */
+    @media (max-width: 991.98px) { /* Tablets and below */
+        .main-content-area {
+            padding: 1.5rem;
+        }
+        .hero-section {
+            padding: 3rem 1.5rem;
+        }
+        .hero-section h1 {
+            font-size: 3rem;
+        }
+        .hero-section p.lead {
+            font-size: 1.1rem;
+        }
+        .section-header {
+            font-size: 2rem;
+        }
+        .artwork-card img {
+            height: 180px;
+        }
+        .card-title {
+            font-size: 1.2rem;
+        }
+        .final-price {
+            font-size: 1.5rem;
+        }
+        .card-body {
+            padding: 1rem;
+        }
+    }
+
+    @media (max-width: 767.98px) { /* Mobile devices */
         .main-content-area {
             padding: 1rem;
             margin-top: 4rem; /* Adjust for smaller navbar on mobile */
         }
-        .page-header h1 {
-            font-size: 2.5rem; /* Smaller heading on mobile */
+        .hero-section {
+            padding: 2rem 1rem;
         }
-        .page-header p.lead {
+        .hero-section h1 {
+            font-size: 2.2rem;
+        }
+        .hero-section p.lead {
+            font-size: 0.95rem;
+        }
+        .section-header {
+            font-size: 1.8rem;
+            margin-bottom: 2rem;
+        }
+        .artwork-card img {
+            height: 160px;
+        }
+        .card-title {
             font-size: 1rem;
         }
-        .sanskrit-word {
-            font-size: 3rem; /* Smaller Sanskrit words on mobile */
-        }
-        .sanskrit-word:nth-child(1) { top: 3%; left: 5%; font-size: 2.5rem; }
-        .sanskrit-word:nth-child(2) { top: 15%; right: 3%; font-size: 2.8rem; }
-        .sanskrit-word:nth-child(3) { bottom: 10%; left: 10%; font-size: 2.2rem; }
-        .sanskrit-word:nth-child(4) { bottom: 3%; right: 5%; font-size: 2.6rem; }
-        .sanskrit-word:nth-child(5) { font-size: 4rem; } /* Central one */
-
-        .banner-img {
-            height: 120px; /* Smaller banner height on mobile */
-        }
-        .kurukshetra-img {
-            height: 200px; /* Smaller Kurukshetra image height */
-        }
-        .artwork-card .card-img-top {
-            height: 180px; /* Slightly smaller card image height */
-        }
-        .artwork-card .card-body {
-            padding: 1rem;
-        }
-        .artwork-card .card-title {
-            font-size: 1.1rem;
-        }
-        .artwork-card .card-subtitle {
+        .card-text-description {
             font-size: 0.85rem;
+            -webkit-line-clamp: 2; /* Limit description to 2 lines on mobile */
         }
-        .artwork-card .card-text {
-            font-size: 1rem;
+        .final-price {
+            font-size: 1.3rem;
         }
-        .artwork-card .btn-group {
-            flex-direction: column; /* Stack buttons vertically on small screens */
-            gap: 0.25rem;
+        .btn {
+            font-size: 0.9rem;
+            padding: 0.6rem 1rem;
         }
-        .qr-code-section {
-            padding: 1.5rem;
+        .d-grid.gap-2 {
+             display: flex !important; /* Override d-grid for small screens to stack vertically */
+             flex-direction: column;
+             gap: 0.5rem; /* Space between stacked buttons */
         }
         .qr-code-section h3 {
-            font-size: 1.5rem;
+            font-size: 1.6rem;
         }
         .qr-code-section img {
-            max-width: 120px;
-        }
-        .qr-code-section p {
-            font-size: 0.95rem;
+            max-width: 100px;
         }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container main-content-area position-relative">
-    {# Sanskrit words overlay - make sure they are behind actual content #}
-    <div class="sanskrit-words-overlay">
-        <span class="sanskrit-word">ॐ कृष्णाय नमः</span>
-        <span class="sanskrit-word">धर्मक्षेत्रे कुरुक्षेत्रे</span>
-        <span class="sanskrit-word">यतो धर्मस्ततो जयः</span>
-        <span class="sanskrit-word">कर्मण्येवाधिकारस्ते</span>
-        <span class="sanskrit-word">ब्रह्मन्</span>
-    </div>
+<div class="container main-content-area position-relative pt-5">
 
-    <div class="page-header position-relative"> {# Ensure header is above Sanskrit words #}
-        <h1 class="mb-3">Hare Rama.. Hare Krishna</h1>
-        <a href="https://www.youtube.com/@karthikafutures" target="_blank" class="lead d-inline-block text-decoration-none">
-            <i class="fab fa-youtube text-danger me-2"></i> Visit our YouTube channel: @karthikafutures
+    {# Hero Section #}
+    <section class="hero-section">
+        <h1>Welcome to Karthika Futures</h1>
+        <p class="lead">Immerse yourself in a world of spiritual and divine art. Each piece is a journey into timeless wisdom, crafted to inspire and uplift your spirit.</p>
+        <a href="{{ url_for('all_products') }}" class="btn btn-lg btn-light rounded-pill px-5 py-3 shadow-lg">
+            Explore Our Collection <i class="fas fa-arrow-right ms-2"></i>
         </a>
-    </div>
+    </section>
 
-    {# Small banner at the top #}
-    <div class="text-center mb-5">
-        <img src="https://placehold.co/1200x200/cccccc/333333?text=Your+YouTube+Banner+Here" alt="YouTube Channel Banner" class="banner-img">
-    </div>
+    {# Macro to render artwork sections by category or featured #}
+    {% macro render_artwork_section(title, artworks) %}
+    <section class="py-5">
+        <h2 class="section-header">{{ title }}</h2>
+        {% if artworks %}
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% for artwork in artworks %}
+            <div class="col">
+                <div class="card artwork-card h-100" data-artwork-sku="{{ artwork.sku }}">
+                    {# Use first image if available, otherwise placeholder #}
+                    {% if artwork.images and artwork.images[0] %}
+                    <img src="{{ url_for('static', filename=artwork.images[0]) }}" class="card-img-top clickable-image" alt="{{ artwork.name }}"
+                         onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/placeholder.png') }}';" loading="lazy">
+                    {% else %}
+                    <img src="{{ url_for('static', filename='images/placeholder.png') }}" class="card-img-top clickable-image" alt="No Image Available" loading="lazy">
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ artwork.name }}</h5>
+                        <h6 class="card-subtitle text-muted mb-2">Category: {{ artwork.category }}</h6>
+                        
+                        <p class="card-text-description">{{ artwork.description | default("No description available for this artwork.") }}</p>
+                        
+                        {# Display initial price (Original Price) #}
+                        <p class="final-price" data-original-price="{{ artwork.original_price | round(2) }}">
+                            ₹{{ artwork.original_price | round(2) }}
+                        </p>
 
-    {# Embedded image of Kurukshetra field #}
-    <div class="text-center mb-5">
-        <img src="https://placehold.co/1200x350/a0c4ff/2b2d42?text=Lord+Krishna+Vishwarup+in+Kurukshetra" alt="Lord Krishna Vishwarup in Kurukshetra" class="kurukshetra-img">
-        <small class="d-block text-muted mt-2">A depiction of Lord Krishna showing His Universal Form (Vishwarup) to Arjuna on the battlefield of Kurukshetra.</small>
-    </div>
-
-    <h3 class="text-center mb-4 text-primary">Our Latest Artworks</h3>
-    
-    {% if all_artworks %}
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-        {% for artwork in all_artworks %}
-        <div class="col">
-            <div class="card artwork-card">
-                {% if artwork.images and artwork.images[0] %}
-                <img src="{{ url_for('static', filename=artwork.images[0]) }}" class="card-img-top clickable-image" alt="{{ artwork.name }}">
-                {% else %}
-                <img src="https://placehold.co/400x200/cccccc/333333?text=No+Image" class="card-img-top clickable-image" alt="No Image">
-                {% endif %}
-                <div class="card-body">
-                    <h5 class="card-title">{{ artwork.name }}</h5>
-                    <h6 class="card-subtitle mb-2 text-muted">{{ artwork.category }}</h6>
-                    <p class="card-text">₹{{ artwork.original_price | int }}</p>
-                    <div class="btn-group">
-                        <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary">View Details</a>
-                        {% if artwork.stock > 0 %}
-                        <button class="btn btn-success add-to-cart-btn"
-                                data-sku="{{ artwork.sku }}"
-                                data-name="{{ artwork.name }}"
-                                data-image="{{ url_for('static', filename=artwork.images[0]) if artwork.images else 'https://placehold.co/240x240/cccccc/333333?text=No+Image' }}"
-                                data-original-price="{{ artwork.original_price }}"
-                                data-size="Original"
-                                data-frame="None"
-                                data-glass="None"
-                                data-size-price="0"
-                                data-frame-price="0"
-                                data-glass-price="0">
-                            Add to Cart
-                        </button>
+                        {# Options section - only for 'Paintings' category #}
+                        {% if artwork.category == 'Paintings' %}
+                            <div class="option-group">
+                                <label for="size-{{ artwork.sku }}" class="form-label">Size</label>
+                                <select class="form-select size-select" id="size-{{ artwork.sku }}">
+                                    <option value="Original" data-price="0">Original (No Change)</option>
+                                    {% if artwork.size_a4 %}
+                                        <option value="A4" data-price="{{ artwork.size_a4 }}">A4 (+₹{{ artwork.size_a4 | round(2) }})</option>
+                                    {% endif %}
+                                    {% if artwork.size_a5 %}
+                                        <option value="A5" data-price="{{ artwork.size_a5 }}">A5 (+₹{{ artwork.size_a5 | round(2) }})</option>
+                                    {% endif %}
+                                    {% if artwork.size_letter %}
+                                        <option value="Letter" data-price="{{ artwork.size_letter }}">Letter (+₹{{ artwork.size_letter | round(2) }})</option>
+                                    {% endif %}
+                                    {% if artwork.size_legal %}
+                                        <option value="Legal" data-price="{{ artwork.size_legal }}">Legal (+₹{{ artwork.size_legal | round(2) }})</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+                            <div class="option-group">
+                                <label for="frame-{{ artwork.sku }}" class="form-label">Frame</label>
+                                <select class="form-select frame-select" id="frame-{{ artwork.sku }}">
+                                    <option value="None" data-price="0">None</option>
+                                    {% if artwork.frame_wooden %}
+                                        <option value="Wooden" data-price="{{ artwork.frame_wooden }}">Wooden (+₹{{ artwork.frame_wooden | round(2) }})</option>
+                                    {% endif %}
+                                    {% if artwork.frame_metal %}
+                                        <option value="Metal" data-price="{{ artwork.frame_metal }}">Metal (+₹{{ artwork.frame_metal | round(2) }})</option>
+                                    {% endif %}
+                                    {% if artwork.frame_pvc %}
+                                        <option value="PVC" data-price="{{ artwork.frame_pvc }}">PVC (+₹{{ artwork.frame_pvc | round(2) }})</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+                            <div class="option-group">
+                                <label for="glass-{{ artwork.sku }}" class="form-label">Glass</label>
+                                <select class="form-select glass-select" id="glass-{{ artwork.sku }}">
+                                    <option value="None" data-price="0">Without Glass</option>
+                                    {% if artwork.glass_price %}
+                                        <option value="Standard" data-price="{{ artwork.glass_price }}">With Glass (+₹{{ artwork.glass_price | round(2) }})</option>
+                                    {% endif %}
+                                </select>
+                            </div>
                         {% else %}
-                        <button class="btn btn-secondary" disabled>Out of Stock</button>
+                            {# Hidden inputs for non-painting categories to ensure options are sent as 'Original' / 'None' #}
+                            <input type="hidden" class="size-select" value="Original" data-price="0">
+                            <input type="hidden" class="frame-select" value="None" data-price="0">
+                            <input type="hidden" class="glass-select" value="None" data-price="0">
+                        {% endif %}
+                        
+                        <div class="mb-3 quantity-group">
+                            <label for="quantity-{{ artwork.sku }}" class="form-label">Quantity</label>
+                            <input type="number" class="form-control quantity-input" id="quantity-{{ artwork.sku }}" value="1" min="1" max="{{ artwork.stock }}">
+                            <small class="text-muted">Available: {{ artwork.stock }}</small>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary add-to-cart-btn" data-sku="{{ artwork.sku }}"
+                                    data-name="{{ artwork.name }}"
+                                    data-image="{{ url_for('static', filename=artwork.images[0]) if artwork.images else url_for('static', filename='images/placeholder.png') }}"
+                                    {% if artwork.stock == 0 %} disabled {% endif %}>
+                                🛒 Add to Cart
+                            </button>
+                            <button class="btn btn-purple buy-now-btn" data-sku="{{ artwork.sku }}"
+                                    data-name="{{ artwork.name }}"
+                                    data-image="{{ url_for('static', filename=artwork.images[0]) if artwork.images else url_for('static', filename='images/placeholder.png') }}"
+                                    {% if artwork.stock == 0 %} disabled {% endif %}>
+                                Buy Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-center text-muted fs-5 py-4">No artworks found in this category yet.</p>
+        {% endif %}
+    </section>
+    {% endmacro %}
+
+    {# Render all defined sections #}
+    {% if featured_artworks %}
+        {{ render_artwork_section("🌟 Featured Artworks", featured_artworks) }}
+    {% endif %}
+
+    {% if artworks_by_category %}
+        {% for category_name, artworks_in_category in artworks_by_category.items() %}
+            {{ render_artwork_section(category_name + " Collection", artworks_in_category) }}
+        {% endfor %}
+    {% endif %}
+
+    {% if not featured_artworks and not artworks_by_category %}
+        <p class="text-center text-muted fs-5 py-4">No artworks available yet. Please check back later!</p>
+    {% endif %}
+
+    {# Testimonials Section #}
+    {% if testimonials %}
+    <section class="testimonials-section">
+        <h3 class="section-header">What Our Customers Say</h3>
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% for testimonial in testimonials %}
+            <div class="col">
+                <div class="testimonial-card">
+                    <div>
+                        <img src="{{ url_for('static', filename=testimonial.image) }}" alt="{{ testimonial.name }}" class="testimonial-image"
+                             onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/user-placeholder.png') }}';">
+                        <div class="rating mb-2">
+                            {% for _ in range(testimonial.rating) %}
+                                <i class="fas fa-star"></i>
+                            {% endfor %}
+                            {% for _ in range(5 - testimonial.rating) %}
+                                <i class="far fa-star"></i>
+                            {% endfor %}
+                        </div>
+                        <p class="feedback">"{{ testimonial.feedback }}"</p>
+                    </div>
+                    <div>
+                        <p class="author">- {{ testimonial.name }}</p>
+                        {% if testimonial.product_sku %} {# Use product_sku from backend #}
+                        <p class="product-sku">Purchased: SKU: {{ testimonial.product_sku }}</p>
                         {% endif %}
                     </div>
                 </div>
             </div>
+            {% endfor %}
         </div>
-        {% endfor %}
-    </div>
-    {% else %}
-    <p class="text-center text-muted fs-5 py-4">No artworks available yet. Please check back later!</p>
+    </section>
     {% endif %}
 
-    {# Optional QR Code Section below products #}
+    {# QR Code Section #}
     <div class="row mt-5">
         <div class="col-md-6 offset-md-3">
             <div class="qr-code-section">
@@ -337,37 +550,187 @@
 
 {% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // Add to Cart button functionality
-        document.querySelectorAll('.add-to-cart-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const sku = this.dataset.sku;
-                const name = this.dataset.name;
-                const image = this.dataset.image;
-                const originalPrice = parseFloat(this.dataset.originalPrice);
-                const options = {
-                    size: this.dataset.size,
-                    frame: this.dataset.frame,
-                    glass: this.dataset.glass,
-                    sizePrice: parseFloat(this.dataset.sizePrice || 0),
-                    framePrice: parseFloat(this.dataset.framePrice || 0),
-                    glassPrice: parseFloat(this.dataset.glassPrice || 0)
-                };
-                // Ensure addToCart is called, which should exist globally from base.html
-                if (typeof addToCart === 'function') {
-                    addToCart(sku, name, image, originalPrice, options);
-                } else {
-                    console.error("addToCart function not found. Is base.html loaded correctly?");
-                }
-            });
+    document.addEventListener('DOMContentLoaded', function () {
+        // Function to calculate final price based on selected options and quantity
+        // This function now takes the artwork object (with all prices) and selected option values
+        function calculateAndDisplayPrice(card) {
+            const artworkSku = card.dataset.artworkSku;
+            const originalPrice = parseFloat(card.querySelector('.final-price').dataset.originalPrice);
+
+            let selectedSize = 'Original';
+            let selectedFrame = 'None';
+            let selectedGlass = 'None';
+            let sizePrice = 0;
+            let framePrice = 0;
+            let glassPrice = 0;
+
+            const sizeSelect = card.querySelector('.size-select');
+            if (sizeSelect) {
+                selectedSize = sizeSelect.value;
+                const selectedOption = sizeSelect.options[sizeSelect.selectedIndex];
+                sizePrice = parseFloat(selectedOption.dataset.price || 0);
+            }
+
+            const frameSelect = card.querySelector('.frame-select');
+            if (frameSelect) {
+                selectedFrame = frameSelect.value;
+                const selectedOption = frameSelect.options[frameSelect.selectedIndex];
+                framePrice = parseFloat(selectedOption.dataset.price || 0);
+            }
+
+            const glassSelect = card.querySelector('.glass-select');
+            if (glassSelect) {
+                selectedGlass = glassSelect.value;
+                const selectedOption = glassSelect.options[glassSelect.selectedIndex];
+                glassPrice = parseFloat(selectedOption.dataset.price || 0);
+            }
+            
+            const quantityInput = card.querySelector('.quantity-input');
+            let selectedQuantity = parseInt(quantityInput.value) || 1;
+            
+            // Clamp quantity to available stock
+            const maxStock = parseInt(quantityInput.max);
+            if (selectedQuantity > maxStock) {
+                selectedQuantity = maxStock;
+                quantityInput.value = selectedQuantity; // Update input field
+                showCustomAlert(`Only ${maxStock} available. Quantity adjusted.`, 'warning');
+            } else if (selectedQuantity < 1) {
+                selectedQuantity = 1;
+                quantityInput.value = selectedQuantity;
+            }
+
+            const unitPriceAfterOptions = originalPrice + sizePrice + framePrice + glassPrice;
+            const finalCalculatedPrice = unitPriceAfterOptions * selectedQuantity;
+
+            // Update the displayed price
+            card.querySelector('.final-price').textContent = `₹${finalCalculatedPrice.toFixed(2)}`;
+
+            // Store the calculated unit price on the card for direct access by buttons
+            card.dataset.calculatedUnitPrice = unitPriceAfterOptions.toFixed(2);
+            card.dataset.currentQuantity = selectedQuantity;
+            card.dataset.currentSize = selectedSize;
+            card.dataset.currentFrame = selectedFrame;
+            card.dataset.currentGlass = selectedGlass;
+        }
+
+        // Loop through each artwork card to attach event listeners
+        document.querySelectorAll('.artwork-card').forEach(card => {
+            const artworkSku = card.dataset.artworkSku;
+            const sizeSelect = card.querySelector('.size-select');
+            const frameSelect = card.querySelector('.frame-select');
+            const glassSelect = card.querySelector('.glass-select');
+            const quantityInput = card.querySelector('.quantity-input');
+            const addToCartBtn = card.querySelector('.add-to-cart-btn');
+            const buyNowBtn = card.querySelector('.buy-now-btn');
+
+            // Attach event listeners for option changes
+            if (sizeSelect) sizeSelect.addEventListener('change', () => calculateAndDisplayPrice(card));
+            if (frameSelect) frameSelect.addEventListener('change', () => calculateAndDisplayPrice(card));
+            if (glassSelect) glassSelect.addEventListener('change', () => calculateAndDisplayPrice(card));
+            if (quantityInput) quantityInput.addEventListener('input', () => calculateAndDisplayPrice(card));
+            if (quantityInput) quantityInput.addEventListener('change', () => calculateAndDisplayPrice(card));
+
+            // Initial price update when the page loads for each card
+            calculateAndDisplayPrice(card);
+
+            // Add to Cart button functionality
+            if (addToCartBtn) {
+                addToCartBtn.addEventListener('click', async function () {
+                    const sku = this.dataset.sku;
+                    const name = this.dataset.name;
+                    const imageUrl = this.dataset.image;
+
+                    // Get currently selected options and quantity from the card's dataset
+                    const currentSize = card.dataset.currentSize;
+                    const currentFrame = card.dataset.currentFrame;
+                    const currentGlass = card.dataset.currentGlass;
+                    const currentQuantity = parseInt(card.dataset.currentQuantity);
+                    const unitPriceAfterOptions = parseFloat(card.dataset.calculatedUnitPrice);
+
+                    const options = {
+                        size: currentSize,
+                        frame: currentFrame,
+                        glass: currentGlass,
+                        // The `addToCart` function in _base.html handles fetching original prices and calculating
+                        // based on the options, so we don't pass `sizePrice`, `framePrice`, `glassPrice` here.
+                        // We rely on it to get the latest data from the backend.
+                    };
+
+                    if (typeof addToCart === 'function') {
+                        await addToCart(sku, name, imageUrl, unitPriceAfterOptions, options, currentQuantity);
+                    } else {
+                        console.error("Global addToCart function not found. Cannot add to cart.");
+                        showCustomAlert("Cart functionality is not available. Please contact support.", 'danger');
+                    }
+                });
+            }
+
+            // Buy Now button functionality
+            if (buyNowBtn) {
+                buyNowBtn.addEventListener('click', async function () {
+                    const sku = this.dataset.sku;
+                    const name = this.dataset.name;
+                    const imageUrl = this.dataset.image;
+
+                    // Get currently selected options and quantity from the card's dataset
+                    const selectedSize = card.dataset.currentSize;
+                    const selectedFrame = card.dataset.currentFrame;
+                    const selectedGlass = card.dataset.currentGlass;
+                    const selectedQuantity = parseInt(card.dataset.currentQuantity);
+                    const unitPriceAfterOptions = parseFloat(card.dataset.calculatedUnitPrice);
+
+                    // Prepare item for direct checkout (simulating a single-item cart)
+                    // Note: The 'unit_price' here is the price *after* options, but *before* GST.
+                    // The `create_direct_order` endpoint in `app.py` will re-calculate GST and totals.
+                    const itemId = `${sku}-${selectedSize}-${selectedFrame}-${selectedGlass}`;
+                    const buyNowCart = {};
+                    buyNowCart[itemId] = {
+                        id: itemId,
+                        sku: sku,
+                        name: name,
+                        image: imageUrl,
+                        unit_price: unitPriceAfterOptions, // Price after options, before GST
+                        unit_price_before_gst: unitPriceAfterOptions, // Same as unit_price for this context
+                        quantity: selectedQuantity,
+                        size: selectedSize,
+                        frame: selectedFrame,
+                        glass: selectedGlass,
+                        gst_percentage: 0, // Placeholder, actual GST from server
+                        gst_amount: 0, // Placeholder, actual GST from server
+                        total_price_before_gst: unitPriceAfterOptions * selectedQuantity,
+                        total_price: unitPriceAfterOptions * selectedQuantity // Placeholder, actual total from server
+                    };
+
+                    // Send this temporary cart to the server
+                    try {
+                        const response = await fetch('{{ url_for("create_direct_order") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ cart: buyNowCart })
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            showCustomAlert(data.message, 'success');
+                            window.location.href = data.redirect_url; // Redirect to payment_initiate or purchase_form
+                        } else {
+                            showCustomAlert(`Failed to place order: ${data.message}`, 'danger');
+                            console.error("ERROR: Failed to create direct order:", data.message);
+                        }
+                    } catch (error) {
+                        console.error("ERROR: Network error placing direct order:", error);
+                        showCustomAlert("Network error. Please check your connection or try again later.", 'danger');
+                    }
+                });
+            }
         });
 
         // Event listener for opening the modal for product images
-        // This is explicitly for images within product cards, not the global .card-img-top
         document.querySelectorAll('.artwork-card .card-img-top').forEach(img => {
             img.style.cursor = 'zoom-in';
             img.addEventListener('click', (event) => {
-                event.preventDefault(); // Prevent default link behavior if applicable
+                event.preventDefault();
                 document.getElementById('modalImage').src = img.src;
                 document.getElementById('imageModal').style.display = 'flex';
             });

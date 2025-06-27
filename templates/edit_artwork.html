@@ -6,7 +6,7 @@
 <div class="container main-content-area position-relative">
     <h2 class="text-center mb-4">Edit Artwork: {{ artwork.name }}</h2>
     
-    <form action="{{ url_for('edit_artwork', sku=artwork.sku) }}" method="POST" enctype="multipart/form-data" class="p-4 border rounded shadow-sm bg-light">
+    <form action="{{ url_for('edit_artwork', sku=artwork.sku) }}" method="POST" enctype="multipart/form-data" class="p-4 border rounded shadow-sm bg-light" id="editArtworkForm">
         <div class="row g-3 mb-4">
             <div class="col-md-6">
                 <label for="name" class="form-label">Artwork Name</label>
@@ -61,7 +61,8 @@
                         <div class="card h-100 shadow-sm position-relative">
                             <img src="{{ url_for('static', filename=image_url) }}" class="card-img-top" alt="Artwork Image" style="height: 120px; object-fit: cover;">
                             <div class="form-check position-absolute top-0 end-0 m-2">
-                                <input class="form-check-input" type="checkbox" name="images_to_keep" value="{{ image_url }}" checked id="image-{{ loop.index }}">
+                                {# IMPORTANT: Changed name to class="image-checkbox" #}
+                                <input class="form-check-input image-checkbox" type="checkbox" value="{{ image_url }}" checked id="image-{{ loop.index }}">
                                 <label class="form-check-label visually-hidden" for="image-{{ loop.index }}">Keep Image</label>
                             </div>
                             <div class="card-footer text-center bg-transparent border-top-0 pt-1 pb-0">
@@ -75,6 +76,8 @@
             {% else %}
                 <p class="text-muted">No images currently uploaded for this artwork.</p>
             {% endif %}
+            {# Hidden input to send JSON array of images to keep #}
+            <input type="hidden" name="images_to_keep" id="imagesToKeepHiddenInput" value="">
         </div>
 
         <!-- New Images Upload -->
@@ -134,4 +137,44 @@
         </div>
     </form>
 </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('editArtworkForm');
+        const imagesToKeepHiddenInput = document.getElementById('imagesToKeepHiddenInput');
+        const imageCheckboxes = document.querySelectorAll('.image-checkbox');
+
+        function updateImagesToKeepHiddenInput() {
+            const checkedImages = [];
+            imageCheckboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    checkedImages.push(checkbox.value);
+                }
+            });
+            // Ensure the hidden input always contains a valid JSON array string
+            imagesToKeepHiddenInput.value = JSON.stringify(checkedImages);
+            console.log("DEBUG: imagesToKeepHiddenInput value updated to:", imagesToKeepHiddenInput.value);
+        }
+
+        // Update the hidden input whenever a checkbox state changes
+        imageCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateImagesToKeepHiddenInput);
+        });
+
+        // Initial update when the page loads (important for default checked states)
+        // This ensures the hidden input is populated even if no checkboxes are changed
+        updateImagesToKeepHiddenInput();
+
+        // Listen for form submission to ensure the latest values are sent
+        form.addEventListener('submit', function(event) {
+            updateImagesToKeepHiddenInput(); // One final update before submission
+            console.log("DEBUG: Form submitted. Final imagesToKeep payload:", imagesToKeepHiddenInput.value);
+            // If you need to prevent default submission for AJAX, uncomment event.preventDefault() here
+            // event.preventDefault(); 
+        });
+    });
+</script>
 {% endblock %}

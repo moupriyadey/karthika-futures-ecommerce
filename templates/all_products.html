@@ -6,79 +6,236 @@
 <div class="container main-content-area position-relative">
     <h2 class="text-center mb-4">Explore All Artworks</h2>
 
+    {# Search and Category Filter Section #}
+    <div class="mb-6">
+        <form action="{{ url_for('all_products') }}" method="GET" class="flex flex-col md:flex-row items-center justify-center space-y-2 md:space-y-0 md:space-x-4">
+            {# Search Input Field #}
+            <input type="text" name="query" placeholder="Search by name, SKU, or description..." 
+                   value="{{ search_query | default('') }}" 
+                   class="flex-grow p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-200 focus:border-blue-500 shadow-sm w-full md:w-auto">
+            
+            {# Category Dropdown Filter #}
+            <select name="category" onchange="this.form.submit()"
+                    class="p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-200 focus:border-blue-500 shadow-sm w-full md:w-auto">
+                <option value="">All Categories</option>
+                {# 'categories' is globally available via the context processor in app.py #}
+                {% for category in categories %}
+                <option value="{{ category.name }}" {% if selected_category == category.name %}selected{% endif %}>
+                    {{ category.name }}
+                </option>
+                {% endfor %}
+            </select>
+            
+            {# Search Button #}
+            <button type="submit" class="p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 shadow-sm w-full md:w-auto">
+                <i class="fas fa-search me-2"></i> Search
+            </button>
+        </form>
+    </div>
+
     {% if artworks %}
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
         {% for artwork in artworks %}
         <div class="col">
-            <div class="card artwork-card">
-                {% if artwork.images and artwork.images[0] %}
-                <img src="{{ url_for('static', filename=artwork.images[0]) }}" class="card-img-top clickable-image" alt="{{ artwork.name }}">
-                {% else %}
-                <img src="https://placehold.co/400x200/cccccc/333333?text=No+Image" class="card-img-top clickable-image" alt="No Image">
-                {% endif %}
-                <div class="card-body">
-                    <h5 class="card-title">{{ artwork.name }}</h5>
-                    <h6 class="card-subtitle mb-2 text-muted">{{ artwork.category }}</h6>
-                    <p class="card-text">₹{{ artwork.original_price | int }}</p>
-                    <div class="btn-group">
-                        <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary">View Details</a>
-                        {% if artwork.stock > 0 %}
-                        <button class="btn btn-success add-to-cart-btn"
-                                data-sku="{{ artwork.sku }}"
-                                data-name="{{ artwork.name }}"
-                                data-image="{{ url_for('static', filename=artwork.images[0]) if artwork.images else 'https://placehold.co/240x240/cccccc/333333?text=No+Image' }}"
-                                data-original-price="{{ artwork.original_price }}"
-                                data-size="Original"
-                                data-frame="None"
-                                data-glass="None"
-                                data-size-price="0"
-                                data-frame-price="0"
-                                data-glass-price="0">
-                            Add to Cart
+            <div class="card artwork-card h-100"> {# Added h-100 for consistent height #}
+                {% if artwork.images and artwork.images|length > 0 %}
+                    {# Bootstrap Carousel for multiple images #}
+                    <div id="carousel-{{ artwork.sku }}" class="carousel slide" data-bs-ride="carousel" data-bs-interval="false">
+                        <div class="carousel-inner">
+                            {% for image_url in artwork.images %}
+                            <div class="carousel-item {% if loop.first %}active{% endif %}">
+                                <img src="{{ url_for('static', filename=image_url) }}" class="d-block w-100 card-img-top clickable-image" alt="{{ artwork.name }} - Image {{ loop.index }}" style="height: 200px; object-fit: cover;">
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% if artwork.images|length > 1 %}
+                        {# Carousel controls (arrows) #}
+                        <button class="carousel-control-prev" type="button" data-bs-target="#carousel-{{ artwork.sku }}" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Previous</span>
                         </button>
-                        {% else %}
-                        <button class="btn btn-secondary" disabled>Out of Stock</button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#carousel-{{ artwork.sku }}" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
                         {% endif %}
                     </div>
-                </div>
+                {% else %}
+                    {# Fallback if no images #}
+                    <img src="https://placehold.co/400x200/cccccc/333333?text=No+Image" class="card-img-top clickable-image" alt="No Image" style="height: 200px; object-fit: cover;">
+                {% endif %}
+                <div class="card-body d-flex flex-column"> {# Added d-flex flex-column for better layout #}
+                    <h5 class="card-title">{{ artwork.name }}</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">{{ artwork.category }}</h6>
+                    {# Make description visible #}
+                    <p class="card-text card-description-short text-muted text-sm mb-2">{{ artwork.description | default('No description provided.') | truncate(100, True, '...') }}</p>
+
+                    <p class="card-text font-semibold text-lg text-end mt-auto">₹{{ artwork.original_price | default(0) | int }}</p> {# mt-auto pushes price to bottom #}
+
+                    <div class="d-grid gap-2 mt-3"> {# Use Bootstrap grid for buttons #}
+                        {% if artwork.stock | default(0) > 0 %}
+                            {# BUY NOW button #}
+                            <button class="btn btn-warning btn-block buy-now-btn"
+                                    data-sku="{{ artwork.sku }}"
+                                    data-name="{{ artwork.name }}"
+                                    data-original-price="{{ artwork.original_price | default(0) }}"
+                                    data-size="Original"
+                                    data-frame="None"
+                                    data-glass="None">
+                                Buy Now
+                            </button>
+                            {# ADD TO CART button #}
+                            <button class="btn btn-success btn-block add-to-cart-btn"
+                                    data-sku="{{ artwork.sku }}"
+                                    data-name="{{ artwork.name }}"
+                                    data-original-price="{{ artwork.original_price | default(0) }}"
+                                    data-size="Original"
+                                    data-frame="None"
+                                    data-glass="None"
+                                    data-size-price="0"
+                                    data-frame-price="0"
+                                    data-glass-price="0">
+                                Add to Cart
+                            </button>
+                        {% else %}
+                            <button class="btn btn-secondary btn-block" disabled>Out of Stock</button>
+                        {% endif %}
+                        {# VIEW DETAILS button (always available if SKU is valid) #}
+                        {% if artwork.sku and artwork.sku is string and artwork.sku|length > 0 %}
+                        <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary btn-block">View Details</a>
+                        {% else %}
+                        <button class="btn btn-secondary btn-block" disabled title="Product details unavailable. Missing SKU.">View Details</button>
+                        {% endif %}
+                    </div>
+                </div> {# Closes card-body #}
+            </div> {# Closes artwork-card #}
+        </div> {# Closes col #}
+        {% endfor %}
+    </div> {# Closes row #}
+    {% else %}
+    <p class="text-center text-muted fs-5 py-4">No artworks found matching your criteria.</p>
+    {% endif %}
+
+    {# Optional QR Code Section below products #}
+    <div class="row mt-5">
+        <div class="col-md-6 offset-md-3">
+            <div class="qr-code-section">
+                <h3>Support Our Divine Mission</h3>
+                <p>Your contributions help us share sacred art and wisdom.</p>
+                <img src="{{ url_for('static', filename='uploads/qr_code.png') }}" alt="Donation QR Code">
+                <p class="lead">Scan to Donate via UPI</p>
             </div>
         </div>
-        {% endfor %}
     </div>
-    {% else %}
-    <div class="alert alert-info text-center" role="alert">
-        No artworks are available yet. Please check back later!
-    </div>
-    {% endif %}
-</div>
-{% endblock %}
+</div> {# Closes container main-content-area #}
+
+{% endblock %} {# Closes block content #}
 
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Add to Cart button functionality
+        // Add to Cart button functionality (existing, no change here)
         document.querySelectorAll('.add-to-cart-btn').forEach(button => {
             button.addEventListener('click', function() {
                 const sku = this.dataset.sku;
                 const name = this.dataset.name;
-                const image = this.dataset.image;
-                const originalPrice = parseFloat(this.dataset.originalPrice);
+                
+                let imageUrl = '{{ url_for('static', filename='images/placeholder.png') }}'; // Default placeholder
+
+                const artworkCard = this.closest('.artwork-card');
+                if (artworkCard) {
+                    const carouselElement = artworkCard.querySelector('.carousel');
+                    if (carouselElement) {
+                        const activeImageElement = carouselElement.querySelector('.carousel-item.active img');
+                        if (activeImageElement && activeImageElement.src) {
+                            const fullUrl = activeImageElement.src;
+                            const staticPathIndex = fullUrl.indexOf('/static/');
+                            if (staticPathIndex !== -1) {
+                                imageUrl = fullUrl.substring(staticPathIndex + '/static/'.length);
+                            }
+                        }
+                    } else {
+                        const mainImageElement = artworkCard.querySelector('.card-img-top');
+                        if (mainImageElement && mainImageElement.src) {
+                            const fullUrl = mainImageElement.src;
+                            const staticPathIndex = fullUrl.indexOf('/static/');
+                            if (staticPathIndex !== -1) {
+                                imageUrl = fullUrl.substring(staticPathIndex + '/static/'.length);
+                            }
+                        }
+                    }
+                }
+
                 const options = {
-                    size: this.dataset.size,
-                    frame: this.dataset.frame,
-                    glass: this.dataset.glass,
-                    sizePrice: parseFloat(this.dataset.sizePrice || 0),
-                    framePrice: parseFloat(this.dataset.framePrice || 0),
-                    glassPrice: parseFloat(this.dataset.glassPrice || 0)
+                    size: 'Original', // Fixed for all_products view
+                    frame: 'None',    // Fixed for all_products view
+                    glass: 'None'     // Fixed for all_products view
                 };
-                // Ensure addToCart is called, which should exist globally from _base.html
+                
                 if (typeof addToCart === 'function') {
-                    addToCart(sku, name, image, originalPrice, options);
+                    addToCart(sku, name, imageUrl, null, options, 1); 
                 } else {
                     console.error("addToCart function not found. Is _base.html loaded correctly?");
                 }
             });
         });
+
+        // NEW: Buy Now button functionality - MAKE SURE THIS IS PRESENT AND CORRECT
+        document.querySelectorAll('.buy-now-btn').forEach(button => {
+            button.addEventListener('click', async function() { // Added 'async' keyword here
+                const sku = this.dataset.sku;
+                const name = this.dataset.name;
+
+                let imageUrl = '{{ url_for('static', filename='images/placeholder.png') }}'; // Default placeholder
+
+                const artworkCard = this.closest('.artwork-card');
+                if (artworkCard) {
+                    const carouselElement = artworkCard.querySelector('.carousel');
+                    if (carouselElement) {
+                        const activeImageElement = carouselElement.querySelector('.carousel-item.active img');
+                        if (activeImageElement && activeImageElement.src) {
+                            const fullUrl = activeImageElement.src;
+                            const staticPathIndex = fullUrl.indexOf('/static/');
+                            if (staticPathIndex !== -1) {
+                                imageUrl = fullUrl.substring(staticPathIndex + '/static/'.length);
+                            }
+                        }
+                    } else {
+                        const mainImageElement = artworkCard.querySelector('.card-img-top');
+                        if (mainImageElement && mainImageElement.src) {
+                            const fullUrl = mainImageElement.src;
+                            const staticPathIndex = fullUrl.indexOf('/static/');
+                            if (staticPathIndex !== -1) {
+                                imageUrl = fullUrl.substring(staticPathIndex + '/static/'.length);
+                            }
+                        }
+                    }
+                }
+
+                const options = {
+                    size: 'Original', // Fixed for all_products view
+                    frame: 'None',    // Fixed for all_products view
+                    glass: 'None'     // Fixed for all_products view
+                };
+
+                if (typeof buyNow === 'function') {
+                    await buyNow(sku, name, imageUrl, options, 1); // Default quantity 1 for Buy Now
+                } else {
+                    console.error("buyNow function not found. Is _base.html loaded correctly?");
+                    showCustomAlert("Error: Buy Now functionality not available. Please refresh.", 'danger');
+                }
+            });
+        });
+
+        // Event listener for opening the modal for product images (existing, no change here)
+        document.querySelectorAll('.artwork-card .clickable-image').forEach(img => {
+            img.style.cursor = 'zoom-in';
+            img.addEventListener('click', (event) => {
+                event.preventDefault(); 
+                document.getElementById('modalImage').src = img.src;
+                document.getElementById('imageModal').style.display = 'flex';
+            });
+        });
     });
 </script>
-{% endblock %}
+{% endblock %} {# THIS IS THE MISSING ENDBLOCK #}

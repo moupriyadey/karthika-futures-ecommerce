@@ -1,87 +1,165 @@
-{% extends 'base.html' %}
+{% extends '_base.html' %}
+
+{% block title %}Search Results - Karthika Futures{% endblock %}
 
 {% block content %}
-<div class="container mx-auto p-4 bg-white bg-opacity-90 rounded-lg shadow-lg">
-    <h2 class="text-4xl font-bold text-gray-800 mb-6 text-center">Search Results</h2>
+<div class="container mx-auto p-4 my-8">
+    <h1 class="text-4xl font-bold text-gray-800 mb-8 text-center">
+        Search Results {% if query %}for "{{ query }}"{% endif %}
+        {% if category_filter %} in Category: "{{ category_filter }}"{% endif %}
+    </h1>
 
-    {% if query %}
-        <p class="text-lg text-gray-700 mb-6 text-center">
-            Showing results for: "<span class="font-semibold">{{ query }}</span>" ({{ results | length }} found)
-        </p>
-    {% else %}
-        <p class="text-lg text-gray-700 mb-6 text-center">
-            Please enter a search term to find artworks.
-        </p>
-    {% endif %}
+    {% if artworks %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {% for artwork in artworks %}
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden transition-transform transform hover:scale-105 hover:shadow-xl relative flex flex-col">
+            {% if artwork.images %}
+            <img src="{{ url_for('static', filename=artwork.images[0]) }}" 
+                 alt="{{ artwork.name }}" 
+                 class="w-full h-48 object-cover cursor-zoom-in clickable-image"
+                 onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/placeholder.png') }}';"
+                 loading="lazy">
+            {% else %}
+            <img src="{{ url_for('static', filename='images/placeholder.png') }}" 
+                 alt="Placeholder Image" 
+                 class="w-full h-48 object-cover cursor-zoom-in clickable-image">
+            {% endif %}
 
-    {% if results %}
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {% for artwork in results %}
-            <div class="bg-white rounded-xl shadow-md overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl item-card">
-                <a href="{{ url_for('product_detail', sku=artwork.sku) }}">
-                    <img src="{{ url_for('static', filename=artwork.images[0]) if artwork.images else 'https://placehold.co/240x240/cccccc/333333?text=No+Image' }}" 
-                         alt="{{ artwork.name }}" 
-                         class="w-full h-48 object-cover">
-                    <div class="p-4 flex flex-col justify-between" style="min-height: 120px;">
-                        <div>
-                            <h4 class="text-lg font-bold text-gray-900 mb-1 leading-tight">{{ artwork.name }}</h4>
-                            <p class="text-sm text-gray-600 mb-2 truncate">{{ artwork.description }}</p>
-                        </div>
-                        <div>
-                            <p class="text-xl font-bold text-blue-600">₹{{ artwork.original_price | int }}</p>
-                            <span class="text-sm text-gray-500 line-through">MRP: ₹{{ (artwork.original_price * 1.5) | int }}</span>
-                            <span class="text-sm text-green-600 font-semibold ml-2">({{ ((artwork.original_price * 1.5 - artwork.original_price) / (artwork.original_price * 1.5) * 100) | round | int }}% off)</span>
-                            <p class="text-sm text-gray-700 mt-1">Stock: {{ artwork.stock }}</p>
-                        </div>
-                    </div>
-                </a>
-                <div class="p-4 pt-0">
-                    {% if artwork.stock > 0 %}
-                    <button class="add-to-cart-btn w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-full transition duration-300 text-sm"
-                            data-sku="{{ artwork.sku }}"
-                            data-name="{{ artwork.name }}"
-                            data-image="{{ url_for('static', filename=artwork.images[0]) if artwork.images else 'https://placehold.co/240x240/cccccc/333333?text=No+Image' }}"
+            <div class="p-4 flex-grow flex flex-col">
+                <h2 class="text-xl font-semibold text-gray-900 mb-2 truncate" title="{{ artwork.name }}">{{ artwork.name }}</h2>
+                <p class="text-gray-600 text-sm mb-2">Category: {{ artwork.category }}</p>
+                
+                {# New Description Section #}
+                <div class="text-gray-700 text-sm mb-3 flex-grow overflow-hidden">
+                    <p class="line-clamp-3">{{ artwork.description | default("No description available.") }}</p>
+                </div>
+
+                <div class="flex justify-between items-baseline mb-3">
+                    <p class="text-2xl font-bold text-blue-700">₹{{ artwork.original_price | float | int }}</p>
+                    <p class="text-sm text-gray-500">Stock: {{ artwork.stock }}</p>
+                </div>
+
+                {# Buttons Section #}
+                <div class="mt-auto space-y-2">
+                    <a href="{{ url_for('product_detail', sku=artwork.sku) }}" 
+                       class="block w-full text-center bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-300 transform hover:scale-105 text-sm font-medium">
+                        View Details
+                    </a>
+                    <button class="add-to-cart-btn-listing block w-full text-center bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition duration-300 transform hover:scale-105 text-sm font-medium
+                                    {% if artwork.stock == 0 %} opacity-50 cursor-not-allowed{% endif %}"
+                            data-sku="{{ artwork.sku }}" 
+                            data-name="{{ artwork.name }}" 
                             data-original-price="{{ artwork.original_price }}"
-                            data-size="Original"
-                            data-frame="None"
-                            data-glass="None"
-                            data-size-price="0"
-                            data-frame-price="0"
-                            data-glass-price="0">
+                            data-image="{{ url_for('static', filename=artwork.images[0]) if artwork.images else url_for('static', filename='images/placeholder.png') }}"
+                            {% if artwork.stock == 0 %} disabled {% endif %}>
                         Add to Cart
                     </button>
-                    {% else %}
-                    <button class="w-full bg-gray-400 text-white font-bold py-2 px-4 rounded-full cursor-not-allowed text-sm" disabled>
-                        Out of Stock
+                    <button class="buy-now-btn-listing block w-full text-center bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 transition duration-300 transform hover:scale-105 text-sm font-medium
+                                    {% if artwork.stock == 0 %} opacity-50 cursor-not-allowed{% endif %}"
+                            data-sku="{{ artwork.sku }}" 
+                            data-name="{{ artwork.name }}" 
+                            data-original-price="{{ artwork.original_price }}"
+                            data-image="{{ url_for('static', filename=artwork.images[0]) if artwork.images else url_for('static', filename='images/placeholder.png') }}"
+                            {% if artwork.stock == 0 %} disabled {% endif %}>
+                        Buy Now
                     </button>
-                    {% endif %}
                 </div>
             </div>
-            {% endfor %}
         </div>
+        {% endfor %}
+    </div>
     {% else %}
-        <p class="text-center text-gray-600 text-lg">No artworks matched your search. Please try a different query.</p>
+    <p class="text-center text-gray-600 text-lg">No artworks found matching your criteria.</p>
     {% endif %}
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Add to Cart button functionality (copied from index.html for consistency)
-        document.querySelectorAll('.add-to-cart-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const sku = this.dataset.sku;
-                const name = this.dataset.name;
-                const image = this.dataset.image;
-                const originalPrice = parseFloat(this.dataset.originalPrice);
+        // Event listener for Add to Cart buttons on listing pages
+        document.querySelectorAll('.add-to-cart-btn-listing').forEach(button => {
+            button.addEventListener('click', async (event) => {
+                const sku = event.target.dataset.sku;
+                const name = event.target.dataset.name;
+                const originalPrice = parseFloat(event.target.dataset.originalPrice);
+                const imageUrl = event.target.dataset.image;
+
+                // For listing pages, default options to 'Original', 'None', 'None' with 0 additional price
                 const options = {
-                    size: this.dataset.size,
-                    frame: this.dataset.frame,
-                    glass: this.dataset.glass,
-                    sizePrice: parseFloat(this.dataset.sizePrice || 0),
-                    framePrice: parseFloat(this.dataset.framePrice || 0),
-                    glassPrice: parseFloat(this.dataset.glassPrice || 0)
+                    size: 'Original',
+                    frame: 'None',
+                    glass: 'None',
+                    sizePrice: 0,
+                    framePrice: 0,
+                    glassPrice: 0
                 };
-                addToCart(sku, name, image, originalPrice, options);
+                const quantity = 1; // Always add 1 from listing page
+
+                if (typeof addToCart === 'function') {
+                    await addToCart(sku, name, imageUrl, originalPrice, options, quantity);
+                } else {
+                    console.error("Global addToCart function not found. Cannot add to cart.");
+                    showCustomAlert("Cart functionality is not available. Please contact support.", 'danger');
+                }
+            });
+        });
+
+        // Event listener for Buy Now buttons on listing pages
+        document.querySelectorAll('.buy-now-btn-listing').forEach(button => {
+            button.addEventListener('click', async (event) => {
+                const sku = event.target.dataset.sku;
+                const name = event.target.dataset.name;
+                const originalPrice = parseFloat(event.target.dataset.originalPrice);
+                const imageUrl = event.target.dataset.image;
+
+                // For listing pages, default options to 'Original', 'None', 'None' with 0 additional price
+                const selectedSize = 'Original';
+                const selectedFrame = 'None';
+                const selectedGlass = 'None';
+                const quantity = 1; // Always buy 1 from listing page
+
+                // Construct a temporary cart object for direct purchase
+                const itemId = `${sku}-${selectedSize}-${selectedFrame}-${selectedGlass}`;
+                const buyNowCart = {};
+                buyNowCart[itemId] = {
+                    id: itemId,
+                    sku: sku,
+                    name: name,
+                    image: imageUrl, 
+                    unit_price: originalPrice, // This will be recalculated on server for options/GST
+                    unit_price_before_gst: originalPrice, 
+                    quantity: quantity,
+                    size: selectedSize,
+                    frame: selectedFrame,
+                    glass: selectedGlass,
+                    gst_percentage: 0, // Placeholder, actual GST from server
+                    gst_amount: 0, // Placeholder, actual GST from server
+                    total_price_before_gst: originalPrice * quantity, 
+                    total_price: originalPrice * quantity // Placeholder, actual total from server
+                };
+
+                // Send this temporary cart to the server
+                try {
+                    const response = await fetch('{{ url_for("create_direct_order") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ cart: buyNowCart })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        showCustomAlert(data.message, 'success');
+                        window.location.href = data.redirect_url; // Redirect to my_orders
+                    } else {
+                        showCustomAlert(`Failed to place order: ${data.message}`, 'danger');
+                        console.error("ERROR: Failed to create direct order:", data.message);
+                    }
+                } catch (error) {
+                    console.error("ERROR: Network error placing direct order:", error);
+                    showCustomAlert("Network error. Please check your connection or try again later.", 'danger');
+                }
             });
         });
     });
