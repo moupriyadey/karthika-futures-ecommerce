@@ -2238,7 +2238,11 @@ def admin_login():
             return redirect(url_for('admin_panel'))
         else:
             flash('Invalid admin credentials.', 'danger')
-    return render_template('admin_login.html')
+            # Pass form_data here on failed login
+            return render_template('admin_login.html', form_data=request.form)
+    
+    # Pass an empty form_data dictionary for GET requests to prevent UndefinedError
+    return render_template('admin_login.html', form_data={})
 
 if __name__ == '__main__':
     # Create the 'data' directory if it doesn't exist
