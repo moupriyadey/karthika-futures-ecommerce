@@ -1,50 +1,29 @@
 [
     {
-        "sku": "888888",
-        "name": "durga",
-        "category": "photos",
-        "original_price": 1212.0,
-        "stock": 87,
-        "description": "test",
-        "images": [
-            "uploads/4886325a-0ec3-434a-9ae8-21037a30e938.png",
-            "uploads/06a51eba-2a86-4dbc-a1eb-5ed2e3a59cec.png"
-        ],
-        "gst_percentage": 9.0,
-        "frame_wooden": 10.0,
-        "frame_metal": 20.0,
-        "frame_pvc": 30.0,
-        "glass_price": 10.0,
-        "size_a4": 40.0,
-        "size_a5": 20.0,
-        "size_letter": 20.0,
-        "size_legal": 20.0
-    },
-    {
         "sku": "123456",
         "name": "KRISHNARADHA",
         "category": "photos",
-        "original_price": 1002.0,
+        "original_price": "1002.0",
         "stock": 100,
         "description": "RADHAKRISHNA",
         "images": [
             "uploads/a13210c2-d1ad-4004-80f8-78ee0fea395e.png"
         ],
-        "gst_percentage": 9.0,
-        "frame_wooden": 0.01,
-        "frame_metal": 0.02,
-        "frame_pvc": 0.02,
-        "glass_price": 0.1,
-        "size_a4": 0.04,
-        "size_a5": 0.05,
-        "size_letter": 0.06,
-        "size_legal": 0.04
+        "gst_percentage": "9.0",
+        "frame_wooden": "0.01",
+        "frame_metal": "0.02",
+        "frame_pvc": "0.02",
+        "glass_price": "0.1",
+        "size_a4": "0.04",
+        "size_a5": "0.05",
+        "size_letter": "0.06",
+        "size_legal": "0.04"
     },
     {
         "sku": "0000",
         "name": "nn",
         "category": "photos",
-        "original_price": 102.0,
+        "original_price": "102.0",
         "stock": 8,
         "description": "kjkj",
         "images": [
@@ -52,14 +31,14 @@
             "uploads/e0838f22-c2f1-400a-8b71-d3bb903df3ee.png",
             "uploads/a46df3e6-d958-43df-92b2-302a711c5be5.png"
         ],
-        "gst_percentage": 18.0,
-        "frame_wooden": 0.0,
-        "frame_metal": 0.0,
-        "frame_pvc": 0.0,
-        "glass_price": 0.0,
-        "size_a4": 0.0,
-        "size_a5": 0.0,
-        "size_letter": 0.0,
-        "size_legal": 0.0
+        "gst_percentage": "18.0",
+        "frame_wooden": "0.0",
+        "frame_metal": "0.0",
+        "frame_pvc": "0.0",
+        "glass_price": "0.0",
+        "size_a4": "0.0",
+        "size_a5": "0.0",
+        "size_letter": "0.0",
+        "size_legal": "0.0"
     }
 ]

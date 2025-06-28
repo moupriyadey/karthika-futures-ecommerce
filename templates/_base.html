@@ -6,10 +6,10 @@
     <title>{% block title %}Karthika Futures{% endblock %}</title>
     
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" xintegrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     
     <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     
     <!-- Your custom style.css (ensure this file exists and contains your main site styles) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
@@ -127,7 +127,7 @@
             cursor: pointer;
         }
     </style>
-    {% block extra_css %}{% endblock %}
+    {% block extra_css_from_page %}{% endblock %}
 </head>
 <body>
     <!-- Navbar INCLUDED FROM SEPARATE FILE -->
@@ -192,10 +192,214 @@
     </div>
 
     <!-- Bootstrap JS Bundle (popper included) -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     
     <!-- Your Global Custom JavaScript -->
     <script>
+        // Global function to show custom flash messages
+        function showCustomAlert(message, type) {
+            const container = document.getElementById('flash-messages-container');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} flash-message`;
+            alertDiv.textContent = message;
+            container.appendChild(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Global function to update cart count in the navbar
+        async function updateCartCountDisplay() {
+            try {
+                const response = await fetch('{{ url_for("update_cart_session") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({}) // Empty body to just request current cart state
+                });
+                const data = await response.json();
+
+                if (data.success && data.cart_items) {
+                    // cart_items is an array of objects
+                    const totalItemsQuantity = data.cart_items.reduce((sum, item) => sum + item.quantity, 0);
+                    const cartCountElement = document.getElementById('cart-count');
+                    if (cartCountElement) {
+                        cartCountElement.textContent = totalItemsQuantity;
+                        cartCountElement.style.display = totalItemsQuantity > 0 ? 'block' : 'none';
+                    }
+                } else {
+                    console.error("Failed to fetch cart count:", data.message);
+                    const cartCountElement = document.getElementById('cart-count');
+                    if (cartCountElement) {
+                        cartCountElement.textContent = '0';
+                        cartCountElement.style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.error("Network error fetching cart count:", error);
+                const cartCountElement = document.getElementById('cart-count');
+                if (cartCountElement) {
+                    cartCountElement.textContent = '0';
+                    cartCountElement.style.display = 'none';
+                }
+            }
+        }
+
+        // Global function to add to cart (sends to server via AJAX)
+        async function addToCart(sku, name, imageUrl, options, quantity = 1) {
+            // Ensure options object has default properties if missing from caller
+            const safeOptions = {
+                size: options.size || 'Original',
+                frame: options.frame || 'None',
+                glass: options.glass || 'None'
+            };
+
+            // Proactive check for authentication
+            if ("{{ current_user.is_authenticated }}" !== "True") {
+                console.log("addToCart: User not authenticated. Storing item and redirecting to login.");
+                const itemToAddAfterLogin = { sku, name, imageUrl, options: safeOptions, quantity }; // Store safeOptions
+                sessionStorage.setItem('itemToAddAfterLogin', JSON.stringify(itemToAddAfterLogin));
+                sessionStorage.setItem('redirect_after_login_endpoint', 'cart'); 
+                
+                window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=add_to_cart';
+                return;
+            }
+
+            try {
+                console.log("addToCart: Sending request to server for SKU:", sku, "Quantity:", quantity, "Options:", safeOptions);
+                const response = await fetch('{{ url_for("add_to_cart") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sku: sku,
+                        size: safeOptions.size,
+                        frame: safeOptions.frame,
+                        glass: safeOptions.glass,
+                        quantity: quantity
+                    })
+                });
+
+                if (response.status === 401) {
+                    console.warn("Received 401 on add to cart despite client-side check. Redirecting.");
+                    const itemToAddAfterLogin = { sku, name, imageUrl, options: safeOptions, quantity };
+                    sessionStorage.setItem('itemToAddAfterLogin', JSON.stringify(itemToAddAfterLogin));
+                    sessionStorage.setItem('redirect_after_login_endpoint', 'cart');
+                    window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=add_to_cart';
+                    return; 
+                }
+
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    console.error("Server did not return JSON. Content-Type:", contentType, "Status:", response.status);
+                    const errorText = await response.text();
+                    console.error("Server Response (Non-JSON):", errorText);
+                    showCustomAlert("An unexpected error occurred. Please try again.", 'danger');
+                    return;
+                }
+
+                const data = await response.json();
+                console.log("addToCart: Server response:", data);
+
+                if (data.success) {
+                    // cart_items from server is an array. Find the relevant item to display price.
+                    const addedItem = data.cart_items.find(item => 
+                        item.sku === sku && 
+                        item.size === safeOptions.size && 
+                        item.frame === safeOptions.frame && 
+                        item.glass === safeOptions.glass
+                    );
+                    if (addedItem) {
+                           showCustomAlert(`✅ "${name}" added to cart for ₹${addedItem.total_price.toFixed(2)}`, 'success');
+                    } else {
+                        showCustomAlert(`✅ "${name}" added to cart!`, 'success');
+                    }
+                    
+                    updateCartCountDisplay(); // Update global cart count after adding
+                } else {
+                    showCustomAlert(`❌ Failed to add "${name}" to cart: ${data.message}`, 'danger');
+                    console.error("Add to cart error:", data.message);
+                }
+            } catch (error) {
+                console.error("Network error adding to cart (catch block):", error);
+                showCustomAlert("Network error. Please check your connection and try again.", 'danger');
+            }
+        }
+
+        // Global function for direct "Buy Now"
+        async function buyNow(sku, name, imageUrl, options, quantity = 1) {
+            // Ensure options object has default properties if missing from caller
+            const safeOptions = {
+                size: options.size || 'Original',
+                frame: options.frame || 'None',
+                glass: options.glass || 'None'
+            };
+
+            // Proactive check for authentication
+            if ("{{ current_user.is_authenticated }}" !== "True") {
+                console.log("buyNow: User not authenticated. Storing item and redirecting to login.");
+                const itemToBuyNow = { sku, name, imageUrl, options: safeOptions, quantity }; // Store safeOptions
+                sessionStorage.setItem('itemToBuyNow', JSON.stringify(itemToBuyNow));
+                sessionStorage.setItem('redirect_after_login_endpoint', 'purchase_form'); // Corrected redirect
+                
+                window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=buy_now';
+                return;
+            }
+
+            try {
+                console.log("buyNow: Sending request to server for SKU:", sku, "Quantity:", quantity, "Options:", safeOptions);
+                const response = await fetch('{{ url_for("create_direct_order") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sku: sku,
+                        quantity: quantity,
+                        size: safeOptions.size,
+                        frame: safeOptions.frame,
+                        glass: safeOptions.glass
+                    })
+                });
+
+                if (response.status === 401) { 
+                    console.warn("Received 401 on buy now despite client-side check. Redirecting.");
+                    const itemToBuyNow = { sku, name, imageUrl, options: safeOptions, quantity };
+                    sessionStorage.setItem('itemToBuyNow', JSON.stringify(itemToBuyNow));
+                    sessionStorage.setItem('redirect_after_login_endpoint', 'purchase_form'); // Corrected redirect
+                    window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=buy_now';
+                    return; 
+                }
+                
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    console.error("Server did not return JSON. Content-Type:", contentType, "Status:", response.status);
+                    const errorText = await response.text();
+                    console.error("Server Response (Non-JSON):", errorText);
+                    showCustomAlert("An unexpected error occurred. Please try again.", 'danger');
+                    return;
+                }
+
+                const data = await response.json();
+                console.log("buyNow: Server response:", data);
+
+                if (data.success) {
+                    showCustomAlert(`✅ "${name}" order placed. Redirecting to payment...`, 'success');
+                    // Clear cart count as it's a direct purchase and user is leaving current page
+                    const cartCountElement = document.getElementById('cart-count');
+                    if (cartCountElement) {
+                        cartCountElement.textContent = '0';
+                        cartCountElement.style.display = 'none';
+                    }
+                    // This redirect_url should come from the server and already point to payment_initiate
+                    window.location.href = data.redirect_url; 
+                } else {
+                    showCustomAlert(`❌ Failed to buy "${name}": ${data.message}`, 'danger');
+                    console.error("Buy now error:", data.message);
+                }
+            } catch (error) {
+                console.error("Network error for Buy Now (catch block):", error);
+                showCustomAlert("Network error. Please check your connection and try again.", 'danger');
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             // Bootstrap specific navbar JS initialization
             console.log("Bootstrap object available:", typeof bootstrap !== 'undefined');
@@ -225,219 +429,34 @@
                 console.error("Bootstrap Collapse object is NOT available. Bootstrap JS might not be loaded correctly.");
             }
 
-            // Global function to show custom flash messages
-            function showCustomAlert(message, type) {
-                const container = document.getElementById('flash-messages-container');
-                const alertDiv = document.createElement('div');
-                alertDiv.className = `alert alert-${type} flash-message`;
-                alertDiv.textContent = message;
-                container.appendChild(alertDiv);
+            // Initial load of cart count on every page
+            updateCartCountDisplay(); 
 
-                setTimeout(() => {
-                    alertDiv.remove();
-                }, 5000);
-            }
-
-            // Global function to update cart count in the navbar
-            async function updateCartCountDisplay() {
-                try {
-                    const response = await fetch('{{ url_for("update_cart_session") }}', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({})
-                    });
-                    const data = await response.json();
-
-                    if (data.success && data.cart_items) {
-                        const totalItemsQuantity = Object.values(data.cart_items).reduce((sum, item) => sum + item.quantity, 0);
-                        const cartCountElement = document.getElementById('cart-count');
-                        if (cartCountElement) {
-                            cartCountElement.textContent = totalItemsQuantity;
-                            cartCountElement.style.display = totalItemsQuantity > 0 ? 'block' : 'none';
-                        }
-                    } else {
-                        console.error("Failed to fetch cart count:", data.message);
-                        const cartCountElement = document.getElementById('cart-count');
-                        if (cartCountElement) {
-                            cartCountElement.textContent = '0';
-                            cartCountElement.style.display = 'none';
-                        }
-                    }
-                } catch (error) {
-                    console.error("Network error fetching cart count:", error);
-                    const cartCountElement = document.getElementById('cart-count');
-                    if (cartCountElement) {
-                        cartCountElement.textContent = '0';
-                        cartCountElement.style.display = 'none';
-                    }
-                }
-            }
-
-            // Global function to add to cart (sends to server via AJAX)
-            async function addToCart(sku, name, imageUrl, unitPriceAfterOptions, options, quantity = 1) {
-                // Proactive check for authentication
-                if ("{{ current_user.is_authenticated }}" !== "True") {
-                    const itemToAddAfterLogin = { sku, name, imageUrl, options, quantity };
-                    sessionStorage.setItem('itemToAddAfterLogin', JSON.stringify(itemToAddAfterLogin));
-                    sessionStorage.setItem('redirect_after_login_endpoint', 'cart'); 
-                    
-                    window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=add_to_cart';
-                    return;
-                }
-
-                try {
-                    const response = await fetch('{{ url_for("add_to_cart") }}', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            sku: sku,
-                            size: options.size || 'Original',
-                            frame: options.frame || 'None',
-                            glass: options.glass || 'None',
-                            quantity: quantity
-                        })
-                    });
-
-                    if (response.status === 401) {
-                        console.warn("Received 401 on add to cart despite client-side check. Redirecting.");
-                        const itemToAddAfterLogin = { sku, name, imageUrl, options, quantity };
-                        sessionStorage.setItem('itemToAddAfterLogin', JSON.stringify(itemToAddAfterLogin));
-                        sessionStorage.setItem('redirect_after_login_endpoint', 'cart');
-                        window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=add_to_cart';
-                        return; 
-                    }
-
-                    const contentType = response.headers.get("content-type");
-                    if (!contentType || !contentType.includes("application/json")) {
-                        console.error("Server did not return JSON. Content-Type:", contentType, "Status:", response.status);
-                        const errorText = await response.text();
-                        console.error("Server Response (Non-JSON):", errorText);
-                        showCustomAlert("An unexpected error occurred. Please try again.", 'danger');
-                        return;
-                    }
-
-                    const data = await response.json();
-
-                    if (data.success) {
-                        const addedItem = data.cart_items.find(item => 
-                            item.sku === sku && 
-                            item.size === (options.size || 'Original') && 
-                            item.frame === (options.frame || 'None') && 
-                            item.glass === (options.glass || 'None')
-                        );
-                        if (addedItem) {
-                             showCustomAlert(`✅ "${name}" added to cart for ₹${addedItem.total_price.toFixed(2)}`, 'success');
-                        } else {
-                            showCustomAlert(`✅ "${name}" added to cart!`, 'success');
-                        }
-                       
-                        updateCartCountDisplay();
-                    } else {
-                        showCustomAlert(`❌ Failed to add "${name}" to cart: ${data.message}`, 'danger');
-                        console.error("Add to cart error:", data.message);
-                    }
-                } catch (error) {
-                    console.error("Network error adding to cart (catch block):", error);
-                    showCustomAlert("Network error. Please check your connection and try again.", 'danger');
-                }
-            }
-
-            // Global function for direct "Buy Now"
-            async function buyNow(sku, name, imageUrl, options, quantity = 1) {
-                // Proactive check for authentication
-                if ("{{ current_user.is_authenticated }}" !== "True") {
-                    const itemToBuyNow = { sku, name, imageUrl, options, quantity };
-                    sessionStorage.setItem('itemToBuyNow', JSON.stringify(itemToBuyNow));
-                    sessionStorage.setItem('redirect_after_login_endpoint', 'order_summary_page'); 
-                    
-                    window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=buy_now';
-                    return;
-                }
-
-                try {
-                    const itemData = {
-                        id: `${sku}-${options.size}-${options.frame}-${options.glass}`,
-                        sku: sku,
-                        name: name,
-                        image: imageUrl,
-                        size: options.size,
-                        frame: options.frame,
-                        glass: options.glass,
-                        quantity: quantity
-                    };
-
-                    const response = await fetch('{{ url_for("create_direct_order") }}', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ cart: { [itemData.id]: itemData } }) 
-                    });
-
-                    if (response.status === 401) { 
-                        console.warn("Received 401 on buy now despite client-side check. Redirecting.");
-                        sessionStorage.setItem('itemToBuyNow', JSON.stringify(itemData));
-                        sessionStorage.setItem('redirect_after_login_endpoint', 'order_summary_page'); 
-                        window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=buy_now';
-                        return; 
-                    }
-                    
-                    const contentType = response.headers.get("content-type");
-                    if (!contentType || !contentType.includes("application/json")) {
-                        console.error("Server did not return JSON. Content-Type:", contentType, "Status:", response.status);
-                        const errorText = await response.text();
-                        console.error("Server Response (Non-JSON):", errorText);
-                        showCustomAlert("An unexpected error occurred. Please try again.", 'danger');
-                        return;
-                    }
-
-                    const data = await response.json();
-
-                    if (data.success) {
-                        showCustomAlert(`✅ "${name}" order placed. Redirecting to summary...`, 'success');
-                        // Clear cart count as it's a direct purchase and user is leaving current page
-                        const cartCountElement = document.getElementById('cart-count');
-                        if (cartCountElement) {
-                            cartCountElement.textContent = '0';
-                            cartCountElement.style.display = 'none';
-                        }
-                        // This redirect_url should come from the server and already point to order_summary_page
-                        window.location.href = data.redirect_url; 
-                    } else {
-                        showCustomAlert(`❌ Failed to buy "${name}" to cart: ${data.message}`, 'danger');
-                        console.error("Buy now error:", data.message);
-                    }
-                } catch (error) {
-                    console.error("Network error for Buy Now (catch block):", error);
-                    showCustomAlert("Network error. Please check your connection and try again.", 'danger');
-                }
-            }
-
-            // Event listener for DOMContentLoaded - make sure this is *outside* the extra_js block
-            // This function is called immediately after the DOM is fully loaded.
-            updateCartCountDisplay(); // Initial load of cart count on every page
-
+            // Handle post-login actions (if item was stored in session storage)
             const itemToBuyNow = sessionStorage.getItem('itemToBuyNow');
             const itemToAddAfterLogin = sessionStorage.getItem('itemToAddAfterLogin');
 
             if ("{{ current_user.is_authenticated }}" === "True") {
+                console.log("User is authenticated after redirect.");
                 if (itemToBuyNow) {
+                    console.log("Processing stored 'itemToBuyNow' after login.");
                     sessionStorage.removeItem('itemToBuyNow');
                     sessionStorage.removeItem('redirect_after_login_endpoint'); // Clear the endpoint
                     const parsedItem = JSON.parse(itemToBuyNow);
-                    buyNow(parsedItem.sku, parsedItem.name, parsedItem.image, {
-                        size: parsedItem.size,
-                        frame: parsedItem.frame,
-                        glass: parsedItem.glass
-                    }, parsedItem.quantity);
+                    console.log("Parsed itemToBuyNow:", parsedItem);
+                    // Pass options as an object, ensuring it's not null/undefined if it wasn't present
+                    buyNow(parsedItem.sku, parsedItem.name, parsedItem.image, parsedItem.options || {}, parsedItem.quantity);
                 } else if (itemToAddAfterLogin) {
+                    console.log("Processing stored 'itemToAddAfterLogin' after login.");
                     sessionStorage.removeItem('itemToAddAfterLogin');
                     sessionStorage.removeItem('redirect_after_login_endpoint'); // Clear the endpoint
                     const parsedItem = JSON.parse(itemToAddAfterLogin);
-                    addToCart(parsedItem.sku, parsedItem.name, parsedItem.image, null, {
-                        size: parsedItem.size,
-                        frame: parsedItem.frame,
-                        glass: parsedItem.glass
-                    }, parsedItem.quantity);
+                    console.log("Parsed itemToAddAfterLogin:", parsedItem);
+                    // Pass options as an object, ensuring it's not null/undefined if it wasn't present
+                    addToCart(parsedItem.sku, parsedItem.name, parsedItem.image, parsedItem.options || {}, parsedItem.quantity);
                 }
+            } else {
+                console.log("User is NOT authenticated. No stored item processing.");
             }
 
             // Image Modal Close functionality

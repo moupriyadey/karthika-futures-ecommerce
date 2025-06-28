@@ -161,6 +161,20 @@
 
 {% block extra_js %}
 <script>
+    // Custom alert function (assuming this is defined elsewhere or will be defined)
+    function showCustomAlert(message, type) {
+        // Implement your custom alert logic here (e.g., using a modal or toast)
+        // For demonstration, we'll just use console.log
+        console.log(`ALERT (${type}): ${message}`);
+        // You might have a div like: <div id="custom-alert-container"></div> in _base.html
+        // const alertContainer = document.getElementById('custom-alert-container');
+        // if (alertContainer) {
+        //     alertContainer.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">${message}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>`;
+        //     setTimeout(() => alertContainer.innerHTML = '', 5000); // Hide after 5 seconds
+        // }
+    }
+
+
     // Artwork data from Flask, converted to JSON in template
     const artworkData = {{ artwork | tojson }}; 
     const originalPrice = artworkData.original_price || 0; 
@@ -211,7 +225,8 @@
         if (quantity > artworkStock) {
             quantityInput.value = artworkStock;
             quantity = artworkStock;
-            alert(`You can only add a maximum of ${artworkStock} items to your cart.`);
+            // Changed from alert to showCustomAlert
+            showCustomAlert(`You can only add a maximum of ${artworkStock} items to your cart. Quantity adjusted.`, 'warning');
         }
 
         let priceBeforeGst = currentBasePrice * quantity;
@@ -235,7 +250,8 @@
     addToCartBtn.addEventListener('click', async () => {
         const quantity = parseInt(quantityInput.value);
         if (isNaN(quantity) || quantity < 1 || quantity > artworkStock) {
-            alert(`Please enter a valid quantity between 1 and ${artworkStock}.`);
+            // Changed from alert to showCustomAlert
+            showCustomAlert(`Please enter a valid quantity between 1 and ${artworkStock}.`, 'warning');
             return;
         }
 
@@ -262,8 +278,8 @@
 
         // Get the image for the cart item (always the first image for the product)
         const cartItemImage = artworkData.images && artworkData.images.length > 0 ? 
-                              '{{ url_for("static", filename=artwork.images[0]) }}' : 
-                              '{{ url_for("static", filename="images/placeholder.png") }}'; 
+                               '{{ url_for("static", filename=artwork.images[0]) }}' : 
+                               '{{ url_for("static", filename="images/placeholder.png") }}'; 
 
         const options = {
             size: selectedSize,
@@ -279,15 +295,17 @@
             await addToCart(artworkData.sku, artworkData.name, cartItemImage, artworkData.original_price, options, quantity); // Pass original_price and explicit quantity
         } else {
             console.error("Global addToCart function not found in _base.html. Cannot add to cart.");
-            alert("Cart functionality is not available. Please contact support.");
+            // Changed from alert to showCustomAlert
+            showCustomAlert("Cart functionality is not available. Please contact support.", 'danger');
         }
     });
 
-    // Buy Now functionality
+    // Buy Now functionality - CORRECTED PAYLOAD
     buyNowBtn.addEventListener('click', async () => {
         const quantity = parseInt(quantityInput.value);
         if (isNaN(quantity) || quantity < 1 || quantity > artworkStock) {
-            alert(`Please enter a valid quantity between 1 and ${artworkStock}.`);
+            // Changed from alert to showCustomAlert
+            showCustomAlert(`Please enter a valid quantity between 1 and ${artworkStock}.`, 'warning');
             return;
         }
 
@@ -295,62 +313,40 @@
         const selectedFrame = frameSelect.value;
         const selectedGlass = glassSelect.value;
         
-        // Recalculate unit price and GST precisely for the item being added
-        let unitPriceBeforeGst = artworkData.original_price || 0; 
-        unitPriceBeforeGst += parseFloat(sizeSelect.options[sizeSelect.selectedIndex].dataset.price || 0);
-        unitPriceBeforeGst += parseFloat(frameSelect.options[frameSelect.selectedIndex].dataset.price || 0);
-        unitPriceBeforeGst += parseFloat(glassSelect.options[glassSelect.selectedIndex].dataset.price || 0);
+        // No need to calculate unitPriceBeforeGst, gstPercent, etc. here for the payload,
+        // as the server-side `create_direct_order` will do it based on the SKU and options.
+        // We just need to send the raw choices and quantity.
 
-        const gstPercent = artworkData.gst_percentage || 0; 
-        const itemPriceBeforeGstTotal = unitPriceBeforeGst * quantity;
-        const itemGstAmount = itemPriceBeforeGstTotal * (gstPercent / 100);
-        const finalItemTotalPrice = itemPriceBeforeGstTotal + itemGstAmount;
-
-        const itemId = `${artworkData.sku}-${selectedSize}-${selectedFrame}-${selectedGlass}`;
-
-        const cartItemImage = artworkData.images && artworkData.images.length > 0 ? 
-                              '{{ url_for("static", filename=artwork.images[0]) }}' : 
-                              '{{ url_for("static", filename="images/placeholder.png") }}'; 
-
-        // Create a temporary cart object with only the "Buy Now" item
-        const buyNowCart = {};
-        buyNowCart[itemId] = {
-            id: itemId,
-            sku: artworkData.sku,
-            name: artworkData.name,
-            image: cartItemImage, 
-            unit_price: unitPriceBeforeGst, 
-            unit_price_before_gst: unitPriceBeforeGst, 
-            quantity: quantity,
-            size: selectedSize,
-            frame: selectedFrame,
-            glass: selectedGlass,
-            gst_percentage: gstPercent, 
-            gst_amount: itemGstAmount, 
-            total_price_before_gst: itemPriceBeforeGstTotal, 
-            total_price: finalItemTotalPrice 
-        };
-
-        // Send this temporary cart to the server
+        // Send data directly as expected by the /create_direct_order endpoint
         try {
-            const response = await fetch('/create_direct_order', { # New route for direct order
+            const response = await fetch('{{ url_for("create_direct_order") }}', { // Use url_for for robustness
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ cart: buyNowCart })
+                body: JSON.stringify({
+                    sku: artworkData.sku,
+                    quantity: quantity,
+                    size: selectedSize,
+                    frame: selectedFrame,
+                    glass: selectedGlass
+                })
             });
             const data = await response.json();
             if (data.success) {
                 // If successful, redirect to checkout/order confirmation page
+                // Changed from alert to showCustomAlert
+                showCustomAlert(data.message || 'Direct order placed successfully! Redirecting to payment...', 'success');
                 window.location.href = data.redirect_url; // Flask will provide redirect URL
             } else {
-                alert(`Failed to place order: ${data.message}`);
+                // Changed from alert to showCustomAlert
+                showCustomAlert(`Failed to place order: ${data.message}`, 'danger');
                 console.error("ERROR: Failed to create direct order:", data.message);
             }
         } catch (error) {
             console.error("ERROR: Network error placing direct order:", error);
-            alert("Network error. Please check your connection or try again later.");
+            // Changed from alert to showCustomAlert
+            showCustomAlert("Network error. Please check your connection or try again later.", 'danger');
         }
     });
 
