@@ -829,7 +829,7 @@ def thank_you_page():
 
 
 # --- USER SPECIFIC ROUTES ---
-@app.route('/my-orders')
+@app.route('/my_orders')
 @login_required
 def my_orders():
     orders = load_orders_data() # Use the specific loader
@@ -896,7 +896,7 @@ def profile():
 
 # --- Admin Routes ---
 
-@app.route('/admin')
+@app.route('/admin-panel')
 @admin_required
 def admin_panel():
     orders = load_orders_data() # Use the specific loader
@@ -983,7 +983,7 @@ def admin_orders_update():
             break
     if not order_found:
         flash(f'Order {order_id} not found.', 'danger')
-    return redirect(url_for('admin_orders_view'))
+    return redirect(url_for('admin_orders_view.html'))
 
 @app.route('/admin/order/remark', methods=['POST'])
 @admin_required
@@ -1594,7 +1594,7 @@ def logout():
 @app.route('/admin_login', methods=['GET', 'POST'])
 def admin_login():
     if current_user.is_authenticated and current_user.is_admin():
-        return redirect(url_for('admin_panel'))
+        return redirect(url_for('admin_panel.html'))
     
     if request.method == 'POST':
         email = request.form['email']
@@ -1604,7 +1604,7 @@ def admin_login():
         if user and user.is_admin() and check_password_hash(user.password, password):
             login_user(user)
             flash('Admin logged in successfully!', 'success')
-            return redirect(url_for('admin_panel'))
+            return redirect(url_for('admin_panel.html'))
         else:
             flash('Invalid admin credentials.', 'danger')
     return render_template('admin_login.html')
@@ -1708,7 +1708,7 @@ def process_pending_invoices():
     else:
         flash('No pending invoices to process.', 'info')
 
-    return redirect(url_for('admin_orders_view')) # Redirect back to admin orders view
+    return redirect(url_for('admin_orders_view.html')) # Redirect back to admin orders view
 
 @app.route('/product/<sku>')
 def product_detail(sku):

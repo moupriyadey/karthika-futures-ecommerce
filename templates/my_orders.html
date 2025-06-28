@@ -32,7 +32,7 @@
                     <td class="py-3 px-4 text-sm text-gray-700">{{ order.placed_on }}</td>
                     <td class="py-3 px-4 text-sm text-gray-700">
                         <ul class="list-disc list-inside space-y-1">
-                            {% for item in order.items %}
+                            {% for item in order.items() %} {# Added parentheses here #}
                                 <li>{{ item.name }} (x{{ item.quantity }}) - ₹{{ item.total_price | float | int }}</li>
                             {% endfor %}
                         </ul>

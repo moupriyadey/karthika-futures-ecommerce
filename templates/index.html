@@ -197,6 +197,18 @@
         border-color: #563d7c;
         transform: translateY(-2px);
     }
+    /* Added style for View Details button */
+    .view-details-btn {
+        background-color: #6c757d; /* Muted grey */
+        border-color: #6c757d;
+        color: white;
+    }
+    .view-details-btn:hover {
+        background-color: #5a6268;
+        border-color: #5a6268;
+        transform: translateY(-2px);
+    }
+
     .d-grid.gap-2 {
         margin-top: auto; /* Push buttons to the bottom of the card body */
         padding-top: 1rem; /* Space above buttons */
@@ -387,7 +399,7 @@
                     {# Use first image if available, otherwise placeholder #}
                     {% if artwork.images and artwork.images[0] %}
                     <img src="{{ url_for('static', filename=artwork.images[0]) }}" class="card-img-top clickable-image" alt="{{ artwork.name }}"
-                         onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/placeholder.png') }}';" loading="lazy">
+                            onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/placeholder.png') }}';" loading="lazy">
                     {% else %}
                     <img src="{{ url_for('static', filename='images/placeholder.png') }}" class="card-img-top clickable-image" alt="No Image Available" loading="lazy">
                     {% endif %}
@@ -472,6 +484,10 @@
                                     {% if artwork.stock == 0 %} disabled {% endif %}>
                                 Buy Now
                             </button>
+                            {# NEW: View Details Button #}
+                            <button class="btn btn-outline-secondary view-details-btn" data-image-src="{{ url_for('static', filename=artwork.images[0]) if artwork.images else url_for('static', filename='images/placeholder.png') }}">
+                                View Details
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -550,87 +566,306 @@
 
 {% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Function to calculate final price based on selected options and quantity
-        // This function now takes the artwork object (with all prices) and selected option values
-        function calculateAndDisplayPrice(card) {
-            const artworkSku = card.dataset.artworkSku;
-            const originalPrice = parseFloat(card.querySelector('.final-price').dataset.originalPrice);
+    // --- Global functions (INLINED for debugging purposes) ---
 
-            let selectedSize = 'Original';
-            let selectedFrame = 'None';
-            let selectedGlass = 'None';
-            let sizePrice = 0;
-            let framePrice = 0;
-            let glassPrice = 0;
+    // Global function to show custom flash messages
+    function showCustomAlert(message, type) {
+        const container = document.getElementById('flash-messages-container');
+        if (!container) {
+            console.error("Flash messages container not found!");
+            alert(`ALERT: ${message}`); // Fallback for critical debugging
+            return;
+        }
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} flash-message`;
+        alertDiv.textContent = message;
+        container.appendChild(alertDiv);
 
-            const sizeSelect = card.querySelector('.size-select');
-            if (sizeSelect) {
-                selectedSize = sizeSelect.value;
-                const selectedOption = sizeSelect.options[sizeSelect.selectedIndex];
-                sizePrice = parseFloat(selectedOption.dataset.price || 0);
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+
+    // Global function to update cart count in the navbar
+    async function updateCartCountDisplay() {
+        try {
+            const response = await fetch('{{ url_for("update_cart_session") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            });
+            const data = await response.json();
+
+            if (data.success && data.cart_items) {
+                const totalItemsQuantity = Object.values(data.cart_items).reduce((sum, item) => sum + item.quantity, 0);
+                const cartCountElement = document.getElementById('cart-count');
+                if (cartCountElement) {
+                    cartCountElement.textContent = totalItemsQuantity;
+                    cartCountElement.style.display = totalItemsQuantity > 0 ? 'block' : 'none';
+                }
+            } else {
+                console.error("Failed to fetch cart count:", data.message);
+                const cartCountElement = document.getElementById('cart-count');
+                if (cartCountElement) {
+                    cartCountElement.textContent = '0';
+                    cartCountElement.style.display = 'none';
+                }
             }
-
-            const frameSelect = card.querySelector('.frame-select');
-            if (frameSelect) {
-                selectedFrame = frameSelect.value;
-                const selectedOption = frameSelect.options[frameSelect.selectedIndex];
-                framePrice = parseFloat(selectedOption.dataset.price || 0);
+        } catch (error) {
+            console.error("Network error fetching cart count:", error);
+            const cartCountElement = document.getElementById('cart-count');
+            if (cartCountElement) {
+                cartCountElement.textContent = '0';
+                cartCountElement.style.display = 'none';
             }
+        }
+    }
 
-            const glassSelect = card.querySelector('.glass-select');
-            if (glassSelect) {
-                selectedGlass = glassSelect.value;
-                const selectedOption = glassSelect.options[glassSelect.selectedIndex];
-                glassPrice = parseFloat(selectedOption.dataset.price || 0);
-            }
+    // Global function to add to cart (sends to server via AJAX)
+    async function addToCart(sku, name, imageUrl, unitPriceAfterOptions, options, quantity = 1) {
+        // Proactive check for authentication
+        if ("{{ current_user.is_authenticated }}" !== "True") {
+            const itemToAddAfterLogin = { sku, name, imageUrl, options, quantity };
+            sessionStorage.setItem('itemToAddAfterLogin', JSON.stringify(itemToAddAfterLogin));
+            sessionStorage.setItem('redirect_after_login_endpoint', 'cart'); 
             
-            const quantityInput = card.querySelector('.quantity-input');
-            let selectedQuantity = parseInt(quantityInput.value) || 1;
-            
-            // Clamp quantity to available stock
-            const maxStock = parseInt(quantityInput.max);
-            if (selectedQuantity > maxStock) {
-                selectedQuantity = maxStock;
-                quantityInput.value = selectedQuantity; // Update input field
-                showCustomAlert(`Only ${maxStock} available. Quantity adjusted.`, 'warning');
-            } else if (selectedQuantity < 1) {
-                selectedQuantity = 1;
-                quantityInput.value = selectedQuantity;
-            }
-
-            const unitPriceAfterOptions = originalPrice + sizePrice + framePrice + glassPrice;
-            const finalCalculatedPrice = unitPriceAfterOptions * selectedQuantity;
-
-            // Update the displayed price
-            card.querySelector('.final-price').textContent = `₹${finalCalculatedPrice.toFixed(2)}`;
-
-            // Store the calculated unit price on the card for direct access by buttons
-            card.dataset.calculatedUnitPrice = unitPriceAfterOptions.toFixed(2);
-            card.dataset.currentQuantity = selectedQuantity;
-            card.dataset.currentSize = selectedSize;
-            card.dataset.currentFrame = selectedFrame;
-            card.dataset.currentGlass = selectedGlass;
+            window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=add_to_cart';
+            return;
         }
 
-        // Loop through each artwork card to attach event listeners
+        try {
+            const response = await fetch('{{ url_for("add_to_cart") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sku: sku,
+                    size: options.size || 'Original',
+                    frame: options.frame || 'None',
+                    glass: options.glass || 'None',
+                    quantity: quantity
+                })
+            });
+
+            if (response.status === 401) {
+                console.warn("Received 401 on add to cart despite client-side check. Redirecting.");
+                const itemToAddAfterLogin = { sku, name, imageUrl, options, quantity };
+                sessionStorage.setItem('itemToAddAfterLogin', JSON.stringify(itemToAddAfterLogin));
+                sessionStorage.setItem('redirect_after_login_endpoint', 'cart');
+                window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=add_to_cart';
+                return; 
+            }
+
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                console.error("Server did not return JSON. Content-Type:", contentType, "Status:", response.status);
+                const errorText = await response.text();
+                console.error("Server Response (Non-JSON):", errorText);
+                showCustomAlert("An unexpected error occurred. Please try again.", 'danger');
+                return;
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                const addedItem = data.cart_items.find(item => 
+                    item.sku === sku && 
+                    item.size === (options.size || 'Original') && 
+                    item.frame === (options.frame || 'None') && 
+                    item.glass === (options.glass || 'None')
+                );
+                if (addedItem) {
+                     showCustomAlert(`✅ "${name}" added to cart for ₹${addedItem.total_price.toFixed(2)}`, 'success');
+                } else {
+                    showCustomAlert(`✅ "${name}" added to cart!`, 'success');
+                }
+               
+                updateCartCountDisplay();
+            } else {
+                showCustomAlert(`❌ Failed to add "${name}" to cart: ${data.message}`, 'danger');
+                console.error("Add to cart error:", data.message);
+            }
+        } catch (error) {
+            console.error("Network error adding to cart (catch block):", error);
+            showCustomAlert("Network error. Please check your connection and try again.", 'danger');
+        }
+    }
+
+    // Global function for direct "Buy Now"
+    async function buyNow(sku, name, imageUrl, options, quantity = 1) {
+        // Proactive check for authentication
+        if ("{{ current_user.is_authenticated }}" !== "True") {
+            const itemToBuyNow = { sku, name, imageUrl, options, quantity };
+            sessionStorage.setItem('itemToBuyNow', JSON.stringify(itemToBuyNow));
+            sessionStorage.setItem('redirect_after_login_endpoint', 'order_summary_page'); 
+            
+            window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=buy_now';
+            return;
+        }
+
+        try {
+            const itemData = {
+                id: `${sku}-${options.size}-${options.frame}-${options.glass}`,
+                sku: sku,
+                name: name,
+                image: imageUrl,
+                size: options.size,
+                frame: options.frame,
+                glass: options.glass,
+                quantity: quantity
+            };
+
+            const response = await fetch('{{ url_for("create_direct_order") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cart: { [itemData.id]: itemData } }) 
+            });
+
+            if (response.status === 401) { 
+                console.warn("Received 401 on buy now despite client-side check. Redirecting.");
+                sessionStorage.setItem('itemToBuyNow', JSON.stringify(itemData));
+                sessionStorage.setItem('redirect_after_login_endpoint', 'order_summary_page'); 
+                window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=buy_now';
+                return; 
+            }
+            
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                console.error("Server did not return JSON. Content-Type:", contentType, "Status:", response.status);
+                const errorText = await response.text();
+                console.error("Server Response (Non-JSON):", errorText);
+                showCustomAlert("An unexpected error occurred. Please try again.", 'danger');
+                return;
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                showCustomAlert(`✅ "${name}" order placed. Redirecting to summary...`, 'success');
+                // Clear cart count as it's a direct purchase and user is leaving current page
+                const cartCountElement = document.getElementById('cart-count');
+                if (cartCountElement) {
+                    cartCountElement.textContent = '0';
+                    cartCountElement.style.display = 'none';
+                }
+                // This redirect_url should come from the server and already point to order_summary_page
+                window.location.href = data.redirect_url; 
+            } else {
+                showCustomAlert(`❌ Failed to buy "${name}" to cart: ${data.message}`, 'danger');
+                console.error("Buy now error:", data.message);
+            }
+        } catch (error) {
+            console.error("Network error for Buy Now (catch block):", error);
+            showCustomAlert("Network error. Please check your connection and try again.", 'danger');
+        }
+    }
+
+
+    // --- Artwork card specific logic (from your previous extra_js) ---
+    document.addEventListener('DOMContentLoaded', function () {
+        // Loop through each artwork card to attach event listeners and calculate price
         document.querySelectorAll('.artwork-card').forEach(card => {
-            const artworkSku = card.dataset.artworkSku;
+            // Get references to all relevant elements within the current card
             const sizeSelect = card.querySelector('.size-select');
             const frameSelect = card.querySelector('.frame-select');
             const glassSelect = card.querySelector('.glass-select');
             const quantityInput = card.querySelector('.quantity-input');
             const addToCartBtn = card.querySelector('.add-to-cart-btn');
             const buyNowBtn = card.querySelector('.buy-now-btn');
+            const viewDetailsBtn = card.querySelector('.view-details-btn');
+            const cardImage = card.querySelector('.clickable-image');
 
-            // Attach event listeners for option changes
-            if (sizeSelect) sizeSelect.addEventListener('change', () => calculateAndDisplayPrice(card));
-            if (frameSelect) frameSelect.addEventListener('change', () => calculateAndDisplayPrice(card));
-            if (glassSelect) glassSelect.addEventListener('change', () => calculateAndDisplayPrice(card));
-            if (quantityInput) quantityInput.addEventListener('input', () => calculateAndDisplayPrice(card));
-            if (quantityInput) quantityInput.addEventListener('change', () => calculateAndDisplayPrice(card));
+            // Function to calculate and display final price based on selected options and quantity
+            function calculateAndDisplayPrice(currentCard) {
+                const originalPriceElement = currentCard.querySelector('.final-price');
+                const originalPrice = parseFloat(originalPriceElement && originalPriceElement.dataset.originalPrice ? originalPriceElement.dataset.originalPrice : 0);
 
-            // Initial price update when the page loads for each card
+                let selectedSize = 'Original';
+                let selectedFrame = 'None';
+                let selectedGlass = 'None';
+                let sizePrice = 0;
+                let framePrice = 0;
+                let glassPrice = 0;
+
+                // Safely get selected options and their prices, checking if elements and options exist
+                if (sizeSelect) {
+                    if (sizeSelect.tagName === 'SELECT' && sizeSelect.options.length > 0) {
+                        selectedSize = sizeSelect.value;
+                        const selectedOption = sizeSelect.options[sizeSelect.selectedIndex];
+                        sizePrice = parseFloat(selectedOption && selectedOption.dataset.price ? selectedOption.dataset.price : 0);
+                    } else if (sizeSelect.tagName === 'INPUT' && sizeSelect.type === 'hidden') {
+                        selectedSize = sizeSelect.value;
+                        sizePrice = parseFloat(sizeSelect.dataset.price || 0);
+                    }
+                }
+
+                if (frameSelect) {
+                    if (frameSelect.tagName === 'SELECT' && frameSelect.options.length > 0) {
+                        selectedFrame = frameSelect.value;
+                        const selectedOption = frameSelect.options[frameSelect.selectedIndex];
+                        framePrice = parseFloat(selectedOption && selectedOption.dataset.price ? selectedOption.dataset.price : 0);
+                    } else if (frameSelect.tagName === 'INPUT' && frameSelect.type === 'hidden') {
+                        selectedFrame = frameSelect.value;
+                        framePrice = parseFloat(frameSelect.dataset.price || 0);
+                    }
+                }
+
+                if (glassSelect) {
+                    if (glassSelect.tagName === 'SELECT' && glassSelect.options.length > 0) {
+                        selectedGlass = glassSelect.value;
+                        const selectedOption = glassSelect.options[glassSelect.selectedIndex];
+                        glassPrice = parseFloat(selectedOption && selectedOption.dataset.price ? selectedOption.dataset.price : 0);
+                    } else if (glassSelect.tagName === 'INPUT' && glassSelect.type === 'hidden') {
+                        selectedGlass = glassSelect.value;
+                        glassPrice = parseFloat(glassSelect.dataset.price || 0);
+                    }
+                }
+                
+                // Safely get quantity and clamp it to available stock
+                let selectedQuantity = 1;
+                let maxStock = 9999; 
+
+                if (quantityInput) {
+                    selectedQuantity = parseInt(quantityInput.value) || 1;
+                    maxStock = parseInt(quantityInput.max) || 9999;
+
+                    if (selectedQuantity > maxStock) {
+                        selectedQuantity = maxStock;
+                        quantityInput.value = selectedQuantity;
+                        if (typeof showCustomAlert === 'function') {
+                            showCustomAlert(`Only ${maxStock} available. Quantity adjusted.`, 'warning');
+                        } else {
+                            console.warn(`Only ${maxStock} available. Quantity adjusted. (showCustomAlert not found)`);
+                        }
+                    } else if (selectedQuantity < 1) {
+                        selectedQuantity = 1;
+                        quantityInput.value = selectedQuantity;
+                    }
+                }
+
+                const unitPriceAfterOptions = originalPrice + sizePrice + framePrice + glassPrice;
+                const finalCalculatedPrice = unitPriceAfterOptions * selectedQuantity;
+
+                if (originalPriceElement) {
+                    originalPriceElement.textContent = `₹${finalCalculatedPrice.toFixed(2)}`;
+                }
+
+                currentCard.dataset.calculatedUnitPrice = unitPriceAfterOptions.toFixed(2);
+                currentCard.dataset.currentQuantity = selectedQuantity;
+                currentCard.dataset.currentSize = selectedSize;
+                currentCard.dataset.currentFrame = selectedFrame;
+                currentCard.dataset.currentGlass = selectedGlass;
+            }
+
+            // Attach event listeners for option changes and quantity input
+            if (sizeSelect && sizeSelect.tagName === 'SELECT') sizeSelect.addEventListener('change', () => calculateAndDisplayPrice(card));
+            if (frameSelect && frameSelect.tagName === 'SELECT') frameSelect.addEventListener('change', () => calculateAndDisplayPrice(card));
+            if (glassSelect && glassSelect.tagName === 'SELECT') glassSelect.addEventListener('change', () => calculateAndDisplayPrice(card));
+            if (quantityInput) {
+                quantityInput.addEventListener('input', () => calculateAndDisplayPrice(card));
+                quantityInput.addEventListener('change', () => calculateAndDisplayPrice(card));
+            }
+
+            // Initial price calculation when the page loads for each card
             calculateAndDisplayPrice(card);
 
             // Add to Cart button functionality
@@ -640,7 +875,6 @@
                     const name = this.dataset.name;
                     const imageUrl = this.dataset.image;
 
-                    // Get currently selected options and quantity from the card's dataset
                     const currentSize = card.dataset.currentSize;
                     const currentFrame = card.dataset.currentFrame;
                     const currentGlass = card.dataset.currentGlass;
@@ -651,17 +885,9 @@
                         size: currentSize,
                         frame: currentFrame,
                         glass: currentGlass,
-                        // The `addToCart` function in _base.html handles fetching original prices and calculating
-                        // based on the options, so we don't pass `sizePrice`, `framePrice`, `glassPrice` here.
-                        // We rely on it to get the latest data from the backend.
                     };
 
-                    if (typeof addToCart === 'function') {
-                        await addToCart(sku, name, imageUrl, unitPriceAfterOptions, options, currentQuantity);
-                    } else {
-                        console.error("Global addToCart function not found. Cannot add to cart.");
-                        showCustomAlert("Cart functionality is not available. Please contact support.", 'danger');
-                    }
+                    await addToCart(sku, name, imageUrl, unitPriceAfterOptions, options, currentQuantity);
                 });
             }
 
@@ -672,69 +898,61 @@
                     const name = this.dataset.name;
                     const imageUrl = this.dataset.image;
 
-                    // Get currently selected options and quantity from the card's dataset
                     const selectedSize = card.dataset.currentSize;
                     const selectedFrame = card.dataset.currentFrame;
                     const selectedGlass = card.dataset.currentGlass;
                     const selectedQuantity = parseInt(card.dataset.currentQuantity);
                     const unitPriceAfterOptions = parseFloat(card.dataset.calculatedUnitPrice);
 
-                    // Prepare item for direct checkout (simulating a single-item cart)
-                    // Note: The 'unit_price' here is the price *after* options, but *before* GST.
-                    // The `create_direct_order` endpoint in `app.py` will re-calculate GST and totals.
-                    const itemId = `${sku}-${selectedSize}-${selectedFrame}-${selectedGlass}`;
-                    const buyNowCart = {};
-                    buyNowCart[itemId] = {
-                        id: itemId,
-                        sku: sku,
-                        name: name,
-                        image: imageUrl,
-                        unit_price: unitPriceAfterOptions, // Price after options, before GST
-                        unit_price_before_gst: unitPriceAfterOptions, // Same as unit_price for this context
-                        quantity: selectedQuantity,
+                    const options = {
                         size: selectedSize,
                         frame: selectedFrame,
                         glass: selectedGlass,
-                        gst_percentage: 0, // Placeholder, actual GST from server
-                        gst_amount: 0, // Placeholder, actual GST from server
-                        total_price_before_gst: unitPriceAfterOptions * selectedQuantity,
-                        total_price: unitPriceAfterOptions * selectedQuantity // Placeholder, actual total from server
                     };
 
-                    // Send this temporary cart to the server
-                    try {
-                        const response = await fetch('{{ url_for("create_direct_order") }}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ cart: buyNowCart })
-                        });
-                        const data = await response.json();
-                        if (data.success) {
-                            showCustomAlert(data.message, 'success');
-                            window.location.href = data.redirect_url; // Redirect to payment_initiate or purchase_form
-                        } else {
-                            showCustomAlert(`Failed to place order: ${data.message}`, 'danger');
-                            console.error("ERROR: Failed to create direct order:", data.message);
-                        }
-                    } catch (error) {
-                        console.error("ERROR: Network error placing direct order:", error);
-                        showCustomAlert("Network error. Please check your connection or try again later.", 'danger');
+                    await buyNow(sku, name, imageUrl, options, selectedQuantity);
+                });
+            }
+
+            // View Details Button functionality
+            if (viewDetailsBtn) {
+                viewDetailsBtn.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    const modalImage = document.getElementById('modalImage');
+                    const imageModal = document.getElementById('imageModal');
+                    const imageSrc = viewDetailsBtn.dataset.imageSrc;
+
+                    if (modalImage && imageModal && imageSrc) {
+                        modalImage.src = imageSrc;
+                        imageModal.style.display = 'flex';
+                    } else {
+                        console.error("Image modal elements or image source not found for View Details button.");
+                        showCustomAlert("Image preview not available.", 'warning');
+                    }
+                });
+            }
+
+            // Image click functionality
+            if (cardImage) {
+                cardImage.style.cursor = 'zoom-in';
+                cardImage.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    const modalImage = document.getElementById('modalImage');
+                    const imageModal = document.getElementById('imageModal');
+                    if (modalImage && imageModal) {
+                        modalImage.src = cardImage.src;
+                        imageModal.style.display = 'flex';
+                    } else {
+                        console.error("Image modal elements not found for direct image click.");
+                        showCustomAlert("Image preview not available.", 'warning');
                     }
                 });
             }
         });
 
-        // Event listener for opening the modal for product images
-        document.querySelectorAll('.artwork-card .card-img-top').forEach(img => {
-            img.style.cursor = 'zoom-in';
-            img.addEventListener('click', (event) => {
-                event.preventDefault();
-                document.getElementById('modalImage').src = img.src;
-                document.getElementById('imageModal').style.display = 'flex';
-            });
-        });
+        // Event listener for DOMContentLoaded - make sure this is *outside* the extra_js block
+        // (This part is already in _base.html and initiates updateCartCountDisplay on load)
+        // updateCartCountDisplay(); // This is called in _base.html already
     });
 </script>
 {% endblock %}

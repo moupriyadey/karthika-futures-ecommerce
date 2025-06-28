@@ -646,5 +646,55 @@
             "is_held_by_admin": false,
             "customer_phone_camouflaged": "8989898989"
         }
+    },
+    {
+        "order_id": "8bf0db90-d1ef-4756-87a5-397970483df2",
+        "user_id": "53201b5c-7602-4b3c-8229-307130f78541",
+        "user_email": "covcorres@gmail.com",
+        "customer_name": "covcorres",
+        "customer_phone": "8989898989",
+        "customer_address": "KOLKATA",
+        "customer_pincode": "111222",
+        "items": [
+            {
+                "id": "888888-undefined-undefined-undefined",
+                "sku": "888888",
+                "name": "durga",
+                "quantity": 1,
+                "unit_price_before_gst": 1212.0,
+                "total_price_before_gst": 1212.0,
+                "gst_percentage": 9.0,
+                "gst_amount": 109.08,
+                "total_price": 1321.08,
+                "stock_available": 87
+            }
+        ],
+        "subtotal_before_gst": 1212.0,
+        "total_gst_amount": 109.08,
+        "shipping_charge": 50.0,
+        "total_amount": 1371.08,
+        "status": "Pending Payment",
+        "transaction_id": null,
+        "courier": null,
+        "tracking_number": null,
+        "placed_on": "2025-06-28 20:02:13",
+        "payment_submitted_on": null,
+        "shipped_on": null,
+        "remark": "",
+        "invoice_details": {
+            "invoice_status": "Not Applicable",
+            "invoice_number": null,
+            "invoice_date": null,
+            "gst_rate_applied": 18.0,
+            "total_gst_amount": 109.08,
+            "cgst_amount": 54.54,
+            "sgst_amount": 54.54,
+            "shipping_charge": 50.0,
+            "final_invoice_amount": 1371.08,
+            "is_held_by_admin": false,
+            "customer_phone_camouflaged": "8989898989"
+        },
+        "cgst_amount": 54.54,
+        "sgst_amount": 54.54
     }
 ]

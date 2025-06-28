@@ -1,13 +1,13 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top shadow-lg w-full" style="background-color: rgba(33, 37, 41, 0.7) !important; backdrop-filter: blur(5px);"> {# Added w-full and transparency style #}
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top shadow-lg" style="background-color: rgb(153, 113, 20) !important; backdrop-filter: blur(5px);">
     <div class="container-fluid px-4">
         <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Karthika Futures Logo">
-            <span class="ms-2 fw-bold">Karthika Futures</span>
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Karthika Futures Logo" style="height: 40px; margin-right: 10px;">
+            <span class="ms-2 fw-bold text-white">Karthika Futures</span>
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
-        <div class="collapse navbar-collapse w-full" id="navbarNav">
+        <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 <li class="nav-item">
                     <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" aria-current="page" href="{{ url_for('index') }}">Home</a>
@@ -38,7 +38,7 @@
                 {% endif %}
             </ul>
             <!-- Search Form -->
-            <form action="{{ url_for('all_products') }}" method="GET" class="d-flex mt-4 md:mt-0"> 
+            <form action="{{ url_for('all_products') }}" method="GET" class="d-flex my-2 my-lg-0">
                 <input class="form-control me-2 rounded-pill px-3" type="search" name="query" placeholder="Search..." aria-label="Search" value="{{ request.args.get('query', '') }}">
                 <button class="btn btn-outline-light-blue rounded-pill" type="submit"><i class="fas fa-search"></i></button>
             </form>

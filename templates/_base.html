@@ -4,16 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Karthika Futures{% endblock %}</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     
-    {# RE-ENABLED: Link to your actual style.css AFTER Bootstrap CSS #}
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+    <!-- Your custom style.css (ensure this file exists and contains your main site styles) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
-    <!-- Tailwind CSS (if you're using it in conjunction with Bootstrap, ensure proper configuration) -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
@@ -24,18 +25,19 @@
             padding-top: 70px; /* Space for fixed navbar */
             color: #333;
         }
-        /* Styles below are from your original _base.html and are kept here */
+        /* Navbar specific styles (some carried over, some adjusted) */
         .navbar-brand img {
             height: 40px; /* Adjust as needed */
             margin-right: 10px;
         }
+        /* --- IMPORTANT NAV-LINK COLOR ADJUSTMENT FOR VISIBILITY --- */
         .nav-link {
             font-weight: 500;
-            color: #444 !important;
+            color: #f8f9fa !important; /* Changed to very light grey for high contrast on dark navbar */
             transition: color 0.2s ease-in-out;
         }
         .nav-link:hover {
-            color: #007bff !important;
+            color: #007bff !important; /* Vibrant blue on hover */
         }
         .btn-outline-light-blue {
             color: #007bff;
@@ -45,6 +47,7 @@
             background-color: #007bff;
             color: white;
         }
+        /* Footer styles */
         .footer {
             background-color: #2c3e50; /* Darker blue-grey */
             color: white;
@@ -59,6 +62,7 @@
             color: white;
             text-decoration: underline;
         }
+        /* Flash message styles */
         .flash-message {
             position: fixed;
             top: 70px; /* Below navbar */
@@ -83,7 +87,7 @@
             from { opacity: 1; transform: translateX(-50%) translateY(0); }
             to { opacity: 0; transform: translateX(-50%) translateY(-20px); }
         }
-        /* Keep other necessary modal/image styles if they don't interfere with navbar */
+        /* Image Modal styles */
         .image-modal {
             display: none;
             position: fixed;
@@ -187,233 +191,229 @@
         <img class="image-modal-content" id="modalImage">
     </div>
 
-    {# BOOTSTRAP JS MUST BE LOADED BEFORE YOUR CUSTOM SCRIPTS #}
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap JS Bundle (popper included) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     
-    <!-- YOUR GLOBAL CUSTOM JAVASCRIPT: DEFINED GLOBALLY FOR ALL PAGES -->
+    <!-- Your Global Custom JavaScript -->
     <script>
-        // RE-ENABLED: Bootstrap specific navbar JS initialization
-        console.log("Bootstrap object available:", typeof bootstrap !== 'undefined');
-        if (typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
-            console.log("Bootstrap Collapse object available.");
-        } else {
-            console.error("Bootstrap Collapse object is NOT available. Bootstrap JS might not be loaded correctly.");
-        }
-
         document.addEventListener('DOMContentLoaded', () => {
-            const navbarCollapseElement = document.getElementById('navbarNav');
-            if (navbarCollapseElement && typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
-                try {
-                    const bsCollapse = new bootstrap.Collapse(navbarCollapseElement, { toggle: false });
-                    console.log("Navbar Collapse component manually initialized.", bsCollapse);
-                    
-                    const navbarToggler = document.querySelector('.navbar-toggler');
-                    if (navbarToggler) {
-                        navbarToggler.addEventListener('click', (event) => {
-                            event.preventDefault(); 
-                            bsCollapse.toggle();
-                            console.log("Navbar toggler clicked. Collapse toggled.");
-                        });
+            // Bootstrap specific navbar JS initialization
+            console.log("Bootstrap object available:", typeof bootstrap !== 'undefined');
+            if (typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
+                console.log("Bootstrap Collapse object available.");
+                const navbarCollapseElement = document.getElementById('navbarNav');
+                if (navbarCollapseElement) {
+                    try {
+                        const bsCollapse = new bootstrap.Collapse(navbarCollapseElement, { toggle: false });
+                        console.log("Navbar Collapse component manually initialized.", bsCollapse);
+                        
+                        const navbarToggler = document.querySelector('.navbar-toggler');
+                        if (navbarToggler) {
+                            navbarToggler.addEventListener('click', (event) => {
+                                event.preventDefault(); 
+                                bsCollapse.toggle();
+                                console.log("Navbar toggler clicked. Collapse toggled.");
+                            });
+                        }
+                    } catch (e) {
+                        console.error("Error manually initializing Bootstrap Collapse:", e);
                     }
-                } catch (e) {
-                    console.error("Error manually initializing Bootstrap Collapse:", e);
+                } else {
+                    console.error("Could not find navbarNav element for manual initialization.");
                 }
             } else {
-                console.error("Could not find navbarNav element or Bootstrap.Collapse is not available for manual initialization.");
+                console.error("Bootstrap Collapse object is NOT available. Bootstrap JS might not be loaded correctly.");
             }
-        });
 
+            // Global function to show custom flash messages
+            function showCustomAlert(message, type) {
+                const container = document.getElementById('flash-messages-container');
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${type} flash-message`;
+                alertDiv.textContent = message;
+                container.appendChild(alertDiv);
 
-        // Global function to show custom flash messages
-        function showCustomAlert(message, type) {
-            const container = document.getElementById('flash-messages-container');
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type} flash-message`;
-            alertDiv.textContent = message;
-            container.appendChild(alertDiv);
+                setTimeout(() => {
+                    alertDiv.remove();
+                }, 5000);
+            }
 
-            setTimeout(() => {
-                alertDiv.remove();
-            }, 5000);
-        }
+            // Global function to update cart count in the navbar
+            async function updateCartCountDisplay() {
+                try {
+                    const response = await fetch('{{ url_for("update_cart_session") }}', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({})
+                    });
+                    const data = await response.json();
 
-        // Global function to update cart count in the navbar
-        async function updateCartCountDisplay() {
-            try {
-                const response = await fetch('{{ url_for("update_cart_session") }}', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({})
-                });
-                const data = await response.json();
-
-                if (data.success && data.cart_items) {
-                    const totalItemsQuantity = Object.values(data.cart_items).reduce((sum, item) => sum + item.quantity, 0);
-                    const cartCountElement = document.getElementById('cart-count');
-                    if (cartCountElement) {
-                        cartCountElement.textContent = totalItemsQuantity;
-                        cartCountElement.style.display = totalItemsQuantity > 0 ? 'block' : 'none';
+                    if (data.success && data.cart_items) {
+                        const totalItemsQuantity = Object.values(data.cart_items).reduce((sum, item) => sum + item.quantity, 0);
+                        const cartCountElement = document.getElementById('cart-count');
+                        if (cartCountElement) {
+                            cartCountElement.textContent = totalItemsQuantity;
+                            cartCountElement.style.display = totalItemsQuantity > 0 ? 'block' : 'none';
+                        }
+                    } else {
+                        console.error("Failed to fetch cart count:", data.message);
+                        const cartCountElement = document.getElementById('cart-count');
+                        if (cartCountElement) {
+                            cartCountElement.textContent = '0';
+                            cartCountElement.style.display = 'none';
+                        }
                     }
-                } else {
-                    console.error("Failed to fetch cart count:", data.message);
+                } catch (error) {
+                    console.error("Network error fetching cart count:", error);
                     const cartCountElement = document.getElementById('cart-count');
                     if (cartCountElement) {
                         cartCountElement.textContent = '0';
                         cartCountElement.style.display = 'none';
                     }
                 }
-            } catch (error) {
-                console.error("Network error fetching cart count:", error);
-                const cartCountElement = document.getElementById('cart-count');
-                if (cartCountElement) {
-                    cartCountElement.textContent = '0';
-                    cartCountElement.style.display = 'none';
-                }
-            }
-        }
-
-        // Global function to add to cart (sends to server via AJAX)
-        async function addToCart(sku, name, imageUrl, unitPriceAfterOptions, options, quantity = 1) {
-            // Proactive check for authentication
-            if ("{{ current_user.is_authenticated }}" !== "True") {
-                const itemToAddAfterLogin = { sku, name, imageUrl, options, quantity };
-                sessionStorage.setItem('itemToAddAfterLogin', JSON.stringify(itemToAddAfterLogin));
-                sessionStorage.setItem('redirect_after_login_endpoint', 'cart'); 
-                
-                window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=add_to_cart';
-                return;
             }
 
-            try {
-                const response = await fetch('{{ url_for("add_to_cart") }}', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        sku: sku,
-                        size: options.size || 'Original',
-                        frame: options.frame || 'None',
-                        glass: options.glass || 'None',
-                        quantity: quantity
-                    })
-                });
-
-                if (response.status === 401) {
-                    console.warn("Received 401 on add to cart despite client-side check. Redirecting.");
+            // Global function to add to cart (sends to server via AJAX)
+            async function addToCart(sku, name, imageUrl, unitPriceAfterOptions, options, quantity = 1) {
+                // Proactive check for authentication
+                if ("{{ current_user.is_authenticated }}" !== "True") {
                     const itemToAddAfterLogin = { sku, name, imageUrl, options, quantity };
                     sessionStorage.setItem('itemToAddAfterLogin', JSON.stringify(itemToAddAfterLogin));
-                    sessionStorage.setItem('redirect_after_login_endpoint', 'cart');
+                    sessionStorage.setItem('redirect_after_login_endpoint', 'cart'); 
+                    
                     window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=add_to_cart';
-                    return; 
-                }
-
-                const contentType = response.headers.get("content-type");
-                if (!contentType || !contentType.includes("application/json")) {
-                    console.error("Server did not return JSON. Content-Type:", contentType, "Status:", response.status);
-                    const errorText = await response.text();
-                    console.error("Server Response (Non-JSON):", errorText);
-                    showCustomAlert("An unexpected error occurred. Please try again.", 'danger');
                     return;
                 }
 
-                const data = await response.json();
+                try {
+                    const response = await fetch('{{ url_for("add_to_cart") }}', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            sku: sku,
+                            size: options.size || 'Original',
+                            frame: options.frame || 'None',
+                            glass: options.glass || 'None',
+                            quantity: quantity
+                        })
+                    });
 
-                if (data.success) {
-                    const addedItem = data.cart_items.find(item => 
-                        item.sku === sku && 
-                        item.size === (options.size || 'Original') && 
-                        item.frame === (options.frame || 'None') && 
-                        item.glass === (options.glass || 'None')
-                    );
-                    if (addedItem) {
-                         showCustomAlert(`✅ "${name}" added to cart for ₹${addedItem.total_price.toFixed(2)}`, 'success');
+                    if (response.status === 401) {
+                        console.warn("Received 401 on add to cart despite client-side check. Redirecting.");
+                        const itemToAddAfterLogin = { sku, name, imageUrl, options, quantity };
+                        sessionStorage.setItem('itemToAddAfterLogin', JSON.stringify(itemToAddAfterLogin));
+                        sessionStorage.setItem('redirect_after_login_endpoint', 'cart');
+                        window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=add_to_cart';
+                        return; 
+                    }
+
+                    const contentType = response.headers.get("content-type");
+                    if (!contentType || !contentType.includes("application/json")) {
+                        console.error("Server did not return JSON. Content-Type:", contentType, "Status:", response.status);
+                        const errorText = await response.text();
+                        console.error("Server Response (Non-JSON):", errorText);
+                        showCustomAlert("An unexpected error occurred. Please try again.", 'danger');
+                        return;
+                    }
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        const addedItem = data.cart_items.find(item => 
+                            item.sku === sku && 
+                            item.size === (options.size || 'Original') && 
+                            item.frame === (options.frame || 'None') && 
+                            item.glass === (options.glass || 'None')
+                        );
+                        if (addedItem) {
+                             showCustomAlert(`✅ "${name}" added to cart for ₹${addedItem.total_price.toFixed(2)}`, 'success');
+                        } else {
+                            showCustomAlert(`✅ "${name}" added to cart!`, 'success');
+                        }
+                       
+                        updateCartCountDisplay();
                     } else {
-                        showCustomAlert(`✅ "${name}" added to cart!`, 'success');
+                        showCustomAlert(`❌ Failed to add "${name}" to cart: ${data.message}`, 'danger');
+                        console.error("Add to cart error:", data.message);
                     }
-                   
-                    updateCartCountDisplay();
-                } else {
-                    showCustomAlert(`❌ Failed to add "${name}" to cart: ${data.message}`, 'danger');
-                    console.error("Add to cart error:", data.message);
+                } catch (error) {
+                    console.error("Network error adding to cart (catch block):", error);
+                    showCustomAlert("Network error. Please check your connection and try again.", 'danger');
                 }
-            } catch (error) {
-                console.error("Network error adding to cart (catch block):", error);
-                showCustomAlert("Network error. Please check your connection and try again.", 'danger');
-            }
-        }
-
-        // Global function for direct "Buy Now"
-        async function buyNow(sku, name, imageUrl, options, quantity = 1) {
-            // Proactive check for authentication
-            if ("{{ current_user.is_authenticated }}" !== "True") {
-                const itemToBuyNow = { sku, name, imageUrl, options, quantity };
-                sessionStorage.setItem('itemToBuyNow', JSON.stringify(itemToBuyNow));
-                sessionStorage.setItem('redirect_after_login_endpoint', 'order_summary_page'); 
-                
-                window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=buy_now';
-                return;
             }
 
-            try {
-                const itemData = {
-                    id: `${sku}-${options.size}-${options.frame}-${options.glass}`,
-                    sku: sku,
-                    name: name,
-                    image: imageUrl,
-                    size: options.size,
-                    frame: options.frame,
-                    glass: options.glass,
-                    quantity: quantity
-                };
-
-                const response = await fetch('{{ url_for("create_direct_order") }}', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ cart: { [itemData.id]: itemData } }) 
-                });
-
-                if (response.status === 401) { 
-                    console.warn("Received 401 on buy now despite client-side check. Redirecting.");
-                    sessionStorage.setItem('itemToBuyNow', JSON.stringify(itemData));
+            // Global function for direct "Buy Now"
+            async function buyNow(sku, name, imageUrl, options, quantity = 1) {
+                // Proactive check for authentication
+                if ("{{ current_user.is_authenticated }}" !== "True") {
+                    const itemToBuyNow = { sku, name, imageUrl, options, quantity };
+                    sessionStorage.setItem('itemToBuyNow', JSON.stringify(itemToBuyNow));
                     sessionStorage.setItem('redirect_after_login_endpoint', 'order_summary_page'); 
+                    
                     window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=buy_now';
-                    return; 
-                }
-                
-                const contentType = response.headers.get("content-type");
-                if (!contentType || !contentType.includes("application/json")) {
-                    console.error("Server did not return JSON. Content-Type:", contentType, "Status:", response.status);
-                    const errorText = await response.text();
-                    console.error("Server Response (Non-JSON):", errorText);
-                    showCustomAlert("An unexpected error occurred. Please try again.", 'danger');
                     return;
                 }
 
-                const data = await response.json();
+                try {
+                    const itemData = {
+                        id: `${sku}-${options.size}-${options.frame}-${options.glass}`,
+                        sku: sku,
+                        name: name,
+                        image: imageUrl,
+                        size: options.size,
+                        frame: options.frame,
+                        glass: options.glass,
+                        quantity: quantity
+                    };
 
-                if (data.success) {
-                    showCustomAlert(`✅ "${name}" order placed. Redirecting to summary...`, 'success');
-                    // Clear cart count as it's a direct purchase and user is leaving current page
-                    const cartCountElement = document.getElementById('cart-count');
-                    if (cartCountElement) {
-                        cartCountElement.textContent = '0';
-                        cartCountElement.style.display = 'none';
+                    const response = await fetch('{{ url_for("create_direct_order") }}', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ cart: { [itemData.id]: itemData } }) 
+                    });
+
+                    if (response.status === 401) { 
+                        console.warn("Received 401 on buy now despite client-side check. Redirecting.");
+                        sessionStorage.setItem('itemToBuyNow', JSON.stringify(itemData));
+                        sessionStorage.setItem('redirect_after_login_endpoint', 'order_summary_page'); 
+                        window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=buy_now';
+                        return; 
                     }
-                    // This redirect_url should come from the server and already point to order_summary_page
-                    window.location.href = data.redirect_url; 
-                } else {
-                    showCustomAlert(`❌ Failed to buy "${name}" to cart: ${data.message}`, 'danger');
-                    console.error("Buy now error:", data.message);
-                }
-            } catch (error) {
-                console.error("Network error for Buy Now (catch block):", error);
-                showCustomAlert("Network error. Please check your connection and try again.", 'danger');
-            }
-        }
+                    
+                    const contentType = response.headers.get("content-type");
+                    if (!contentType || !contentType.includes("application/json")) {
+                        console.error("Server did not return JSON. Content-Type:", contentType, "Status:", response.status);
+                        const errorText = await response.text();
+                        console.error("Server Response (Non-JSON):", errorText);
+                        showCustomAlert("An unexpected error occurred. Please try again.", 'danger');
+                        return;
+                    }
 
-        // Event listener for DOMContentLoaded - make sure this is *outside* the extra_js block
-        document.addEventListener('DOMContentLoaded', () => {
-            // Initial load of cart count on every page
-            updateCartCountDisplay();
+                    const data = await response.json();
+
+                    if (data.success) {
+                        showCustomAlert(`✅ "${name}" order placed. Redirecting to summary...`, 'success');
+                        // Clear cart count as it's a direct purchase and user is leaving current page
+                        const cartCountElement = document.getElementById('cart-count');
+                        if (cartCountElement) {
+                            cartCountElement.textContent = '0';
+                            cartCountElement.style.display = 'none';
+                        }
+                        // This redirect_url should come from the server and already point to order_summary_page
+                        window.location.href = data.redirect_url; 
+                    } else {
+                        showCustomAlert(`❌ Failed to buy "${name}" to cart: ${data.message}`, 'danger');
+                        console.error("Buy now error:", data.message);
+                    }
+                } catch (error) {
+                    console.error("Network error for Buy Now (catch block):", error);
+                    showCustomAlert("Network error. Please check your connection and try again.", 'danger');
+                }
+            }
+
+            // Event listener for DOMContentLoaded - make sure this is *outside* the extra_js block
+            // This function is called immediately after the DOM is fully loaded.
+            updateCartCountDisplay(); // Initial load of cart count on every page
 
             const itemToBuyNow = sessionStorage.getItem('itemToBuyNow');
             const itemToAddAfterLogin = sessionStorage.getItem('itemToAddAfterLogin');
@@ -468,7 +468,6 @@
         });
 
     </script>
-    {# Child templates can define their own {% block extra_js %} if they need additional JS. #}
-    {% block extra_js %}{% endblock %} 
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

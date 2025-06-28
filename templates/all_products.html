@@ -2,240 +2,739 @@
 
 {% block title %}All Artworks - Karthika Futures{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Main Content Area - A clean, central block */
+    .main-content-area {
+        background-color: rgba(255, 255, 255, 0.98); /* Near-opaque white */
+        padding: 2.5rem;
+        border-radius: 1rem; /* More prominent rounded corners */
+        box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.08); /* Soft, professional shadow */
+        margin-top: 2rem; /* Space from fixed navbar */
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden; /* Contains any floating elements */
+        z-index: 10; /* Ensures it's above the body background */
+        border: 1px solid #e0e0e0; /* Subtle border for definition */
+    }
+
+    /* Section Headers */
+    .section-header {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #6b4e28; /* Earthy tone from previous version, good for theme */
+        text-align: center;
+        margin-bottom: 2.5rem;
+        position: relative;
+        padding-bottom: 0.5rem;
+    }
+    .section-header::after {
+        content: '';
+        display: block;
+        width: 80px;
+        height: 4px;
+        background-color: #007bff; /* Accent color for underline */
+        margin: 0.5rem auto 0;
+        border-radius: 2px;
+    }
+
+    /* Artwork Card Styling - Highly refined */
+    .card.artwork-card {
+        border: none;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        box-shadow: 0 0.25rem 1rem rgba(0,0,0,0.07); /* Subtle card shadow */
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        background-color: #ffffff; /* White background for card */
+        border: 1px solid #f0f0f0; /* Very light border */
+    }
+    .card.artwork-card:hover {
+        transform: translateY(-8px); /* More pronounced lift on hover */
+        box-shadow: 0 0.8rem 2rem rgba(0,0,0,0.15); /* Stronger shadow on hover */
+    }
+    .artwork-card img {
+        width: 100%;
+        height: 220px; /* Consistent image height */
+        object-fit: cover;
+        border-bottom: 1px solid #f0f0f0; /* Lighter border below image */
+        border-top-left-radius: 0.75rem; /* Match card radius */
+        border-top-right-radius: 0.75rem; /* Match card radius */
+        cursor: zoom-in;
+    }
+    .card-body {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 1.5rem; /* More padding inside card body */
+    }
+    .card-title {
+        font-size: 1.4rem; /* Larger title */
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.75rem;
+    }
+    .card-text-description { /* Specific class for description */
+        font-size: 0.95rem;
+        color: #555;
+        margin-bottom: 1rem;
+        line-height: 1.5;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 3; /* Limit to 3 lines */
+        -webkit-box-orient: vertical;
+        flex-grow: 1; /* Allows it to take available space */
+    }
+    .final-price {
+        font-size: 1.75rem; /* Larger final price */
+        font-weight: 700;
+        color: #28a745; /* Prominent green for price */
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+    }
+    .price-old {
+        color: #999;
+        font-size: 1rem;
+        margin-right: 0.5rem;
+        text-decoration: line-through; /* Strikethrough for old price */
+    }
+
+    /* Form Selects & Inputs within Cards */
+    .form-select, .form-control {
+        border-radius: 0.4rem; /* Rounded inputs */
+        border: 1px solid #dee2e6;
+        padding: 0.6rem 0.9rem;
+        font-size: 0.9rem;
+        color: #333;
+    }
+    .form-select:focus, .form-control:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25);
+    }
+    .form-label {
+        font-weight: 500;
+        color: #495057;
+        margin-bottom: 0.4rem;
+        font-size: 0.95rem;
+    }
+    /* Adjusted margin for form elements to match the original intent */
+    .option-group {
+        margin-bottom: 1rem; 
+    }
+    .option-group:last-of-type {
+        margin-bottom: 0.5rem; /* Less margin for last option group before quantity */
+    }
+    .quantity-group {
+        margin-bottom: 1.5rem;
+    }
+
+    /* Buttons */
+    .btn {
+        font-weight: 600;
+        padding: 0.75rem 1.25rem;
+        border-radius: 0.5rem;
+        transition: all 0.2s ease-in-out;
+        box-shadow: 0 0.2rem 0.5rem rgba(0,0,0,0.1); /* Button shadow */
+    }
+    .add-to-cart-btn {
+        background-color: #007bff; /* Primary blue */
+        border-color: #007bff;
+        color: white;
+    }
+    .add-to-cart-btn:hover {
+        background-color: #0056b3;
+        border-color: #0056b3;
+        transform: translateY(-2px);
+    }
+    .buy-now-btn {
+        background-color: #6f42c1; /* Purple accent */
+        border-color: #6f42c1;
+        color: white;
+    }
+    .buy-now-btn:hover {
+        background-color: #563d7c;
+        border-color: #563d7c;
+        transform: translateY(-2px);
+    }
+    /* Added style for View Details button */
+    .view-details-btn {
+        background-color: #6c757d; /* Muted grey */
+        border-color: #6c757d;
+        color: white;
+    }
+    .view-details-btn:hover {
+        background-color: #5a6268;
+        border-color: #5a6268;
+        transform: translateY(-2px);
+    }
+
+    .d-grid.gap-2 {
+        margin-top: auto; /* Push buttons to the bottom of the card body */
+        padding-top: 1rem; /* Space above buttons */
+        border-top: 1px solid #f0f0f0; /* Separator line */
+    }
+
+    /* Responsive Adjustments (ensure consistency with index.html) */
+    @media (max-width: 991.98px) { /* Tablets and below */
+        .main-content-area {
+            padding: 1.5rem;
+        }
+        .section-header {
+            font-size: 2rem;
+        }
+        .artwork-card img {
+            height: 180px;
+        }
+        .card-title {
+            font-size: 1.2rem;
+        }
+        .final-price {
+            font-size: 1.5rem;
+        }
+        .card-body {
+            padding: 1rem;
+        }
+    }
+
+    @media (max-width: 767.98px) { /* Mobile devices */
+        .main-content-area {
+            padding: 1rem;
+            margin-top: 4rem; /* Adjust for smaller navbar on mobile */
+        }
+        .section-header {
+            font-size: 1.8rem;
+            margin-bottom: 2rem;
+        }
+        .artwork-card img {
+            height: 160px;
+        }
+        .card-title {
+            font-size: 1rem;
+        }
+        .card-text-description {
+            font-size: 0.85rem;
+            -webkit-line-clamp: 2; /* Limit description to 2 lines on mobile */
+        }
+        .final-price {
+            font-size: 1.3rem;
+        }
+        .btn {
+            font-size: 0.9rem;
+            padding: 0.6rem 1rem;
+        }
+        .d-grid.gap-2 {
+             display: flex !important; /* Override d-grid for small screens to stack vertically */
+             flex-direction: column;
+             gap: 0.5rem; /* Space between stacked buttons */
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container main-content-area position-relative">
-    <h2 class="text-center mb-4">Explore All Artworks</h2>
-
-    {# Search and Category Filter Section #}
-    <div class="mb-6">
-        <form action="{{ url_for('all_products') }}" method="GET" class="flex flex-col md:flex-row items-center justify-center space-y-2 md:space-y-0 md:space-x-4">
-            {# Search Input Field #}
-            <input type="text" name="query" placeholder="Search by name, SKU, or description..." 
-                   value="{{ search_query | default('') }}" 
-                   class="flex-grow p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-200 focus:border-blue-500 shadow-sm w-full md:w-auto">
-            
-            {# Category Dropdown Filter #}
-            <select name="category" onchange="this.form.submit()"
-                    class="p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-200 focus:border-blue-500 shadow-sm w-full md:w-auto">
-                <option value="">All Categories</option>
-                {# 'categories' is globally available via the context processor in app.py #}
-                {% for category in categories %}
-                <option value="{{ category.name }}" {% if selected_category == category.name %}selected{% endif %}>
-                    {{ category.name }}
-                </option>
-                {% endfor %}
-            </select>
-            
-            {# Search Button #}
-            <button type="submit" class="p-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 shadow-sm w-full md:w-auto">
-                <i class="fas fa-search me-2"></i> Search
-            </button>
-        </form>
-    </div>
-
+<div class="container main-content-area position-relative pt-5">
+    <h2 class="section-header">All Artworks</h2>
+    
     {% if artworks %}
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
         {% for artwork in artworks %}
         <div class="col">
-            <div class="card artwork-card h-100"> {# Added h-100 for consistent height #}
-                {% if artwork.images and artwork.images|length > 0 %}
-                    {# Bootstrap Carousel for multiple images #}
-                    <div id="carousel-{{ artwork.sku }}" class="carousel slide" data-bs-ride="carousel" data-bs-interval="false">
-                        <div class="carousel-inner">
-                            {% for image_url in artwork.images %}
-                            <div class="carousel-item {% if loop.first %}active{% endif %}">
-                                <img src="{{ url_for('static', filename=image_url) }}" class="d-block w-100 card-img-top clickable-image" alt="{{ artwork.name }} - Image {{ loop.index }}" style="height: 200px; object-fit: cover;">
-                            </div>
-                            {% endfor %}
-                        </div>
-                        {% if artwork.images|length > 1 %}
-                        {# Carousel controls (arrows) #}
-                        <button class="carousel-control-prev" type="button" data-bs-target="#carousel-{{ artwork.sku }}" data-bs-slide="prev">
-                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                            <span class="visually-hidden">Previous</span>
-                        </button>
-                        <button class="carousel-control-next" type="button" data-bs-target="#carousel-{{ artwork.sku }}" data-bs-slide="next">
-                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                            <span class="visually-hidden">Next</span>
-                        </button>
-                        {% endif %}
-                    </div>
+            <div class="card artwork-card h-100" data-artwork-sku="{{ artwork.sku }}">
+                {# Use first image if available, otherwise placeholder #}
+                {% if artwork.images and artwork.images[0] %}
+                <img src="{{ url_for('static', filename=artwork.images[0]) }}" class="card-img-top clickable-image" alt="{{ artwork.name }}"
+                        onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/placeholder.png') }}';" loading="lazy">
                 {% else %}
-                    {# Fallback if no images #}
-                    <img src="https://placehold.co/400x200/cccccc/333333?text=No+Image" class="card-img-top clickable-image" alt="No Image" style="height: 200px; object-fit: cover;">
+                <img src="{{ url_for('static', filename='images/placeholder.png') }}" class="card-img-top clickable-image" alt="No Image Available" loading="lazy">
                 {% endif %}
-                <div class="card-body d-flex flex-column"> {# Added d-flex flex-column for better layout #}
+                <div class="card-body">
                     <h5 class="card-title">{{ artwork.name }}</h5>
-                    <h6 class="card-subtitle mb-2 text-muted">{{ artwork.category }}</h6>
-                    {# Make description visible #}
-                    <p class="card-text card-description-short text-muted text-sm mb-2">{{ artwork.description | default('No description provided.') | truncate(100, True, '...') }}</p>
+                    <h6 class="card-subtitle text-muted mb-2">Category: {{ artwork.category }}</h6>
+                    
+                    <p class="card-text-description">{{ artwork.description | default("No description available for this artwork.") }}</p>
+                    
+                    {# Display initial price (Original Price) #}
+                    <p class="final-price" data-original-price="{{ artwork.original_price | round(2) }}">
+                        ₹{{ artwork.original_price | round(2) }}
+                    </p>
 
-                    <p class="card-text font-semibold text-lg text-end mt-auto">₹{{ artwork.original_price | default(0) | int }}</p> {# mt-auto pushes price to bottom #}
-
-                    <div class="d-grid gap-2 mt-3"> {# Use Bootstrap grid for buttons #}
-                        {% if artwork.stock | default(0) > 0 %}
-                            {# BUY NOW button #}
-                            <button class="btn btn-warning btn-block buy-now-btn"
-                                    data-sku="{{ artwork.sku }}"
-                                    data-name="{{ artwork.name }}"
-                                    data-original-price="{{ artwork.original_price | default(0) }}"
-                                    data-size="Original"
-                                    data-frame="None"
-                                    data-glass="None">
-                                Buy Now
-                            </button>
-                            {# ADD TO CART button #}
-                            <button class="btn btn-success btn-block add-to-cart-btn"
-                                    data-sku="{{ artwork.sku }}"
-                                    data-name="{{ artwork.name }}"
-                                    data-original-price="{{ artwork.original_price | default(0) }}"
-                                    data-size="Original"
-                                    data-frame="None"
-                                    data-glass="None"
-                                    data-size-price="0"
-                                    data-frame-price="0"
-                                    data-glass-price="0">
-                                Add to Cart
-                            </button>
-                        {% else %}
-                            <button class="btn btn-secondary btn-block" disabled>Out of Stock</button>
-                        {% endif %}
-                        {# VIEW DETAILS button (always available if SKU is valid) #}
-                        {% if artwork.sku and artwork.sku is string and artwork.sku|length > 0 %}
-                        <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary btn-block">View Details</a>
-                        {% else %}
-                        <button class="btn btn-secondary btn-block" disabled title="Product details unavailable. Missing SKU.">View Details</button>
-                        {% endif %}
+                    {# Options section - only for 'Paintings' category #}
+                    {% if artwork.category == 'Paintings' %}
+                        <div class="option-group">
+                            <label for="size-{{ artwork.sku }}" class="form-label">Size</label>
+                            <select class="form-select size-select" id="size-{{ artwork.sku }}">
+                                <option value="Original" data-price="0">Original (No Change)</option>
+                                {% if artwork.size_a4 %}
+                                    <option value="A4" data-price="{{ artwork.size_a4 }}">A4 (+₹{{ artwork.size_a4 | round(2) }})</option>
+                                {% endif %}
+                                {% if artwork.size_a5 %}
+                                    <option value="A5" data-price="{{ artwork.size_a5 }}">A5 (+₹{{ artwork.size_a5 | round(2) }})</option>
+                                {% endif %}
+                                {% if artwork.size_letter %}
+                                    <option value="Letter" data-price="{{ artwork.size_letter }}">Letter (+₹{{ artwork.size_letter | round(2) }})</option>
+                                {% endif %}
+                                {% if artwork.size_legal %}
+                                    <option value="Legal" data-price="{{ artwork.size_legal }}">Legal (+₹{{ artwork.size_legal | round(2) }})</option>
+                                {% endif %}
+                            </select>
+                        </div>
+                        <div class="option-group">
+                            <label for="frame-{{ artwork.sku }}" class="form-label">Frame</label>
+                            <select class="form-select frame-select" id="frame-{{ artwork.sku }}">
+                                <option value="None" data-price="0">None</option>
+                                {% if artwork.frame_wooden %}
+                                    <option value="Wooden" data-price="{{ artwork.frame_wooden }}">Wooden (+₹{{ artwork.frame_wooden | round(2) }})</option>
+                                {% endif %}
+                                {% if artwork.frame_metal %}
+                                    <option value="Metal" data-price="{{ artwork.frame_metal }}">Metal (+₹{{ artwork.frame_metal | round(2) }})</option>
+                                {% endif %}
+                                {% if artwork.frame_pvc %}
+                                    <option value="PVC" data-price="{{ artwork.frame_pvc }}">PVC (+₹{{ artwork.frame_pvc | round(2) }})</option>
+                                {% endif %}
+                            </select>
+                        </div>
+                        <div class="option-group">
+                            <label for="glass-{{ artwork.sku }}" class="form-label">Glass</label>
+                            <select class="form-select glass-select" id="glass-{{ artwork.sku }}">
+                                <option value="None" data-price="0">Without Glass</option>
+                                {% if artwork.glass_price %}
+                                    <option value="Standard" data-price="{{ artwork.glass_price }}">With Glass (+₹{{ artwork.glass_price | round(2) }})</option>
+                                {% endif %}
+                            </select>
+                        </div>
+                    {% else %}
+                        {# Hidden inputs for non-painting categories to ensure options are sent as 'Original' / 'None' #}
+                        <input type="hidden" class="size-select" value="Original" data-price="0">
+                        <input type="hidden" class="frame-select" value="None" data-price="0">
+                        <input type="hidden" class="glass-select" value="None" data-price="0">
+                    {% endif %}
+                    
+                    <div class="mb-3 quantity-group">
+                        <label for="quantity-{{ artwork.sku }}" class="form-label">Quantity</label>
+                        <input type="number" class="form-control quantity-input" id="quantity-{{ artwork.sku }}" value="1" min="1" max="{{ artwork.stock }}">
+                        <small class="text-muted">Available: {{ artwork.stock }}</small>
                     </div>
-                </div> {# Closes card-body #}
-            </div> {# Closes artwork-card #}
-        </div> {# Closes col #}
-        {% endfor %}
-    </div> {# Closes row #}
-    {% else %}
-    <p class="text-center text-muted fs-5 py-4">No artworks found matching your criteria.</p>
-    {% endif %}
-
-    {# Optional QR Code Section below products #}
-    <div class="row mt-5">
-        <div class="col-md-6 offset-md-3">
-            <div class="qr-code-section">
-                <h3>Support Our Divine Mission</h3>
-                <p>Your contributions help us share sacred art and wisdom.</p>
-                <img src="{{ url_for('static', filename='uploads/qr_code.png') }}" alt="Donation QR Code">
-                <p class="lead">Scan to Donate via UPI</p>
+                    
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary add-to-cart-btn" data-sku="{{ artwork.sku }}"
+                                data-name="{{ artwork.name }}"
+                                data-image="{{ url_for('static', filename=artwork.images[0]) if artwork.images else url_for('static', filename='images/placeholder.png') }}"
+                                {% if artwork.stock == 0 %} disabled {% endif %}>
+                            🛒 Add to Cart
+                        </button>
+                        <button class="btn btn-purple buy-now-btn" data-sku="{{ artwork.sku }}"
+                                data-name="{{ artwork.name }}"
+                                data-image="{{ url_for('static', filename=artwork.images[0]) if artwork.images else url_for('static', filename='images/placeholder.png') }}"
+                                {% if artwork.stock == 0 %} disabled {% endif %}>
+                            Buy Now
+                        </button>
+                        {# NEW: View Details Button #}
+                        <button class="btn btn-outline-secondary view-details-btn" data-image-src="{{ url_for('static', filename=artwork.images[0]) if artwork.images else url_for('static', filename='images/placeholder.png') }}">
+                            View Details
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
+        {% endfor %}
     </div>
-</div> {# Closes container main-content-area #}
-
-{% endblock %} {# Closes block content #}
+    {% else %}
+    <p class="text-center text-muted fs-5 py-4">No artworks found.</p>
+    {% endif %}
+</div>
+{% endblock %}
 
 {% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // Add to Cart button functionality (existing, no change here)
-        document.querySelectorAll('.add-to-cart-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const sku = this.dataset.sku;
-                const name = this.dataset.name;
-                
-                let imageUrl = '{{ url_for('static', filename='images/placeholder.png') }}'; // Default placeholder
+    // --- Global functions (INLINED for debugging purposes) ---
 
-                const artworkCard = this.closest('.artwork-card');
-                if (artworkCard) {
-                    const carouselElement = artworkCard.querySelector('.carousel');
-                    if (carouselElement) {
-                        const activeImageElement = carouselElement.querySelector('.carousel-item.active img');
-                        if (activeImageElement && activeImageElement.src) {
-                            const fullUrl = activeImageElement.src;
-                            const staticPathIndex = fullUrl.indexOf('/static/');
-                            if (staticPathIndex !== -1) {
-                                imageUrl = fullUrl.substring(staticPathIndex + '/static/'.length);
-                            }
-                        }
-                    } else {
-                        const mainImageElement = artworkCard.querySelector('.card-img-top');
-                        if (mainImageElement && mainImageElement.src) {
-                            const fullUrl = mainImageElement.src;
-                            const staticPathIndex = fullUrl.indexOf('/static/');
-                            if (staticPathIndex !== -1) {
-                                imageUrl = fullUrl.substring(staticPathIndex + '/static/'.length);
-                            }
-                        }
+    // Global function to show custom flash messages
+    function showCustomAlert(message, type) {
+        const container = document.getElementById('flash-messages-container');
+        if (!container) {
+            console.error("Flash messages container not found!");
+            alert(`ALERT: ${message}`); // Fallback for critical debugging
+            return;
+        }
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} flash-message`;
+        alertDiv.textContent = message;
+        container.appendChild(alertDiv);
+
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+
+    // Global function to update cart count in the navbar
+    async function updateCartCountDisplay() {
+        try {
+            const response = await fetch('{{ url_for("update_cart_session") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            });
+            const data = await response.json();
+
+            if (data.success && data.cart_items) {
+                const totalItemsQuantity = Object.values(data.cart_items).reduce((sum, item) => sum + item.quantity, 0);
+                const cartCountElement = document.getElementById('cart-count');
+                if (cartCountElement) {
+                    cartCountElement.textContent = totalItemsQuantity;
+                    cartCountElement.style.display = totalItemsQuantity > 0 ? 'block' : 'none';
+                }
+            } else {
+                console.error("Failed to fetch cart count:", data.message);
+                const cartCountElement = document.getElementById('cart-count');
+                if (cartCountElement) {
+                    cartCountElement.textContent = '0';
+                    cartCountElement.style.display = 'none';
+                }
+            }
+        } catch (error) {
+            console.error("Network error fetching cart count:", error);
+            const cartCountElement = document.getElementById('cart-count');
+            if (cartCountElement) {
+                cartCountElement.textContent = '0';
+                cartCountElement.style.display = 'none';
+            }
+        }
+    }
+
+    // Global function to add to cart (sends to server via AJAX)
+    async function addToCart(sku, name, imageUrl, unitPriceAfterOptions, options, quantity = 1) {
+        // Proactive check for authentication
+        if ("{{ current_user.is_authenticated }}" !== "True") {
+            const itemToAddAfterLogin = { sku, name, imageUrl, options, quantity };
+            sessionStorage.setItem('itemToAddAfterLogin', JSON.stringify(itemToAddAfterLogin));
+            sessionStorage.setItem('redirect_after_login_endpoint', 'cart'); 
+            
+            window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=add_to_cart';
+            return;
+        }
+
+        try {
+            const response = await fetch('{{ url_for("add_to_cart") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sku: sku,
+                    size: options.size || 'Original',
+                    frame: options.frame || 'None',
+                    glass: options.glass || 'None',
+                    quantity: quantity
+                })
+            });
+
+            if (response.status === 401) {
+                console.warn("Received 401 on add to cart despite client-side check. Redirecting.");
+                const itemToAddAfterLogin = { sku, name, imageUrl, options, quantity };
+                sessionStorage.setItem('itemToAddAfterLogin', JSON.stringify(itemToAddAfterLogin));
+                sessionStorage.setItem('redirect_after_login_endpoint', 'cart');
+                window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=add_to_cart';
+                return; 
+            }
+
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                console.error("Server did not return JSON. Content-Type:", contentType, "Status:", response.status);
+                const errorText = await response.text();
+                console.error("Server Response (Non-JSON):", errorText);
+                showCustomAlert("An unexpected error occurred. Please try again.", 'danger');
+                return;
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                const addedItem = data.cart_items.find(item => 
+                    item.sku === sku && 
+                    item.size === (options.size || 'Original') && 
+                    item.frame === (options.frame || 'None') && 
+                    item.glass === (options.glass || 'None')
+                );
+                if (addedItem) {
+                     showCustomAlert(`✅ "${name}" added to cart for ₹${addedItem.total_price.toFixed(2)}`, 'success');
+                } else {
+                    showCustomAlert(`✅ "${name}" added to cart!`, 'success');
+                }
+               
+                updateCartCountDisplay();
+            } else {
+                showCustomAlert(`❌ Failed to add "${name}" to cart: ${data.message}`, 'danger');
+                console.error("Add to cart error:", data.message);
+            }
+        } catch (error) {
+            console.error("Network error adding to cart (catch block):", error);
+            showCustomAlert("Network error. Please check your connection and try again.", 'danger');
+        }
+    }
+
+    // Global function for direct "Buy Now"
+    async function buyNow(sku, name, imageUrl, options, quantity = 1) {
+        // Proactive check for authentication
+        if ("{{ current_user.is_authenticated }}" !== "True") {
+            const itemToBuyNow = { sku, name, imageUrl, options, quantity };
+            sessionStorage.setItem('itemToBuyNow', JSON.stringify(itemToBuyNow));
+            sessionStorage.setItem('redirect_after_login_endpoint', 'order_summary_page'); 
+            
+            window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=buy_now';
+            return;
+        }
+
+        try {
+            const itemData = {
+                id: `${sku}-${options.size}-${options.frame}-${options.glass}`,
+                sku: sku,
+                name: name,
+                image: imageUrl,
+                size: options.size,
+                frame: options.frame,
+                glass: options.glass,
+                quantity: quantity
+            };
+
+            const response = await fetch('{{ url_for("create_direct_order") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cart: { [itemData.id]: itemData } }) 
+            });
+
+            if (response.status === 401) { 
+                console.warn("Received 401 on buy now despite client-side check. Redirecting.");
+                sessionStorage.setItem('itemToBuyNow', JSON.stringify(itemData));
+                sessionStorage.setItem('redirect_after_login_endpoint', 'order_summary_page'); 
+                window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=buy_now';
+                return; 
+            }
+            
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                console.error("Server did not return JSON. Content-Type:", contentType, "Status:", response.status);
+                const errorText = await response.text();
+                console.error("Server Response (Non-JSON):", errorText);
+                showCustomAlert("An unexpected error occurred. Please try again.", 'danger');
+                return;
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                showCustomAlert(`✅ "${name}" order placed. Redirecting to summary...`, 'success');
+                // Clear cart count as it's a direct purchase and user is leaving current page
+                const cartCountElement = document.getElementById('cart-count');
+                if (cartCountElement) {
+                    cartCountElement.textContent = '0';
+                    cartCountElement.style.display = 'none';
+                }
+                // This redirect_url should come from the server and already point to order_summary_page
+                window.location.href = data.redirect_url; 
+            } else {
+                showCustomAlert(`❌ Failed to buy "${name}" to cart: ${data.message}`, 'danger');
+                console.error("Buy now error:", data.message);
+            }
+        } catch (error) {
+            console.error("Network error for Buy Now (catch block):", error);
+            showCustomAlert("Network error. Please check your connection and try again.", 'danger');
+        }
+    }
+
+
+    // --- Artwork card specific logic (from your previous extra_js) ---
+    document.addEventListener('DOMContentLoaded', function () {
+        // Loop through each artwork card to attach event listeners and calculate price
+        document.querySelectorAll('.artwork-card').forEach(card => {
+            // Get references to all relevant elements within the current card
+            const sizeSelect = card.querySelector('.size-select');
+            const frameSelect = card.querySelector('.frame-select');
+            const glassSelect = card.querySelector('.glass-select');
+            const quantityInput = card.querySelector('.quantity-input');
+            const addToCartBtn = card.querySelector('.add-to-cart-btn');
+            const buyNowBtn = card.querySelector('.buy-now-btn');
+            const viewDetailsBtn = card.querySelector('.view-details-btn');
+            const cardImage = card.querySelector('.clickable-image');
+
+            // Function to calculate and display final price based on selected options and quantity
+            function calculateAndDisplayPrice(currentCard) {
+                const originalPriceElement = currentCard.querySelector('.final-price');
+                const originalPrice = parseFloat(originalPriceElement && originalPriceElement.dataset.originalPrice ? originalPriceElement.dataset.originalPrice : 0);
+
+                let selectedSize = 'Original';
+                let selectedFrame = 'None';
+                let selectedGlass = 'None';
+                let sizePrice = 0;
+                let framePrice = 0;
+                let glassPrice = 0;
+
+                // Safely get selected options and their prices, checking if elements and options exist
+                if (sizeSelect) {
+                    if (sizeSelect.tagName === 'SELECT' && sizeSelect.options.length > 0) {
+                        selectedSize = sizeSelect.value;
+                        const selectedOption = sizeSelect.options[sizeSelect.selectedIndex];
+                        sizePrice = parseFloat(selectedOption && selectedOption.dataset.price ? selectedOption.dataset.price : 0);
+                    } else if (sizeSelect.tagName === 'INPUT' && sizeSelect.type === 'hidden') {
+                        selectedSize = sizeSelect.value;
+                        sizePrice = parseFloat(sizeSelect.dataset.price || 0);
                     }
                 }
 
-                const options = {
-                    size: 'Original', // Fixed for all_products view
-                    frame: 'None',    // Fixed for all_products view
-                    glass: 'None'     // Fixed for all_products view
-                };
-                
-                if (typeof addToCart === 'function') {
-                    addToCart(sku, name, imageUrl, null, options, 1); 
-                } else {
-                    console.error("addToCart function not found. Is _base.html loaded correctly?");
-                }
-            });
-        });
-
-        // NEW: Buy Now button functionality - MAKE SURE THIS IS PRESENT AND CORRECT
-        document.querySelectorAll('.buy-now-btn').forEach(button => {
-            button.addEventListener('click', async function() { // Added 'async' keyword here
-                const sku = this.dataset.sku;
-                const name = this.dataset.name;
-
-                let imageUrl = '{{ url_for('static', filename='images/placeholder.png') }}'; // Default placeholder
-
-                const artworkCard = this.closest('.artwork-card');
-                if (artworkCard) {
-                    const carouselElement = artworkCard.querySelector('.carousel');
-                    if (carouselElement) {
-                        const activeImageElement = carouselElement.querySelector('.carousel-item.active img');
-                        if (activeImageElement && activeImageElement.src) {
-                            const fullUrl = activeImageElement.src;
-                            const staticPathIndex = fullUrl.indexOf('/static/');
-                            if (staticPathIndex !== -1) {
-                                imageUrl = fullUrl.substring(staticPathIndex + '/static/'.length);
-                            }
-                        }
-                    } else {
-                        const mainImageElement = artworkCard.querySelector('.card-img-top');
-                        if (mainImageElement && mainImageElement.src) {
-                            const fullUrl = mainImageElement.src;
-                            const staticPathIndex = fullUrl.indexOf('/static/');
-                            if (staticPathIndex !== -1) {
-                                imageUrl = fullUrl.substring(staticPathIndex + '/static/'.length);
-                            }
-                        }
+                if (frameSelect) {
+                    if (frameSelect.tagName === 'SELECT' && frameSelect.options.length > 0) {
+                        selectedFrame = frameSelect.value;
+                        const selectedOption = frameSelect.options[frameSelect.selectedIndex];
+                        framePrice = parseFloat(selectedOption && selectedOption.dataset.price ? selectedOption.dataset.price : 0);
+                    } else if (frameSelect.tagName === 'INPUT' && frameSelect.type === 'hidden') {
+                        selectedFrame = frameSelect.value;
+                        framePrice = parseFloat(frameSelect.dataset.price || 0);
                     }
                 }
 
-                const options = {
-                    size: 'Original', // Fixed for all_products view
-                    frame: 'None',    // Fixed for all_products view
-                    glass: 'None'     // Fixed for all_products view
-                };
-
-                if (typeof buyNow === 'function') {
-                    await buyNow(sku, name, imageUrl, options, 1); // Default quantity 1 for Buy Now
-                } else {
-                    console.error("buyNow function not found. Is _base.html loaded correctly?");
-                    showCustomAlert("Error: Buy Now functionality not available. Please refresh.", 'danger');
+                if (glassSelect) {
+                    if (glassSelect.tagName === 'SELECT' && glassSelect.options.length > 0) {
+                        selectedGlass = glassSelect.value;
+                        const selectedOption = glassSelect.options[glassSelect.selectedIndex];
+                        glassPrice = parseFloat(selectedOption && selectedOption.dataset.price ? selectedOption.dataset.price : 0);
+                    } else if (glassSelect.tagName === 'INPUT' && glassSelect.type === 'hidden') {
+                        selectedGlass = glassSelect.value;
+                        glassPrice = parseFloat(glassSelect.dataset.price || 0);
+                    }
                 }
-            });
+                
+                // Safely get quantity and clamp it to available stock
+                let selectedQuantity = 1;
+                let maxStock = 9999; 
+
+                if (quantityInput) {
+                    selectedQuantity = parseInt(quantityInput.value) || 1;
+                    maxStock = parseInt(quantityInput.max) || 9999;
+
+                    if (selectedQuantity > maxStock) {
+                        selectedQuantity = maxStock;
+                        quantityInput.value = selectedQuantity;
+                        if (typeof showCustomAlert === 'function') {
+                            showCustomAlert(`Only ${maxStock} available. Quantity adjusted.`, 'warning');
+                        } else {
+                            console.warn(`Only ${maxStock} available. Quantity adjusted. (showCustomAlert not found)`);
+                        }
+                    } else if (selectedQuantity < 1) {
+                        selectedQuantity = 1;
+                        quantityInput.value = selectedQuantity;
+                    }
+                }
+
+                const unitPriceAfterOptions = originalPrice + sizePrice + framePrice + glassPrice;
+                const finalCalculatedPrice = unitPriceAfterOptions * selectedQuantity;
+
+                if (originalPriceElement) {
+                    originalPriceElement.textContent = `₹${finalCalculatedPrice.toFixed(2)}`;
+                }
+
+                currentCard.dataset.calculatedUnitPrice = unitPriceAfterOptions.toFixed(2);
+                currentCard.dataset.currentQuantity = selectedQuantity;
+                currentCard.dataset.currentSize = selectedSize;
+                currentCard.dataset.currentFrame = selectedFrame;
+                currentCard.dataset.currentGlass = selectedGlass;
+            }
+
+            // Attach event listeners for option changes and quantity input
+            if (sizeSelect && sizeSelect.tagName === 'SELECT') sizeSelect.addEventListener('change', () => calculateAndDisplayPrice(card));
+            if (frameSelect && frameSelect.tagName === 'SELECT') frameSelect.addEventListener('change', () => calculateAndDisplayPrice(card));
+            if (glassSelect && glassSelect.tagName === 'SELECT') glassSelect.addEventListener('change', () => calculateAndDisplayPrice(card));
+            if (quantityInput) {
+                quantityInput.addEventListener('input', () => calculateAndDisplayPrice(card));
+                quantityInput.addEventListener('change', () => calculateAndDisplayPrice(card));
+            }
+
+            // Initial price calculation when the page loads for each card
+            calculateAndDisplayPrice(card);
+
+            // Add to Cart button functionality
+            if (addToCartBtn) {
+                addToCartBtn.addEventListener('click', async function () {
+                    const sku = this.dataset.sku;
+                    const name = this.dataset.name;
+                    const imageUrl = this.dataset.image;
+
+                    const currentSize = card.dataset.currentSize;
+                    const currentFrame = card.dataset.currentFrame;
+                    const currentGlass = card.dataset.currentGlass;
+                    const currentQuantity = parseInt(card.dataset.currentQuantity);
+                    const unitPriceAfterOptions = parseFloat(card.dataset.calculatedUnitPrice);
+
+                    const options = {
+                        size: currentSize,
+                        frame: currentFrame,
+                        glass: currentGlass,
+                    };
+
+                    await addToCart(sku, name, imageUrl, unitPriceAfterOptions, options, currentQuantity);
+                });
+            }
+
+            // Buy Now button functionality
+            if (buyNowBtn) {
+                buyNowBtn.addEventListener('click', async function () {
+                    const sku = this.dataset.sku;
+                    const name = this.dataset.name;
+                    const imageUrl = this.dataset.image;
+
+                    const selectedSize = card.dataset.currentSize;
+                    const selectedFrame = card.dataset.currentFrame;
+                    const selectedGlass = card.dataset.currentGlass;
+                    const selectedQuantity = parseInt(card.dataset.currentQuantity);
+                    const unitPriceAfterOptions = parseFloat(card.dataset.calculatedUnitPrice);
+
+                    const options = {
+                        size: selectedSize,
+                        frame: selectedFrame,
+                        glass: selectedGlass,
+                    };
+
+                    await buyNow(sku, name, imageUrl, options, selectedQuantity);
+                });
+            }
+
+            // View Details Button functionality
+            if (viewDetailsBtn) {
+                viewDetailsBtn.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    const modalImage = document.getElementById('modalImage');
+                    const imageModal = document.getElementById('imageModal');
+                    const imageSrc = viewDetailsBtn.dataset.imageSrc;
+
+                    if (modalImage && imageModal && imageSrc) {
+                        modalImage.src = imageSrc;
+                        imageModal.style.display = 'flex';
+                    } else {
+                        console.error("Image modal elements or image source not found for View Details button.");
+                        showCustomAlert("Image preview not available.", 'warning');
+                    }
+                });
+            }
+
+            // Image click functionality
+            if (cardImage) {
+                cardImage.style.cursor = 'zoom-in';
+                cardImage.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    const modalImage = document.getElementById('modalImage');
+                    const imageModal = document.getElementById('imageModal');
+                    if (modalImage && imageModal) {
+                        modalImage.src = cardImage.src;
+                        imageModal.style.display = 'flex';
+                    } else {
+                        console.error("Image modal elements not found for direct image click.");
+                        showCustomAlert("Image preview not available.", 'warning');
+                    }
+                });
+            }
         });
 
-        // Event listener for opening the modal for product images (existing, no change here)
-        document.querySelectorAll('.artwork-card .clickable-image').forEach(img => {
-            img.style.cursor = 'zoom-in';
-            img.addEventListener('click', (event) => {
-                event.preventDefault(); 
-                document.getElementById('modalImage').src = img.src;
-                document.getElementById('imageModal').style.display = 'flex';
-            });
-        });
+        // Event listener for DOMContentLoaded - make sure this is *outside* the extra_js block
+        // (This part is already in _base.html and initiates updateCartCountDisplay on load)
+        // updateCartCountDisplay(); // This is called in _base.html already
     });
 </script>
-{% endblock %} {# THIS IS THE MISSING ENDBLOCK #}
+{% endblock %}
