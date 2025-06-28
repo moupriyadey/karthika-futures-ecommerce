@@ -4,7 +4,7 @@
         "name": "durga",
         "category": "photos",
         "original_price": 1212.0,
-        "stock": 97,
+        "stock": 88,
         "description": "test",
         "images": [
             "uploads/4886325a-0ec3-434a-9ae8-21037a30e938.png",
@@ -45,7 +45,7 @@
         "name": "nn",
         "category": "photos",
         "original_price": 102.0,
-        "stock": 10,
+        "stock": 8,
         "description": "kjkj",
         "images": [
             "uploads/320653da-e16d-4c53-b31b-a6cc88f5bf53.png",

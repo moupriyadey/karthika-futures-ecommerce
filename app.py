@@ -42,6 +42,19 @@ OUR_BUSINESS_EMAIL = "invoices@karthikafutures.com" # Email for sending invoices
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'user_login' # Redirect to login page if not authenticated
+
+# NEW: Register a custom Jinja2 filter for floatformat
+@app.template_filter('floatformat')
+def floatformat_filter(value, places=2):
+    """Formats a float to a specific number of decimal places."""
+    try:
+        # Convert to float first, handle non-numeric input gracefully
+        float_value = float(value)
+        return f"{float_value:.{places}f}"
+    except (ValueError, TypeError):
+        # Return original value or a default if conversion fails
+        return value # Or return '0.00' as a default string
+
 login_manager.login_message = "Please log in to access this page."
 login_manager.login_message_category = "info"
 
@@ -400,7 +413,6 @@ def all_products():
                            search_query=search_query, # Pass the query back to the template
                            selected_category=category_filter # Pass selected category back for dropdown
                           )
-
 
 
 @app.route('/add_to_cart', methods=['POST'])
@@ -1098,7 +1110,7 @@ def admin_hold_invoice(order_id):
             save_json('orders.json', orders)
             flash(f'Invoice for Order {order_id} put on HOLD.', 'success')
             order_found = True
-            break
+            return jsonify(success=True, message=f'Invoice for Order {order_id} put on HOLD.') # Return JSON for AJAX
     if not order_found:
         flash(f'Order {order_id} not found.', 'danger')
     return jsonify(success=True, message=f'Invoice for Order {order_id} put on HOLD.') # Return JSON for AJAX
@@ -1440,10 +1452,15 @@ def admin_delete_category(category_id):
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if current_user.is_authenticated:
-        redirect_target = session.pop('redirect_after_login', None)
-        if redirect_target:
-            return redirect(redirect_target)
-        return redirect(url_for('index'))
+        # Correctly handle redirection after an already logged-in user hits signup
+        redirect_endpoint = session.pop('redirect_after_login_endpoint', None) # Use endpoint, not just 'redirect_after_login'
+        next_url_from_arg = request.args.get('next')
+
+        if redirect_endpoint == 'cart':
+            return redirect(url_for('cart'))
+        elif redirect_endpoint == 'order_summary_page':
+            return redirect(next_url_from_arg or url_for('index'))
+        return redirect(next_url_from_arg or url_for('index'))
     
     if request.method == 'POST':
         name = request.form['name']
@@ -1464,17 +1481,29 @@ def signup():
         save_json('users.json', users)
         flash('Account created successfully! Please log in.', 'success')
         
-        redirect_target = session.pop('redirect_after_login', None)
-        if redirect_target:
-            return redirect(url_for('user_login', next=redirect_target))
+        # Handle dynamic redirect endpoint after successful signup (redirect to login, then to target)
+        redirect_endpoint = session.pop('redirect_after_login_endpoint', None)
+        next_url_after_signup = request.args.get('next')
+
+        if redirect_endpoint:
+            if redirect_endpoint == 'cart':
+                return redirect(url_for('user_login', next=url_for('cart')))
+            elif redirect_endpoint == 'order_summary_page':
+                return redirect(url_for('user_login', next=next_url_after_signup))
+            else:
+                return redirect(url_for('user_login', next=url_for(redirect_endpoint)))
+        
         return redirect(url_for('user_login'))
     
     next_url = request.args.get('next')
-    if next_url:
-        session['redirect_after_login'] = next_url
+    # Use 'redirect_after_login_endpoint' in session for signup too, for consistency
+    if next_url and not session.get('redirect_after_login_endpoint'):
+        # Only set if not already set by a buy_now/add_to_cart flow
+        # Flask-Login's 'next' parameter is automatically handled, so we only need this for custom flows
+        pass # Let the JS handle setting this via 'login_prompt'
+        # session['redirect_after_login_endpoint'] = 'index' # Default if no specific target? Or let it pass through.
 
-    # --- NEW: Display specific signup prompt based on 'login_prompt' query param ---
-    # (This assumes the 'login_prompt' param will be passed from the initial click)
+    # Display specific signup prompt based on 'login_prompt' query param
     login_prompt_type = request.args.get('login_prompt')
     if login_prompt_type == 'buy_now':
         flash("To finalize your purchase, please create an account or log in.", "info")
@@ -1482,53 +1511,78 @@ def signup():
         flash("To add items to your cart, please create an account or log in.", "info")
     elif login_prompt_type:
         flash("You need to sign up or log in to continue.", "info")
-    # --- END NEW ---
 
     return render_template('signup.html')
 
-@app.route('/user_login', methods=['GET', 'POST'])
+
+@app.route('/user_login', methods=['GET', 'POST']) 
 def user_login():
+    # If the user is ALREADY authenticated and tries to access /user_login,
+    # we redirect them based on any pending actions or to their original destination.
     if current_user.is_authenticated:
-        redirect_target = session.pop('redirect_after_login', None)
-        if redirect_target:
-            return redirect(redirect_target)
-        return redirect(url_for('index'))
-    
+        redirect_endpoint = session.pop('redirect_after_login_endpoint', None)
+        next_url_from_arg = request.args.get('next')
+
+        if redirect_endpoint == 'cart':
+            return redirect(url_for('cart'))
+        elif redirect_endpoint == 'order_summary_page':
+            # For 'buy now' flow, JS on the redirected page will re-trigger buyNow().
+            # So, we send them back to the 'next' URL (the product page they were on).
+            return redirect(next_url_from_arg or url_for('index'))
+        
+        # Default redirect if no specific action was pending, go to 'next' arg or index
+        return redirect(next_url_from_arg or url_for('index'))
+
+    # Handle POST request for login attempt
     if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
+        email = request.form.get('email') # Use .get() for safer access
+        password = request.form.get('password') # Use .get() for safer access
+
+        if not email or not password:
+            flash('Email and password are required.', 'danger')
+            return render_template('user_login.html', form_data=request.form, next_url=request.args.get('next'))
+
         user = User.find_by_email(email)
 
         if user and check_password_hash(user.password, password):
             login_user(user)
             flash('Logged in successfully!', 'success')
 
-            redirect_target = session.pop('redirect_after_login', None)
-            if redirect_target:
-                return redirect(redirect_target)
+            # --- CRITICAL FIX: Handle dynamic redirect endpoint after successful login ---
+            redirect_endpoint = session.pop('redirect_after_login_endpoint', None)
+            next_url_from_arg = request.args.get('next') # Original URL that triggered login
+
+            if redirect_endpoint:
+                if redirect_endpoint == 'cart':
+                    return redirect(url_for('cart'))
+                elif redirect_endpoint == 'order_summary_page':
+                    # If this was a 'buy now' flow, return to the page that initiated it.
+                    # The JS on DOMContentLoaded will pick up 'itemToBuyNow' and re-execute buyNow()
+                    # now that the user is logged in.
+                    return redirect(next_url_from_arg or url_for('index'))
+                else: 
+                    # Fallback for any other explicit endpoint
+                    return redirect(url_for(redirect_endpoint))
             
-            next_page = request.args.get('next')
-            return redirect(next_page or url_for('index'))
+            # Default redirect if no specific endpoint was set or handled
+            return redirect(next_url_from_arg or url_for('index'))
         else:
             flash('Invalid email or password.', 'danger')
+            return render_template('user_login.html', form_data=request.form, next_url=request.args.get('next'))
     
-    # Store the 'next' URL in session if provided
+    # Handle GET request: Display the login form
     next_url = request.args.get('next')
-    if next_url:
-        session['redirect_after_login'] = next_url
-
-    # --- NEW: Display specific login prompt based on 'login_prompt' query param ---
     login_prompt_type = request.args.get('login_prompt')
     if login_prompt_type == 'buy_now':
         flash("Please log in or sign up to complete your purchase.", "info")
     elif login_prompt_type == 'add_to_cart':
         flash("Please log in or sign up to add items to your cart.", "info")
-    elif login_prompt_type: # Generic prompt if just 'login_prompt=true' or unknown type
+    elif login_prompt_type:
         flash("You need to log in to access that page.", "info")
-    # --- END NEW ---
 
-    return render_template('user_login.html')
-
+    return render_template('user_login.html', next_url=next_url)
+       
+       
 @app.route('/logout')
 @login_required
 def logout():
@@ -1739,7 +1793,44 @@ def process_checkout_from_cart():
                 break
     save_json('artworks.json', updated_artworks)
 
+    # --- THIS IS THE CRITICAL REDIRECT: MUST GO TO ORDER SUMMARY PAGE ---
     return redirect(url_for('order_summary_page', order_id=new_order_id))
+
+# Order Summary Page - NEW ROUTE ADDED
+@app.route('/order-summary/<order_id>')
+@login_required
+def order_summary_page(order_id):
+    orders = load_orders_data()
+    order = next((o for o in orders if o['order_id'] == order_id and str(o['user_id']) == str(current_user.id)), None)
+
+    if not order:
+        flash('Order not found or you do not have permission to view it.', 'danger')
+        return redirect(url_for('my_orders'))
+    
+    # Recalculate cart totals for the order's items to ensure prices are up-to-date for summary
+    # (This is important if artwork prices change between order creation and viewing summary)
+    artworks_data = load_artworks_data()
+    temp_order_cart_dict = {item.get('id'): item for item in order.get('items', [])}
+    recalculated_summary = calculate_cart_totals(temp_order_cart_dict, artworks_data)
+
+    # Update the order object with latest calculated values for display
+    order['items'] = recalculated_summary['cart_items']
+    order['subtotal_before_gst'] = recalculated_summary['subtotal_before_gst']
+    order['total_gst_amount'] = recalculated_summary['total_gst_amount']
+    order['cgst_amount'] = recalculated_summary['cgst_amount']
+    order['sgst_amount'] = recalculated_summary['sgst_amount']
+    order['shipping_charge'] = recalculated_summary['shipping_charge']
+    order['total_amount'] = recalculated_summary['grand_total']
+
+    # Update the actual orders.json if any recalculations changed values (e.g. stock clamping)
+    # Find the index of the current order and update it
+    for i, o in enumerate(orders):
+        if o['order_id'] == order_id:
+            orders[i] = order # Replace the old order data with the updated one
+            break
+    save_json('orders.json', orders)
+
+    return render_template('order_summary.html', order=order)
 
 
 # NEW: Route for creating a direct order (Buy Now functionality)
@@ -1748,34 +1839,30 @@ def process_checkout_from_cart():
 def create_direct_order():
     try:
         data = request.get_json()
-        client_cart = data.get('cart') # This 'cart' will contain only the one item for direct buy
+        client_cart = data.get('cart')
 
         if not client_cart:
             return jsonify(success=False, message="No item provided for direct purchase."), 400
 
         user = current_user
-        artworks_data = load_artworks_data() # Ensure this helper is available
+        artworks_data = load_artworks_data()
 
-        # Validate and process the single item from the client_cart
-        # `calculate_cart_totals` expects a dict where keys are item_id
-        temp_cart_dict = client_cart # This is already a dict from JS for single item
-
+        temp_cart_dict = client_cart
         cart_summary = calculate_cart_totals(temp_cart_dict, artworks_data)
 
         if not cart_summary['cart_items']:
             return jsonify(success=False, message="Item is out of stock or invalid."), 400
 
-        # Proceed to create order with the single item
-        orders = load_orders_data() # Ensure this helper is available
+        orders = load_orders_data()
         new_order_id = str(uuid.uuid4())
         
-        items_for_order = cart_summary['cart_items'] # This will contain only the single processed item
+        items_for_order = cart_summary['cart_items']
 
         new_order = {
             'order_id': new_order_id,
             'user_id': str(user.id),
             'user_email': user.email,
-            'customer_name': user.name, # Prefill from logged-in user
+            'customer_name': user.name,
             'customer_phone': user.phone,
             'customer_address': user.address,
             'customer_pincode': user.pincode,
@@ -1796,20 +1883,19 @@ def create_direct_order():
                 'invoice_status': 'Not Applicable',
                 'invoice_number': None,
                 'invoice_date': None,
-                'gst_rate_applied': DEFAULT_INVOICE_GST_RATE, # Ensure this constant is defined globally
+                'gst_rate_applied': DEFAULT_INVOICE_GST_RATE,
                 'total_gst_amount': cart_summary['total_gst_amount'],
                 'cgst_amount': cart_summary['total_gst_amount'] / 2,
                 'sgst_amount': cart_summary['total_gst_amount'] / 2,
                 'shipping_charge': cart_summary['shipping_charge'],
                 'final_invoice_amount': cart_summary['grand_total'],
                 'is_held_by_admin': False,
-                'customer_phone_camouflaged': user.phone # Store camouflaged phone for invoice if needed
+                'customer_phone_camouflaged': user.phone
             }
         }
         orders.append(new_order)
         save_json('orders.json', orders)
 
-        # Update stock for purchased item
         updated_artworks = artworks_data
         for order_item in items_for_order:
             for artwork in updated_artworks:
@@ -1818,13 +1904,20 @@ def create_direct_order():
                     break
         save_json('artworks.json', updated_artworks)
 
-        # Redirect to payment initiation page
-        redirect_url = url_for('payment_initiate', order_id=new_order_id, amount=new_order['total_amount'])
-        return jsonify(success=True, message="Order placed successfully! Redirecting to payment.", redirect_url=redirect_url)
+        # --- CRITICAL FIX: REDIRECT TO ORDER SUMMARY PAGE ---
+        redirect_url = url_for('order_summary_page', order_id=new_order_id)
+        return jsonify(success=True, message="Order placed successfully! Redirecting to summary.", redirect_url=redirect_url)
 
     except Exception as e:
         print(f"ERROR in create_direct_order: {e}")
         return jsonify(success=False, message=f"An error occurred: {e}"), 500
+
+# Route for testing navbar display
+@app.route('/test-navbar')
+def test_navbar():
+    # You might need to pass categories and current_user if they are used in _navbar.html,
+    # which they are. Ensure they are available to _base.html and _navbar.html.
+    return render_template('test_navbar.html')
 
 
 if __name__ == '__main__':

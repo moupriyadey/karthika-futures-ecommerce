@@ -1,29 +1,76 @@
-<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top">
-    <div class="container">
-        <a class="navbar-brand" href="/">🖼️ Karthika Futures</a>
-        <ul class="navbar-nav ms-auto">
-            <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
-            
-            {# INSERT THE CART LINK HERE #}
-            <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('cart') }}">
-                    🛒 Cart <span id="cart-count" class="badge rounded-pill"></span>
-                </a>
-            </li>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top shadow-lg w-full" style="background-color: rgba(33, 37, 41, 0.7) !important; backdrop-filter: blur(5px);"> {# Added w-full and transparency style #}
+    <div class="container-fluid px-4">
+        <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Karthika Futures Logo">
+            <span class="ms-2 fw-bold">Karthika Futures</span>
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse w-full" id="navbarNav">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" aria-current="page" href="{{ url_for('index') }}">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint == 'all_products' %}active{% endif %}" href="{{ url_for('all_products') }}">Products</a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownCategories" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Categories
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarDropdownCategories">
+                        {% for category in categories %}
+                        <li><a class="dropdown-item" href="{{ url_for('all_products', category=category.name) }}">{{ category.name }}</a></li>
+                        {% endfor %}
+                        {% if not categories %}
+                        <li><span class="dropdown-item text-muted">No categories available</span></li>
+                        {% endif %}
+                    </ul>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint == 'my_orders' %}active{% endif %}" href="{{ url_for('my_orders') }}">My Orders</a>
+                </li>
+                {% if current_user.is_authenticated and current_user.is_admin() %}
+                <li class="nav-item">
+                    <a class="nav-link {% if 'admin' in request.endpoint %}active{% endif %}" href="{{ url_for('admin_panel') }}">Admin Panel</a>
+                </li>
+                {% endif %}
+            </ul>
+            <!-- Search Form -->
+            <form action="{{ url_for('all_products') }}" method="GET" class="d-flex mt-4 md:mt-0"> 
+                <input class="form-control me-2 rounded-pill px-3" type="search" name="query" placeholder="Search..." aria-label="Search" value="{{ request.args.get('query', '') }}">
+                <button class="btn btn-outline-light-blue rounded-pill" type="submit"><i class="fas fa-search"></i></button>
+            </form>
 
-            {# Dynamically show Login or Logout based on user authentication status #}
-            {% if current_user.is_authenticated %}
-            <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
-            </li>
-            {% else %}
-            <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('user_login') }}">Login</a>
-            </li>
-            {% endif %}
-            
-            {# The Account link - ensure this route exists in your app.py #}
-            <li class="nav-item"><a class="nav-link" href="/account">Account</a></li>
-        </ul>
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
+                <li class="nav-item">
+                    <a class="nav-link position-relative me-3" href="{{ url_for('cart') }}">
+                        <i class="fas fa-shopping-cart fa-lg"></i> Cart
+                        <span id="cart-count" class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle">0</span>
+                    </a>
+                </li>
+                {% if current_user.is_authenticated %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownUser" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-user-circle fa-lg"></i> {{ current_user.name if current_user.name else current_user.email }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownUser">
+                        <li><a class="dropdown-item" href="{{ url_for('profile') }}">Profile</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('my_orders') }}">My Orders</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}">Logout</a></li>
+                    </ul>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a class="btn btn-primary rounded-pill px-3 me-2" href="{{ url_for('user_login') }}">Login</a>
+                </li>
+                <li class="nav-item">
+                    <a class="btn btn-outline-primary rounded-pill px-3" href="{{ url_for('signup') }}">Sign Up</a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
     </div>
 </nav>

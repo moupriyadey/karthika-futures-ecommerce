@@ -141,7 +141,8 @@
     document.addEventListener('DOMContentLoaded', () => {
         const updateCartItem = async (itemId, sku, size, frame, glass, newQuantity) => {
             try {
-                const response = await fetch('{{ url_for("update_cart_item") }}', {
+                // --- CORRECTED URL FOR update_cart_item_quantity ---
+                const response = await fetch('{{ url_for("update_cart_item_quantity") }}', { 
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -186,7 +187,8 @@
 
         const removeCartItem = async (itemId, sku, size, frame, glass) => {
             try {
-                const response = await fetch('{{ url_for("remove_from_cart") }}', {
+                // --- CORRECTED URL FOR remove_from_cart (ensure this is the Flask endpoint name) ---
+                const response = await fetch('{{ url_for("remove_from_cart") }}', { 
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -242,7 +244,7 @@
             }
         };
 
-        // Quantity input change
+        // Quantity input change (existing, no change)
         document.querySelectorAll('.cart-item-quantity').forEach(input => {
             input.addEventListener('change', function() {
                 const itemId = this.dataset.id;
@@ -261,7 +263,7 @@
             });
         });
 
-        // Quantity increase/decrease buttons
+        // Quantity increase/decrease buttons (existing, no change)
         document.querySelectorAll('.btn-increase-quantity, .btn-decrease-quantity').forEach(button => {
             button.addEventListener('click', function() {
                 const itemId = this.dataset.id;
@@ -287,7 +289,7 @@
             });
         });
 
-        // Remove item buttons
+        // Remove item buttons (existing, no change)
         document.querySelectorAll('.btn-remove-item').forEach(button => {
             button.addEventListener('click', function() {
                 const itemId = this.dataset.id;
