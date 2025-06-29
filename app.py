@@ -1587,7 +1587,7 @@ def admin_dashboard():
 
 @app.route('/admin/artworks')
 def admin_artworks_view():
-    return render_template('admin_artworks.html')
+    return render_template('admin_artwork.html')
 
 
 @app.route('/admin/users')
