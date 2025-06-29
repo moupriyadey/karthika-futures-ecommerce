@@ -39,7 +39,7 @@
                         Admin
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="adminDropdown">
-                      
+                        <li><a class="dropdown-item" href="{{ url_for('admin_dashboard') }}">Admin Panel</a></li>
                         <li><a class="dropdown-item" href="{{ url_for('add_artwork') }}">Add Artwork</a></li>
                         <li><a class="dropdown-item" href="{{ url_for('admin_artworks_view') }}">Manage Artworks</a></li>
                         <li><a class="dropdown-item" href="{{ url_for('admin_users_view') }}">Manage Users</a></li>
