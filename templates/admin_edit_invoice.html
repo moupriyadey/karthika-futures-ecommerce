@@ -9,7 +9,10 @@
     {# Admin Navigation Tabs #}
     <ul class="nav nav-tabs nav-justified mb-4">
         <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('admin_panel') }}">Dashboard</a>
+            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('admin_users_view') }}">Users</a>
         </li>
         <li class="nav-item">
             <a class="nav-link" href="{{ url_for('admin_artworks_view') }}">Artworks</a>
@@ -23,35 +26,36 @@
     </ul>
 
     <div class="card bg-white rounded-lg shadow-lg p-6 mb-4">
-        <div class="card-header bg-light py-3 border-bottom rounded-top-lg">
+        <div class="card-header bg-light py-3 border-bottom rounded-t-lg"> {# Changed rounded-top-lg to rounded-t-lg for Tailwind #}
             <h4 class="card-title mb-0 text-secondary">Invoice Details</h4>
         </div>
         <div class="card-body">
             <form method="POST" id="invoiceEditForm">
-                <input type="hidden" id="baseTotalAmount" value="{{ order.subtotal_before_gst | round(2) }}">
+                {{ csrf_token() }} {# CSRF token added #}
+                <input type="hidden" id="baseTotalAmount" value="{{ order.subtotal_before_gst | floatformat(2) }}">
 
                 {# Business Details Section #}
                 <div class="mb-4">
                     <h5 class="text-info mb-3">Our Business Details (Editable)</h5>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label for="business_name" class="form-label">Business Name</label>
-                            <input type="text" class="form-control" id="business_name" name="business_name" 
+                            <label for="business_name" class="form-label text-gray-700">Business Name</label>
+                            <input type="text" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="business_name" name="business_name" 
                                 value="{{ order.invoice_details.business_name | default(our_business_name) }}" required>
                         </div>
                         <div class="col-md-6">
-                            <label for="gst_number" class="form-label">GSTIN</label>
-                            <input type="text" class="form-control" id="gst_number" name="gst_number" 
+                            <label for="gst_number" class="form-label text-gray-700">GSTIN</label>
+                            <input type="text" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="gst_number" name="gst_number" 
                                 value="{{ order.invoice_details.gst_number | default(our_gstin) }}" required>
                         </div>
                         <div class="col-md-6">
-                            <label for="pan_number" class="form-label">PAN Number</label>
-                            <input type="text" class="form-control" id="pan_number" name="pan_number" 
+                            <label for="pan_number" class="form-label text-gray-700">PAN Number</label>
+                            <input type="text" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="pan_number" name="pan_number" 
                                 value="{{ order.invoice_details.pan_number | default(our_pan) }}" required>
                         </div>
                         <div class="col-md-12">
-                            <label for="business_address" class="form-label">Business Address</label>
-                            <textarea class="form-control" id="business_address" name="business_address" rows="2" required>{{ order.invoice_details.business_address | default(our_business_address) }}</textarea>
+                            <label for="business_address" class="form-label text-gray-700">Business Address</label>
+                            <textarea class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="business_address" name="business_address" rows="2" required>{{ order.invoice_details.business_address | default(our_business_address) }}</textarea>
                         </div>
                     </div>
                 </div>
@@ -61,30 +65,30 @@
                     <h5 class="text-info mb-3">Customer & Invoice Specifics (Some Editable)</h5>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label">Customer Name</label>
+                            <label class="form-label text-gray-700">Customer Name</label>
                             <p class="form-control-plaintext"><strong>{{ order.customer_name }}</strong></p>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Customer Email</label>
+                            <label class="form-label text-gray-700">Customer Email</label>
                             <p class="form-control-plaintext">{{ order.user_email }}</p>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Customer Phone</label>
+                            <label class="form-label text-gray-700">Customer Phone</label>
                             <p class="form-control-plaintext">{{ order.invoice_details.customer_phone_camouflaged | default(order.customer_phone) }}</p>
                         </div>
                         <div class="col-md-6">
-                            <label for="invoice_number" class="form-label">Invoice Number</label>
-                            <input type="text" class="form-control" id="invoice_number" name="invoice_number" 
+                            <label for="invoice_number" class="form-label text-gray-700">Invoice Number</label>
+                            <input type="text" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="invoice_number" name="invoice_number" 
                                 value="{{ order.invoice_details.invoice_number | default('') }}">
                         </div>
                         <div class="col-md-6">
-                            <label for="invoice_date" class="form-label">Invoice Date</label>
-                            <input type="datetime-local" class="form-control" id="invoice_date" name="invoice_date" 
+                            <label for="invoice_date" class="form-label text-gray-700">Invoice Date</label>
+                            <input type="datetime-local" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="invoice_date" name="invoice_date" 
                                 value="{{ (order.invoice_details.invoice_date | default(now().strftime('%Y-%m-%d %H:%M:%S'))).split('.')[0].replace(' ', 'T') }}">
                         </div>
                         <div class="col-md-12">
-                            <label for="billing_address" class="form-label">Customer Billing Address</label>
-                            <textarea class="form-control" id="billing_address" name="billing_address" rows="3" required>{{ order.invoice_details.billing_address | default(order.customer_address) }}</textarea>
+                            <label for="billing_address" class="form-label text-gray-700">Customer Billing Address</label>
+                            <textarea class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="billing_address" name="billing_address" rows="3" required>{{ order.invoice_details.billing_address | default(order.customer_address) }}</textarea>
                         </div>
                     </div>
                 </div>
@@ -94,7 +98,7 @@
                     <h5 class="text-info mb-3">Order Items</h5>
                     <ul class="list-group mb-3">
                         {% for item in order.items %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <li class="list-group-item d-flex justify-content-between align-items-center rounded-md mb-2 shadow-sm">
                             <div>
                                 <strong>{{ item.name }} (SKU: {{ item.sku }})</strong> x {{ item.quantity }}
                                 {% if item.size and item.size != 'Original' %}<br><small>Size: {{ item.size }}</small>{% endif %}
@@ -102,10 +106,10 @@
                                 {% if item.glass and item.glass != 'None' %}<br><small>Glass: {{ item.glass }}</small>{% endif %}
                             </div>
                             <div>
-                                <small class="text-muted">Unit Price (Pre-GST): ₹{{ item.unit_price_before_gst | round(2) }}</small><br>
-                                <small class="text-muted">Item Total (Pre-GST): ₹{{ item.total_price_before_gst | round(2) }}</small><br>
-                                <small class="text-muted">GST ({{ item.gst_percentage | round(2) }}%): ₹{{ item.gst_amount | round(2) }}</small><br>
-                                <strong>Total: ₹{{ item.total_price | round(2) }}</strong>
+                                <small class="text-muted">Unit Price (Pre-GST): ₹{{ item.unit_price_before_gst | floatformat(2) }}</small><br>
+                                <small class="text-muted">Item Total (Pre-GST): ₹{{ item.total_price_before_gst | floatformat(2) }}</small><br>
+                                <small class="text-muted">GST ({{ item.gst_percentage | floatformat(2) }}%): ₹{{ item.gst_amount | floatformat(2) }}</small><br>
+                                <strong>Total: ₹{{ item.total_price | floatformat(2) }}</strong>
                             </div>
                         </li>
                         {% endfor %}
@@ -117,35 +121,35 @@
                     <h5 class="text-info mb-3">Financial Summary (Editable)</h5>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label">Subtotal of Items (Before GST)</label>
-                            <p class="form-control-plaintext">₹{{ order.subtotal_before_gst | round(2) }}</p>
+                            <label class="form-label text-gray-700">Subtotal of Items (Before GST)</label>
+                            <p class="form-control-plaintext">₹{{ order.subtotal_before_gst | floatformat(2) }}</p>
                         </div>
                         <div class="col-md-6">
-                            <label for="gst_rate" class="form-label">GST Rate Applied (%)</label>
-                            <input type="number" step="0.01" class="form-control" id="gst_rate" name="gst_rate" 
-                                value="{{ order.invoice_details.gst_rate_applied | default(default_gst_rate) }}" required>
+                            <label for="gst_rate" class="form-label text-gray-700">GST Rate Applied (%)</label>
+                            <input type="number" step="0.01" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="gst_rate" name="gst_rate" 
+                                value="{{ order.invoice_details.gst_rate_applied | default(default_gst_rate) | floatformat(2) }}" required>
                         </div>
                         <div class="col-md-6">
-                            <label for="total_gst_amount" class="form-label">Total GST Amount</label>
-                            <p class="form-control-plaintext">₹<span id="display_total_gst_amount">{{ order.invoice_details.total_gst_amount | default(0.0) | round(2) }}</span></p>
-                            <small class="text-muted">CGST: ₹<span id="display_cgst_amount">{{ order.invoice_details.cgst_amount | default(0.0) | round(2) }}</span>, SGST: ₹<span id="display_sgst_amount">{{ order.invoice_details.sgst_amount | default(0.0) | round(2) }}</span></small>
+                            <label for="total_gst_amount" class="form-label text-gray-700">Total GST Amount</label>
+                            <p class="form-control-plaintext">₹<span id="display_total_gst_amount">{{ order.invoice_details.total_gst_amount | default(0.0) | floatformat(2) }}</span></p>
+                            <small class="text-muted">CGST: ₹<span id="display_cgst_amount">{{ order.invoice_details.cgst_amount | default(0.0) | floatformat(2) }}</span>, SGST: ₹<span id="display_sgst_amount">{{ order.invoice_details.sgst_amount | default(0.0) | floatformat(2) }}</span></small>
                         </div>
                         <div class="col-md-6">
-                            <label for="shipping_charge" class="form-label">Shipping Charge</label>
-                            <input type="number" step="0.01" class="form-control" id="shipping_charge" name="shipping_charge" 
-                                value="{{ order.invoice_details.shipping_charge | default(0.0) | round(2) }}" required>
+                            <label for="shipping_charge" class="form-label text-gray-700">Shipping Charge</label>
+                            <input type="number" step="0.01" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="shipping_charge" name="shipping_charge" 
+                                value="{{ order.invoice_details.shipping_charge | default(0.0) | floatformat(2) }}" required>
                         </div>
                         <div class="col-md-12">
-                            <label for="final_invoice_amount" class="form-label">Final Invoice Amount</label>
-                            <p class="form-control-plaintext"><strong>₹<span id="display_final_invoice_amount">{{ order.invoice_details.final_invoice_amount | default(0.0) | round(2) }}</span></strong></p>
+                            <label for="final_invoice_amount" class="form-label text-gray-700">Final Invoice Amount</label>
+                            <p class="form-control-plaintext"><strong>₹<span id="display_final_invoice_amount">{{ order.invoice_details.final_invoice_amount | default(0.0) | floatformat(2) }}</span></strong></p>
                         </div>
                     </div>
                 </div>
                 <div class="d-flex justify-content-end mt-4">
-                    <button type="submit" class="btn btn-success btn-lg shadow-sm">
+                    <button type="submit" class="btn btn-success btn-lg shadow-sm rounded-md transition-transform hover:scale-105">
                         <i class="fas fa-save me-2"></i> Save Invoice Changes
                     </button>
-                    <a href="{{ url_for('admin_orders_view') }}" class="btn btn-outline-secondary btn-lg ms-3">
+                    <a href="{{ url_for('admin_orders_view') }}" class="btn btn-outline-secondary btn-lg ms-3 rounded-md shadow-sm transition-transform hover:scale-105">
                         <i class="fas fa-arrow-left me-2"></i> Back to Orders
                     </a>
                 </div>
@@ -158,6 +162,7 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Use parseFloat to ensure numerical operations
         const baseTotalAmount = parseFloat(document.getElementById('baseTotalAmount').value);
         const gstRateInput = document.getElementById('gst_rate');
         const shippingChargeInput = document.getElementById('shipping_charge');
@@ -171,7 +176,7 @@
             let gstRate = parseFloat(gstRateInput.value) || 0;
             let shippingCharge = parseFloat(shippingChargeInput.value) || 0;
 
-            // Ensure non-negative values
+            // Ensure non-negative values for calculation, though min="0" on inputs helps
             if (gstRate < 0) gstRate = 0;
             if (shippingCharge < 0) shippingCharge = 0;
 
@@ -183,7 +188,7 @@
             // Recalculate final invoice amount
             const finalInvoiceAmount = baseTotalAmount + totalGstAmount + shippingCharge;
 
-            // Update displayed values
+            // Update displayed values, fixing to 2 decimal places for currency display
             displayTotalGstAmount.textContent = totalGstAmount.toFixed(2);
             displayCgstAmount.textContent = cgstAmount.toFixed(2);
             displaySgstAmount.textContent = sgstAmount.toFixed(2);

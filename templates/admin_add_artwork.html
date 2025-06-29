@@ -10,6 +10,7 @@
     </header>
     <main>
         <form method="POST" action="/admin-add-artwork" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <label for="title">Title:</label>
             <input type="text" id="title" name="title" required>
 

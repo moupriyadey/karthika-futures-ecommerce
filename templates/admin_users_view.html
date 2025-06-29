@@ -1,0 +1,143 @@
+{% extends '_base.html' %}
+
+{% block title %}Manage Users - Admin - Karthika Futures{% endblock %}
+
+{% block content %}
+<div class="container main-content-area position-relative pt-5">
+    <h2 class="text-center mb-4 text-primary font-bold">Manage Users</h2>
+
+    {# Admin Navigation Tabs #}
+    <ul class="nav nav-tabs nav-justified mb-4">
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="{{ url_for('admin_users_view') }}">Users</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('admin_artworks_view') }}">Artworks</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('admin_orders_view') }}">Orders</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('admin_categories_view') }}">Categories</a>
+        </li>
+    </ul>
+
+    <div class="bg-white bg-opacity-90 rounded-lg shadow-lg p-6">
+        <h3 class="h4 mb-3 text-secondary">All Users</h3>
+
+        {% if users %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full bg-white rounded-lg shadow-md">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">User ID</th>
+                        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Name</th>
+                        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Email</th>
+                        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Phone</th>
+                        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Address</th>
+                        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Role</th>
+                        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr class="border-b border-gray-200 hover:bg-gray-50">
+                        <td class="py-3 px-4 text-sm text-gray-800 font-medium">{{ user.id }}</td>
+                        <td class="py-3 px-4 text-sm text-gray-700">{{ user.name }}</td>
+                        <td class="py-3 px-4 text-sm text-gray-700">{{ user.email }}</td>
+                        <td class="py-3 px-4 text-sm text-gray-700">{{ user.phone if user.phone else 'N/A' }}</td>
+                        <td class="py-3 px-4 text-sm text-gray-700">{{ user.address if user.address else 'N/A' }}</td>
+                        <td class="py-3 px-4 text-sm text-gray-700">
+                            <span class="px-2 py-1 rounded-full text-xs font-semibold
+                                {% if user.role == 'admin' %}bg-purple-100 text-purple-800
+                                {% else %}bg-blue-100 text-blue-800{% endif %}">
+                                {{ user.role.capitalize() }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 text-sm">
+                            <div class="flex flex-col space-y-2">
+                                <button onclick="toggleUserRole('{{ user.id }}')"
+                                        class="w-full text-center py-1.5 px-3 rounded-md text-xs font-bold transition duration-200
+                                        {% if user.role == 'user' %}bg-purple-500 hover:bg-purple-600 text-white{% else %}bg-blue-500 hover:bg-blue-600 text-white{% endif %}">
+                                    {{ 'Make Admin' if user.role == 'user' else 'Make User' }}
+                                </button>
+                                {% if user.id != current_user.id %} {# Prevent admin from deleting their own account #}
+                                <button onclick="deleteUser('{{ user.id }}', '{{ user.name }}')"
+                                        class="w-full text-center bg-red-500 hover:bg-red-600 text-white font-bold py-1.5 px-3 rounded-md text-xs transition duration-200">
+                                    Delete User
+                                </button>
+                                {% else %}
+                                <span class="w-full text-center bg-gray-400 text-white font-bold py-1.5 px-3 rounded-md text-xs cursor-not-allowed">Cannot Delete Self</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-center text-gray-600 text-lg">No users found.</p>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    async function toggleUserRole(userId) {
+        if (!confirm('Are you sure you want to toggle the role for this user?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/admin/users/toggle_role/' + userId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}' // Include CSRF token
+                }
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                alert(data.message || 'User role updated successfully!');
+                window.location.reload(); // Reload the page to reflect changes
+            } else {
+                alert('Error: ' + (data.message || 'Failed to update user role.'));
+            }
+        } catch (error) {
+            console.error('Error toggling user role:', error);
+            alert('An unexpected error occurred.');
+        }
+    }
+
+    async function deleteUser(userId, userName) {
+        if (!confirm('Are you sure you want to delete user ' + userName + '? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/admin/users/delete/' + userId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}' // Include CSRF token
+                }
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                alert(data.message || 'User deleted successfully!');
+                window.location.reload(); // Reload the page to reflect changes
+            } else {
+                alert('Error: ' + (data.message || 'Failed to delete user.'));
+            }
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            alert('An unexpected error occurred.');
+        }
+    }
+</script>
+{% endblock %}

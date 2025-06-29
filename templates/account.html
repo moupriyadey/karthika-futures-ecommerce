@@ -47,6 +47,8 @@
                             <td>
                                 {% if order.status == 'Delivered' %}
                                     <form method="POST" action="{{ url_for('submit_review') }}" class="d-flex flex-column"> {# Added flex for layout #}
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">    
+                                    
                                         <input type="hidden" name="order_id" value="{{ order.id }}">
                                         <div class="mb-1">
                                             <select name="rating" class="form-select form-select-sm mb-1" required>

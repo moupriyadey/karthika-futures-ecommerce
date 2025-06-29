@@ -1,0 +1,159 @@
+{% extends '_base.html' %}
+
+{% block title %}Add New Artwork - Karthika Futures{% endblock %}
+
+{% block content %}
+<div class="container main-content-area position-relative pt-5"> {# Added pt-5 for spacing #}
+    <h2 class="text-center mb-4 text-primary font-bold">Add New Artwork</h2> {# Added text-primary and font-bold #}
+
+    {# Admin Navigation Tabs - Added for consistency #}
+    <ul class="nav nav-tabs nav-justified mb-4">
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('admin_users_view') }}">Users</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="{{ url_for('admin_artworks_view') }}">Artworks</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('admin_orders_view') }}">Orders</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('admin_categories_view') }}">Categories</a>
+        </li>
+    </ul>
+
+    <form action="{{ url_for('add_artwork') }}" method="POST" enctype="multipart/form-data" class="p-6 bg-white rounded-lg shadow-lg">
+        {{ csrf_token() }} {# IMPORTANT: CSRF Token added for security #}
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <label for="name" class="form-label text-gray-700">Artwork Name</label>
+                <input type="text" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="name" name="name" value="{{ request.form.name if request.form.name else '' }}" required>
+            </div>
+            <div class="col-md-6">
+                <label for="sku" class="form-label text-gray-700">SKU (Unique Identifier)</label>
+                <input type="text" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="sku" name="sku" value="{{ request.form.sku if request.form.sku else '' }}" required>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <label for="category" class="form-label text-gray-700">Category</label>
+                <select class="form-select rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="category" name="category" required>
+                    <option value="">Select a Category</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.name }}" {% if request.form.category == cat.name %}selected{% endif %}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label for="original_price" class="form-label text-gray-700">Original Price (₹)</label>
+                <input type="number" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="original_price" name="original_price" step="0.01" min="0" value="{{ request.form.original_price if request.form.original_price else '' }}" required>
+            </div>
+        </div>
+        
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <label for="stock" class="form-label text-gray-700">Stock Quantity</label>
+                <input type="number" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="stock" name="stock" min="0" value="{{ request.form.stock if request.form.stock else '' }}" required>
+            </div>
+            <div class="col-md-6">
+                <label for="gst_percentage" class="form-label text-gray-700">GST Percentage (%)</label>
+                <input type="number" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="gst_percentage" name="gst_percentage" step="0.01" min="0" max="100" value="{{ request.form.gst_percentage if request.form.gst_percentage else default_gst_percentage | floatformat(2) }}" required>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label for="description" class="form-label text-gray-700">Description</label>
+            <textarea class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="description" name="description" rows="4">{{ request.form.description if request.form.description else '' }}</textarea>
+        </div>
+
+        <div class="mb-4">
+            <label for="images" class="form-label text-gray-700">Artwork Images (Max 16MB per file)</label>
+            <input type="file" class="form-control rounded-md file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100" id="images" name="images" accept="image/*" multiple required>
+            <div class="form-text text-gray-500">Select one or more image files.</div>
+        </div>
+
+        <h4 class="mb-3 mt-5 text-secondary">Pricing for Options</h4>
+        <p class="text-muted mb-4">Enter additional prices for different sizes, frames, and glass. Enter 0 if not applicable. These options are typically applicable to 'Paintings' and 'photos'.</p>
+
+        <div class="row g-3 mb-4" id="options-pricing-section">
+            <div class="col-md-4">
+                <label for="frame_wooden" class="form-label text-gray-700">Frame: Wooden Price (₹)</label>
+                <input type="number" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="frame_wooden" name="frame_wooden" step="0.01" min="0" value="{{ request.form.frame_wooden if request.form.frame_wooden else '0.00' }}">
+            </div>
+            <div class="col-md-4">
+                <label for="frame_metal" class="form-label text-gray-700">Frame: Metal Price (₹)</label>
+                <input type="number" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="frame_metal" name="frame_metal" step="0.01" min="0" value="{{ request.form.frame_metal if request.form.frame_metal else '0.00' }}">
+            </div>
+            <div class="col-md-4">
+                <label for="frame_pvc" class="form-label text-gray-700">Frame: PVC Price (₹)</label>
+                <input type="number" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="frame_pvc" name="frame_pvc" step="0.01" min="0" value="{{ request.form.frame_pvc if request.form.frame_pvc else '0.00' }}">
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <label for="glass_price" class="form-label text-gray-700">Glass Price (₹)</label>
+                <input type="number" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="glass_price" name="glass_price" step="0.01" min="0" value="{{ request.form.glass_price if request.form.glass_price else '0.00' }}">
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <label for="size_a4" class="form-label text-gray-700">Size: A4 Price (₹)</label>
+                <input type="number" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="size_a4" name="size_a4" step="0.01" min="0" value="{{ request.form.size_a4 if request.form.size_a4 else '0.00' }}">
+            </div>
+            <div class="col-md-3">
+                <label for="size_a5" class="form-label text-gray-700">Size: A5 Price (₹)</label>
+                <input type="number" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="size_a5" name="size_a5" step="0.01" min="0" value="{{ request.form.size_a5 if request.form.size_a5 else '0.00' }}">
+            </div>
+            <div class="col-md-3">
+                <label for="size_letter" class="form-label text-gray-700">Size: Letter Price (₹)</label>
+                <input type="number" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="size_letter" name="size_letter" step="0.01" min="0" value="{{ request.form.size_letter if request.form.size_letter else '0.00' }}">
+            </div>
+            <div class="col-md-3">
+                <label for="size_legal" class="form-label text-gray-700">Size: Legal Price (₹)</label>
+                <input type="number" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="size_legal" name="size_legal" step="0.01" min="0" value="{{ request.form.size_legal if request.form.size_legal else '0.00' }}">
+            </div>
+        </div>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+            <button type="submit" class="btn btn-primary btn-lg rounded-md shadow-sm transition-transform hover:scale-105">Add Artwork</button>
+            <a href="{{ url_for('admin_artworks_view') }}" class="btn btn-secondary btn-lg rounded-md shadow-sm transition-transform hover:scale-105">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const categorySelect = document.getElementById('category');
+        const optionsPricingSection = document.getElementById('options-pricing-section'); // Wrap all options fields in this ID if possible
+        const allOptionInputs = document.querySelectorAll('#options-pricing-section input[type="number"]');
+
+        function toggleOptionsPricing() {
+            const selectedCategory = categorySelect.value;
+            // Assuming 'Paintings' and 'photos' are the categories where options apply
+            const isOptionsApplicable = ['Paintings', 'photos'].includes(selectedCategory);
+
+            if (isOptionsApplicable) {
+                optionsPricingSection.style.display = 'flex'; // Or 'block', 'grid' depending on its default layout
+            } else {
+                optionsPricingSection.style.display = 'none';
+                // Reset values to '0.00' when hidden to ensure data consistency
+                allOptionInputs.forEach(input => {
+                    input.value = '0.00';
+                });
+            }
+        }
+
+        // Initial call to set visibility on page load
+        toggleOptionsPricing();
+
+        // Listen for changes on the category select dropdown
+        categorySelect.addEventListener('change', toggleOptionsPricing);
+    });
+</script>
+{% endblock %}

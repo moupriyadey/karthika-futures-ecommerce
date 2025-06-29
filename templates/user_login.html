@@ -13,6 +13,8 @@
             {# IMPORTANT: next_url is handled by app.py via session, not directly in form action #}
             {# The form action should just be 'user_login'. Flask-Login's redirect handles 'next' #}
             <form method="POST" action="{{ url_for('user_login') }}" class="p-4 border rounded shadow-sm bg-white">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                 <div class="mb-3"> {# <-- FIXED: Added missing opening '<' here #}
                     <label for="email" class="form-label">Email address</label>
                     <input type="email" class="form-control" id="email" name="email" required>

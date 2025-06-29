@@ -94,12 +94,12 @@
                     <td class="py-3 px-4 align-middle text-sm text-gray-900">
                         <ul class="list-unstyled mb-0">
                             {% for item in order.items %}
-                                <li>{{ item.name }} (x{{ item.quantity }}) - ₹{{ item.total_price | round(2) }}</li>
+                                <li>{{ item.name }} (x{{ item.quantity }}) - ₹{{ item.total_price | floatformat(2) }}</li>
                             {% endfor %}
                         </ul>
                     </td>
                     <td class="py-3 px-4 align-middle text-sm text-gray-900 text-right">
-                        ₹{{ order.total_amount | round(2) }}
+                        ₹{{ order.total_amount | floatformat(2) }}
                     </td>
                     <td class="py-3 px-4 align-middle text-sm text-center">
                         <span class="badge 
@@ -111,28 +111,43 @@
                             {% else %}bg-danger{% endif %}">
                             {{ order.status }}
                         </span>
-                        {% if order.status == 'Shipped' and order.courier and order.tracking_number %}
+                        {% if order.status == 'Shipped' and order.get('courier') and order.get('tracking_number') %}
                             <br><small class="text-muted">Courier: {{ order.courier }}</small>
                             <br><small class="text-muted">Tracking: {{ order.tracking_number }}</small>
                         {% endif %}
-                        {% if order.payment_screenshot %}
+                        {% if order.payment_screenshot_path %}
                             <br><button type="button" class="btn btn-sm btn-outline-info mt-1 view-screenshot-btn" 
                                 data-bs-toggle="modal" data-bs-target="#paymentScreenshotModal" 
-                                data-screenshot-src="{{ url_for('static', filename=order.payment_screenshot) }}">
+                                data-screenshot-src="{{ url_for('static', filename=order.payment_screenshot_path) }}">
                                 <i class="fas fa-image"></i> View Payment Proof
                             </button>
                         {% endif %}
                         {% if order.remark %}
                             <br><button type="button" class="btn btn-sm btn-outline-dark mt-1 view-remark-btn" 
                                 data-bs-toggle="modal" data-bs-target="#addRemarkModal" 
-                                data-order-id="{{ order.order_id }}" data-remark="{{ order.remark }}">
+                                data-order-id="{{ order.order_id }}" 
+                                data-remark="{{ order.remark | e }}"
+                                data-current-status="{{ order.status }}" {# Added for remark modal #}
+                                data-courier="{{ order.courier | default('') }}" {# Added for remark modal #}
+                                data-tracking="{{ order.tracking_number | default('') }}"> {# Added for remark modal #}
                                 <i class="fas fa-comment-dots"></i> View Remark
+                            </button>
+                        {% else %}
+                            {# Show "Add Remark" button if no remark exists #}
+                            <br><button type="button" class="btn btn-sm btn-outline-secondary mt-1 view-remark-btn" 
+                                data-bs-toggle="modal" data-bs-target="#addRemarkModal" 
+                                data-order-id="{{ order.order_id }}" 
+                                data-remark="" {# Empty remark #}
+                                data-current-status="{{ order.status }}" {# Added for remark modal #}
+                                data-courier="{{ order.courier | default('') }}" {# Added for remark modal #}
+                                data-tracking="{{ order.tracking_number | default('') }}"> {# Added for remark modal #}
+                                <i class="fas fa-comment"></i> Add Remark
                             </button>
                         {% endif %}
                     </td>
                     <td class="py-3 px-4 align-middle text-sm text-center">
-                        {% set invoice_status = order.invoice_details.invoice_status | default('N/A') %}
-                        {% set is_held_by_admin = order.invoice_details.is_held_by_admin | default(false) %}
+                        {% set invoice_status = order.invoice_details.get('invoice_status') | default('N/A') %}
+                        {% set is_held_by_admin = order.invoice_details.get('is_held_by_admin') | default(false) %}
                         
                         <span class="badge 
                             {% if invoice_status == 'Sent' %}bg-success
@@ -164,14 +179,14 @@
                                             data-bs-toggle="modal" data-bs-target="#updateStatusModal"
                                             data-order-id="{{ order.order_id }}"
                                             data-current-status="{{ order.status }}"
-                                            data-courier="{{ order.courier | default('') }}"
-                                            data-tracking="{{ order.tracking_number | default('') }}">
-                                        <i class="fas fa-edit me-2"></i> Update Status
+                                            data-courier="{{ order.get('courier', '') }}"
+                                            data-tracking="{{ order.get('tracking_number', '') }}">
+                                            <i class="fas fa-edit me-2"></i> Update Status
                                     </button>
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
                                 {# Invoice Management Actions #}
-                                {% if order.status == 'Shipped' %} {# Only manage invoice if order is shipped #}
+                                {% if order.status == 'Shipped' or order.invoice_details.get('invoice_status') != 'Not Applicable' %} {# Allow invoice actions if already shipped or an invoice exists #}
                                     <li>
                                         {% if is_held_by_admin %}
                                             <button type="button" class="dropdown-item text-success release-invoice-btn" data-order-id="{{ order.order_id }}">
@@ -201,7 +216,10 @@
                                     <button type="button" class="dropdown-item add-remark-btn"
                                             data-bs-toggle="modal" data-bs-target="#addRemarkModal"
                                             data-order-id="{{ order.order_id }}"
-                                            data-remark="{{ order.remark | default('') }}">
+                                            data-remark="{{ order.remark | default('') | e }}"
+                                            data-current-status="{{ order.status }}"
+                                            data-courier="{{ order.courier | default('') }}"
+                                            data-tracking="{{ order.tracking_number | default('') }}">
                                         <i class="fas fa-comment me-2"></i> Add/Edit Remark
                                     </button>
                                 </li>
@@ -234,7 +252,7 @@
                 <h5 class="modal-title" id="updateStatusModalLabel">Update Order Status for <span id="modalOrderIdStatus"></span></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="updateStatusForm" action="{{ url_for('admin_orders_update') }}" method="POST">
+            <form id="updateStatusForm">
                 <div class="modal-body">
                     <input type="hidden" name="order_id" id="statusOrderId">
                     <div class="mb-3">
@@ -257,6 +275,10 @@
                         <label for="trackingNumber" class="form-label">Tracking Number (Optional)</label>
                         <input type="text" class="form-control" id="trackingNumber" name="tracking_number" placeholder="Tracking ID">
                     </div>
+                    <div class="mb-3">
+                        <label for="orderRemarkStatusUpdate" class="form-label">Remark (Optional)</label>
+                        <textarea class="form-control" id="orderRemarkStatusUpdate" name="remark" rows="3" placeholder="Add a remark for this status update..."></textarea>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -275,9 +297,12 @@
                 <h5 class="modal-title" id="addRemarkModalLabel">Remark for Order <span id="modalOrderIdRemark"></span></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="addRemarkForm"> {# Form will be submitted via AJAX #}
+            <form id="addRemarkForm">
                 <div class="modal-body">
                     <input type="hidden" id="remarkOrderId" name="order_id">
+                    <input type="hidden" id="remarkCurrentStatus" name="current_status"> {# Hidden field for current status #}
+                    <input type="hidden" id="remarkCourier" name="courier"> {# Hidden field for courier #}
+                    <input type="hidden" id="remarkTrackingNumber" name="tracking_number"> {# Hidden field for tracking #}
                     <div class="mb-3">
                         <label for="orderRemark" class="form-label">Internal Remark</label>
                         <textarea class="form-control" id="orderRemark" name="remark" rows="4" placeholder="Add internal notes about this order..."></textarea>
@@ -325,19 +350,25 @@
         const orderStatusSelect = document.getElementById('orderStatus');
         const courierNameInput = document.getElementById('courierName');
         const trackingNumberInput = document.getElementById('trackingNumber');
+        const orderRemarkStatusUpdate = document.getElementById('orderRemarkStatusUpdate');
+
 
         updateStatusModal.addEventListener('show.bs.modal', function (event) {
             const button = event.relatedTarget;
             const orderId = button.dataset.orderId;
             const currentStatus = button.dataset.currentStatus;
-            const courier = button.dataset.courier;
-            const tracking = button.dataset.tracking;
+            const courier = button.dataset.courier || '';
+            const tracking = button.dataset.tracking || '';
+            // The remark for the status update modal is distinct from the general remark (order.remark)
+            // It's specific to the status change itself.
+            const remark = button.dataset.remark || ''; // If remark is associated with this status update button
 
             modalOrderIdStatus.textContent = orderId;
             statusOrderId.value = orderId;
             orderStatusSelect.value = currentStatus;
             courierNameInput.value = courier;
             trackingNumberInput.value = tracking;
+            orderRemarkStatusUpdate.value = remark; // Pre-fill with existing remark if available
         });
 
         // Add/Edit Remark Modal
@@ -346,15 +377,26 @@
         const modalOrderIdRemark = document.getElementById('modalOrderIdRemark');
         const remarkOrderId = document.getElementById('remarkOrderId');
         const orderRemarkTextarea = document.getElementById('orderRemark');
+        // Hidden fields for original status, courier, tracking number for remark-only updates
+        const remarkCurrentStatus = document.getElementById('remarkCurrentStatus');
+        const remarkCourier = document.getElementById('remarkCourier');
+        const remarkTrackingNumber = document.getElementById('remarkTrackingNumber');
+
 
         addRemarkModal.addEventListener('show.bs.modal', function (event) {
             const button = event.relatedTarget;
             const orderId = button.dataset.orderId;
-            const remark = button.dataset.remark || '';
+            const remark = button.dataset.remark || ''; // This remark comes from the order object
+            const currentStatus = button.dataset.currentStatus; // Get current status from data attribute
+            const courier = button.dataset.courier || ''; // Get courier from data attribute
+            const tracking = button.dataset.tracking || ''; // Get tracking from data attribute
 
             modalOrderIdRemark.textContent = orderId;
             remarkOrderId.value = orderId;
             orderRemarkTextarea.value = remark;
+            remarkCurrentStatus.value = currentStatus; // Store in hidden field
+            remarkCourier.value = courier; // Store in hidden field
+            remarkTrackingNumber.value = tracking; // Store in hidden field
         });
 
         // Payment Screenshot Modal
@@ -370,41 +412,67 @@
 
         // --- AJAX Form Submissions and Button Actions ---
 
-        // Handle Add/Edit Remark Form Submission
+        // Handle Update Status Form Submission (AJAX)
+        updateStatusForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const orderId = statusOrderId.value;
+            const newStatus = orderStatusSelect.value;
+            const courier = courierNameInput.value;
+            const trackingNumber = trackingNumberInput.value;
+            const remark = orderRemarkStatusUpdate.value;
+
+
+            try {
+                const response = await fetch(`{{ url_for('admin_update_order_status', order_id='PLACEHOLDER') }}`.replace('PLACEHOLDER', orderId), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ status: newStatus, remark: remark, courier: courier, tracking_number: trackingNumber })
+                });
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showCustomAlert(data.message, 'success');
+                    bootstrap.Modal.getInstance(updateStatusModal).hide(); // Hide modal
+                    window.location.reload(); // Reload the page to reflect changes
+                } else {
+                    showCustomAlert(data.message || 'Failed to update order status.', 'danger');
+                }
+            } catch (error) {
+                console.error('Error updating order status:', error);
+                showCustomAlert('Network error or server issue. Could not update order status.', 'danger');
+            }
+        });
+
+
+        // Handle Add/Edit Remark Form Submission (AJAX)
         addRemarkForm.addEventListener('submit', async function(event) {
             event.preventDefault();
             const orderId = remarkOrderId.value;
             const remarkText = orderRemarkTextarea.value;
+            const currentStatus = remarkCurrentStatus.value; // Get original status from hidden field
+            const courier = remarkCourier.value; // Get original courier from hidden field
+            const trackingNumber = remarkTrackingNumber.value; // Get original tracking from hidden field
+
 
             try {
-                const response = await fetch('{{ url_for("admin_add_remark") }}', {
+                const response = await fetch(`{{ url_for('admin_update_order_status', order_id='PLACEHOLDER') }}`.replace('PLACEHOLDER', orderId), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token() }}'
                     },
-                    body: JSON.stringify({ order_id: orderId, remark: remarkText })
+                    // Send existing status, courier, tracking to ensure they are preserved
+                    body: JSON.stringify({ status: currentStatus, remark: remarkText, courier: courier, tracking_number: trackingNumber })
                 });
                 const data = await response.json();
 
                 if (response.ok && data.success) {
                     showCustomAlert(data.message, 'success');
                     bootstrap.Modal.getInstance(addRemarkModal).hide(); // Hide modal
-
-                    // Update the remark button's data-remark attribute and potentially its text
-                    const remarkBtn = document.querySelector(`#order-row-${orderId} .view-remark-btn`);
-                    if (remarkBtn) {
-                        remarkBtn.dataset.remark = remarkText;
-                        if (remarkText.trim() === '') {
-                             // If remark is cleared, perhaps change button text or hide it
-                             remarkBtn.innerHTML = '<i class="fas fa-comment"></i> Add Remark';
-                             remarkBtn.classList.remove('btn-outline-dark');
-                             remarkBtn.classList.add('btn-outline-secondary');
-                        } else {
-                             remarkBtn.innerHTML = '<i class="fas fa-comment-dots"></i> View Remark';
-                             remarkBtn.classList.remove('btn-outline-secondary');
-                             remarkBtn.classList.add('btn-outline-dark');
-                        }
-                    }
+                    window.location.reload(); // Reload the page to reflect changes, including updated remark text/button
                 } else {
                     showCustomAlert(data.message || 'Failed to save remark.', 'danger');
                 }
@@ -432,16 +500,14 @@
                         const response = await fetch(actionUrl, {
                             method: 'POST',
                             headers: {
-                                'Content-Type': 'application/json' // Even if empty body, specify type
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': '{{ csrf_token() }}'
                             },
                             body: JSON.stringify({}) // Send an empty JSON object
                         });
-                        const data = await response.json(); // Flask flash messages are not sent via jsonify.
-                                                            // We expect the Flask route to handle the flash.
-
+                        const data = await response.json(); 
                         if (response.ok) {
                             showCustomAlert(successMsg, 'success');
-                            // Reload the page to reflect invoice status change from server-side
                             window.location.reload(); 
                         } else {
                             showCustomAlert(data.message || failMsg, 'danger');
@@ -463,7 +529,8 @@
                         const response = await fetch(`{{ url_for('admin_send_invoice_email', order_id='PLACEHOLDER') }}`.replace('PLACEHOLDER', orderId), {
                             method: 'POST',
                             headers: {
-                                'Content-Type': 'application/json'
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': '{{ csrf_token() }}'
                             },
                             body: JSON.stringify({})
                         });
@@ -493,14 +560,27 @@
             });
         });
 
-        // --- Filtering Logic (Client-side helper for UI, server handles actual filtering on load) ---
-        // This JS is mostly for showing how the form works, Flask handles the filtering itself via redirects
-        document.getElementById('filterStatus').addEventListener('change', function() {
-            // No direct client-side filtering needed here, submission of form handles it
-        });
-        document.getElementById('filterInvoiceStatus').addEventListener('change', function() {
-            // No direct client-side filtering needed here, submission of form handles it
-        });
+        // Custom Alert Function (if not already defined in _base.html or main.js)
+        // This is a basic implementation. For production, consider a more sophisticated alert/toast system.
+        function showCustomAlert(message, type) {
+            const alertContainer = document.querySelector('.container.main-content-area'); // Or a dedicated alert container
+            if (alertContainer) {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${type} alert-dismissible fade show mt-3`;
+                alertDiv.setAttribute('role', 'alert');
+                alertDiv.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                alertContainer.prepend(alertDiv);
+                setTimeout(() => {
+                    bootstrap.Alert.getInstance(alertDiv)?.hide();
+                    alertDiv.remove();
+                }, 5000); // Auto-dismiss after 5 seconds
+            } else {
+                alert(message); // Fallback to browser alert if container not found
+            }
+        }
     });
 </script>
 {% endblock %}

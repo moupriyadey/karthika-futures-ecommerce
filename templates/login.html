@@ -5,9 +5,12 @@
     <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md bg-opacity-95 border border-gray-200">
         <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">User Login</h2>
         <form method="POST" action="{{ url_for('user_login', next=request.args.get('next', '')) }}" class="space-y-5">
+            {# IMPORTANT: THIS IS THE LINE THAT WAS LIKELY MISSING OR NOT CACHED CORRECTLY #}
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"> 
+            
             <div>
                 <label for="email" class="block text-gray-700 text-sm font-semibold mb-2">Email Address</label>
-                <input type="email" id="email" name="email" value="{{ email if email else '' }}" required
+                <input type="email" id="email" name="email" value="{{ form_data.email if form_data.email is defined else '' }}" required
                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
                        placeholder="Enter your email">
             </div>

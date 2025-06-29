@@ -166,6 +166,7 @@
     <div class="payment-form-section card p-4 shadow-sm">
         <h4 class="mb-3">Confirm Your Payment Details</h4>
         <form method="POST" action="{{ url_for('confirm_payment') }}" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="order_id" value="{{ order_id }}">
             
             <div class="mb-3">

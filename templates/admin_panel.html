@@ -1,168 +1,119 @@
 {% extends '_base.html' %}
 
-{% block title %}Admin Dashboard - Karthika Futures{% endblock %}
+{% block title %}Admin Panel - Karthika Futures{% endblock %}
 
 {% block content %}
-<div class="container main-content-area position-relative pt-5"> {# Added pt-5 for spacing from fixed navbar #}
-    <h2 class="text-center mb-4 text-primary font-bold">Admin Dashboard</h2> {# Added text-primary and font-bold #}
+<div class="container mt-5">
+    <h2 class="text-primary mb-4 text-center">Admin Dashboard</h2>
 
-    {# Admin Navigation Tabs #}
-    <ul class="nav nav-tabs nav-justified mb-4">
-        <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="{{ url_for('admin_panel') }}">Dashboard</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('admin_artworks_view') }}">Artworks</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('admin_orders_view') }}">Orders</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('admin_categories_view') }}">Categories</a>
-        </li>
-    </ul>
-
-    <div class="space-y-4">
-        <h3 class="h4 mb-3 text-secondary">Quick Overview</h3>
-
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-4">
-            <!-- Total Artworks Card -->
-            <div class="col">
-                <div class="card text-white bg-info mb-3 shadow-sm rounded-lg hover:shadow-lg transition-shadow duration-300">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="card-title text-4xl font-bold">{{ artworks | length }}</h5>
-                            <i class="fas fa-palette fa-3x"></i> {# Slightly larger icon #}
-                        </div>
-                        <p class="card-text text-lg">Total Artworks</p>
-                        <a href="{{ url_for('admin_artworks_view') }}" class="btn btn-sm btn-light mt-3">Manage Artworks <i class="fas fa-arrow-right ms-2"></i></a>
-                    </div>
+    <div class="row g-4 mb-5">
+        <!-- Total Orders Card -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 p-3">
+                <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                    <i class="fas fa-receipt text-success mb-3" style="font-size: 3rem;"></i>
+                    <h5 class="card-title">Total Orders</h5>
+                    <p class="card-text fs-2 fw-bold text-success">{{ orders|length }}</p>
+                    <a href="{{ url_for('admin_orders_view') }}" class="btn btn-sm btn-outline-success">View Orders</a>
                 </div>
             </div>
-
-            <!-- Total Orders Card -->
-            <div class="col">
-                <div class="card text-white bg-success mb-3 shadow-sm rounded-lg hover:shadow-lg transition-shadow duration-300">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="card-title text-4xl font-bold">{{ orders | length }}</h5>
-                            <i class="fas fa-shopping-bag fa-3x"></i> {# Slightly larger icon #}
-                        </div>
-                        <p class="card-text text-lg">Total Orders</p>
-                        <a href="{{ url_for('admin_orders_view') }}" class="btn btn-sm btn-light mt-3">Manage Orders <i class="fas fa-arrow-right ms-2"></i></a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Orders Pending Payment Card -->
-            {% set pending_payment_orders = orders | selectattr('status', 'equalto', 'Pending Payment') | list %}
-            <div class="col">
-                <div class="card text-white bg-warning mb-3 shadow-sm rounded-lg hover:shadow-lg transition-shadow duration-300">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="card-title text-4xl font-bold">{{ pending_payment_orders | length }}</h5>
-                            <i class="fas fa-hourglass-start fa-3x"></i> {# Updated icon #}
-                        </div>
-                        <p class="card-text text-lg">Pending Payments</p>
-                        <a href="{{ url_for('admin_orders_view') }}?status=Pending Payment" class="btn btn-sm btn-light mt-3">View Details <i class="fas fa-arrow-right ms-2"></i></a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- NEW: Orders Awaiting Verification Card -->
-            {% set awaiting_verification_orders = orders | selectattr('status', 'equalto', 'Payment Submitted - Awaiting Verification') | list %}
-            <div class="col">
-                <div class="card text-white bg-primary mb-3 shadow-sm rounded-lg hover:shadow-lg transition-shadow duration-300">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="card-title text-4xl font-bold">{{ awaiting_verification_orders | length }}</h5>
-                            <i class="fas fa-search-dollar fa-3x"></i> {# Icon for verification #}
-                        </div>
-                        <p class="card-text text-lg">Awaiting Payment Verification</p>
-                        <a href="{{ url_for('admin_orders_view') }}?status=Payment Submitted - Awaiting Verification" class="btn btn-sm btn-light mt-3">Verify Payments <i class="fas fa-arrow-right ms-2"></i></a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Shipped Orders Card -->
-            {% set shipped_orders = orders | selectattr('status', 'equalto', 'Shipped') | list %}
-            <div class="col">
-                <div class="card text-white bg-secondary mb-3 shadow-sm rounded-lg hover:shadow-lg transition-shadow duration-300">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="card-title text-4xl font-bold">{{ shipped_orders | length }}</h5>
-                            <i class="fas fa-truck fa-3x"></i>
-                        </div>
-                        <p class="card-text text-lg">Shipped Orders</p>
-                        <a href="{{ url_for('admin_orders_view') }}?status=Shipped" class="btn btn-sm btn-light mt-3">View Shipped <i class="fas fa-arrow-right ms-2"></i></a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- NEW: Invoices to Send (Prepared Status) Card -->
-            {% set prepared_invoices = orders | selectattr('invoice_details.invoice_status', 'equalto', 'Prepared') | list %}
-            <div class="col">
-                <div class="card text-white bg-dark mb-3 shadow-sm rounded-lg hover:shadow-lg transition-shadow duration-300">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="card-title text-4xl font-bold">{{ prepared_invoices | length }}</h5>
-                            <i class="fas fa-envelope-open-text fa-3x"></i> {# Icon for invoices #}
-                        </div>
-                        <p class="card-text text-lg">Invoices to Send</p>
-                        <a href="{{ url_for('admin_orders_view') }}?invoice_status=Prepared" class="btn btn-sm btn-light mt-3">Send Invoices <i class="fas fa-arrow-right ms-2"></i></a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Delivered Orders Card (Existing) -->
-            {% set delivered_orders = orders | selectattr('status', 'equalto', 'Delivered') | list %}
-            <div class="col">
-                <div class="card text-white bg-success mb-3 shadow-sm rounded-lg hover:shadow-lg transition-shadow duration-300"> {# Reuse bg-success #}
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="card-title text-4xl font-bold">{{ delivered_orders | length }}</h5>
-                            <i class="fas fa-check-circle fa-3x"></i>
-                        </div>
-                        <p class="card-text text-lg">Delivered Orders</p>
-                        <a href="{{ url_for('admin_orders_view') }}?status=Delivered" class="btn btn-sm btn-light mt-3">View Delivered <i class="fas fa-arrow-right ms-2"></i></a>
-                    </div>
-                </div>
-            </div>
-
         </div>
 
-        <h3 class="h4 mb-3 mt-4 text-secondary">Quick Actions</h3>
-        <div class="row row-cols-1 row-cols-md-2 g-3">
-            <div class="col">
-                <a href="{{ url_for('add_artwork') }}" class="btn btn-primary d-block py-3 shadow-sm rounded-md transition-transform hover:scale-105">
-                    <i class="fas fa-plus-circle me-2"></i> Add New Artwork
-                </a>
+        <!-- Total Artworks Card -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 p-3">
+                <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                    <i class="fas fa-palette text-info mb-3" style="font-size: 3rem;"></i>
+                    <h5 class="card-title">Total Artworks</h5>
+                    <p class="card-text fs-2 fw-bold text-info">{{ artworks|length }}</p>
+                    <a href="{{ url_for('admin_artworks_view') }}" class="btn btn-sm btn-outline-info">Manage Artworks</a>
+                </div>
             </div>
-            <div class="col">
-                <a href="{{ url_for('admin_artworks_view') }}" class="btn btn-secondary d-block py-3 shadow-sm rounded-md transition-transform hover:scale-105">
-                    <i class="fas fa-images me-2"></i> Manage Artworks
-                </a>
+        </div>
+
+        <!-- Total Users Card -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 p-3">
+                <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                    <i class="fas fa-users text-warning mb-3" style="font-size: 3rem;"></i>
+                    <h5 class="card-title">Total Users</h5>
+                    <p class="card-text fs-2 fw-bold text-warning">{{ total_users }}</p>
+                    <a href="{{ url_for('admin_users_view') }}" class="btn btn-sm btn-outline-warning">Manage Users</a>
+                </div>
             </div>
-            <div class="col">
-                <a href="{{ url_for('admin_orders_view') }}" class="btn btn-info d-block py-3 shadow-sm rounded-md transition-transform hover:scale-105">
-                    <i class="fas fa-truck-loading me-2"></i> Manage Orders
-                </a>
+        </div>
+    </div>
+
+    <!-- Revenue and Stock Section -->
+    <div class="row g-4 mb-5">
+        <!-- Total Revenue Card -->
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100 p-3">
+                <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                    <i class="fas fa-sack-dollar text-primary mb-3" style="font-size: 3rem;"></i>
+                    <h5 class="card-title">Total Revenue</h5>
+                    <p class="card-text fs-2 fw-bold text-primary">₹{{ total_revenue|floatformat(2) }}</p>
+                    <span class="text-muted">From confirmed/shipped orders</span>
+                </div>
             </div>
-            <div class="col">
-                <a href="{{ url_for('admin_categories_view') }}" class="btn btn-success d-block py-3 shadow-sm rounded-md transition-transform hover:scale-105">
-                    <i class="fas fa-tags me-2"></i> Manage Categories
-                </a>
+        </div>
+
+        <!-- Stock Status Card -->
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100 p-3">
+                <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                    <i class="fas fa-boxes-stacked text-danger mb-3" style="font-size: 3rem;"></i>
+                    <h5 class="card-title">Stock Status</h5>
+                    <p class="card-text fs-2 fw-bold text-danger">
+                        {% if out_of_stock_artworks|length > 0 %}
+                            {{ out_of_stock_artworks|length }} Out of Stock
+                        {% else %}
+                            All Stocked
+                        {% endif %}
+                    </p>
+                    {% if low_stock_artworks|length > 0 %}
+                        <p class="card-text text-warning">{{ low_stock_artworks|length }} Low Stock</p>
+                    {% endif %}
+                    <a href="{{ url_for('admin_artworks_view') }}" class="btn btn-sm btn-outline-danger">Manage Stock</a>
+                </div>
             </div>
-            <div class="col">
-                <a href="{{ url_for('export_orders_csv') }}" class="btn btn-dark d-block py-3 shadow-sm rounded-md transition-transform hover:scale-105">
-                    <i class="fas fa-file-excel me-2"></i> Export Orders CSV
-                </a>
-            </div>
-            <div class="col">
-                <a href="{{ url_for('export_artworks_csv') }}" class="btn btn-dark d-block py-3 shadow-sm rounded-md transition-transform hover:scale-105">
-                    <i class="fas fa-file-image me-2"></i> Export Artworks CSV
-                </a>
-            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions Section -->
+    <h3 class="text-primary mb-3 text-center">Quick Actions</h3>
+    <div class="row g-4 mb-5 justify-content-center">
+        <div class="col-md-3 col-sm-6">
+            <a href="{{ url_for('add_artwork') }}" class="card action-card shadow-sm h-100 d-flex align-items-center justify-content-center text-decoration-none text-dark p-3">
+                <div class="text-center">
+                    <i class="fas fa-plus-square text-success mb-2" style="font-size: 2.5rem;"></i>
+                    <p class="card-text fw-bold">Add New Artwork</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <a href="{{ url_for('admin_orders_view', status='Payment Submitted - Awaiting Verification') }}" class="card action-card shadow-sm h-100 d-flex align-items-center justify-content-center text-decoration-none text-dark p-3">
+                <div class="text-center">
+                    <i class="fas fa-hourglass-half text-warning mb-2" style="font-size: 2.5rem;"></i>
+                    <p class="card-text fw-bold">Pending Payments ({{ orders_pending_review|length }})</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <a href="{{ url_for('admin_orders_view', status='Shipped') }}" class="card action-card shadow-sm h-100 d-flex align-items-center justify-content-center text-decoration-none text-dark p-3">
+                <div class="text-center">
+                    <i class="fas fa-truck text-primary mb-2" style="font-size: 2.5rem;"></i>
+                    <p class="card-text fw-bold">View Shipped Orders</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <a href="{{ url_for('export_orders_csv') }}" class="card action-card shadow-sm h-100 d-flex align-items-center justify-content-center text-decoration-none text-dark p-3">
+                <div class="text-center">
+                    <i class="fas fa-file-csv text-secondary mb-2" style="font-size: 2.5rem;"></i>
+                    <p class="card-text fw-bold">Export Orders CSV</p>
+                </div>
+            </a>
         </div>
     </div>
 </div>

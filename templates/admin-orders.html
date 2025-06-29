@@ -49,6 +49,7 @@
             <td>{{ order.quantity }}</td>
             <td>₹{{ order.price }}</td>
             <form method="post">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="hidden" name="order_id" value="{{ order.order_id }}">
               <td>
                 <select name="status" class="form-select form-select-sm">

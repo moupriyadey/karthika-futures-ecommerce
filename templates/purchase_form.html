@@ -163,8 +163,11 @@
             <div class="lg:col-span-1 card">
                 <h2 class="text-2xl font-bold text-gray-800 mb-6">Delivery Details</h2>
                 <form action="{{ url_for('purchase_form') }}" method="post" class="space-y-6">
-                    <input type="hidden" name="cart_json" value="{{ cart_json }}">
-                    <input type="hidden" name="shipping_charge" id="shipping-charge-hidden" value="{{ shipping_charge | default(0.0) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    {# Use cart_summary.cart_items instead of cart_json, and ensure it's JSON encoded if needed for backend #}
+                    {# The backend expects cart_summary data, which is already correctly passed to context #}
+                    {# Instead of cart_json, ensure the current_user data is correctly pre-filled #}
+                    {# The shipping_charge is derived from cart_summary on the backend, so we don't need a hidden input for it here #}
                     
                     <div>
                         <label for="name" class="block text-sm font-medium text-gray-700">Full Name</label>
@@ -172,7 +175,7 @@
                     </div>
                     <div>
                         <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-                        <input type="{{ prefill_email_type | default('text') }}" id="email" name="email" value="{{ prefill_email | default('') }}" required {% if prefill_email_type == 'hidden' %}readonly{% endif %} class="mt-1 block w-full rounded-md border-gray-300 shadow-sm bg-gray-100 cursor-not-allowed p-2">
+                        <input type="text" id="email" name="email" value="{{ prefill_email | default('') }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm bg-gray-100 cursor-not-allowed p-2" readonly>
                     </div>
                     <div>
                         <label for="phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
@@ -196,8 +199,8 @@
             <div class="lg:col-span-1 card">
                 <h2 class="text-2xl font-bold text-gray-800 mb-6">Your Order</h2>
                 <div class="space-y-4">
-                    {% if items_for_display %}
-                        {% for item in items_for_display %}
+                    {% if cart_summary.cart_items %} {# Use cart_summary.cart_items as the iterable #}
+                        {% for item in cart_summary.cart_items %}
                             <div class="order-summary-item">
                                 <div class="item-details">
                                     <div class="item-name">{{ item.name | default('N/A') }} (x{{ item.quantity | default(1) }})</div>
@@ -205,10 +208,12 @@
                                         Size: {{ item.size | default('Original') }} | Frame: {{ item.frame | default('None') }} | Glass: {{ item.glass | default('None') }}
                                     </div>
                                     <div class="item-options text-sm text-gray-500">
-                                        Unit Price (Pre-GST): ₹{{ item.unit_price_before_gst | default(0.0) | round(2) }} | GST: {{ item.gst_percentage | default(0.0) | round(2) }}%
+                                        {# Use floatformat filter for consistency #}
+                                        Unit Price (Pre-GST): ₹{{ item.unit_price_before_gst | floatformat(2) }} | GST: {{ item.gst_percentage | floatformat(2) }}%
                                     </div>
                                 </div>
-                                <div class="item-price-total">₹{{ item.total_price | default(0.0) | round(2) }}</div> {# This is the item's total price WITH GST #}
+                                {# Use floatformat filter for consistency #}
+                                <div class="item-price-total">₹{{ item.total_price | floatformat(2) }}</div> {# This is the item's total price WITH GST #}
                             </div>
                         {% endfor %}
                     {% else %}
@@ -219,30 +224,36 @@
                 <div class="border-t pt-4 mt-6 space-y-3 text-lg">
                     <div class="flex justify-between">
                         <span>Subtotal (Pre-GST):</span>
-                        <span>₹<span id="display-subtotal">{{ subtotal_before_gst | default(0.0) | round(2) }}</span></span>
+                        {# Use floatformat filter for consistency #}
+                        <span>₹<span id="display-subtotal">{{ cart_summary.subtotal_before_gst | floatformat(2) }}</span></span>
                     </div>
                     <div class="flex justify-between text-sm text-gray-600 ml-4">
                         <span>Total GST:</span>
-                        <span>₹<span id="display-total-gst">{{ total_gst_amount | default(0.0) | round(2) }}</span></span>
+                        {# Use floatformat filter for consistency #}
+                        <span>₹<span id="display-total-gst">{{ cart_summary.total_gst_amount | floatformat(2) }}</span></span>
                     </div>
                     <div class="flex justify-between text-sm text-gray-600 ml-8">
                         <span>CGST:</span>
-                        <span>₹<span id="display-cgst">{{ (total_gst_amount | default(0.0) / 2) | round(2) }}</span></span>
+                        {# Use floatformat filter for consistency #}
+                        <span>₹<span id="display-cgst">{{ cart_summary.cgst_amount | floatformat(2) }}</span></span>
                     </div>
                     <div class="flex justify-between text-sm text-gray-600 ml-8">
                         <span>SGST:</span>
-                        <span>₹<span id="display-sgst">{{ (total_gst_amount | default(0.0) / 2) | round(2) }}</span></span>
+                        {# Use floatformat filter for consistency #}
+                        <span>₹<span id="display-sgst">{{ cart_summary.sgst_amount | floatformat(2) }}</span></span>
                     </div>
                     <div class="flex justify-between">
                         <span>Shipping Charges:</span>
                         <span>
-                            ₹<span id="display-shipping">{{ shipping_charge | default(0.0) | round(2) }}</span>
-                            {% if shipping_charge | default(0.0) == 0 %}<span class="text-green-600 font-bold ml-2">FREE Shipping!</span>{% endif %}
+                            {# Use floatformat filter for consistency #}
+                            ₹<span id="display-shipping">{{ cart_summary.shipping_charge | floatformat(2) }}</span>
+                            {% if cart_summary.shipping_charge | floatformat(2) == "0.00" %}<span class="text-green-600 font-bold ml-2">FREE Shipping!</span>{% endif %}
                         </span>
                     </div>
                     <div class="border-t pt-4 mt-4 flex justify-between font-bold text-xl text-gray-900">
                         <span>Grand Total:</span>
-                        <span>₹<span id="display-grand-total">{{ grand_total | default(0.0) | round(2) }}</span></span>
+                        {# Use floatformat filter for consistency #}
+                        <span>₹<span id="display-grand-total">{{ cart_summary.grand_total | floatformat(2) }}</span></span>
                     </div>
                 </div>
             </div>
@@ -251,16 +262,16 @@
 
     <script>
         // Update cart item count in header
-        const cartItemCountSpan = document.getElementById('cart-item-count');
-        let cart = JSON.parse(sessionStorage.getItem('cart')) || {};
-        let totalItemsInCart = 0;
-        for (const itemId in cart) {
-            totalItemsInCart += cart[itemId].quantity;
-        }
-        cartItemCountSpan.textContent = totalItemsInCart;
-
-        // Function to handle flash messages disappearance
+        // This JavaScript needs to fetch the actual cart count from the server.
+        // It relies on the global updateCartCountDisplay function from _base.html
         document.addEventListener('DOMContentLoaded', () => {
+            if (typeof updateCartCountDisplay === 'function') {
+                updateCartCountDisplay(); // Call the global function to update cart count
+            } else {
+                console.warn("updateCartCountDisplay function not found in _base.html. Cart count may not be accurate.");
+            }
+            
+            // Function to handle flash messages disappearance
             document.querySelectorAll('.flash-message').forEach(message => {
                 setTimeout(() => {
                     message.style.opacity = '0';

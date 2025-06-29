@@ -154,6 +154,7 @@
         <span class="close-btn">&times;</span>
         <h4 class="mb-3">Update Order Status</h4>
         <form method="POST" id="orderStatusForm" action="{{ url_for('admin_orders') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="order_id" id="popupOrderId">
             <div class="mb-3">
                 <label for="statusSelect" class="form-label">Status</label>

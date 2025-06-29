@@ -400,7 +400,7 @@
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
             {% for artwork in artworks %}
             <div class="col">
-                <div class="card artwork-card h-100" data-artwork-sku="{{ artwork.sku }}" data-original-price="{{ artwork.original_price | round(2) }}" data-gst-percentage="{{ artwork.gst_percentage | default(0) }}">
+                <div class="card artwork-card h-100" data-artwork-sku="{{ artwork.sku }}" data-original-price="{{ artwork.original_price | round(2) }}" data-gst-percentage="{{ artwork.gst_percentage | default(0) }}" data-category="{{ artwork.category }}">
                     {# Use first image if available, otherwise placeholder #}
                     {% if artwork.images and artwork.images[0] %}
                     <img src="{{ url_for('static', filename=artwork.images[0]) }}" class="card-img-top clickable-image" alt="{{ artwork.name }}"
@@ -586,6 +586,7 @@
             const finalPriceElement = card.querySelector('.final-price'); // Get the final price element
             const originalBasePrice = parseFloat(card.dataset.originalPrice || 0); // Get original price from data attribute
             const gstPercentage = parseFloat(card.dataset.gstPercentage || 0); // Get GST percentage
+            const category = card.dataset.category; // Get category from data attribute
 
             // Function to calculate and display final price based on selected options and quantity
             function calculateAndDisplayPrice(currentCard) {
@@ -632,7 +633,10 @@
                     }
                 }
                 
-                currentBasePrice += sizePrice + framePrice + glassPrice; // Add option prices to base
+                // Apply options price only if the category is 'Paintings'
+                if (category === 'Paintings') {
+                    currentBasePrice += sizePrice + framePrice + glassPrice; // Add option prices to base
+                }
 
                 // Safely get quantity and clamp it to available stock
                 let selectedQuantity = 1;
@@ -690,23 +694,23 @@
                     const sku = this.dataset.sku;
                     const name = this.dataset.name;
                     const imageUrl = this.dataset.image;
-
-                    const currentSize = card.dataset.currentSize;
-                    const currentFrame = card.dataset.currentFrame;
-                    const currentGlass = card.dataset.currentGlass;
+                    // Note: unitPriceAfterOptions is calculated and stored in dataset, but Flask recalculates server-side
+                    // So we only need to send SKU, quantity, and options.
                     const currentQuantity = parseInt(card.dataset.currentQuantity);
-                    // unitPriceAfterOptions is now already stored and reflects base + option costs
-                    const unitPriceAfterOptions = parseFloat(card.dataset.calculatedUnitPrice);
+                    const category = card.dataset.category; // Get category for conditional options
 
                     const options = {
-                        size: currentSize,
-                        frame: currentFrame,
-                        glass: currentGlass,
+                        size: category === 'Paintings' ? card.dataset.currentSize : 'Original',
+                        frame: category === 'Paintings' ? card.dataset.currentFrame : 'None',
+                        glass: category === 'Paintings' ? card.dataset.currentGlass : 'None',
                     };
+
+                    console.log('Attempting to add to cart:', { sku, name, imageUrl, options, quantity: currentQuantity });
 
                     // Call the global addToCart function (defined in _base.html)
                     if (typeof addToCart === 'function') {
-                        await addToCart(sku, name, imageUrl, unitPriceAfterOptions, options, currentQuantity); 
+                        // CORRECTED CALL: Pass options object as 4th arg, quantity as 5th
+                        await addToCart(sku, name, imageUrl, options, currentQuantity); 
                     } else {
                         console.error("Global addToCart function not found. Cannot add to cart.");
                         showCustomAlert("Cart functionality is not available. Please contact support.", 'danger');
@@ -721,16 +725,16 @@
                     const name = this.dataset.name;
                     const imageUrl = this.dataset.image; // Though not directly used by Flask for `buy_now` but good for sessionStorage
 
-                    const selectedSize = card.dataset.currentSize;
-                    const selectedFrame = card.dataset.currentFrame;
-                    const selectedGlass = card.dataset.currentGlass;
                     const selectedQuantity = parseInt(card.dataset.currentQuantity);
+                    const category = card.dataset.category; // Get category for conditional options
                     
                     const options = {
-                        size: selectedSize,
-                        frame: selectedFrame,
-                        glass: selectedGlass,
+                        size: category === 'Paintings' ? card.dataset.currentSize : 'Original',
+                        frame: category === 'Paintings' ? card.dataset.currentFrame : 'None',
+                        glass: category === 'Paintings' ? card.dataset.currentGlass : 'None',
                     };
+
+                    console.log('Attempting to buy now:', { sku, name, imageUrl, options, quantity: selectedQuantity });
 
                     // Proactive check for authentication for Buy Now
                     if (typeof current_user === 'undefined' || !current_user.is_authenticated) { // Assuming current_user is available in global JS scope
@@ -743,6 +747,7 @@
 
                     // Call the global buyNow function (defined in _base.html)
                     if (typeof buyNow === 'function') {
+                        // CORRECTED CALL: Pass options object as 4th arg, quantity as 5th
                         await buyNow(sku, name, imageUrl, options, selectedQuantity);
                     } else {
                         console.error("Global buyNow function not found. Cannot perform direct order.");
