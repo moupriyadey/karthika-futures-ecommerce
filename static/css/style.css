@@ -1,62 +1,335 @@
-/* Custom CSS for the "embossed popup" effect from purchase.form.html */
-body.bg-light .form-popup-container { /* Target specific body to avoid conflict with flexbox */
-    /* Use flexbox to center the content vertically and horizontally is already in _base.html body */
-    /* background-color: #e9ecef; is already in _base.html body */
-    /* overflow-y: auto; is already in _base.html body */
-}
-.form-popup-container {
-    background-color: #ffffff; /* White background for the form itself */
-    padding: 2.5rem; /* Generous padding inside the container */
-    border-radius: 0.75rem; /* More rounded corners for a softer look */
-    box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.15); /* Stronger, more professional shadow */
-    width: 100%;
-    max-width: 768px; /* Max width for larger screens (e.g., tablet/desktop) */
-    margin: 2rem auto; /* Add vertical margin for spacing */
-}
-/* Optional: Adjust spacing for inner cards */
-.card {
-    margin-bottom: 1.5rem;
-    border: none; /* Remove default card border for cleaner look */
-}
-.form-text {
-    font-size: 0.875em;
-}
-/* Make the overall form container scrollable on smaller screens if needed */
-@media (max-width: 767.98px) {
-    .form-popup-container {
-        margin: 1rem; /* Smaller margin on small screens */
-        padding: 1.5rem; /* Less padding on small screens */
-    }
-}
+/* Karthika Futures - Divine Art Marketplace Styling */
 
-/* Custom CSS for payment.html */
-.qr-box {
-    text-align: center;
-    background: #fff;
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 0 15px rgba(0,0,0,0.1);
-}
-.note {
-    font-size: 0.9rem;
-    color: #888;
-}
-
-/* Custom CSS for verify-otp.html */
-body.bg-light .otp-container { /* Target specific body to avoid conflict with flexbox */
-    /* background-color: #f8f9fa; is already in _base.html body */
-}
-.otp-container {
-    background-color: #ffffff;
+/* Main Content Area */
+.main-content-area {
+    background-color: rgba(255, 255, 255, 0.98);
     padding: 2.5rem;
-    border-radius: 0.5rem;
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 400px;
+    border-radius: 1rem;
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.08);
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+    z-index: 10;
+    border: 1px solid #e0e0e0;
 }
 
-/* Custom CSS for account.html */
-.star {
-    color: gold;
-    font-size: 1.2rem;
+/* Hero Section */
+.hero-section {
+    background: linear-gradient(to right, rgba(200, 220, 255, 0.9), rgba(255, 240, 200, 0.9));
+    padding: 4rem 2rem;
+    border-radius: 0.75rem;
+    text-align: center;
+    color: #333;
+    margin-bottom: 3rem;
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
+    border: 1px solid #c0c0c0;
+}
+.hero-section h1 {
+    font-size: 3.8rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    color: #4a4a4a;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+.hero-section p.lead {
+    font-size: 1.3rem;
+    margin-bottom: 2rem;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+    color: #555;
+}
+.hero-section .btn-light {
+    background-color: white;
+    color: #007bff;
+    border: 2px solid #007bff;
+    font-weight: 600;
+}
+.hero-section .btn-light:hover {
+    background-color: #e6f0ff;
+    color: #0056b3;
+    transform: translateY(-2px);
+}
+
+/* Section Header */
+.section-header {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #6b4e28;
+    text-align: center;
+    margin-bottom: 2.5rem;
+    position: relative;
+    padding-bottom: 0.5rem;
+}
+.section-header::after {
+    content: '';
+    display: block;
+    width: 80px;
+    height: 4px;
+    background-color: #007bff;
+    margin: 0.5rem auto 0;
+    border-radius: 2px;
+}
+
+/* Artwork Cards */
+.card.artwork-card {
+    border: none;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    box-shadow: 0 0.25rem 1rem rgba(0,0,0,0.07);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: #ffffff;
+    border: 1px solid #f0f0f0;
+}
+.card.artwork-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 0.8rem 2rem rgba(0,0,0,0.15);
+}
+.artwork-card img {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+    border-bottom: 1px solid #f0f0f0;
+    border-top-left-radius: 0.75rem;
+    border-top-right-radius: 0.75rem;
+    cursor: zoom-in;
+}
+.card-body {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+}
+.card-title {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.75rem;
+}
+.card-subtitle {
+    font-size: 0.95rem;
+    color: #666;
+    margin-bottom: 0.5rem;
+}
+.card-text-description {
+    font-size: 0.95rem;
+    color: #555;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    flex-grow: 1;
+}
+.final-price {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #28a745;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+.price-old {
+    color: #999;
+    font-size: 1rem;
+    margin-right: 0.5rem;
+    text-decoration: line-through;
+}
+
+/* Forms and Inputs */
+.form-select, .form-control {
+    border-radius: 0.4rem;
+    border: 1px solid #dee2e6;
+    padding: 0.6rem 0.9rem;
+    font-size: 0.9rem;
+    color: #333;
+}
+.form-select:focus, .form-control:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25);
+}
+.form-label {
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 0.4rem;
+    font-size: 0.95rem;
+}
+.option-group {
+    margin-bottom: 1rem; 
+}
+.option-group:last-of-type {
+    margin-bottom: 0.5rem;
+}
+.quantity-group {
+    margin-bottom: 1.5rem;
+}
+
+/* Buttons */
+.btn {
+    font-weight: 600;
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 0.2rem 0.5rem rgba(0,0,0,0.1);
+}
+.add-to-cart-btn {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: white;
+}
+.add-to-cart-btn:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+    transform: translateY(-2px);
+}
+.buy-now-btn {
+    background-color: #6f42c1;
+    border-color: #6f42c1;
+    color: white;
+}
+.buy-now-btn:hover {
+    background-color: #563d7c;
+    border-color: #563d7c;
+    transform: translateY(-2px);
+}
+.view-details-btn {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: white;
+}
+.view-details-btn:hover {
+    background-color: #5a6268;
+    border-color: #5a6268;
+    transform: translateY(-2px);
+}
+.d-grid.gap-2 {
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid #f0f0f0;
+}
+
+/* Testimonials */
+.testimonials-section {
+    background-color: #f8f9fa;
+    padding: 3rem 2rem;
+    border-radius: 1rem;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+    margin-top: 4rem;
+    text-align: center;
+    border: 1px solid #e0e0e0;
+}
+.testimonial-card {
+    background-color: white;
+    border-radius: 0.75rem;
+    padding: 2rem;
+    box-shadow: 0 0.25rem 0.75rem rgba(0,0,0,0.1);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border: 1px solid #f0f0f0;
+}
+.testimonial-image {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin: 0 auto 1rem;
+    border: 3px solid #007bff;
+}
+.testimonial-card .rating .fas {
+    color: #ffc107;
+}
+.feedback {
+    font-style: italic;
+    color: #555;
+    margin-bottom: 1rem;
+    flex-grow: 1;
+    line-height: 1.6;
+}
+.author {
+    font-weight: 600;
+    color: #333;
+}
+.product-sku {
+    font-size: 0.85rem;
+    color: #888;
+    margin-top: 0.5rem;
+}
+
+/* QR Code Section */
+.qr-code-section {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 2.5rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15);
+    text-align: center;
+    margin-top: 3rem;
+    border: 1px solid #e0e0e0;
+}
+.qr-code-section h3 {
+    color: #6b4e28;
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+    font-weight: 700;
+}
+.qr-code-section img {
+    max-width: 180px;
+    height: auto;
+    border: 5px solid #007bff;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+}
+.qr-code-section p {
+    font-size: 1.1rem;
+    color: #4a4a4a;
+    margin-bottom: 0.5rem;
+}
+
+/* Responsive */
+@media (max-width: 991.98px) {
+    .main-content-area { padding: 1.5rem; }
+    .hero-section { padding: 3rem 1.5rem; }
+    .hero-section h1 { font-size: 3rem; }
+    .hero-section p.lead { font-size: 1.1rem; }
+    .section-header { font-size: 2rem; }
+    .artwork-card img { height: 180px; }
+    .card-title { font-size: 1.2rem; }
+    .final-price { font-size: 1.5rem; }
+    .card-body { padding: 1rem; }
+}
+@media (max-width: 767.98px) {
+    .main-content-area { padding: 1rem; margin-top: 4rem; }
+    .hero-section { padding: 2rem 1rem; }
+    .hero-section h1 { font-size: 2.2rem; }
+    .hero-section p.lead { font-size: 0.95rem; }
+    .section-header { font-size: 1.8rem; margin-bottom: 2rem; }
+    .artwork-card img { height: 160px; }
+    .card-title { font-size: 1rem; }
+    .card-text-description { font-size: 0.85rem; -webkit-line-clamp: 2; }
+    .final-price { font-size: 1.3rem; }
+    .btn { font-size: 0.9rem; padding: 0.6rem 1rem; }
+    .d-grid.gap-2 {
+        display: flex !important;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .qr-code-section h3 { font-size: 1.6rem; }
+    .qr-code-section img { max-width: 100px; }
+}
+
+
+.navbar .nav-link {
+    color: #212529 !important; /* dark text */
+    font-weight: 500;
+}
+
+.navbar .nav-link:hover {
+    color: #0d6efd !important; /* blue on hover */
 }

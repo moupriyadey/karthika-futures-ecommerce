@@ -760,6 +760,14 @@ def calculate_cart_totals(current_cart_session, artworks_data):
         'total_quantity': sum(item['quantity'] for item in processed_cart_items) # Add total quantity here
     }
 
+def get_all_categories():
+    try:
+        with open('data/categories.json', 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return []
+
+
 # --- Routes ---
 
 @app.route('/')
@@ -839,18 +847,20 @@ def product_detail(sku):
     flash("Product not found.", "danger")
     return redirect(url_for('index'))
 
-@app.route('/add_to_cart', methods=['POST'])
-# REMOVED @login_required: Allow unauthenticated users to add to session cart
+from decimal import Decimal
+from flask import request, session, jsonify
+
+@csrf.exempt  # 💥 disables CSRF for this route
+@app.route('/add-to-cart', methods=['POST'])
 def add_to_cart():
-    """
-    Handles adding items to the cart via AJAX POST request.
-    Validates input, checks stock, calculates item price with options,
-    and updates the cart in the session.
-    """
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
+        app.logger.debug(f"Headers: {dict(request.headers)}")
+        app.logger.debug(f"Raw data: {request.data}")
+        app.logger.debug(f"JSON payload: {data}")
+
         if not data:
-            return jsonify({"success": False, "message": "No JSON data received"}), 400
+            return jsonify({"success": False, "message": "Invalid or missing JSON"}), 400
 
         sku = data.get('sku')
         quantity_raw = data.get('quantity')
@@ -858,7 +868,6 @@ def add_to_cart():
         frame = data.get('frame', 'None')
         glass = data.get('glass', 'None')
 
-        # Input validation
         if not sku:
             return jsonify({"success": False, "message": "Missing SKU"}), 400
 
@@ -867,92 +876,80 @@ def add_to_cart():
             if quantity <= 0:
                 return jsonify({"success": False, "message": "Quantity must be positive"}), 400
         except (ValueError, TypeError):
-            app.logger.warning(f"Invalid quantity format received for SKU {sku}: {quantity_raw}")
-            return jsonify({"success": False, "message": f"Invalid quantity format received. Please enter a valid number."}), 400
+            return jsonify({"success": False, "message": "Invalid quantity format"}), 400
 
-        artwork_info = get_artwork_by_sku(sku) # Use the helper function (returns Decimal prices)
+        artwork_info = get_artwork_by_sku(sku)
         if not artwork_info:
             return jsonify({"success": False, "message": f"Artwork with SKU '{sku}' not found."}), 404
-        
-        # Ensure stock is treated as an integer
-        artwork_stock = int(artwork_info.get('stock', 0))
-        if artwork_stock < quantity:
-            return jsonify({"success": False, "message": f"Only {artwork_stock} units of {artwork_info['name']} are available."}), 400
 
-        # Calculate item price based on options (returns Decimal)
-        unit_price_before_gst = calculate_item_price_with_options(artwork_info, size, frame, glass)
-        gst_percentage = artwork_info.get('gst_percentage', DEFAULT_GST_PERCENTAGE) # Already Decimal
+        stock = int(artwork_info.get('stock', 0))
+        if stock < quantity:
+            return jsonify({"success": False, "message": f"Only {stock} units available."}), 400
 
-        # Construct a unique item ID for the cart, considering options
+        unit_price = calculate_item_price_with_options(artwork_info, size, frame, glass)
+        gst_percentage = artwork_info.get('gst_percentage', DEFAULT_GST_PERCENTAGE)
+        gst_decimal = Decimal(gst_percentage) / Decimal('100')
+
         item_id = generate_cart_item_id(sku, {'size': size, 'frame': frame, 'glass': glass})
-
         cart = session.get('cart', {})
-        
-        # Ensure cart is a dictionary (robustness check)
+
         if not isinstance(cart, dict):
-            app.logger.warning(f"Session cart was not a dictionary. Resetting cart for session ID: {session.sid}")
             cart = {}
-            session['cart'] = cart # Reinitialize
+            session['cart'] = cart
             session.modified = True
 
         if item_id in cart:
-            # If item already in cart, update quantity and re-calculate its total price components
-            existing_quantity = cart[item_id].get('quantity', 0)
-            new_quantity = existing_quantity + quantity
+            existing_qty = cart[item_id].get('quantity', 0)
+            new_qty = existing_qty + quantity
 
-            if new_quantity > artwork_stock:
-                # If adding more would exceed stock, limit to stock
-                return jsonify(success=False, message=f"Adding {quantity} more would exceed available stock. Only {artwork_stock - existing_quantity} more available.", current_quantity=existing_quantity, stock=artwork_stock), 400
-            
-            # Recalculate based on new quantity
-            cart[item_id]['quantity'] = new_quantity
-            # Ensure price fields are consistently Decimal
-            cart[item_id]['unit_price_before_gst'] = unit_price_before_gst 
-            cart[item_id]['total_price_before_gst'] = unit_price_before_gst * new_quantity
-            cart[item_id]['gst_percentage'] = gst_percentage
-            cart[item_id]['gst_amount'] = (unit_price_before_gst * new_quantity) * (gst_percentage / Decimal('100'))
-            cart[item_id]['total_price'] = cart[item_id]['total_price_before_gst'] + cart[item_id]['gst_amount']
-            cart[item_id]['stock_available'] = artwork_stock # Add/update stock info for JS
+            if new_qty > stock:
+                return jsonify({
+                    "success": False,
+                    "message": f"Adding {quantity} more exceeds stock. Only {stock - existing_qty} left.",
+                    "current_quantity": existing_qty,
+                    "stock": stock
+                }), 400
+
+            cart[item_id]['quantity'] = new_qty
         else:
-            # Add new item to cart
-            if quantity > artwork_stock:
-                return jsonify(success=False, message=f"Quantity requested ({quantity}) exceeds available stock ({artwork_stock}).", stock=artwork_stock), 400
+            if quantity > stock:
+                return jsonify({"success": False, "message": f"Requested {quantity}, only {stock} available."}), 400
 
             cart[item_id] = {
-                'id': item_id, # This 'id' is for JS lookups, based on SKU-options
+                'id': item_id,
                 'sku': sku,
                 'name': artwork_info.get('name'),
-                'image': artwork_info.get('images', ['/static/images/placeholder.png'])[0], # Get first image path, with fallback
+                'image': artwork_info.get('images', ['/static/images/placeholder.png'])[0],
                 'category': artwork_info.get('category'),
                 'size': size,
                 'frame': frame,
                 'glass': glass,
                 'quantity': quantity,
-                'unit_price_before_gst': unit_price_before_gst, # This is a Decimal
-                'gst_percentage': gst_percentage, # This is a Decimal
-                'total_price_before_gst': unit_price_before_gst * quantity, # This is a Decimal
-                'gst_amount': (unit_price_before_gst * quantity) * (gst_percentage / Decimal('100')), # This is a Decimal
-                'total_price': (unit_price_before_gst * quantity) + ((unit_price_before_gst * quantity) * (gst_percentage / Decimal('100'))), # This is a Decimal
-                'stock_available': artwork_stock # Add stock info for JS
+                'unit_price_before_gst': float(unit_price),
+                'gst_percentage': float(gst_percentage),
+                'stock_available': stock
             }
-        
+
+        qty = cart[item_id]['quantity']
+        cart[item_id]['total_price_before_gst'] = float(unit_price * qty)
+        cart[item_id]['gst_amount'] = float((unit_price * qty) * gst_decimal)
+        cart[item_id]['total_price'] = cart[item_id]['total_price_before_gst'] + cart[item_id]['gst_amount']
+
         session['cart'] = cart
-        session.modified = True # Ensure session changes are saved
+        session.modified = True
 
-        # Recalculate global cart totals after adding/updating item for the response
-        updated_summary = calculate_cart_totals(session.get('cart', {}), load_artworks_data())
+        updated_summary = calculate_cart_totals(session['cart'], load_artworks_data())
 
-        return jsonify(
-            success=True, 
-            message=f"'{artwork_info.get('name')}' added to cart!", 
-            total_quantity=updated_summary['total_quantity'], # Explicitly pass
-            cart_items=updated_summary['cart_items'] # Explicitly pass
-        )
+        return jsonify({
+            "success": True,
+            "message": f"'{artwork_info.get('name')}' added to cart!",
+            "total_quantity": updated_summary['total_quantity'],
+            "cart_items": updated_summary['cart_items']
+        })
 
     except Exception as e:
-        app.logger.error(f"Error adding to cart: {e}", exc_info=True)
-        return jsonify(success=False, message=f"An unexpected error occurred while adding to cart: {e}"), 500
-
+        app.logger.error(f"Cart error: {e}", exc_info=True)
+        return jsonify({"success": False, "message": f"Unexpected error: {str(e)}"}), 500
 
 @app.route('/update_cart_session', methods=['POST'])
 # REMOVED @login_required: This endpoint should work for all users to update cart display
@@ -962,8 +959,10 @@ def update_cart_session():
     or to simply fetch the latest server cart state if no 'cart' is provided in payload.
     It returns the calculated cart summary based on the server's session cart.
     """
-    data = request.get_json()
-    client_cart_payload = data.get('cart') 
+    data = request.get_json(silent=True) or {}
+    client_cart_payload = data.get('cart')
+
+    
 
     artworks_data = load_artworks_data() 
     
@@ -2559,7 +2558,7 @@ def verify_otp():
     # For GET request, render the template, passing 'next_url'
     return render_template('verify_otp.html', email=email_for_otp_verification, next_url=next_url)
 
-@app.route('/user_login', methods=['GET', 'POST'])
+@app.route('/user-login', methods=['GET', 'POST'])
 def user_login():
     """Handles user login."""
     if current_user.is_authenticated:
@@ -2730,6 +2729,20 @@ def create_default_admin_if_not_exists():
             print(f"------------------------------------------------------------------\n")
     else:
         app.logger.info("Admin user already exists. Skipping default admin creation.")
+
+
+@app.context_processor
+def inject_globals():
+    return {
+        'categories': get_all_categories(),
+        'our_business_name': 'Karthika Futures',
+        'our_business_email': 'support@karthikafutures.com',
+        'our_business_address': '123 Divine Street, India',
+        'our_gstin': '29ABCDE1234F2Z5',
+        'our_pan': 'ABCDE1234F',
+        'current_year': datetime.now().year
+    }
+
 
 
 if __name__ == '__main__':

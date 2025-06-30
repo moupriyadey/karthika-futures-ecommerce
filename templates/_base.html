@@ -1,221 +1,100 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Karthika Futures{% endblock %}</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" xintegrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <!-- Google Fonts - Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Tailwind CSS (via CDN - ensure it's loaded AFTER Bootstrap if you want to override) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8f9fa; /* Light gray background */
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        .flash-messages {
-            position: fixed;
-            top: 70px; /* Adjust based on navbar height */
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90%;
-            max-width: 600px;
-            z-index: 1060; /* Higher than Bootstrap modals */
-        }
-        .main-content-area {
-            flex: 1; /* Makes sure the content area expands to fill available space */
-            padding-top: 20px; /* Space from navbar */
-            padding-bottom: 20px; /* Space before footer */
-        }
-        .footer {
-            background-color: #343a40; /* Dark background matching navbar */
-            color: #ffffff;
-            padding: 30px 0;
-            margin-top: auto; /* Pushes footer to the bottom */
-        }
-        .footer a {
-            color: #ffffff;
-            text-decoration: none;
-        }
-        .footer a:hover {
-            color: #cccccc;
-        }
-        .btn-primary {
-            background-color: #6366f1; /* Tailwind indigo-500 */
-            border-color: #6366f1;
-        }
-        .btn-primary:hover {
-            background-color: #4f46e5; /* Tailwind indigo-600 */
-            border-color: #4f46e5;
-        }
-        /* Custom styles for button hovers, shadows, etc. using Tailwind conventions */
-        .btn.transition-transform:hover {
-            transform: translateY(-2px); /* Slight lift effect */
-        }
-        .btn.shadow-sm {
-            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-        }
-        .btn.rounded-md {
-            border-radius: 0.375rem; /* Equivalent to Bootstrap's default or slightly more rounded */
-        }
-        /* Override Bootstrap's default focus ring to match Tailwind's focus:ring */
-        .form-control:focus {
-            border-color: #818cf8; /* Tailwind indigo-300 */
-            box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25); /* Tailwind indigo-500 with opacity */
-        }
-    </style>
-    {% block head_extra %}{% endblock %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Karthika Futures{% endblock %}</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      padding-top: 70px;
+      background-color: #f0f2f5;
+      color: #333;
+    }
+
+    .flash-message {
+      position: fixed;
+      top: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1060;
+      width: 90%;
+      max-width: 600px;
+    }
+
+    .footer {
+      background-color: #2c3e50;
+      color: white;
+      padding: 2rem 0;
+    }
+
+    .footer a {
+      color: #adb5bd;
+    }
+
+    .footer a:hover {
+      color: white;
+    }
+
+    /* Ensure flash container below navbar doesn't overlap */
+    #flash-messages-container {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      z-index: 1065;
+    }
+  </style>
+
+  {% block extra_css %}{% endblock %}
 </head>
 <body>
-    {# Navbar is included here #}
-    {% include '_navbar.html' %}
 
-    <div class="container-fluid flex-grow-1">
-        <div class="flash-messages">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-        </div>
+  {% include "_navbar.html" %}
 
-        {% block content %}{% endblock %}
+  <!-- Flash messages from Flask -->
+  <div class="flash-message">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <!-- Main content -->
+  <div class="container-fluid">
+    {% block content %}{% endblock %}
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer mt-5">
+    <div class="container text-center">
+      <p>&copy; {{ current_year }} {{ our_business_name }}. All rights reserved.</p>
+      <p>{{ our_business_address }} | Email: {{ our_business_email }}</p>
+      <p>GSTIN: {{ our_gstin }} | PAN: {{ our_pan }}</p>
     </div>
+  </footer>
 
-    <footer class="footer">
-        <div class="container text-center">
-            <p>&copy; {{ current_year }} {{ our_business_name }}. All rights reserved.</p>
-            <p>{{ our_business_address }} | Email: {{ our_business_email }}</p>
-            <p>GSTIN: {{ our_gstin }} | PAN: {{ our_pan }}</p>
-            <p>
-                <a href="#" class="mx-2"><i class="fab fa-facebook-f"></i></a>
-                <a href="#" class="mx-2"><i class="fab fa-twitter"></i></a>
-                <a href="#" class="mx-2"><i class="fab fa-instagram"></i></a>
-            </p>
-        </div>
-    </footer>
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
 
-    <!-- Bootstrap JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Auto-hide flash messages after 5 seconds
-            const flashMessages = document.querySelectorAll('.alert');
-            flashMessages.forEach(alert => {
-                setTimeout(() => {
-                    const bsAlert = new bootstrap.Alert(alert);
-                    bsAlert.close();
-                }, 5000); // 5000 milliseconds = 5 seconds
-            });
-
-            // Logic to update cart item count in navbar
-            function updateCartItemCount(count) {
-                const cartItemCountSpan = document.getElementById('cart-item-count');
-                if (cartItemCountSpan) {
-                    cartItemCountSpan.textContent = count;
-                }
-            }
-
-            // Function to fetch and update cart summary
-            async function fetchAndUpdateCartSummary() {
-                try {
-                    const response = await fetch('/update_cart_session', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({}) // Empty body to just request current cart state
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                        updateCartItemCount(data.total_quantity || 0); // Update count based on response
-                    } else {
-                        console.error('Failed to fetch cart summary:', data.message);
-                        updateCartItemCount(0); // Reset on failure
-                    }
-                } catch (error) {
-                    console.error('Error fetching cart summary:', error);
-                    updateCartItemCount(0); // Reset on error
-                }
-            }
-
-            // Call on page load to initialize cart count
-            fetchAndUpdateCartSummary();
-
-            // Handle potential post-login redirection for "Buy Now" or "Add to Cart"
-            // This is for scenarios where user is redirected to login, logs in, then needs to complete action
-            async function handlePostLoginAction() {
-                const itemToBuyNow = sessionStorage.getItem('itemToBuyNow');
-                const itemToAddAfterLogin = sessionStorage.getItem('itemToAddAfterLogin');
-
-                if (itemToBuyNow) {
-                    // This means user clicked "Buy Now", was redirected to login, now logged in.
-                    // We attempt the create_direct_order again.
-                    sessionStorage.removeItem('itemToBuyNow'); // Clear immediately
-                    try {
-                        const data = JSON.parse(itemToBuyNow);
-                        const response = await fetch('/create_direct_order', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(data)
-                        });
-                        const result = await response.json();
-                        if (result.success) {
-                            window.location.href = result.redirect_url; // Go to purchase form
-                        } else {
-                            alert(result.message); // Use alert for critical errors here, or a better modal
-                            window.location.href = '/all-products'; // Redirect to products if error
-                        }
-                    } catch (error) {
-                        console.error('Error re-attempting buy now after login:', error);
-                        alert('An error occurred during post-login buy now. Please try again.');
-                        window.location.href = '/all-products';
-                    }
-                } else if (itemToAddAfterLogin) {
-                    // This means user clicked "Add to Cart", was redirected to login, now logged in.
-                    // We attempt the add_to_cart again.
-                    sessionStorage.removeItem('itemToAddAfterLogin'); // Clear immediately
-                    try {
-                        const data = JSON.parse(itemToAddAfterLogin);
-                        const response = await fetch('/add_to_cart', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(data)
-                        });
-                        const result = await response.json();
-                        if (result.success) {
-                            updateCartItemCount(result.total_quantity || 0);
-                            // Flash message will be handled by Flask, or show a custom toast
-                            // For now, just a console log
-                            console.log(result.message); 
-                        } else {
-                            alert(result.message); // Use alert for critical errors here
-                        }
-                    } catch (error) {
-                        console.error('Error re-attempting add to cart after login:', error);
-                        alert('An error occurred during post-login add to cart. Please try again.');
-                    }
-                }
-            }
-
-            // Run post-login action handler
-            handlePostLoginAction();
-        });
-    </script>
-
-    {% block scripts_extra %}{% endblock %}
+  {% block extra_js %}{% endblock %}
 </body>
 </html>
