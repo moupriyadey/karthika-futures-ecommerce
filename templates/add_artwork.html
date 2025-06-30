@@ -26,7 +26,7 @@
     </ul>
 
     <form action="{{ url_for('add_artwork') }}" method="POST" enctype="multipart/form-data" class="p-6 bg-white rounded-lg shadow-lg">
-        {{ csrf_token() }} {# IMPORTANT: CSRF Token added for security #}
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="row g-3 mb-4">
             <div class="col-md-6">
                 <label for="name" class="form-label text-gray-700">Artwork Name</label>

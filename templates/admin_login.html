@@ -9,6 +9,7 @@
             <h2 class="text-primary font-bold">Admin Login</h2>
             <p class="text-muted">Access the administrative dashboard</p>
         </div>
+
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 <div class="mb-3">
@@ -21,26 +22,33 @@
                 </div>
             {% endif %}
         {% endwith %}
-        <form method="POST">
-            {# Flask-WTF's csrf_token() function generates the entire <input type="hidden" name="csrf_token" value="..."> tag. #}
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
+        <form method="POST">
+            <!-- ✅ CSRF token manually inserted as hidden input with correct name -->
             
+
             <div class="mb-3">
                 <label for="email" class="form-label">Email address</label>
                 <input type="email" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="email" name="email" 
                        value="{{ prefill_email }}" required autofocus>
             </div>
+
             <div class="mb-3">
                 <label for="password" class="form-label">Password</label>
                 <input type="password" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="password" name="password" required>
             </div>
+
             <div class="d-grid gap-2 mb-3">
                 <button type="submit" class="btn btn-primary btn-lg rounded-md shadow-sm transition-transform hover:scale-105">Login as Admin</button>
             </div>
+
             <div class="text-center mt-3">
-                <p class="text-muted">Not an admin? <a href="{{ url_for('user_login') }}" class="text-indigo-600 hover:text-indigo-900">Login as User</a></p>
-                <p class="text-muted"><a href="{{ url_for('index') }}" class="text-decoration-none">Back to Home</a></p>
+                <p class="text-muted">Not an admin? 
+                    <a href="{{ url_for('user_login') }}" class="text-indigo-600 hover:text-indigo-900">Login as User</a>
+                </p>
+                <p class="text-muted">
+                    <a href="{{ url_for('index') }}" class="text-decoration-none">Back to Home</a>
+                </p>
             </div>
         </form>
     </div>

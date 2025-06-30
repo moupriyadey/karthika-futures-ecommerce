@@ -1,120 +1,142 @@
-{% extends '_base.html' %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Karthika Futures</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <style>
+        body {
+            background: #f8f9fa;
+        }
+        .card {
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .card-title {
+            font-size: 1.3rem;
+        }
+        .dashboard-title {
+            text-align: center;
+            margin: 2rem 0;
+            color: #007bff;
+            font-size: 2rem;
+        }
+    </style>
+</head>
+<body>
+    {% include 'admin_navbar.html' %}
 
-{% block title %}Admin Panel - Karthika Futures{% endblock %}
+    <div class="container mt-4">
+        <div class="dashboard-title">Admin Dashboard</div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="bi bi-card-list display-4 text-success"></i>
+                        <h5 class="card-title">Total Orders</h5>
+                        <p class="card-text fs-3">{{ total_orders }}</p>
+                        <a href="{{ url_for('admin_orders_view') }}" class="btn btn-outline-success">View Orders</a>
 
-{% block content %}
-<div class="container mt-5">
-    <h2 class="text-primary mb-4 text-center">Admin Dashboard</h2>
+                    </div>
+                </div>
+            </div>
 
-    <div class="row g-4 mb-5">
-        <!-- Total Orders Card -->
-        <div class="col-md-4">
-            <div class="card shadow-sm h-100 p-3">
-                <div class="card-body d-flex flex-column align-items-center justify-content-center">
-                    <i class="fas fa-receipt text-success mb-3" style="font-size: 3rem;"></i>
-                    <h5 class="card-title">Total Orders</h5>
-                    <p class="card-text fs-2 fw-bold text-success">{{ orders|length }}</p>
-                    <a href="{{ url_for('admin_orders_view') }}" class="btn btn-sm btn-outline-success">View Orders</a>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="bi bi-palette display-4 text-info"></i>
+                        <h5 class="card-title">Total Artworks</h5>
+                        <p class="card-text fs-3">{{ total_artworks }}</p>
+                        <a href="{{ url_for('admin_artworks_view') }}" class="btn btn-outline-info">Manage Artworks</a>
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <i class="bi bi-people-fill display-4 text-warning"></i>
+                        <h5 class="card-title">Total Users</h5>
+                        <p class="card-text fs-3">{{ total_users }}</p>
+                        <a class="nav-link" href="{{ url_for('admin_users_view') }}">Users</a>
+
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Total Artworks Card -->
-        <div class="col-md-4">
-            <div class="card shadow-sm h-100 p-3">
-                <div class="card-body d-flex flex-column align-items-center justify-content-center">
-                    <i class="fas fa-palette text-info mb-3" style="font-size: 3rem;"></i>
-                    <h5 class="card-title">Total Artworks</h5>
-                    <p class="card-text fs-2 fw-bold text-info">{{ artworks|length }}</p>
-                    <a href="{{ url_for('admin_artworks_view') }}" class="btn btn-sm btn-outline-info">Manage Artworks</a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Total Users Card -->
-        <div class="col-md-4">
-            <div class="card shadow-sm h-100 p-3">
-                <div class="card-body d-flex flex-column align-items-center justify-content-center">
-                    <i class="fas fa-users text-warning mb-3" style="font-size: 3rem;"></i>
-                    <h5 class="card-title">Total Users</h5>
-                    <p class="card-text fs-2 fw-bold text-warning">{{ total_users }}</p>
-                    <a href="{{ url_for('admin_users_view') }}" class="btn btn-sm btn-outline-warning">Manage Users</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Revenue and Stock Section -->
-    <div class="row g-4 mb-5">
-        <!-- Total Revenue Card -->
-        <div class="col-md-6">
-            <div class="card shadow-sm h-100 p-3">
-                <div class="card-body d-flex flex-column align-items-center justify-content-center">
-                    <i class="fas fa-sack-dollar text-primary mb-3" style="font-size: 3rem;"></i>
-                    <h5 class="card-title">Total Revenue</h5>
-                    <p class="card-text fs-2 fw-bold text-primary">₹{{ total_revenue|floatformat(2) }}</p>
-                    <span class="text-muted">From confirmed/shipped orders</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Stock Status Card -->
-        <div class="col-md-6">
-            <div class="card shadow-sm h-100 p-3">
-                <div class="card-body d-flex flex-column align-items-center justify-content-center">
-                    <i class="fas fa-boxes-stacked text-danger mb-3" style="font-size: 3rem;"></i>
-                    <h5 class="card-title">Stock Status</h5>
-                    <p class="card-text fs-2 fw-bold text-danger">
-                        {% if out_of_stock_artworks|length > 0 %}
-                            {{ out_of_stock_artworks|length }} Out of Stock
+        <div class="row mt-5">
+            <div class="col-md-6">
+                <div class="card border-danger">
+                    <div class="card-body">
+                        <h5 class="card-title text-danger">Low Stock Items (≤ 10)</h5>
+                        {% if low_stock_artworks %}
+                            <ul class="list-group">
+                                {% for art in low_stock_artworks %}
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        {{ art.name }}
+                                        <span class="badge bg-warning text-dark">Stock: {{ art.stock }}</span>
+                                    </li>
+                                {% endfor %}
+                            </ul>
                         {% else %}
-                            All Stocked
+                            <p class="text-muted">No low stock items.</p>
                         {% endif %}
-                    </p>
-                    {% if low_stock_artworks|length > 0 %}
-                        <p class="card-text text-warning">{{ low_stock_artworks|length }} Low Stock</p>
-                    {% endif %}
-                    <a href="{{ url_for('admin_artworks_view') }}" class="btn btn-sm btn-outline-danger">Manage Stock</a>
+                    </div>
                 </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card border-secondary">
+                    <div class="card-body">
+                        <h5 class="card-title text-secondary">Out of Stock Items</h5>
+                        {% if out_of_stock_artworks %}
+                            <ul class="list-group">
+                                {% for art in out_of_stock_artworks %}
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        {{ art.name }}
+                                        <span class="badge bg-danger">Out of Stock</span>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-muted">No out-of-stock items.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-md-12">
+                <div class="card border-primary">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">Orders Pending Review</h5>
+                        {% if orders_pending_review %}
+                            <ul class="list-group">
+                                {% for order in orders_pending_review %}
+                                    <li class="list-group-item">
+                                        Order #{{ order.order_id }} — Status: {{ order.status }}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-muted">No orders pending review.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-md-12 text-center">
+                <h5 class="text-success">Total Revenue: ₹{{ total_revenue }}</h5>
             </div>
         </div>
     </div>
 
-    <!-- Quick Actions Section -->
-    <h3 class="text-primary mb-3 text-center">Quick Actions</h3>
-    <div class="row g-4 mb-5 justify-content-center">
-        <div class="col-md-3 col-sm-6">
-            <a href="{{ url_for('add_artwork') }}" class="card action-card shadow-sm h-100 d-flex align-items-center justify-content-center text-decoration-none text-dark p-3">
-                <div class="text-center">
-                    <i class="fas fa-plus-square text-success mb-2" style="font-size: 2.5rem;"></i>
-                    <p class="card-text fw-bold">Add New Artwork</p>
-                </div>
-            </a>
-        </div>
-        <div class="col-md-3 col-sm-6">
-            <a href="{{ url_for('admin_orders_view', status='Payment Submitted - Awaiting Verification') }}" class="card action-card shadow-sm h-100 d-flex align-items-center justify-content-center text-decoration-none text-dark p-3">
-                <div class="text-center">
-                    <i class="fas fa-hourglass-half text-warning mb-2" style="font-size: 2.5rem;"></i>
-                    <p class="card-text fw-bold">Pending Payments ({{ orders_pending_review|length }})</p>
-                </div>
-            </a>
-        </div>
-        <div class="col-md-3 col-sm-6">
-            <a href="{{ url_for('admin_orders_view', status='Shipped') }}" class="card action-card shadow-sm h-100 d-flex align-items-center justify-content-center text-decoration-none text-dark p-3">
-                <div class="text-center">
-                    <i class="fas fa-truck text-primary mb-2" style="font-size: 2.5rem;"></i>
-                    <p class="card-text fw-bold">View Shipped Orders</p>
-                </div>
-            </a>
-        </div>
-        <div class="col-md-3 col-sm-6">
-            <a href="{{ url_for('export_orders_csv') }}" class="card action-card shadow-sm h-100 d-flex align-items-center justify-content-center text-decoration-none text-dark p-3">
-                <div class="text-center">
-                    <i class="fas fa-file-csv text-secondary mb-2" style="font-size: 2.5rem;"></i>
-                    <p class="card-text fw-bold">Export Orders CSV</p>
-                </div>
-            </a>
-        </div>
-    </div>
-</div>
-{% endblock %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

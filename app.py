@@ -9,81 +9,116 @@ from werkzeug.utils import secure_filename
 from flask import Flask, render_template, redirect, url_for, flash, request, session, jsonify, make_response, g, Response, send_file
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from collections import defaultdict
-from decimal import Decimal, InvalidOperation # Import Decimal and InvalidOperation for precise financial calculations
-import random # For generating OTP
+from decimal import Decimal, InvalidOperation
+import random
 
-# Imports for Email Sending
+# Email Sending
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.mime.application import MIMEApplication # For attaching files
+from email.mime.application import MIMEApplication
 
-# --- NEW: Flask-WTF and CSRFProtect imports ---
-from flask_wtf.csrf import CSRFProtect
+# CSRF protection
+from flask_wtf.csrf import CSRFProtect, generate_csrf  # ✅ CORRECT
 
-# --- Imports for PDF Generation (Requires ReportLab installation) ---
-# Confirmed that ReportLab is available in requirements.txt, so we can enable it.
+
+# PDF generation
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.units import inch
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
+
 REPORTLAB_AVAILABLE = True
 
-
-# --- Configuration ---
+# --- App Initialization ---
 app = Flask(__name__)
-# --- IMPORTANT: FOR DEBUGGING CSRF, TEMPORARILY HARDCODE SECRET_KEY ---
-# This ensures it's the same every time, eliminating environment variable or startup variability.
-# REMEMBER TO CHANGE THIS BACK TO os.environ.get('FLASK_SECRET_KEY', '...') FOR PRODUCTION!
-app.config['SECRET_KEY'] = 'THIS_IS_A_SUPER_STABLE_STATIC_CSRF_KEY_12345' 
+
+# --- CSRF Setup ---
+csrf = CSRFProtect(app)
+
+# 👤 Admin login credentials (you can change the email & password)
+ADMIN_CREDENTIALS = {
+    'subhashes@6761': 'Rupadey81#'
+}
 
 
+# ✅ Inject csrf_token into all templates (IMPORTANT!)
+@app.context_processor
+def inject_csrf_token():
+    return dict(csrf_token=generate_csrf)
+
+# --- Secret Key ---
+# IMPORTANT: Use secure key in production
+app.config['SECRET_KEY'] = 'THIS_IS_A_SUPER_STABLE_STATIC_CSRF_KEY_12345'
+
+# --- Upload Folders ---
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['PRODUCT_IMAGES_FOLDER'] = os.path.join(app.config['UPLOAD_FOLDER'], 'product_images')
 app.config['CATEGORY_IMAGES_FOLDER'] = os.path.join(app.config['UPLOAD_FOLDER'], 'category_images')
 app.config['PAYMENT_SCREENSHOTS_FOLDER'] = os.path.join(app.config['UPLOAD_FOLDER'], 'payment_screenshots')
 app.config['INVOICE_PDF_FOLDER'] = os.path.join(app.config['UPLOAD_FOLDER'], 'invoices')
 
-# Email Configuration from environment variables
-# IMPORTANT: Use environment variables for these credentials in production!
+# --- Email Settings (can override via .env) ---
 app.config['SENDER_EMAIL'] = os.environ.get('SENDER_EMAIL', 'your_email@example.com')
-app.config['SENDER_PASSWORD'] = os.environ.get('SENDER_PASSWORD', 'your_email_app_password') # App password for Gmail or actual password for other SMTP
-app.config['SMTP_SERVER'] = os.environ.get('SMTP_SERVER', 'smtp.gmail.com') # For Gmail
-app.config['SMTP_PORT'] = int(os.environ.get('SMTP_PORT', 587)) # For TLS
+app.config['SENDER_PASSWORD'] = os.environ.get('SENDER_PASSWORD', 'your_email_app_password')
+app.config['SMTP_SERVER'] = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
+app.config['SMTP_PORT'] = int(os.environ.get('SMTP_PORT', 587))
 
-# Ensure upload folders exist
+# --- Ensure Upload Folders Exist ---
 os.makedirs(app.config['PRODUCT_IMAGES_FOLDER'], exist_ok=True)
 os.makedirs(app.config['CATEGORY_IMAGES_FOLDER'], exist_ok=True)
 os.makedirs(app.config['PAYMENT_SCREENSHOTS_FOLDER'], exist_ok=True)
 os.makedirs(app.config['INVOICE_PDF_FOLDER'], exist_ok=True)
 
 # --- Constants ---
-DEFAULT_SHIPPING_CHARGE = Decimal('50.00') # Use Decimal
-MAX_SHIPPING_COST_FREE_THRESHOLD = Decimal('5000.00') # Use Decimal # Orders above this amount get free shipping
-DEFAULT_GST_PERCENTAGE = Decimal('18.0') # Use Decimal # Default GST for products if not specified
-DEFAULT_INVOICE_GST_RATE = Decimal('18.0') # Use Decimal # Default GST rate applied to invoices
+DEFAULT_SHIPPING_CHARGE = Decimal('50.00')
+MAX_SHIPPING_COST_FREE_THRESHOLD = Decimal('5000.00')
+DEFAULT_GST_PERCENTAGE = Decimal('18.0')
+DEFAULT_INVOICE_GST_RATE = Decimal('18.0')
 
-# Our Business Details for Invoices (configurable)
+# --- Business Info for Invoices ---
 OUR_BUSINESS_NAME = "Karthika Futures"
-OUR_GSTIN = "27ABCDE1234F1Z5" # Example GSTIN
-OUR_PAN = "ABCDE1234F" # Example PAN
+OUR_GSTIN = "27ABCDE1234F1Z5"
+OUR_PAN = "ABCDE1234F"
 OUR_BUSINESS_ADDRESS = "No. 123, Temple Road, Spiritual City, Karnataka - 560001"
-OUR_BUSINESS_EMAIL = "invoices@karthikafutures.com" # Email for sending invoices
+OUR_BUSINESS_EMAIL = "invoices@karthikafutures.com"
 
-# UPI Payment Details
+# --- UPI Info ---
 UPI_ID = "smarasada@okaxis"
 BANKING_NAME = "SUBHASH S"
 BANK_NAME = "PNB"
 
-# --- Login Manager Setup ---
+# --- Login Manager ---
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'user_login' # Redirect to login page if not authenticated
+login_manager.login_view = 'user_login'
 
-# --- NEW: Initialize CSRFProtect ---
-csrf = CSRFProtect(app)
+
+# === CATEGORY HELPERS ===
+
+# Load all categories from JSON
+def load_categories():
+    try:
+        with open("categories.json", "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return []
+
+# Save categories to JSON
+def save_categories(categories):
+    with open("categories.json", "w") as f:
+        json.dump(categories, f, indent=4)
+
+# Get a category by ID
+def get_category_by_id(category_id):
+    categories = load_categories()
+    for cat in categories:
+        if cat["id"] == category_id:
+            return cat
+    return None
+
 
 # NEW: Register a custom Jinja2 filter for floatformat
 @app.template_filter('floatformat')
@@ -433,6 +468,17 @@ Status: {order_details.get('status', 'N/A')}
     # The MIME type in send_email_with_attachment and download_invoice will adapt.
     return f'uploads/invoices/{invoice_filename_base}.txt' # Return TXT path for fallback
 
+from functools import wraps
+from flask import session, redirect, url_for, flash
+
+def admin_login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get("admin_logged_in"):
+            flash("Please log in as admin to access this page.", "danger")
+            return redirect(url_for("admin_login"))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # --- NEW: Function to send email with attachment (using smtplib directly) ---
 def send_email_with_attachment(recipient_email, subject, body, attachment_path=None, attachment_filename=None):
@@ -1541,6 +1587,7 @@ def cancel_order(order_id):
     return redirect(url_for('my_orders'))
 
 # --- Admin Routes ---
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/admin')
 @admin_required
 def admin_dashboard():
@@ -1571,31 +1618,58 @@ def admin_dashboard():
            (o.get('invoice_details', {}).get('is_held_by_admin') and o.get('status') != 'Delivered')
     ]
 
-    return render_template('admin_panel.html', 
-                           total_orders=total_orders,
-                           total_artworks=total_artworks,
-                           total_users=total_users,
-                           total_revenue=total_revenue,
-                           low_stock_artworks=low_stock_artworks,
-                           out_of_stock_artworks=out_of_stock_artworks,
-                           orders=orders, # Pass orders and artworks for Jinja2 length filters
-                           artworks=artworks) # Pass artworks for Jinja2 length filters
+# 🟢 Monthly revenue placeholder (replace with real logic if needed)
+    revenue_labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+    revenue_values = [12000, 15000, 11000, 18000, 20000, 17000]
+
+    return render_template(
+    'admin_panel.html',
+    total_orders=total_orders,
+    total_artworks=total_artworks,
+    total_users=total_users,
+    total_revenue=total_revenue,
+    low_stock_artworks=low_stock_artworks,
+    out_of_stock_artworks=out_of_stock_artworks,
+    orders=orders,
+    artworks=artworks,
+    orders_pending_review=orders_pending_review,
+    revenue_labels=revenue_labels,
+    revenue_values=revenue_values
+)
 
 
 
+@csrf.exempt  # 💥 disables CSRF for this route
+@app.route('/admin/panel')
+@admin_login_required
+def admin_panel():
+    return render_template('admin_panel.html')
 
-
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/admin/artworks')
+@admin_login_required
 def admin_artworks_view():
-    return render_template('admin_artwork.html')
+    try:
+        with open('data/artworks.json', 'r') as f:  # ✅ updated path
+            artworks = json.load(f)
+    except Exception as e:
+        print("Error loading artworks:", e)
+        artworks = []
+
+    return render_template('admin_artworks_view.html', artworks=artworks)
 
 
+
+
+
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/admin/users')
 @admin_required
 def admin_users_view():
     users = load_users_data()
     return render_template('admin_users_view.html', users=users)
 
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/admin/users/toggle_role/<user_id>', methods=['POST'])
 @admin_required
 def admin_toggle_user_role(user_id):
@@ -1612,6 +1686,7 @@ def admin_toggle_user_role(user_id):
             return jsonify(success=True)
     return jsonify(success=False, message="User not found."), 404
 
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/admin/users/delete/<user_id>', methods=['POST'])
 @admin_required
 def admin_delete_user(user_id):
@@ -1629,7 +1704,7 @@ def admin_delete_user(user_id):
         flash(f'User {user_id} not found.', 'danger')
         return jsonify(success=False, message="User not found."), 404
 
-
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/admin/orders')
 @admin_required
 def admin_orders_view():
@@ -1664,7 +1739,7 @@ def admin_orders_view():
                            current_filter_invoice_status=filter_invoice_status,
                            current_search_query=search_query)
 
-
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/admin/order/update_status/<order_id>', methods=['POST'])
 @admin_required
 def admin_update_order_status(order_id):
@@ -1709,6 +1784,7 @@ def admin_update_order_status(order_id):
         flash(f'Order {order_id} not found.', 'danger')
     return jsonify(success=False, message=f'Order {order_id} not found.'), 404
 
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/admin/order/invoice/<order_id>', methods=['GET', 'POST'])
 @admin_required
 def admin_edit_invoice(order_id):
@@ -1788,6 +1864,7 @@ def admin_edit_invoice(order_id):
 
     return render_template('admin_edit_invoice.html', order=order)
 
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/admin/invoice/hold/<order_id>', methods=['POST'])
 @admin_required
 def admin_hold_invoice(order_id):
@@ -1807,6 +1884,8 @@ def admin_hold_invoice(order_id):
         flash(f'Order {order_id} not found.', 'danger')
     return jsonify(success=False, message=f'Order {order_id} not found.'), 404
 
+
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/admin/invoice/release/<order_id>', methods=['POST'])
 @admin_required
 def admin_release_invoice(order_id):
@@ -1826,7 +1905,7 @@ def admin_release_invoice(order_id):
         flash(f'Order {order_id} not found.', 'danger')
     return jsonify(success=False, message=f'Order {order_id} not found.'), 404
 
-
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/admin/invoice/send_email/<order_id>', methods=['POST'])
 @admin_required
 def admin_send_invoice_email(order_id):
@@ -1898,7 +1977,7 @@ The Karthika Futures Team
         flash(f'Failed to send invoice email for Order {order_id}. Error: {message}', 'danger')
         return jsonify(success=False, message=f'Failed to send invoice email for Order {order_id}. Error: {message}'), 500
 
-
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/admin/download_invoice/<order_id>')
 @admin_required
 def download_invoice(order_id):
@@ -1922,7 +2001,7 @@ def download_invoice(order_id):
     flash(f'Invoice not found or path invalid for Order {order_id}. Please generate it first from the admin invoice edit page.', 'warning')
     return redirect(url_for('admin_edit_invoice', order_id=order_id))
 
-
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/delete_order/<order_id>', methods=['GET'])
 @admin_required
 def delete_order(order_id):
@@ -1937,6 +2016,7 @@ def delete_order(order_id):
     return redirect(url_for('admin_orders_view'))
 
 # --- NEW: Route to export orders as CSV ---
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/admin/export_orders_csv')
 @admin_required
 def export_orders_csv():
@@ -2013,6 +2093,7 @@ def export_orders_csv():
 
 
 # --- NEW: Route to export artworks as CSV ---
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/admin/export_artworks_csv')
 @admin_required
 def export_artworks_csv():
@@ -2057,7 +2138,7 @@ def export_artworks_csv():
     output.headers["Content-type"] = "text/csv"
     return output
 
-
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/add_artwork', methods=['GET', 'POST'])
 @admin_required
 def add_artwork():
@@ -2124,7 +2205,7 @@ def add_artwork():
         return redirect(url_for('admin_artworks_view'))
     return render_template('add_artwork.html', categories=categories, form_data={}) # Pass empty dict for GET
 
-
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/edit_artwork/<sku>', methods=['GET', 'POST'])
 @admin_required
 def edit_artwork(sku):
@@ -2197,6 +2278,7 @@ def edit_artwork(sku):
     
     return render_template('edit_artwork.html', artwork=artwork, categories=categories)
 
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/delete_artwork/<sku>', methods=['GET'])
 @admin_required
 def delete_artwork(sku):
@@ -2210,35 +2292,40 @@ def delete_artwork(sku):
         flash(f'Artwork with SKU {sku} not found.', 'danger')
     return redirect(url_for('admin_artworks_view'))
 
-
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/admin/categories')
 @admin_required
 def admin_categories_view():
-    categories = load_categories_data()
-    return render_template('admin_categories_view.html', categories=categories)
+    categories = load_categories_data()  # <-- Ensure it loads the correct file
+    return render_template('admin_categories.html', categories=categories)
 
+
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/admin/category/add', methods=['POST'])
-@admin_required
+@admin_required  # Keep this to ensure only admins can access
 def admin_add_category():
     name = request.form['name'].strip()
     description = request.form.get('description', '').strip()
     image_file = request.files.get('image')
 
     categories = load_categories_data()
+
+    # Check for duplicate category name (case-insensitive)
     if any(c['name'].lower() == name.lower() for c in categories):
         flash('Category with this name already exists.', 'danger')
         return redirect(url_for('admin_categories_view'))
 
-    image_path = None
+    # Handle image upload
     if image_file and image_file.filename:
         filename = secure_filename(image_file.filename)
         unique_filename = str(uuid.uuid4()) + '_' + filename
         file_path = os.path.join(app.config['CATEGORY_IMAGES_FOLDER'], unique_filename)
-        image_file.save(file_path) 
+        image_file.save(file_path)
         image_path = f'uploads/category_images/{unique_filename}'
     else:
-        image_path = '/static/images/placeholder.png' 
+        image_path = 'images/placeholder.png'  # Relative to static folder
 
+    # Add new category
     new_category = {
         'id': str(uuid.uuid4()),
         'name': name,
@@ -2247,14 +2334,47 @@ def admin_add_category():
     }
     categories.append(new_category)
     save_json('categories.json', categories)
+
     flash(f'Category "{name}" added successfully!', 'success')
     return redirect(url_for('admin_categories_view'))
 
+def admin_add_category():
+    name = request.form['name'].strip()
+    description = request.form.get('description', '').strip()
+    image_file = request.files.get('image')
+
+    categories = load_categories()
+    if any(c['name'].lower() == name.lower() for c in categories):
+        flash('Category with this name already exists.', 'danger')
+        return redirect(url_for('admin_categories_view'))
+
+    if image_file and image_file.filename:
+        filename = secure_filename(image_file.filename)
+        unique_filename = str(uuid.uuid4()) + '_' + filename
+        file_path = os.path.join(app.config['CATEGORY_IMAGES_FOLDER'], unique_filename)
+        image_file.save(file_path)
+        image_path = f'uploads/category_images/{unique_filename}'
+    else:
+        image_path = 'images/placeholder.png'
+
+    new_category = {
+        'id': str(uuid.uuid4()),
+        'name': name,
+        'description': description,
+        'image': image_path
+    }
+    categories.append(new_category)
+    save_categories(categories)
+    flash(f'Category "{name}" added successfully!', 'success')
+    return redirect(url_for('admin_categories_view'))
+
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/admin/category/edit/<category_id>', methods=['GET', 'POST'])
 @admin_required
 def admin_edit_category(category_id):
     categories = load_categories_data()
     category = next((c for c in categories if c['id'] == category_id), None)
+
     if not category:
         flash('Category not found.', 'danger')
         return redirect(url_for('admin_categories_view'))
@@ -2262,33 +2382,69 @@ def admin_edit_category(category_id):
     if request.method == 'POST':
         category['name'] = request.form['name'].strip()
         category['description'] = request.form.get('description', '').strip()
-
         image_file = request.files.get('image')
         if image_file and image_file.filename:
             filename = secure_filename(image_file.filename)
             unique_filename = str(uuid.uuid4()) + '_' + filename
             file_path = os.path.join(app.config['CATEGORY_IMAGES_FOLDER'], unique_filename)
-            image_file.save(file_path) 
+            image_file.save(file_path)
             category['image'] = f'uploads/category_images/{unique_filename}'
-
         save_json('categories.json', categories)
-        flash(f'Category "{category["name"]}" updated successfully!', 'success')
+        flash('Category updated successfully!', 'success')
         return redirect(url_for('admin_categories_view'))
+
     return render_template('admin_edit_category.html', category=category)
 
+@app.route('/admin_logout')
+def admin_logout():
+    session.pop('admin_logged_in', None)
+    flash('Logged out successfully.', 'success')
+    return redirect(url_for('admin_login'))
 
-@app.route('/admin/category/delete/<category_id>', methods=['POST'])
+
+# Handle Update Category
+@csrf.exempt  # 💥 disables CSRF for this route
+@app.route('/admin/update-category/<category_id>', methods=['POST'])
+@admin_required
+def admin_update_category(category_id):
+    categories = load_categories()
+    category = next((c for c in categories if c['id'] == category_id), None)
+    if not category:
+        flash("Category not found.", "danger")
+        return redirect(url_for('admin_categories_view'))
+
+    category['name'] = request.form.get('name', category['name']).strip()
+    category['description'] = request.form.get('description', category['description']).strip()
+
+    image_file = request.files.get('image')
+    if image_file and image_file.filename:
+        filename = secure_filename(image_file.filename)
+        unique_filename = str(uuid.uuid4()) + '_' + filename
+        file_path = os.path.join(app.config['CATEGORY_IMAGES_FOLDER'], unique_filename)
+        image_file.save(file_path)
+        category['image'] = f'uploads/category_images/{unique_filename}'
+
+    save_categories(categories)
+    flash("Category updated successfully!", "success")
+    return redirect(url_for('admin_categories_view'))
+
+@csrf.exempt  # 💥 disables CSRF for this route
+
+@app.route('/admin/delete-category/<category_id>', methods=['POST'])
 @admin_required
 def admin_delete_category(category_id):
-    categories = load_json('categories.json')
-    original_len = len(categories)
-    categories = [c for c in categories if c.get('id') != category_id]
-    if len(categories) < original_len:
-        save_json('categories.json', categories)
-        flash('Category deleted successfully.', 'success')
-    else:
-        flash('Category not found.', 'danger')
+    categories = load_categories_data()
+    updated = [c for c in categories if c['id'] != category_id]
+
+    if len(updated) == len(categories):
+        flash("Category not found.", "danger")
+        return redirect(url_for('admin_categories_view'))
+
+    save_json('categories.json', updated)
+    flash("Category deleted successfully!", "success")
     return redirect(url_for('admin_categories_view'))
+
+
 
 # --- User Authentication Routes ---
 @app.route('/signup', methods=['GET', 'POST'])
@@ -2416,11 +2572,11 @@ def user_login():
         next_url_from_arg = request.args.get('next')
 
         if redirect_endpoint == 'cart':
-            # This means they tried to add to cart, got redirected to login, now logged in
+            # This means they tried to add to cart, got redirected to login, now logged in.
             # The client-side JS (in _base.html) will handle calling addToCart
             return redirect(next_url_from_arg or url_for('cart'))
         elif redirect_endpoint == 'purchase_form':
-            # This means they tried to buy now, got redirected to login, now logged in
+            # This means they tried to buy now, got redirected to login, now logged in.
             # The client-side JS (in _base.html) will pick up itemToBuyNow from sessionStorage
             # and automatically re-attempt the buy now.
             return redirect(next_url_from_arg or url_for('purchase_form'))
@@ -2474,30 +2630,22 @@ def user_login():
 
     return render_template('user_login.html', prefill_email=prefill_email, next_url=request.args.get('next', ''), login_prompt=login_prompt)
 
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/admin_login', methods=['GET', 'POST'])
 def admin_login():
-    """Handles admin login."""
-    if current_user.is_authenticated and current_user.is_admin():
-        return redirect(url_for('admin_dashboard'))
+    if session.get('admin_logged_in'):
+        return redirect(url_for('admin_panel'))
 
-    # Retrieve email from the form data (if POST request) or from URL args (if redirect from signup/reset)
-    # This ensures the email input field can be pre-filled after a failed submission or a redirect
-    prefill_email = request.form.get('email', '') 
-    
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-        
-        user = User.find_by_email(email)
-
-        if user and check_password_hash(user.password, password) and user.is_admin():
-            login_user(user)
-            flash('Logged in as Admin successfully!', 'success')
-            return redirect(url_for('admin_dashboard'))
+        if email in ADMIN_CREDENTIALS and ADMIN_CREDENTIALS[email] == password:
+            session['admin_logged_in'] = True
+            return redirect(url_for('admin_panel'))
         else:
-            flash('Invalid admin credentials.', 'danger')
+            flash('Invalid credentials.', 'danger')
 
-    return render_template('admin_login.html', prefill_email=prefill_email)
+    return render_template('admin_login.html')
 
 
 @app.route('/logout')
@@ -2587,3 +2735,4 @@ def create_default_admin_if_not_exists():
 if __name__ == '__main__':
     create_default_admin_if_not_exists() # CALL THE FUNCTION TO CREATE ADMIN ON STARTUP
     app.run(debug=True)
+

@@ -1,120 +1,105 @@
 {% extends '_base.html' %}
 
-{% block title %}Admin - Manage Categories{% endblock %}
+{% block title %}Manage Categories - Karthika Futures Admin{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold text-gray-800 mb-6">Manage Categories</h1>
+<div class="container mt-4">
+    <h2 class="text-primary mb-4 text-center">Manage Categories</h2>
 
-    {# Admin Navigation Tabs #}
-    <ul class="nav nav-tabs nav-justified mb-4">
-        <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">Dashboard</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('admin_users_view') }}">Users</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('admin_artworks_view') }}">Artworks</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('admin_orders_view') }}">Orders</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="{{ url_for('admin_categories_view') }}">Categories</a>
-        </li>
-    </ul>
+    <!-- Add Category Button -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+            <i class="fas fa-plus-circle me-2"></i>Add New Category
+        </button>
+    </div>
 
+    <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            <div class="mb-4">
+            <div class="mb-3">
                 {% for category, message in messages %}
-                    <div class="p-3 rounded-md {% if category == 'success' %}bg-green-100 text-green-800{% elif category == 'danger' %}bg-red-100 text-red-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
                         {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 {% endfor %}
             </div>
         {% endif %}
     {% endwith %}
 
-    <div class="bg-white p-6 rounded-lg shadow-md mb-8">
-        <h2 class="text-2xl font-semibold text-gray-700 mb-4">Add New Category</h2>
-        <form action="{{ url_for('admin_add_category') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
-            {{ csrf_token }}
-            <div>
-                <label for="name" class="block text-sm font-medium text-gray-700">Category Name</label>
-                <input type="text" id="name" name="name" required
-                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-            </div>
-            <div>
-                <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
-                <textarea id="description" name="description" rows="3"
-                          class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>
-            </div>
-            <div>
-                <label for="image" class="block text-sm font-medium text-gray-700">Category Image</label>
-                <input type="file" id="image" name="image" accept="image/*"
-                       class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
-                <p class="mt-1 text-xs text-gray-500">Optional. Displays with category on homepage.</p>
-            </div>
-            <button type="submit"
-                    class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                Add Category
-            </button>
-        </form>
+    <!-- Categories Table -->
+    {% if categories %}
+    <div class="table-responsive">
+        <table class="table table-hover table-striped shadow-sm rounded-lg overflow-hidden">
+            <thead class="bg-dark text-white">
+                <tr>
+                    <th scope="col">Image</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Description</th>
+                    <th scope="col">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for category in categories %}
+                <tr>
+                    <td>
+                        <img src="{{ url_for('static', filename=category.image) if category.image else url_for('static', filename='images/placeholder.png') }}" 
+                             alt="{{ category.name }}" class="img-thumbnail" style="width: 70px; height: 70px; object-fit: cover;">
+                    </td>
+                    <td>{{ category.name }}</td>
+                    <td>{{ category.description }}</td>
+                    <td>
+                        <a href="{{ url_for('admin_edit_category', category_id=category.id) }}" class="btn btn-sm btn-primary me-2" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <form action="{{ url_for('admin_delete_category', category_id=category.id) }}" method="POST" class="d-inline">
+                            {{ csrf_token() }}
+                            <button type="submit" class="btn btn-sm btn-danger" 
+                                    onclick="return confirm('Are you sure you want to delete category {{ category.name }}? This will not delete associated artworks.');" title="Delete">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
+    {% else %}
+        <p class="text-center text-muted">No categories found.</p>
+    {% endif %}
+</div>
 
-    <div class="bg-white p-6 rounded-lg shadow-md">
-        <h2 class="text-2xl font-semibold text-gray-700 mb-4">Existing Categories</h2>
-        {% if categories %}
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Image
-                        </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Name
-                        </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Description
-                        </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Actions
-                        </th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    {% for category in categories %}
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <img src="{{ url_for('static', filename=category.image) if category.image else url_for('static', filename='images/placeholder.png') }}"
-                                 alt="{{ category.name }}" class="h-12 w-12 rounded-full object-cover">
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {{ category.name }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-normal text-sm text-gray-500 max-w-xs overflow-hidden text-ellipsis">
-                            {{ category.description if category.description else 'N/A' }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <a href="{{ url_for('admin_edit_category', category_id=category.id) }}"
-                               class="text-indigo-600 hover:text-indigo-900 mr-4">Edit</a>
-                            <form action="{{ url_for('admin_delete_category', category_id=category.id) }}" method="POST" class="inline"
-                                  onsubmit="return confirm('Are you sure you want to delete this category? This cannot be undone.');">
-                                {{ csrf_token }}
-                                <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<!-- Add Category Modal -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1" aria-labelledby="addCategoryModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content p-3">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addCategoryModalLabel">Add New Category</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{{ url_for('admin_add_category') }}" enctype="multipart/form-data">
+        {{ csrf_token() }}
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="categoryName" class="form-label">Name</label>
+            <input type="text" class="form-control" id="categoryName" name="name" required>
+          </div>
+          <div class="mb-3">
+            <label for="categoryDescription" class="form-label">Description</label>
+            <textarea class="form-control" id="categoryDescription" name="description" rows="3"></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="categoryImage" class="form-label">Image (optional)</label>
+            <input type="file" class="form-control" id="categoryImage" name="image" accept="image/*">
+          </div>
         </div>
-        {% else %}
-        <p class="text-gray-600">No categories added yet.</p>
-        {% endif %}
+        <div class="modal-footer d-flex justify-content-between">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Category</button>
+        </div>
+      </form>
     </div>
+  </div>
 </div>
 {% endblock %}

@@ -1,1 +1,86 @@
-[]
+[
+    {
+        "sku": "909090",
+        "name": "TEST2",
+        "category": "POOJA ITEMS",
+        "original_price": "105",
+        "stock": 2,
+        "description": "LLKLKL",
+        "gst_percentage": "9",
+        "images": [
+            "uploads/product_images/a7011985-9879-4748-83da-9741c9caf4ec_Screenshot_2025-03-17_104108.png"
+        ],
+        "size_a4": "0.00",
+        "size_a5": "0.00",
+        "size_letter": "0.00",
+        "size_legal": "0.00",
+        "frame_wooden": "0.00",
+        "frame_metal": "0.00",
+        "frame_pvc": "0.00",
+        "glass_price": "0.00",
+        "is_featured": false
+    },
+    {
+        "sku": "3343454",
+        "name": "test3",
+        "category": "FRAMES",
+        "original_price": "400",
+        "stock": 10,
+        "description": "test3",
+        "gst_percentage": "6",
+        "images": [
+            "uploads/product_images/b599ba9d-46a4-4585-962b-04061fcb8278_Screenshot_2025-06-30_105937.png"
+        ],
+        "size_a4": "0.00",
+        "size_a5": "0.00",
+        "size_letter": "0.00",
+        "size_legal": "0.00",
+        "frame_wooden": "0.00",
+        "frame_metal": "0.00",
+        "frame_pvc": "0.00",
+        "glass_price": "0.00",
+        "is_featured": false
+    },
+    {
+        "sku": "sdf",
+        "name": "test4",
+        "category": "FRAMES",
+        "original_price": "23",
+        "stock": 2,
+        "description": "sdfdsf",
+        "gst_percentage": "18",
+        "images": [
+            "uploads/product_images/6c9b6c52-4f66-4f82-bbff-6fe292efaa19_Screenshot_2025-06-29_201340.png"
+        ],
+        "size_a4": "0.00",
+        "size_a5": "0.00",
+        "size_letter": "0.00",
+        "size_legal": "0.00",
+        "frame_wooden": "0.00",
+        "frame_metal": "0.00",
+        "frame_pvc": "0.00",
+        "glass_price": "0.00",
+        "is_featured": false
+    },
+    {
+        "sku": "454855",
+        "name": "test 5",
+        "category": "FRAMES",
+        "original_price": "100",
+        "stock": 10,
+        "description": "lklk",
+        "gst_percentage": "10",
+        "images": [
+            "uploads/product_images/02da3e96-2671-44e0-a884-8f50a19cd642_Screenshot_2025-06-29_202716.png"
+        ],
+        "size_a4": "0.00",
+        "size_a5": "0.00",
+        "size_letter": "0.00",
+        "size_legal": "0.00",
+        "frame_wooden": "0.00",
+        "frame_metal": "0.00",
+        "frame_pvc": "0.00",
+        "glass_price": "0.00",
+        "is_featured": false
+    }
+]
