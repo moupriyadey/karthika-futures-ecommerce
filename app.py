@@ -2509,14 +2509,12 @@ def admin_verify_payment():
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if current_user.is_authenticated:
-        # If user is already logged in, redirect them based on their original intent
         redirect_endpoint = session.pop('redirect_after_login_endpoint', None)
         next_url_from_arg = request.args.get('next')
 
         if redirect_endpoint == 'cart':
             return redirect(url_for('cart'))
         elif redirect_endpoint == 'purchase_form':
-            # Use next_url_from_arg for the exact path if it was passed (e.g., product detail page)
             return redirect(next_url_from_arg or url_for('purchase_form')) 
         return redirect(next_url_from_arg or url_for('index'))
     
@@ -2535,10 +2533,9 @@ def signup():
             return render_template('signup.html', form_data=request.form)
 
         # --- OTP Logic - Store pending user data and send OTP ---
-        otp = str(random.randint(100000, 999999)) # Generate a 6-digit OTP
-        otp_expiry = datetime.now() + timedelta(minutes=10) # OTP valid for 10 minutes
+        otp = str(random.randint(100000, 999999))
+        otp_expiry = datetime.now() + timedelta(minutes=10)
 
-        # Temporarily store user data and OTP
         otp_storage[email] = {
             'otp': otp,
             'expiry': otp_expiry,
@@ -2554,18 +2551,20 @@ def signup():
             }
         }
 
+        # ✅ BACKUP CART before OTP verification
+        saved_cart = session.get('cart', [])
+        session['saved_cart_before_signup'] = saved_cart
+
         try:
             subject = "Karthika Futures - Your OTP for Registration"
             body = f"Hi {name},\n\nYour One-Time Password (OTP) for Karthika Futures registration is: {otp}\n\nThis OTP is valid for 10 minutes.\n\nThank you,\nKarthika Futures Team"
             
-            # Call the shared email sending function
             email_sent_success, email_message = send_email_with_attachment(email, subject, body)
 
             if email_sent_success:
                 flash(f"An OTP has been sent to {email}. Please verify to complete registration.", 'info')
-                session['email_for_otp_verification'] = email # Store email in session for verification route
+                session['email_for_otp_verification'] = email
                 session.modified = True
-                # Pass 'next' URL to the verify_otp route
                 return redirect(url_for('verify_otp', next=request.args.get('next'))) 
             else:
                 app.logger.error(f"Failed to send OTP email to {email}: {email_message}")
@@ -2577,6 +2576,7 @@ def signup():
             return render_template('signup.html', form_data=request.form)
 
     return render_template('signup.html', form_data={})
+
 
 @csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/verify_otp', methods=['GET', 'POST'])
@@ -2608,16 +2608,16 @@ def verify_otp():
                 save_json('users.json', users)
                 matched_user = new_user_data
 
-            # ✅ Preserve cart before session cleanup
-            preserved_cart = session.get('cart', [])
+            # ✅ Restore cart that was saved before signup
+            saved_cart = session.pop('saved_cart_before_signup', [])
 
             # Clean up OTP and temp session values
             otp_storage.pop(email_for_otp_verification, None)
             session.pop('email_for_otp_verification', None)
 
-            # Clear and reset session to prevent leakage but keep cart
+            # Clear and reset session to prevent leakage, then restore cart
             session.clear()
-            session['cart'] = preserved_cart  # ✅ Restore cart
+            session['cart'] = saved_cart
 
             # Log in user
             login_user(User(
@@ -2640,8 +2640,8 @@ def verify_otp():
 
 @app.route('/user-login', methods=['GET', 'POST'])
 def user_login():
-    next_url = request.args.get('next')
-    
+    next_url = request.args.get('next') or request.form.get('next') or url_for('index')
+
     if request.method == 'POST':
         email_or_mobile = request.form['email'].strip().lower()
         password = request.form['password'].strip()
@@ -2664,24 +2664,25 @@ def user_login():
                 return redirect(url_for('user_login', next=next_url))
 
             if check_password_hash(matched_user['password'], password):
-                # ✅ FIX: Ensure all 3 args are passed
-                email = matched_user.get('email', '')
-                pwd = matched_user.get('password', '')
-                name = matched_user.get('name') or email.split('@')[0] or 'User'
-                login_user(User(
-    matched_user.get('id', str(uuid.uuid4())),
-    matched_user.get('email', ''),
-    matched_user.get('password', ''),
-    matched_user.get('name', ''),
-    matched_user.get('phone', ''),
-    matched_user.get('address', ''),
-    matched_user.get('pincode', ''),
-    matched_user.get('role', 'user')
-))
+                # ✅ Backup cart before login
+                saved_cart = session.get('cart', [])
 
+                login_user(User(
+                    matched_user.get('id', str(uuid.uuid4())),
+                    matched_user.get('email', ''),
+                    matched_user.get('password', ''),
+                    matched_user.get('name', ''),
+                    matched_user.get('phone', ''),
+                    matched_user.get('address', ''),
+                    matched_user.get('pincode', ''),
+                    matched_user.get('role', 'user')
+                ))
+
+                # ✅ Restore cart after login
+                session['cart'] = saved_cart
 
                 flash("Logged in successfully!", "success")
-                return redirect(next_url or url_for('index'))
+                return redirect(next_url)
             else:
                 flash("Invalid email or password", "danger")
                 return redirect(url_for('user_login', next=next_url))
@@ -2700,7 +2701,7 @@ def user_login():
             flash("OTP sent to your email for login", "info")
             return redirect(url_for('verify_otp', next=next_url))
 
-    # Prefill email in form if provided
+    # Prefill email if available
     prefill_email = request.args.get('email', '')
     return render_template("user_login.html", next_url=next_url, prefill_email=prefill_email)
 
