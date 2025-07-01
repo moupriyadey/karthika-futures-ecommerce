@@ -3,39 +3,53 @@
 {% block title %}User Login - Karthika Futures{% endblock %}
 
 {% block content %}
-<div class="container main-content-area"> {# Added container and main-content-area for consistent styling #}
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <h3 class="text-center mb-4">User Login</h3> {# Changed "via Email OTP" to reflect password login #}
+<div class="container main-content-area">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <h3 class="text-center mb-4">User Login</h3>
 
-            {# Flash messages are now handled in _base.html #}
+      <form method="POST" action="{{ url_for('user_login') }}" class="p-4 border rounded shadow-sm bg-white">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if next_url %}
+        <input type="hidden" name="next" value="{{ next_url }}">
+        {% endif %}
 
-            {# IMPORTANT: next_url is handled by app.py via session, not directly in form action #}
-            {# The form action should just be 'user_login'. Flask-Login's redirect handles 'next' #}
-            <form method="POST" action="{{ url_for('user_login') }}" class="p-4 border rounded shadow-sm bg-white">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                <div class="mb-3"> {# <-- FIXED: Added missing opening '<' here #}
-                    <label for="email" class="form-label">Email address</label>
-                    <input type="email" class="form-control" id="email" name="email" required>
-                </div>
-                <div class="mb-3">
-                    <label for="password" class="form-label">Password</label>
-                    <input type="password" class="form-control" id="password" name="password" required>
-                </div>
-                {# The 'next' hidden field is typically not needed if Flask-Login handles the redirect properly #}
-                {# Flask-Login will automatically pass `next` in the URL if it initiated the redirect #}
-                {# If you explicitly pass `next_url` as a context variable to the template, #}
-                {# then having the hidden input is fine, but `action="{{ url_for('user_login') }}"` is sufficient. #}
-                
-                <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-primary">Login</button> {# Changed button text from "Send OTP" to "Login" #}
-                </div>
-            </form>
-            <p class="text-center mt-3">
-                Don't have an account? <a href="{{ url_for('signup') }}">Register here</a>
-            </p>
-        </div>
-    </div>
+        <div class="mb-3">
+    <label for="email" class="form-label">Email address or Mobile</label>
+    <input type="text" class="form-control" id="email" name="email" value="{{ prefill_email or '' }}" required placeholder="Enter email or mobile">
 </div>
+
+
+        <div class="mb-3">
+          <label for="password" class="form-label">
+            Password <small class="text-muted">(leave blank to get OTP)</small>
+          </label>
+          <input type="password" class="form-control" id="password" name="password" placeholder="Enter password (optional)">
+        </div>
+
+        <div class="alert alert-info small">
+          If you're a <strong>new user</strong>, an OTP will be sent to your email for verification and login.
+        </div>
+
+        <div class="d-grid gap-2">
+          <button type="submit" class="btn btn-primary">Login / Get OTP</button>
+        </div>
+      </form>
+
+      <p class="text-center mt-3">
+        Not yet registered? <a href="{{ url_for('signup') }}">Click here to sign up via OTP</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    if (typeof updateCartCountDisplay === 'function') {
+      updateCartCountDisplay();
+    }
+  });
+</script>
 {% endblock %}

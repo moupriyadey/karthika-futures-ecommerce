@@ -49,12 +49,20 @@
       color: white;
     }
 
-    /* Ensure flash container below navbar doesn't overlap */
-    #flash-messages-container {
-      position: fixed;
-      top: 80px;
-      right: 20px;
-      z-index: 1065;
+    .cart-badge {
+      position: absolute;
+      top: 0;
+      right: 0;
+      transform: translate(50%, -50%);
+      background-color: red;
+      color: white;
+      font-size: 0.65rem;
+      padding: 2px 5px;
+      border-radius: 50%;
+      display: none;
+      min-width: 18px;
+      text-align: center;
+      font-weight: bold;
     }
   </style>
 
@@ -94,6 +102,23 @@
 
   <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+
+  <!-- Global cart count updater -->
+  <script>
+    function updateCartCountDisplay() {
+      const count = localStorage.getItem('cartCount');
+      const badge = document.getElementById('cart-count');
+      if (badge) {
+        const displayCount = parseInt(count) || 0;
+        badge.textContent = displayCount;
+        badge.style.display = displayCount > 0 ? 'inline-block' : 'none';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      updateCartCountDisplay();
+    });
+  </script>
 
   {% block extra_js %}{% endblock %}
 </body>

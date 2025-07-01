@@ -29,6 +29,21 @@
 
     <div class="container mt-4">
         <div class="dashboard-title">Admin Dashboard</div>
+
+        <form method="GET" action="{{ url_for('admin_dashboard') }}" class="mb-4">
+            <div class="row">
+                <div class="col-md-6 mx-auto">
+                    <input type="text" name="search" class="form-control" placeholder="Search by Order ID or User ID" value="{{ search_query }}">
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-primary w-100" type="submit">Search</button>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary w-100">Clear</a>
+                </div>
+            </div>
+        </form>
+
         <div class="row g-4">
             <div class="col-md-4">
                 <div class="card text-center">
@@ -37,7 +52,6 @@
                         <h5 class="card-title">Total Orders</h5>
                         <p class="card-text fs-3">{{ total_orders }}</p>
                         <a href="{{ url_for('admin_orders_view') }}" class="btn btn-outline-success">View Orders</a>
-
                     </div>
                 </div>
             </div>
@@ -49,7 +63,6 @@
                         <h5 class="card-title">Total Artworks</h5>
                         <p class="card-text fs-3">{{ total_artworks }}</p>
                         <a href="{{ url_for('admin_artworks_view') }}" class="btn btn-outline-info">Manage Artworks</a>
-
                     </div>
                 </div>
             </div>
@@ -61,10 +74,82 @@
                         <h5 class="card-title">Total Users</h5>
                         <p class="card-text fs-3">{{ total_users }}</p>
                         <a class="nav-link" href="{{ url_for('admin_users_view') }}">Users</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <hr class="my-4">
+        <h3 class="text-center mb-4">🧾 Customer Orders</h3>
+        <div class="row row-cols-1 row-cols-md-2 g-4">
+            {% for order in orders %}
+            <div class="col">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Order ID: {{ order.order_id }}</h5>
+                        <p><strong>User ID:</strong> {{ order.user_id }}</p>
+                        {% set status = order.status %}
+                        <p><strong>Status:</strong>
+                            {% if status == 'Payment Submitted - Awaiting Verification' %}
+                                <span class="badge bg-warning text-dark">{{ status }}</span>
+                            {% elif status == 'Payment Verified – Preparing Order' %}
+                                <span class="badge bg-success">{{ status }}</span>
+                            {% elif status == 'Packed' %}
+                                <span class="badge bg-primary">{{ status }}</span>
+                            {% elif status == 'Shipped' %}
+                                <span class="badge bg-info text-dark">{{ status }}</span>
+                            {% elif status == 'In Transit' %}
+                                <span class="badge bg-secondary">{{ status }}</span>
+                            {% elif status == 'Delivered' %}
+                                <span class="badge bg-success">{{ status }}</span>
+                            {% elif status == 'Rejected' %}
+                                <span class="badge bg-danger">{{ status }}</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark">{{ status }}</span>
+                            {% endif %}
+                        </p>
+
+                        <p><strong>Total:</strong> ₹{{ order.total_amount | round(2) }}</p>
+                        <p><strong>Transaction ID:</strong> {{ order.transaction_id or 'N/A' }}</p>
+                        {% if order.payment_screenshot_path %}
+                            <p><a href="{{ url_for('static', filename=order.payment_screenshot_path) }}" target="_blank">View Screenshot</a></p>
+                        {% endif %}
+
+                        <form method="POST" action="{{ url_for('admin_update_order') }}" class="mt-3">
+                            <input type="hidden" name="order_id" value="{{ order.order_id }}">
+                            <div class="mb-2">
+                                <label for="status-{{ order.order_id }}">Update Status</label>
+                                <select name="status" id="status-{{ order.order_id }}" class="form-select">
+                                    <option disabled selected>-- Select Status --</option>
+                                    <option value="Packed">Packed</option>
+                                    <option value="Shipped">Shipped</option>
+                                    <option value="In Transit">In Transit</option>
+                                    <option value="Delivered">Delivered</option>
+                                    <option value="Rejected">Rejected</option>
+                                </select>
+                            </div>
+                            <div class="form-floating mb-2">
+                                <input type="text" class="form-control" id="courier_name-{{ order.order_id }}" name="courier_name" value="{{ order.get('courier_name', '') }}">
+                                <label for="courier_name-{{ order.order_id }}">Courier Name</label>
+                            </div>
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="tracking_id-{{ order.order_id }}" name="tracking_id" value="{{ order.get('tracking_id', '') }}">
+                                <label for="tracking_id-{{ order.order_id }}">Tracking ID</label>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-primary">Update Order</button>
+                        </form>
+
+                        {% if order.status == 'Payment Submitted - Awaiting Verification' %}
+                        <form method="POST" action="{{ url_for('admin_verify_payment') }}">
+                            <input type="hidden" name="order_id" value="{{ order.order_id }}">
+                            <button type="submit" class="btn btn-sm btn-success mt-2">✅ Mark Payment as Verified</button>
+                        </form>
+                        {% endif %}
 
                     </div>
                 </div>
             </div>
+            {% endfor %}
         </div>
 
         <div class="row mt-5">
@@ -132,7 +217,7 @@
 
         <div class="row mt-5">
             <div class="col-md-12 text-center">
-                <h5 class="text-success">Total Revenue: ₹{{ total_revenue }}</h5>
+                <h5 class="text-success display-6 fw-bold">Total Revenue: ₹{{ total_revenue }}</h5>
             </div>
         </div>
     </div>

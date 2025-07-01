@@ -50,7 +50,13 @@
                 <li class="nav-item">
                     <a class="nav-link position-relative me-3 shimmer-link" href="{{ url_for('cart') }}">
                         <i class="fas fa-shopping-cart fa-lg"></i> Cart
-                        <span id="cart-count" class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle" style="display: none;">0</span>
+                      <span id="cart-count"
+      class="badge bg-danger rounded-circle position-absolute"
+      style="font-size: 0.65rem; padding: 4px 6px; top: 1px; right: -0.75px; min-width: 1px; height: 14px; display: flex; align-items: center; justify-content: center;">
+    0
+</span>
+
+
                     </a>
                 </li>
                 {% if current_user.is_authenticated %}

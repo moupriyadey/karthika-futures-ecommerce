@@ -1,0 +1,212 @@
+{% extends '_base.html' %}
+
+{% block title %}Complete Your Payment - Karthika Futures{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background-color: #f5f7fa;
+    }
+    .payment-container {
+        padding: 3rem;
+        background-color: #ffffff;
+        border-radius: 1rem;
+        box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.1);
+        margin-top: 3rem;
+        margin-bottom: 3rem;
+        text-align: center;
+        max-width: 700px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    h2 {
+        color: #333;
+        font-weight: 700;
+        margin-bottom: 2rem;
+    }
+    .lead {
+        font-size: 1.25rem;
+        color: #444;
+        margin-bottom: 1rem;
+    }
+    .upi-details {
+        font-size: 1.1rem;
+        color: #555;
+        margin-bottom: 1.5rem;
+    }
+    #qrcode {
+        width: 250px;
+        height: 250px;
+        margin: 30px auto;
+        border: 2px solid #ddd;
+        padding: 15px;
+        background-color: #f9f9f9;
+        border-radius: 0.75rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 0.9em;
+        color: #888;
+        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.08);
+    }
+    .payment-instructions {
+        margin-top: 25px;
+        font-size: 1rem;
+        color: #666;
+        line-height: 1.6;
+        text-align: left;
+        padding: 0 20px;
+    }
+    .payment-form-section {
+        margin-top: 3.5rem;
+        border-top: 1px dashed #ced4da;
+        padding-top: 2.5rem;
+        background-color: #fcfcfc;
+        border-radius: 0.75rem;
+        box-shadow: 0 0.25rem 0.75rem rgba(0,0,0,0.05);
+        padding: 2.5rem;
+    }
+    .form-label {
+        font-weight: 600;
+        color: #495057;
+    }
+    .form-control {
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+    }
+    .form-text {
+        font-size: 0.875em;
+        color: #888;
+    }
+    .btn-primary {
+        background-color: #007bff;
+        border-color: #007bff;
+        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        transition: 0.2s ease-in-out;
+    }
+    .btn-primary:hover {
+        background-color: #0056b3;
+        border-color: #004085;
+        transform: translateY(-2px);
+    }
+    .btn-link {
+        color: #007bff;
+        font-weight: 500;
+    }
+
+    @media (max-width: 767.98px) {
+        .payment-container {
+            margin: 1rem;
+            padding: 1.5rem;
+        }
+        h2 {
+            font-size: 2rem;
+        }
+        .lead {
+            font-size: 1.1rem;
+        }
+        #qrcode {
+            width: 200px;
+            height: 200px;
+        }
+        .payment-instructions {
+            font-size: 0.95rem;
+            padding: 0 10px;
+        }
+        .payment-form-section {
+            padding: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container payment-container">
+    <h2 class="mb-4">💰 Complete Your Payment</h2>
+
+    <p class="lead">Please scan the QR code below to pay <strong>₹{{ amount | round(2) }}</strong> for Order ID: <strong>{{ order_id }}</strong>.</p>
+    <p class="upi-details">Your UPI ID: <strong>{{ upi_id }}</strong> | Banking Name: <strong>{{ banking_name }}</strong> (Bank: {{ bank_name }})</p>
+
+    <div id="qrcode"></div>
+    <p id="qrcode-fallback" style="display:none; color: red;">QR code generation failed. You can also scan the static QR below.</p>
+
+    <div class="text-center mb-4">
+        <h4>Scan to Pay</h4>
+        <img src="data:image/png;base64,{{ qr_image }}" alt="UPI QR Code" class="img-fluid rounded shadow mb-3" style="max-width: 300px;">
+        <p><strong>UPI ID:</strong> {{ upi_id }}<br>
+        <strong>Payee Name:</strong> {{ banking_name }}</p>
+        <p class="text-muted">Amount: ₹{{ amount }}</p>
+    </div>
+
+    <div class="payment-instructions">
+        <p>1. Open any UPI app (Google Pay, PhonePe, Paytm, etc.)</p>
+        <p>2. Tap “Scan QR” and scan the code above</p>
+        <p>3. Confirm the amount and recipient</p>
+        <p>4. Complete payment and note down the Transaction/Reference ID</p>
+    </div>
+
+    <div class="payment-form-section card p-4 shadow-sm">
+        <h4 class="mb-3">Confirm Your Payment Details</h4>
+        <form method="POST" action="{{ url_for('payment_submit', order_id=order_id) }}" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+                <label for="transaction_id" class="form-label">Transaction ID / UTR</label>
+                <input type="text" class="form-control" id="transaction_id" name="transaction_id" required placeholder="e.g., 012345678912">
+                <div class="form-text">This helps us verify your payment quickly.</div>
+            </div>
+            <div class="mb-3">
+                <label for="screenshot" class="form-label">Upload Screenshot (optional)</label>
+                <input type="file" class="form-control" id="screenshot" name="payment_screenshot" accept="image/*">
+                <div class="form-text">Screenshots help us confirm payment faster.</div>
+            </div>
+            <div class="d-grid gap-2 mt-4">
+                <button type="submit" class="btn btn-primary btn-lg">I Have Paid – Submit</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="mt-4">
+        <p class="text-muted">Your order will be verified and updated shortly.</p>
+        <a href="{{ url_for('my_orders') }}" class="btn btn-link">← Back to My Orders</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        history.pushState(null, null, location.href);
+        window.addEventListener('popstate', function () {
+            history.go(1);
+        });
+
+        const upiId = "smarasada@okaxis";
+        const bankingName = "SUBHASH S";
+        const orderId = "{{ order_id }}";
+        const amount = "{{ amount | round(2) }}";
+        const encodedBankingName = encodeURIComponent(bankingName);
+        const upiLink = `upi://pay?pa=${upiId}&pn=${encodedBankingName}&am=${amount}&tn=${orderId}&cu=INR`;
+
+        try {
+            const qrDiv = document.getElementById("qrcode");
+            qrDiv.innerHTML = "";
+            new QRCode(qrDiv, {
+                text: upiLink,
+                width: 250,
+                height: 250,
+                colorDark: "#000",
+                colorLight: "#fff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            document.getElementById("qrcode-fallback").style.display = "none";
+        } catch (error) {
+            console.error("QR generation error:", error);
+            document.getElementById("qrcode").innerHTML = "QR code failed.";
+            document.getElementById("qrcode-fallback").style.display = "block";
+        }
+    });
+</script>
+{% endblock %}

@@ -11,7 +11,9 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from collections import defaultdict
 from decimal import Decimal, InvalidOperation
 import random
-
+import qrcode
+import io
+import base64
 # Email Sending
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -183,11 +185,12 @@ def load_user(user_id):
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.is_admin():
-            flash('You do not have permission to access this page.', 'danger')
-            return redirect(url_for('user_login'))
+        if not current_user.is_authenticated or not current_user.is_admin:
+            flash("Admin access required.", "danger")
+            return redirect(url_for('admin_login'))
         return f(*args, **kwargs)
     return decorated_function
+
 
 # --- Helper Functions for JSON Data Management ---
 def load_json(filename):
@@ -306,6 +309,14 @@ def load_orders_data():
         order['tracking_number'] = order.get('tracking_number', '')
 
     return orders
+
+def generate_otp():
+    return ''.join(random.choices(string.digits, k=6))
+
+def send_otp(recipient, otp):
+    print(f"[DEBUG] Sending OTP {otp} to {recipient}")
+    # Here you can use email or SMS logic
+
 
 # --- NEW: load_users_data helper function ---
 def load_users_data():
@@ -1467,13 +1478,21 @@ def payment_initiate(order_id, amount):
     # Generate UPI QR URL
     qr_code_url = generate_upi_qr_url(UPI_ID, BANKING_NAME, amount_decimal, f"Payment for Order {order_id}")
 
+    # Generate QR Code Image as base64 string
+    qr = qrcode.make(qr_code_url)
+    buffered = io.BytesIO()
+    qr.save(buffered, format="PNG")
+    qr_base64 = base64.b64encode(buffered.getvalue()).decode()
+
     return render_template('payment_initiate.html',
-                           order_id=order_id,
-                           amount=amount_decimal, # Pass as Decimal
-                           upi_id=UPI_ID,
-                           banking_name=BANKING_NAME,
-                           bank_name=BANK_NAME,
-                           qr_code_url=qr_code_url)
+        order_id=order_id,
+        amount=amount_decimal,
+        upi_id=UPI_ID,
+        banking_name=BANKING_NAME,
+        bank_name=BANK_NAME,
+        qr_code_url=qr_code_url,
+        qr_image=qr_base64
+    )
 
 @app.route('/payment_submit/<order_id>', methods=['POST'])
 @login_required
@@ -1591,51 +1610,60 @@ def cancel_order(order_id):
 @admin_required
 def admin_dashboard():
     """Admin dashboard landing page."""
+
+    filter_status = request.args.get('filter_status')
+    search_query = request.args.get('search', '').strip().lower()
+
+    # Load all data
     orders = load_orders_data()
     artworks = load_artworks_data()
     users = load_users_data()
-    
+
+    # Apply search filter
+    if search_query:
+        orders = [o for o in orders if search_query in o.get('order_id', '').lower() or search_query in o.get('user_id', '').lower()]
+
+    # Apply status filter
+    if filter_status:
+        orders = [o for o in orders if o.get('status') == filter_status]
+
     total_orders = len(orders)
     total_artworks = len(artworks)
     total_users = len(users)
 
-    # Calculate total revenue from confirmed/shipped orders
     total_revenue = Decimal('0.00')
     for order in orders:
-        if order.get('status') in ['Shipped', 'Delivered', 'Payment Confirmed']:
-            total_revenue += order.get('total_amount', Decimal('0.00'))
+        if order.get('status') in ['Shipped', 'Delivered', 'Payment Confirmed', 'Payment Verified – Preparing Order']:
+            total_revenue += Decimal(str(order.get('total_amount', '0.00')))
 
-    # Calculate stock levels (e.g., low stock items)
-    low_stock_threshold = 10 # Example threshold
-    low_stock_artworks = [a for a in artworks if a.get('stock', 0) > 0 and a.get('stock', 0) <= low_stock_threshold]
+    low_stock_threshold = 10
+    low_stock_artworks = [a for a in artworks if 0 < a.get('stock', 0) <= low_stock_threshold]
     out_of_stock_artworks = [a for a in artworks if a.get('stock', 0) == 0]
 
-    # Orders pending review (e.g., new payments, held invoices)
     orders_pending_review = [
         o for o in orders 
-        if o.get('status') == 'Payment Submitted - Awaiting Verification' or \
+        if o.get('status') == 'Payment Submitted - Awaiting Verification' or
            (o.get('invoice_details', {}).get('is_held_by_admin') and o.get('status') != 'Delivered')
     ]
 
-# 🟢 Monthly revenue placeholder (replace with real logic if needed)
     revenue_labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
     revenue_values = [12000, 15000, 11000, 18000, 20000, 17000]
 
     return render_template(
-    'admin_panel.html',
-    total_orders=total_orders,
-    total_artworks=total_artworks,
-    total_users=total_users,
-    total_revenue=total_revenue,
-    low_stock_artworks=low_stock_artworks,
-    out_of_stock_artworks=out_of_stock_artworks,
-    orders=orders,
-    artworks=artworks,
-    orders_pending_review=orders_pending_review,
-    revenue_labels=revenue_labels,
-    revenue_values=revenue_values
-)
-
+        'admin_panel.html',
+        total_orders=total_orders,
+        total_artworks=total_artworks,
+        total_users=total_users,
+        total_revenue=total_revenue,
+        low_stock_artworks=low_stock_artworks,
+        out_of_stock_artworks=out_of_stock_artworks,
+        orders=orders,
+        artworks=artworks,
+        orders_pending_review=orders_pending_review,
+        revenue_labels=revenue_labels,
+        revenue_values=revenue_values,
+        search_query=search_query
+    )
 
 
 @csrf.exempt  # 💥 disables CSRF for this route
@@ -2428,7 +2456,6 @@ def admin_update_category(category_id):
     return redirect(url_for('admin_categories_view'))
 
 @csrf.exempt  # 💥 disables CSRF for this route
-
 @app.route('/admin/delete-category/<category_id>', methods=['POST'])
 @admin_required
 def admin_delete_category(category_id):
@@ -2443,7 +2470,40 @@ def admin_delete_category(category_id):
     flash("Category deleted successfully!", "success")
     return redirect(url_for('admin_categories_view'))
 
+@app.route('/admin/update-order', methods=['POST'])
+@admin_login_required
+def admin_update_order():
+    order_id = request.form.get('order_id')
+    new_status = request.form.get('status')
+    courier_name = request.form.get('courier_name')
+    tracking_id = request.form.get('tracking_id')
 
+    orders = load_orders_data()
+    for order in orders:
+        if order['order_id'] == order_id:
+            order['status'] = new_status
+            order['courier_name'] = courier_name
+            order['tracking_id'] = tracking_id
+            break
+
+    save_json('orders.json', orders)
+    flash(f'Order {order_id} updated successfully!', 'success')
+    return redirect(url_for('admin_panel'))
+
+@app.route('/admin/verify-payment', methods=['POST'])
+@admin_required
+def admin_verify_payment():
+    order_id = request.form.get('order_id')
+    orders = load_orders_data()
+    for order in orders:
+        if order.get('order_id') == order_id:
+            order['status'] = 'Payment Verified – Preparing Order'
+            save_json('orders.json', orders)
+            flash(f"Payment for Order {order_id} marked as verified.", "success")
+            break
+    else:
+        flash("Order not found.", "danger")
+    return redirect(url_for('admin_panel'))
 
 # --- User Authentication Routes ---
 @app.route('/signup', methods=['GET', 'POST'])
@@ -2518,116 +2578,156 @@ def signup():
 
     return render_template('signup.html', form_data={})
 
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/verify_otp', methods=['GET', 'POST'])
 def verify_otp():
     """
-    Handles OTP verification for new user signups.
+    Handles OTP verification for new user signups or logins via OTP.
     """
     email_for_otp_verification = session.get('email_for_otp_verification')
-    # Retrieve 'next' URL from the query parameters, if it was passed to /verify_otp
-    next_url = request.args.get('next') 
-    
+    next_url = request.args.get('next')  # Optional redirection target
+
     if not email_for_otp_verification or email_for_otp_verification not in otp_storage:
         flash("No pending OTP verification. Please sign up again.", "danger")
-        return redirect(url_for('signup', next=next_url)) # Pass next_url back if redirecting to signup
+        return redirect(url_for('signup', next=next_url))
 
     if request.method == 'POST':
         user_otp = request.form['otp'].strip()
         stored_data = otp_storage.get(email_for_otp_verification)
 
         if stored_data and stored_data['otp'] == user_otp and datetime.now() < stored_data['expiry']:
-            # OTP is valid and not expired - create user account
+            # OTP is valid and not expired
             new_user_data = stored_data['user_data']
+
             users = load_users_data()
-            users.append(new_user_data)
-            save_json('users.json', users) 
+            matched_user = next((u for u in users if u['email'] == new_user_data['email']), None)
 
-            # Clean up OTP storage and session
-            del otp_storage[email_for_otp_verification]
+            if not matched_user:
+                # New user, save to users.json
+                users.append(new_user_data)
+                save_json('users.json', users)
+                matched_user = new_user_data
+
+            # ✅ Preserve cart before session cleanup
+            preserved_cart = session.get('cart', [])
+
+            # Clean up OTP and temp session values
+            otp_storage.pop(email_for_otp_verification, None)
             session.pop('email_for_otp_verification', None)
-            session.modified = True
 
-            flash("Email verified and account created successfully! Please log in.", "success")
-            # Redirect to user_login, passing the original 'next_url' so login can redirect properly
-            return redirect(url_for('user_login', next=next_url, email=new_user_data['email'])) # Prefill email and pass next_url
+            # Clear and reset session to prevent leakage but keep cart
+            session.clear()
+            session['cart'] = preserved_cart  # ✅ Restore cart
+
+            # Log in user
+            login_user(User(
+                matched_user.get('id', str(uuid.uuid4())),
+                matched_user.get('email', ''),
+                matched_user.get('password', ''),
+                matched_user.get('name', ''),
+                matched_user.get('phone', ''),
+                matched_user.get('address', ''),
+                matched_user.get('pincode', ''),
+                matched_user.get('role', 'user')
+            ))
+
+            flash("Logged in successfully via OTP!", "success")
+            return redirect(next_url or url_for('index'))
         else:
             flash("Invalid or expired OTP. Please try again.", "danger")
-            # When rendering the template again, pass 'next_url'
-            return render_template('verify_otp.html', email=email_for_otp_verification, next_url=next_url) 
 
-    # For GET request, render the template, passing 'next_url'
     return render_template('verify_otp.html', email=email_for_otp_verification, next_url=next_url)
 
 @app.route('/user-login', methods=['GET', 'POST'])
 def user_login():
-    """Handles user login."""
-    if current_user.is_authenticated:
-        # If user is already logged in, redirect them based on their original intent
-        redirect_endpoint = session.pop('redirect_after_login_endpoint', None)
-        item_to_buy_now_json = session.pop('itemToBuyNow', None) # Pop immediately
-        item_add_to_cart_json = session.pop('itemToAddAfterLogin', None) # Pop immediately
-        session.modified = True # Mark session modified after popping
-
-        next_url_from_arg = request.args.get('next')
-
-        if redirect_endpoint == 'cart':
-            # This means they tried to add to cart, got redirected to login, now logged in.
-            # The client-side JS (in _base.html) will handle calling addToCart
-            return redirect(next_url_from_arg or url_for('cart'))
-        elif redirect_endpoint == 'purchase_form':
-            # This means they tried to buy now, got redirected to login, now logged in.
-            # The client-side JS (in _base.html) will pick up itemToBuyNow from sessionStorage
-            # and automatically re-attempt the buy now.
-            return redirect(next_url_from_arg or url_for('purchase_form'))
-        
-        return redirect(next_url_from_arg or url_for('index'))
-
-    if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
-        remember = request.form.get('remember_me')
-
-        user = User.find_by_email(email)
-
-        if user and check_password_hash(user.password, password):
-            login_user(user, remember=remember)
-            flash('Logged in successfully!', 'success')
-
-            # Handle post-login redirection based on original intent (stored in session/args)
-            redirect_endpoint = session.pop('redirect_after_login_endpoint', None)
-            session.modified = True # Ensure session is marked as modified
-
-            next_url_from_arg = request.args.get('next')
-            login_prompt_type = request.args.get('login_prompt')
-
-            if login_prompt_type == 'add_to_cart' or redirect_endpoint == 'cart':
-                # The _base.html JS will pick up itemToAddAfterLogin from sessionStorage
-                # and automatically re-attempt the add to cart.
-                # So we just redirect to the page that caused the login.
-                return redirect(next_url_from_arg or url_for('index')) # Redirect to original page
-            elif login_prompt_type == 'buy_now' or redirect_endpoint == 'purchase_form':
-                # The _base.html JS will pick up itemToBuyNow from sessionStorage
-                # and automatically re-attempt the buy now.
-                return redirect(next_url_from_arg or url_for('product_detail', sku=request.args.get('sku')) or url_for('index')) # Redirect to original page
-            
-            # Default redirect if no specific intent or if login was direct
-            return redirect(next_url_from_arg or url_for('user_dashboard'))
-        else:
-            flash('Invalid email or password.', 'danger')
-
-    # Prefill email if coming from a redirect
-    prefill_email = request.args.get('email', '')
-    login_prompt = request.args.get('login_prompt', '')
-    message = ""
-    if login_prompt == 'add_to_cart':
-        message = "Please log in or sign up to add items to your cart."
-    elif login_prompt == 'buy_now':
-        message = "Please log in or sign up to proceed with your purchase."
+    next_url = request.args.get('next')
     
-    if message:
-        flash(message, 'info')
+    if request.method == 'POST':
+        email_or_mobile = request.form['email'].strip().lower()
+        password = request.form['password'].strip()
+        users = load_users_data()
 
-    return render_template('user_login.html', prefill_email=prefill_email, next_url=request.args.get('next', ''), login_prompt=login_prompt)
+        matched_user = None
+        for u in users:
+            if u.get('email') == email_or_mobile or u.get('phone') == email_or_mobile:
+                matched_user = u
+                break
+
+        if not matched_user:
+            flash("No user found. Please sign up first.", "danger")
+            return redirect(url_for('signup', next=next_url))
+
+        # === CASE A: Password provided ===
+        if password:
+            if 'password' not in matched_user or not matched_user['password']:
+                flash("This account was created using OTP. Please login via OTP.", "warning")
+                return redirect(url_for('user_login', next=next_url))
+
+            if check_password_hash(matched_user['password'], password):
+                # ✅ FIX: Ensure all 3 args are passed
+                email = matched_user.get('email', '')
+                pwd = matched_user.get('password', '')
+                name = matched_user.get('name') or email.split('@')[0] or 'User'
+                login_user(User(
+    matched_user.get('id', str(uuid.uuid4())),
+    matched_user.get('email', ''),
+    matched_user.get('password', ''),
+    matched_user.get('name', ''),
+    matched_user.get('phone', ''),
+    matched_user.get('address', ''),
+    matched_user.get('pincode', ''),
+    matched_user.get('role', 'user')
+))
+
+
+                flash("Logged in successfully!", "success")
+                return redirect(next_url or url_for('index'))
+            else:
+                flash("Invalid email or password", "danger")
+                return redirect(url_for('user_login', next=next_url))
+
+        # === CASE B: No password → Send OTP ===
+        else:
+            otp = generate_otp()
+            expiry = datetime.now() + timedelta(minutes=10)
+            otp_storage[email_or_mobile] = {
+                'otp': otp,
+                'expiry': expiry,
+                'user_data': matched_user
+            }
+            session['email_for_otp_verification'] = email_or_mobile
+            send_otp_email(email_or_mobile, otp)
+            flash("OTP sent to your email for login", "info")
+            return redirect(url_for('verify_otp', next=next_url))
+
+    # Prefill email in form if provided
+    prefill_email = request.args.get('email', '')
+    return render_template("user_login.html", next_url=next_url, prefill_email=prefill_email)
+
+@app.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    users = load_users_data()
+    current_email = current_user.email
+
+    # Find current user
+    for user in users:
+        if user['email'] == current_email:
+            if request.method == 'POST':
+                user['name'] = request.form.get('name', user['name'])
+                user['phone'] = request.form.get('phone', user['phone'])
+                user['address'] = request.form.get('address', user['address'])
+                user['pincode'] = request.form.get('pincode', user['pincode'])
+                save_json('users.json', users)
+                flash("Profile updated successfully.", "success")
+                return redirect(url_for('profile'))
+
+            return render_template('profile.html', user_info=user)
+
+    # If user not found
+    flash("User not found.", "danger")
+    return redirect(url_for('user_login'))
+
 
 @csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/admin_login', methods=['GET', 'POST'])

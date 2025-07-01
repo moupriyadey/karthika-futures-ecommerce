@@ -1,39 +1,69 @@
-{% extends '_base.html' %}
+{% extends "_base.html" %}
 
-{% block title %}Thank You! - Karthika Futures{% endblock %}
+{% block title %}Thank You - Karthika Futures{% endblock %}
 
 {% block extra_css %}
 <style>
     .thank-you-container {
+        margin-top: 4rem;
+        margin-bottom: 4rem;
+        text-align: center;
         padding: 3rem;
         background-color: #ffffff;
-        border-radius: 0.75rem;
-        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
-        margin-top: 3rem;
-        margin-bottom: 3rem;
-        text-align: center;
+        border-radius: 1rem;
+        box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.1);
         max-width: 600px;
         margin-left: auto;
         margin-right: auto;
     }
     .thank-you-icon {
-        font-size: 5rem;
-        color: #28a745; /* Green color */
-        margin-bottom: 1.5rem;
+        font-size: 4rem;
+        color: #28a745;
+        margin-bottom: 1rem;
+    }
+    .thank-you-message {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 1rem;
+    }
+    .thank-you-subtext {
+        font-size: 1.1rem;
+        color: #555;
+        margin-bottom: 2rem;
+    }
+    .btn-home, .btn-orders {
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+    }
+    .btn-orders {
+        margin-right: 1rem;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container thank-you-container">
-    <div class="thank-you-icon">
-        <i class="fas fa-check-circle"></i>
+<div class="thank-you-container">
+    <div class="thank-you-icon">✅</div>
+    <div class="thank-you-message">Thank you for your payment!</div>
+    <div class="thank-you-subtext">
+        Your Order <strong>#{{ order.order_id }}</strong> has been submitted successfully.<br>
+        We are reviewing your payment details and will update your order status soon.
     </div>
-    <h2 class="mb-3">Thank You for Your Order!</h2>
-    <p class="lead">Your payment details have been submitted successfully. We will verify your payment shortly.</p>
-    <p class="mb-4">You can track the status of your order in your dashboard.</p>
-    
-    <a href="{{ url_for('my_orders') }}" class="btn btn-primary btn-lg me-3">View My Orders</a>
-    <a href="{{ url_for('index') }}" class="btn btn-secondary btn-lg">Continue Shopping</a>
+
+    <div class="mb-4">
+        <p><strong>Total Amount:</strong> ₹{{ order.total_amount | round(2) }}</p>
+        {% if order.transaction_id %}
+        <p><strong>Transaction ID:</strong> {{ order.transaction_id }}</p>
+        {% endif %}
+        <p class="text-muted">You will receive confirmation by email or in your dashboard once verified.</p>
+    </div>
+
+    <div>
+        <a href="{{ url_for('my_orders') }}" class="btn btn-primary btn-orders">View My Orders</a>
+        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-home">Back to Home</a>
+    </div>
 </div>
 {% endblock %}

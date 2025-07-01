@@ -24,7 +24,7 @@
                                     <th scope="col">Unit Price</th>
                                     <th scope="col">Quantity</th>
                                     <th scope="col">Item Total</th>
-                                    <th scope="col"></th> {# For Remove button #}
+                                    <th scope="col"></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -32,10 +32,7 @@
                                 <tr id="cart-item-{{ item.id }}">
                                     <td>
                                         <div class="d-flex align-items-center">
-                                            <img src="{{ url_for('static', filename=item.image) }}" 
-                                                 alt="{{ item.name }}" 
-                                                 class="img-fluid rounded-lg me-3" 
-                                                 style="width: 80px; height: 80px; object-fit: cover;">
+                                            <img src="{{ url_for('static', filename=item.image) }}" alt="{{ item.name }}" class="img-fluid rounded-lg me-3" style="width: 80px; height: 80px; object-fit: cover;">
                                             <div>
                                                 <h6 class="mb-0">{{ item.name }}</h6>
                                                 <small class="text-muted">{{ item.category }}</small>
@@ -43,41 +40,17 @@
                                         </div>
                                     </td>
                                     <td>{{ item.sku }}</td>
-                                    <td>
-                                        Size: {{ item.size }}<br>
-                                        Frame: {{ item.frame }}<br>
-                                        Glass: {{ item.glass }}
-                                    </td>
+                                    <td>Size: {{ item.size }}<br>Frame: {{ item.frame }}<br>Glass: {{ item.glass }}</td>
                                     <td>₹{{ item.unit_price_before_gst | floatformat(2) }}</td>
                                     <td>
                                         <div class="input-group input-group-sm w-auto" style="max-width: 120px;">
-                                            <button class="btn btn-outline-secondary btn-decrease-quantity" type="button" 
-                                                    data-id="{{ item.id }}" data-sku="{{ item.sku }}" data-size="{{ item.size }}" data-frame="{{ item.frame }}" data-glass="{{ item.glass }}"
-                                                    data-current-qty="{{ item.quantity }}"
-                                                    aria-label="Decrease quantity">
-                                                -
-                                            </button>
-                                            <input type="number" class="form-control text-center cart-item-quantity" 
-                                                   value="{{ item.quantity }}" min="1" 
-                                                   data-id="{{ item.id }}" data-sku="{{ item.sku }}" data-size="{{ item.size }}" data-frame="{{ item.frame }}" data-glass="{{ item.glass }}"
-                                                   aria-label="Quantity">
-                                            <button class="btn btn-outline-secondary btn-increase-quantity" type="button" 
-                                                    data-id="{{ item.id }}" data-sku="{{ item.sku }}" data-size="{{ item.size }}" data-frame="{{ item.frame }}" data-glass="{{ item.glass }}"
-                                                    data-current-qty="{{ item.quantity }}"
-                                                    aria-label="Increase quantity">
-                                                +
-                                            </button>
+                                            <button class="btn btn-outline-secondary btn-decrease-quantity" type="button" data-id="{{ item.id }}" data-sku="{{ item.sku }}" data-size="{{ item.size }}" data-frame="{{ item.frame }}" data-glass="{{ item.glass }}">-</button>
+                                            <input type="number" class="form-control text-center cart-item-quantity" value="{{ item.quantity }}" min="1" data-id="{{ item.id }}" data-sku="{{ item.sku }}" data-size="{{ item.size }}" data-frame="{{ item.frame }}" data-glass="{{ item.glass }}">
+                                            <button class="btn btn-outline-secondary btn-increase-quantity" type="button" data-id="{{ item.id }}" data-sku="{{ item.sku }}" data-size="{{ item.size }}" data-frame="{{ item.frame }}" data-glass="{{ item.glass }}">+</button>
                                         </div>
                                     </td>
                                     <td class="fw-bold">₹<span id="item-total-{{ item.id }}">{{ item.total_price | floatformat(2) }}</span></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline-danger btn-remove-item" 
-                                                data-id="{{ item.id }}" 
-                                                data-sku="{{ item.sku }}" data-size="{{ item.size }}" data-frame="{{ item.frame }}" data-glass="{{ item.glass }}"
-                                                aria-label="Remove item">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </td>
+                                    <td><button class="btn btn-sm btn-outline-danger btn-remove-item" data-id="{{ item.id }}" data-sku="{{ item.sku }}" data-size="{{ item.size }}" data-frame="{{ item.frame }}" data-glass="{{ item.glass }}"><i class="fas fa-times"></i></button></td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -94,26 +67,13 @@
                 </div>
                 <div class="card-body p-4">
                     <ul class="list-group list-group-flush mb-3">
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            Subtotal (excl. GST):
-                            <span>₹<span id="cart-subtotal-before-gst">{{ cart_summary.subtotal_before_gst | floatformat(2) }}</span></span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            Total GST:
-                            <span>₹<span id="cart-total-gst">{{ cart_summary.total_gst_amount | floatformat(2) }}</span></span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            Shipping Charge:
-                            <span>₹<span id="cart-shipping-charge">{{ cart_summary.shipping_charge | floatformat(2) }}</span></span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center fs-5 fw-bold bg-light">
-                            Grand Total:
-                            <span>₹<span id="cart-grand-total">{{ cart_summary.grand_total | floatformat(2) }}</span></span>
-                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">Subtotal (excl. GST): <span>₹<span id="cart-subtotal-before-gst">{{ cart_summary.subtotal_before_gst | floatformat(2) }}</span></span></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">Total GST: <span>₹<span id="cart-total-gst">{{ cart_summary.total_gst_amount | floatformat(2) }}</span></span></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">Shipping Charge: <span>₹<span id="cart-shipping-charge">{{ cart_summary.shipping_charge | floatformat(2) }}</span></span></li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center fs-5 fw-bold bg-light">Grand Total: <span>₹<span id="cart-grand-total">{{ cart_summary.grand_total | floatformat(2) }}</span></span></li>
                     </ul>
-                    
+
                     <div class="d-grid gap-2 mt-4">
-                        {# THIS IS THE UPDATED FORM TO PROCEED TO CHECKOUT #}
                         <form action="{{ url_for('process_checkout_from_cart') }}" method="POST">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-primary btn-lg w-100">Proceed to Checkout</button>
@@ -124,7 +84,6 @@
             </div>
         </div>
     </div>
-
     {% else %}
     <div class="text-center py-5">
         <i class="fas fa-shopping-cart fa-5x text-muted mb-4"></i>
@@ -132,7 +91,6 @@
         <a href="{{ url_for('all_products') }}" class="btn btn-primary btn-lg">Browse Artworks</a>
     </div>
     {% endif %}
-
 </div>
 {% endblock %}
 
@@ -141,110 +99,64 @@
     document.addEventListener('DOMContentLoaded', () => {
         const updateCartItem = async (itemId, sku, size, frame, glass, newQuantity) => {
             try {
-                // --- CORRECTED URL FOR update_cart_item_quantity ---
-                const response = await fetch('{{ url_for("update_cart_item_quantity") }}', { 
+                const response = await fetch('{{ url_for("update_cart_item_quantity") }}', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        id: itemId, // Pass the full item ID
-                        sku: sku,
-                        size: size,
-                        frame: frame,
-                        glass: glass,
-                        quantity: newQuantity 
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: itemId, sku, size, frame, glass, quantity: newQuantity })
                 });
                 const data = await response.json();
-
                 if (data.success) {
-                    // Update item total
-                    const itemTotalElement = document.getElementById(`item-total-${itemId}`);
-                    if (itemTotalElement) {
-                        itemTotalElement.textContent = data.updated_item.total_price.toFixed(2);
-                    }
-
-                    // Update summary totals
-                    document.getElementById('cart-subtotal-before-gst').textContent = data.cart_summary.subtotal_before_gst.toFixed(2);
-                    document.getElementById('cart-total-gst').textContent = data.cart_summary.total_gst_amount.toFixed(2);
-                    document.getElementById('cart-shipping-charge').textContent = data.cart_summary.shipping_charge.toFixed(2);
-                    document.getElementById('cart-grand-total').textContent = data.cart_summary.grand_total.toFixed(2);
-
-                    updateCartCountDisplay(); // Update navbar count
-                    showCustomAlert(`Quantity for "${data.updated_item.name}" updated successfully!`, 'success');
+                    document.getElementById(`item-total-${itemId}`).textContent = parseFloat(data.updated_item.total_price).toFixed(2);
+                    document.getElementById('cart-subtotal-before-gst').textContent = parseFloat(data.cart_summary.subtotal_before_gst).toFixed(2);
+                    document.getElementById('cart-total-gst').textContent = parseFloat(data.cart_summary.total_gst_amount).toFixed(2);
+                    document.getElementById('cart-shipping-charge').textContent = parseFloat(data.cart_summary.shipping_charge).toFixed(2);
+                    document.getElementById('cart-grand-total').textContent = parseFloat(data.cart_summary.grand_total).toFixed(2);
+                    updateCartCountDisplay();
+                    showCustomAlert(`Quantity updated for "${data.updated_item.name}"`, 'success');
                 } else {
                     showCustomAlert(`Error: ${data.message}`, 'danger');
-                    // Revert quantity in UI if update failed
-                    document.querySelector(`.cart-item-quantity[data-id="${itemId}"]`).value = data.current_quantity;
-                    console.error("Cart update failed:", data.message);
                 }
-            } catch (error) {
-                console.error("Network error during cart update:", error);
-                showCustomAlert("Network error updating cart. Please check your connection.", 'danger');
+            } catch (err) {
+                console.error(err);
+                showCustomAlert("Failed to update cart. Please try again.", 'danger');
             }
         };
 
         const removeCartItem = async (itemId, sku, size, frame, glass) => {
             try {
-                // --- CORRECTED URL FOR remove_from_cart (ensure this is the Flask endpoint name) ---
-                const response = await fetch('{{ url_for("remove_from_cart") }}', { 
+                const response = await fetch('{{ url_for("remove_from_cart") }}', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        id: itemId, // Pass the full item ID
-                        sku: sku, 
-                        size: size, 
-                        frame: frame, 
-                        glass: glass 
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: itemId, sku, size, frame, glass })
                 });
                 const data = await response.json();
-
                 if (data.success) {
-                    // Remove item row from table
                     const itemRow = document.getElementById(`cart-item-${itemId}`);
-                    if (itemRow) {
-                        itemRow.remove();
-                    }
-
-                    // Update summary totals
+                    if (itemRow) itemRow.remove();
                     if (data.cart_summary) {
-                        document.getElementById('cart-subtotal-before-gst').textContent = data.cart_summary.subtotal_before_gst.toFixed(2);
-                        document.getElementById('cart-total-gst').textContent = data.cart_summary.total_gst_amount.toFixed(2);
-                        document.getElementById('cart-shipping-charge').textContent = data.cart_summary.shipping_charge.toFixed(2);
-                        document.getElementById('cart-grand-total').textContent = data.cart_summary.grand_total.toFixed(2);
+                        document.getElementById('cart-subtotal-before-gst').textContent = parseFloat(data.cart_summary.subtotal_before_gst).toFixed(2);
+                        document.getElementById('cart-total-gst').textContent = parseFloat(data.cart_summary.total_gst_amount).toFixed(2);
+                        document.getElementById('cart-shipping-charge').textContent = parseFloat(data.cart_summary.shipping_charge).toFixed(2);
+                        document.getElementById('cart-grand-total').textContent = parseFloat(data.cart_summary.grand_total).toFixed(2);
                     } else {
-                        // If cart is now empty, clear totals
-                        document.getElementById('cart-subtotal-before-gst').textContent = '0.00';
-                        document.getElementById('cart-total-gst').textContent = '0.00';
-                        document.getElementById('cart-shipping-charge').textContent = '0.00';
-                        document.getElementById('cart-grand-total').textContent = '0.00';
-                        
-                        // Show empty cart message
                         document.querySelector('.container.main-content-area.py-5').innerHTML = `
                             <div class="text-center py-5">
                                 <i class="fas fa-shopping-cart fa-5x text-muted mb-4"></i>
                                 <p class="lead mb-4">Your cart is currently empty. Start shopping now!</p>
                                 <a href="{{ url_for('all_products') }}" class="btn btn-primary btn-lg">Browse Artworks</a>
-                            </div>
-                        `;
+                            </div>`;
                     }
-                    updateCartCountDisplay(); // Update navbar count
-                    showCustomAlert(`Item removed from cart!`, 'success');
+                    updateCartCountDisplay();
+                    showCustomAlert("Item removed from cart.", 'success');
                 } else {
                     showCustomAlert(`Error: ${data.message}`, 'danger');
-                    console.error("Cart removal failed:", data.message);
                 }
-            } catch (error) {
-                console.error("Network error during cart removal:", error);
-                showCustomAlert("Network error removing item. Please check your connection.", 'danger');
+            } catch (err) {
+                console.error(err);
+                showCustomAlert("Network error. Try again.", 'danger');
             }
         };
 
-        // Quantity input change (existing, no change)
         document.querySelectorAll('.cart-item-quantity').forEach(input => {
             input.addEventListener('change', function() {
                 const itemId = this.dataset.id;
@@ -253,17 +165,15 @@
                 const frame = this.dataset.frame;
                 const glass = this.dataset.glass;
                 const newQuantity = parseInt(this.value);
-
                 if (newQuantity < 1) {
-                    this.value = 1; // Prevent quantity less than 1
-                    showCustomAlert("Quantity cannot be less than 1. To remove, use the 'X' button.", 'warning');
+                    this.value = 1;
+                    showCustomAlert("Quantity cannot be less than 1.", 'warning');
                     return;
                 }
                 updateCartItem(itemId, sku, size, frame, glass, newQuantity);
             });
         });
 
-        // Quantity increase/decrease buttons (existing, no change)
         document.querySelectorAll('.btn-increase-quantity, .btn-decrease-quantity').forEach(button => {
             button.addEventListener('click', function() {
                 const itemId = this.dataset.id;
@@ -273,23 +183,16 @@
                 const glass = this.dataset.glass;
                 const quantityInput = document.querySelector(`.cart-item-quantity[data-id="${itemId}"]`);
                 let currentQuantity = parseInt(quantityInput.value);
-
-                if (this.classList.contains('btn-increase-quantity')) {
-                    currentQuantity++;
-                } else {
-                    currentQuantity--;
-                }
-
+                currentQuantity += this.classList.contains('btn-increase-quantity') ? 1 : -1;
                 if (currentQuantity < 1) {
-                    showCustomAlert("Quantity cannot be less than 1. To remove, use the 'X' button.", 'warning');
+                    showCustomAlert("Quantity cannot be less than 1.", 'warning');
                     return;
                 }
-                quantityInput.value = currentQuantity; // Update UI immediately
+                quantityInput.value = currentQuantity;
                 updateCartItem(itemId, sku, size, frame, glass, currentQuantity);
             });
         });
 
-        // Remove item buttons (existing, no change)
         document.querySelectorAll('.btn-remove-item').forEach(button => {
             button.addEventListener('click', function() {
                 const itemId = this.dataset.id;
@@ -297,8 +200,6 @@
                 const size = this.dataset.size;
                 const frame = this.dataset.frame;
                 const glass = this.dataset.glass;
-                
-                // You could add a confirmation modal here instead of direct remove
                 if (confirm("Are you sure you want to remove this item from your cart?")) {
                     removeCartItem(itemId, sku, size, frame, glass);
                 }
