@@ -25,7 +25,7 @@
         "name": "test3",
         "category": "FRAMES",
         "original_price": "400",
-        "stock": 10,
+        "stock": 5,
         "description": "test3",
         "gst_percentage": "6",
         "images": [

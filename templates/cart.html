@@ -44,13 +44,21 @@
                                     <td>₹{{ item.unit_price_before_gst | floatformat(2) }}</td>
                                     <td>
                                         <div class="input-group input-group-sm w-auto" style="max-width: 120px;">
-                                            <button class="btn btn-outline-secondary btn-decrease-quantity" type="button" data-id="{{ item.id }}" data-sku="{{ item.sku }}" data-size="{{ item.size }}" data-frame="{{ item.frame }}" data-glass="{{ item.glass }}">-</button>
-                                            <input type="number" class="form-control text-center cart-item-quantity" value="{{ item.quantity }}" min="1" data-id="{{ item.id }}" data-sku="{{ item.sku }}" data-size="{{ item.size }}" data-frame="{{ item.frame }}" data-glass="{{ item.glass }}">
-                                            <button class="btn btn-outline-secondary btn-increase-quantity" type="button" data-id="{{ item.id }}" data-sku="{{ item.sku }}" data-size="{{ item.size }}" data-frame="{{ item.frame }}" data-glass="{{ item.glass }}">+</button>
+                                            <button class="btn btn-outline-secondary btn-decrease-quantity" type="button" 
+                                                data-id="{{ item.id }}" data-sku="{{ item.sku }}" data-size="{{ item.size }}" 
+                                                data-frame="{{ item.frame }}" data-glass="{{ item.glass }}">-</button>
+                                            <input type="number" class="form-control text-center cart-item-quantity" value="{{ item.quantity }}" min="1" 
+                                                data-id="{{ item.id }}" data-sku="{{ item.sku }}" data-size="{{ item.size }}" 
+                                                data-frame="{{ item.frame }}" data-glass="{{ item.glass }}">
+                                            <button class="btn btn-outline-secondary btn-increase-quantity" type="button" 
+                                                data-id="{{ item.id }}" data-sku="{{ item.sku }}" data-size="{{ item.size }}" 
+                                                data-frame="{{ item.frame }}" data-glass="{{ item.glass }}">+</button>
                                         </div>
                                     </td>
                                     <td class="fw-bold">₹<span id="item-total-{{ item.id }}">{{ item.total_price | floatformat(2) }}</span></td>
-                                    <td><button class="btn btn-sm btn-outline-danger btn-remove-item" data-id="{{ item.id }}" data-sku="{{ item.sku }}" data-size="{{ item.size }}" data-frame="{{ item.frame }}" data-glass="{{ item.glass }}"><i class="fas fa-times"></i></button></td>
+                                    <td><button class="btn btn-sm btn-outline-danger btn-remove-item" 
+                                        data-id="{{ item.id }}" data-sku="{{ item.sku }}" data-size="{{ item.size }}" 
+                                        data-frame="{{ item.frame }}" data-glass="{{ item.glass }}"><i class="fas fa-times"></i></button></td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -96,115 +104,130 @@
 
 {% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const updateCartItem = async (itemId, sku, size, frame, glass, newQuantity) => {
-            try {
-                const response = await fetch('{{ url_for("update_cart_item_quantity") }}', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: itemId, sku, size, frame, glass, quantity: newQuantity })
-                });
-                const data = await response.json();
-                if (data.success) {
-                    document.getElementById(`item-total-${itemId}`).textContent = parseFloat(data.updated_item.total_price).toFixed(2);
-                    document.getElementById('cart-subtotal-before-gst').textContent = parseFloat(data.cart_summary.subtotal_before_gst).toFixed(2);
-                    document.getElementById('cart-total-gst').textContent = parseFloat(data.cart_summary.total_gst_amount).toFixed(2);
-                    document.getElementById('cart-shipping-charge').textContent = parseFloat(data.cart_summary.shipping_charge).toFixed(2);
-                    document.getElementById('cart-grand-total').textContent = parseFloat(data.cart_summary.grand_total).toFixed(2);
-                    updateCartCountDisplay();
-                    showCustomAlert(`Quantity updated for "${data.updated_item.name}"`, 'success');
-                } else {
-                    showCustomAlert(`Error: ${data.message}`, 'danger');
-                }
-            } catch (err) {
-                console.error(err);
-                showCustomAlert("Failed to update cart. Please try again.", 'danger');
-            }
-        };
+function updateCartItem(itemId, quantity, sku, size, frame, glass) {
+    fetch("{{ url_for('update_cart_item_quantity') }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: itemId, quantity, sku, size, frame, glass })
+    })
+    .then(async (res) => {
+        if (!res.ok) {
+            const text = await res.text();
+            console.error("Update failed:", text);
+            alert("Something went wrong while updating the cart.");
+            return;
+        }
+        return res.json();
+    })
+    .then(data => {
+        if (!data) return;
 
-        const removeCartItem = async (itemId, sku, size, frame, glass) => {
-            try {
-                const response = await fetch('{{ url_for("remove_from_cart") }}', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: itemId, sku, size, frame, glass })
-                });
-                const data = await response.json();
-                if (data.success) {
-                    const itemRow = document.getElementById(`cart-item-${itemId}`);
-                    if (itemRow) itemRow.remove();
-                    if (data.cart_summary) {
-                        document.getElementById('cart-subtotal-before-gst').textContent = parseFloat(data.cart_summary.subtotal_before_gst).toFixed(2);
-                        document.getElementById('cart-total-gst').textContent = parseFloat(data.cart_summary.total_gst_amount).toFixed(2);
-                        document.getElementById('cart-shipping-charge').textContent = parseFloat(data.cart_summary.shipping_charge).toFixed(2);
-                        document.getElementById('cart-grand-total').textContent = parseFloat(data.cart_summary.grand_total).toFixed(2);
-                    } else {
-                        document.querySelector('.container.main-content-area.py-5').innerHTML = `
-                            <div class="text-center py-5">
-                                <i class="fas fa-shopping-cart fa-5x text-muted mb-4"></i>
-                                <p class="lead mb-4">Your cart is currently empty. Start shopping now!</p>
-                                <a href="{{ url_for('all_products') }}" class="btn btn-primary btn-lg">Browse Artworks</a>
-                            </div>`;
-                    }
-                    updateCartCountDisplay();
-                    showCustomAlert("Item removed from cart.", 'success');
-                } else {
-                    showCustomAlert(`Error: ${data.message}`, 'danger');
-                }
-            } catch (err) {
-                console.error(err);
-                showCustomAlert("Network error. Try again.", 'danger');
+        if (data.success) {
+            if (data.item_removed) {
+                document.getElementById("cart-item-" + itemId)?.remove();
+            } else {
+                document.getElementById("item-total-" + itemId).textContent =
+                    parseFloat(data.updated_item.total_price).toFixed(2);
             }
-        };
 
-        document.querySelectorAll('.cart-item-quantity').forEach(input => {
-            input.addEventListener('change', function() {
-                const itemId = this.dataset.id;
-                const sku = this.dataset.sku;
-                const size = this.dataset.size;
-                const frame = this.dataset.frame;
-                const glass = this.dataset.glass;
-                const newQuantity = parseInt(this.value);
-                if (newQuantity < 1) {
-                    this.value = 1;
-                    showCustomAlert("Quantity cannot be less than 1.", 'warning');
+            document.getElementById("cart-subtotal-before-gst").textContent =
+                parseFloat(data.cart_summary.subtotal_before_gst).toFixed(2);
+            document.getElementById("cart-total-gst").textContent =
+                parseFloat(data.cart_summary.total_gst_amount).toFixed(2);
+            document.getElementById("cart-shipping-charge").textContent =
+                parseFloat(data.cart_summary.shipping_charge).toFixed(2);
+            document.getElementById("cart-grand-total").textContent =
+                parseFloat(data.cart_summary.grand_total).toFixed(2);
+
+            // Optionally update cart count
+            if (window.updateCartCount) updateCartCount();
+        } else {
+            alert(data.message || "Update failed.");
+        }
+    })
+    .catch(err => {
+        console.error("Cart update error:", err);
+        alert("Error updating cart.");
+    });
+}
+
+function getItemData(el) {
+    return {
+        id: el.dataset.id,
+        sku: el.dataset.sku,
+        size: el.dataset.size,
+        frame: el.dataset.frame,
+        glass: el.dataset.glass
+    };
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".btn-increase-quantity, .btn-decrease-quantity").forEach(button => {
+        button.addEventListener("click", function () {
+            const input = this.closest(".input-group").querySelector(".cart-item-quantity");
+            let qty = parseInt(input.value);
+            qty += this.classList.contains("btn-increase-quantity") ? 1 : -1;
+            if (qty < 1) qty = 1;
+            input.value = qty;
+            const data = getItemData(input);
+            updateCartItem(data.id, qty, data.sku, data.size, data.frame, data.glass);
+        });
+    });
+
+    document.querySelectorAll(".cart-item-quantity").forEach(input => {
+        input.addEventListener("change", function () {
+            let qty = parseInt(this.value);
+            if (qty < 1) qty = 1;
+            this.value = qty;
+            const data = getItemData(this);
+            updateCartItem(data.id, qty, data.sku, data.size, data.frame, data.glass);
+        });
+    });
+
+    document.querySelectorAll(".btn-remove-item").forEach(button => {
+        button.addEventListener("click", function () {
+            const data = getItemData(this);
+            if (!confirm("Remove this item?")) return;
+            fetch("{{ url_for('remove_from_cart') }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            })
+            .then(async (res) => {
+                if (!res.ok) {
+                    const text = await res.text();
+                    console.error("Remove failed:", text);
+                    alert("Something went wrong while removing the item.");
                     return;
                 }
-                updateCartItem(itemId, sku, size, frame, glass, newQuantity);
-            });
-        });
+                return res.json();
+            })
+            .then(data => {
+                if (!data) return;
 
-        document.querySelectorAll('.btn-increase-quantity, .btn-decrease-quantity').forEach(button => {
-            button.addEventListener('click', function() {
-                const itemId = this.dataset.id;
-                const sku = this.dataset.sku;
-                const size = this.dataset.size;
-                const frame = this.dataset.frame;
-                const glass = this.dataset.glass;
-                const quantityInput = document.querySelector(`.cart-item-quantity[data-id="${itemId}"]`);
-                let currentQuantity = parseInt(quantityInput.value);
-                currentQuantity += this.classList.contains('btn-increase-quantity') ? 1 : -1;
-                if (currentQuantity < 1) {
-                    showCustomAlert("Quantity cannot be less than 1.", 'warning');
-                    return;
-                }
-                quantityInput.value = currentQuantity;
-                updateCartItem(itemId, sku, size, frame, glass, currentQuantity);
-            });
-        });
+                if (data.success) {
+                    document.getElementById("cart-item-" + data.id)?.remove();
+                    document.getElementById("cart-subtotal-before-gst").textContent =
+                        parseFloat(data.cart_summary.subtotal_before_gst).toFixed(2);
+                    document.getElementById("cart-total-gst").textContent =
+                        parseFloat(data.cart_summary.total_gst_amount).toFixed(2);
+                    document.getElementById("cart-shipping-charge").textContent =
+                        parseFloat(data.cart_summary.shipping_charge).toFixed(2);
+                    document.getElementById("cart-grand-total").textContent =
+                        parseFloat(data.cart_summary.grand_total).toFixed(2);
 
-        document.querySelectorAll('.btn-remove-item').forEach(button => {
-            button.addEventListener('click', function() {
-                const itemId = this.dataset.id;
-                const sku = this.dataset.sku;
-                const size = this.dataset.size;
-                const frame = this.dataset.frame;
-                const glass = this.dataset.glass;
-                if (confirm("Are you sure you want to remove this item from your cart?")) {
-                    removeCartItem(itemId, sku, size, frame, glass);
+                    // Optionally update cart count
+                    if (window.updateCartCount) updateCartCount();
+                } else {
+                    alert(data.message || "Remove failed.");
                 }
+            })
+            .catch(err => {
+                console.error("Remove error:", err);
+                alert("Error removing item.");
             });
         });
     });
+});
 </script>
 {% endblock %}

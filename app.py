@@ -36,7 +36,7 @@ REPORTLAB_AVAILABLE = True
 
 # --- App Initialization ---
 app = Flask(__name__)
-
+app.permanent_session_lifetime = timedelta(minutes=30)  # Set session to expire in 30 mins
 # --- CSRF Setup ---
 csrf = CSRFProtect(app)
 
@@ -44,6 +44,16 @@ csrf = CSRFProtect(app)
 ADMIN_CREDENTIALS = {
     'subhashes@6761': 'Rupadey81#'
 }
+
+# --- Currency Formatter for Jinja Templates ---
+@app.template_filter('format_currency')
+def format_currency(value):
+    """Formats a number as ₹ currency with comma separators and two decimal places."""
+    try:
+        value = float(value)
+        return f"{value:,.2f}"
+    except (ValueError, TypeError):
+        return "0.00"
 
 
 # ✅ Inject csrf_token into all templates (IMPORTANT!)
@@ -96,6 +106,7 @@ BANK_NAME = "PNB"
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'user_login'
+
 
 
 # === CATEGORY HELPERS ===
@@ -962,35 +973,6 @@ def add_to_cart():
         app.logger.error(f"Cart error: {e}", exc_info=True)
         return jsonify({"success": False, "message": f"Unexpected error: {str(e)}"}), 500
 
-@app.route('/update_cart_session', methods=['POST'])
-# REMOVED @login_required: This endpoint should work for all users to update cart display
-def update_cart_session():
-    """
-    Endpoint for client-side JS to sync its local cart state with the server session,
-    or to simply fetch the latest server cart state if no 'cart' is provided in payload.
-    It returns the calculated cart summary based on the server's session cart.
-    """
-    data = request.get_json(silent=True) or {}
-    client_cart_payload = data.get('cart')
-
-    
-
-    artworks_data = load_artworks_data() 
-    
-    current_server_cart = session.get('cart', {})
-    
-    if client_cart_payload is not None:
-        pass # No direct update from client_cart_payload here.
-    
-    # Always calculate totals based on the server's current session['cart']
-    # This will also "clean" the cart, removing invalid items or clamping quantities.
-    cart_summary = calculate_cart_totals(current_server_cart, artworks_data)
-    
-    # Update session with the cleaned/recalculated cart from cart_summary, if it changed
-    session['cart'] = {item['id']: item for item in cart_summary['cart_items']}
-    session.modified = True 
-
-    return jsonify(success=True, message="Cart synchronized.", **cart_summary)
 
 
 @app.route('/cart')
@@ -1022,136 +1004,22 @@ def cart():
                            cart_summary=cart_summary, # PASS THE ENTIRE DICTIONARY
                            MAX_SHIPPING_COST_FREE_THRESHOLD=MAX_SHIPPING_COST_FREE_THRESHOLD)
 
-@app.route('/update_cart_item_quantity', methods=['POST'])
-@login_required # Keeps this action requiring login
-def update_cart_item_quantity():
-    """
-    Updates the quantity of a specific item in the user's cart via AJAX POST.
-    Performs stock validation and recalculates cart totals.
-    """
+
+
+@app.route('/get_cart_summary', methods=['GET'])
+def get_cart_summary():
     try:
-        data = request.get_json()
-        item_id = data.get('id') # Using 'id' as per JS
-        new_quantity_raw = data.get('quantity') # Using 'quantity' as per JS
+        cart = session.get('cart', [])
+        # Safely sum quantities, treating missing/non-numeric quantities as 0
+        total_items_quantity = sum(int(item.get('quantity', 0)) for item in cart)
 
-        if not item_id or new_quantity_raw is None:
-            return jsonify(success=False, message="Invalid request data (item_id or new_quantity missing)."), 400
-
-        current_cart_session = session.get('cart', {})
-        
-        # Store original quantity for potential rollback in JS if error occurs
-        original_item_data = current_cart_session.get(item_id)
-        original_quantity = original_item_data.get('quantity') if original_item_data else None
-
-        artwork_sku = original_item_data.get('sku') if original_item_data else None
-        artwork_info = get_artwork_by_sku(artwork_sku) # Use the helper function
-
-        if not artwork_info:
-            # If product details are not found, remove the item from cart
-            if item_id in current_cart_session:
-                del current_cart_session[item_id]
-                session['cart'] = current_cart_session # Update session
-                session.modified = True
-            updated_cart_summary = calculate_cart_totals(session.get('cart', {}), load_artworks_data())
-            return jsonify(success=True, message="Artwork details not found for cart item, item removed.", cart_summary=updated_cart_summary, item_removed=True), 200
-
-        available_stock = artwork_info.get('stock', 0)
-        message = ""
-        item_removed = False
-
-        try:
-            new_quantity = int(new_quantity_raw) # Convert to int
-        except (ValueError, TypeError):
-            app.logger.warning(f"Invalid new_quantity format for item_id {item_id}: {new_quantity_raw}")
-            return jsonify(success=False, message="Invalid quantity format provided.", current_quantity=original_quantity), 400
-
-        if new_quantity < 1: 
-            # If quantity is less than 1, remove the item
-            if item_id in current_cart_session:
-                del current_cart_session[item_id]
-                session['cart'] = current_cart_session
-                session.modified = True
-                message = "Item removed from cart."
-                item_removed = True
-        elif new_quantity > available_stock:
-            # If new quantity exceeds stock, clamp to available stock
-            current_cart_session[item_id]['quantity'] = available_stock
-            session['cart'] = current_cart_session
-            session.modified = True
-            message = f"Only {available_stock} of {artwork_info.get('name')} available. Quantity adjusted."
-            if available_stock == 0: # If stock is zero, truly remove the item
-                del current_cart_session[item_id]
-                session['cart'] = current_cart_session
-                session.modified = True
-                item_removed = True
-                message = f"No stock for {artwork_info.get('name')}. Item removed."
-        else:
-            # Update quantity normally
-            current_cart_session[item_id]['quantity'] = new_quantity
-            session['cart'] = current_cart_session
-            session.modified = True
-            message = "Cart updated."
-
-        updated_cart_summary = calculate_cart_totals(session.get('cart', {}), load_artworks_data())
-
-        response_data = {
+        return jsonify({
             'success': True,
-            'message': message,
-            'cart_summary': updated_cart_summary,
-            'item_removed': item_removed,
-            'current_quantity': original_quantity # For client-side rollback if needed
-        }
-        
-        # If item was not removed by logic above, try to find its updated details for JS
-        if not item_removed:
-            updated_item_in_summary = next((item for item in updated_cart_summary['cart_items'] if item['id'] == item_id), None)
-            if updated_item_in_summary:
-                response_data['updated_item'] = updated_item_in_summary
-            else:
-                # This scenario means calculate_cart_totals removed it (e.g. stock clamping to 0)
-                # It means it was effectively removed, even if not explicitly by `del` in this block.
-                response_data['item_removed'] = True
-                response_data['message'] = f"Item {artwork_info.get('name')} removed from cart (quantity became 0 or out of stock)."
-
-        return jsonify(response_data), 200
-
+            'total_items_quantity': total_items_quantity
+        }), 200
     except Exception as e:
-        app.logger.error(f"ERROR: update_cart_item_quantity: {e}", exc_info=True)
-        # Return the original quantity to allow JS to revert the UI state
-        return jsonify(success=False, message=f"Error updating cart quantity: {e}", current_quantity=original_quantity if original_quantity is not None else 0), 500
-
-@app.route('/remove_from_cart', methods=['POST'])
-@login_required # Keeps this action requiring login
-def remove_from_cart():
-    """
-    Removes a specific item from the user's cart via AJAX POST.
-    Recalculates and returns updated cart totals.
-    """
-    try:
-        data = request.get_json()
-        item_id = data.get('id') # Using 'id' as per JS
-
-        if not item_id:
-            return jsonify(success=False, message="Item ID is required."), 400
-
-        current_cart_session = session.get('cart', {})
-        if item_id in current_cart_session:
-            del current_cart_session[item_id]
-            session['cart'] = current_cart_session # Update session
-            session.modified = True
-        else:
-            return jsonify(success=False, message="Item not found in cart."), 404
-        
-        artworks_data = load_artworks_data()
-        updated_cart_summary = calculate_cart_totals(current_cart_session, artworks_data)
-
-        # The JS expects `cart_summary` key in the response
-        return jsonify(success=True, message="Item removed.", cart_summary=updated_cart_summary), 200
-
-    except Exception as e:
-        app.logger.error(f"ERROR: remove_from_cart: {e}", exc_info=True)
-        return jsonify(success=False, message=f"Error removing item from cart: {e}"), 500
-
+        app.logger.error(f"Error in get_cart_summary: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Failed to retrieve cart summary due0 to a server error.'}), 500
 # --- NEW: Endpoint to process checkout from cart page ---
 @app.route('/process_checkout_from_cart', methods=['POST'])
 @login_required
@@ -1177,6 +1045,7 @@ def process_checkout_from_cart():
     return redirect(url_for('purchase_form'))
 
 # --- NEW: Endpoint for direct "Buy Now" functionality ---
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/create_direct_order', methods=['POST'])
 @login_required
 def create_direct_order():
@@ -1251,30 +1120,33 @@ def create_direct_order():
         return jsonify(success=False, message=f"An unexpected error occurred: {e}"), 500
 
 
+
+def safe_decimal(value, fallback='0.00'):
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        return Decimal(fallback)
+    
+
+@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/purchase_form', methods=['GET', 'POST'])
 @login_required
 def purchase_form():
-    """
-    Handles the display and submission of the purchase form.
-    Calculates final order details based on cart or direct purchase item.
-    """
     if request.method == 'GET':
         item_for_direct_purchase = session.get('direct_purchase_item')
 
         if item_for_direct_purchase:
             try:
-                # Ensure all relevant fields are Decimal objects upon retrieval from session
-                item_for_direct_purchase['total_price_before_gst'] = Decimal(str(item_for_direct_purchase.get('total_price_before_gst', '0.00')))
-                item_for_direct_purchase['gst_amount'] = Decimal(str(item_for_direct_purchase.get('gst_amount', '0.00')))
-                item_for_direct_purchase['total_price'] = Decimal(str(item_for_direct_purchase.get('total_price', '0.00')))
-                item_for_direct_purchase['unit_price_before_options'] = Decimal(str(item_for_direct_purchase.get('unit_price_before_options', '0.00')))
-                item_for_direct_purchase['unit_price_before_gst'] = Decimal(str(item_for_direct_purchase.get('unit_price_before_gst', '0.00')))
-                item_for_direct_purchase['gst_percentage'] = Decimal(str(item_for_direct_purchase.get('gst_percentage', '0.00')))
-
-            except InvalidOperation as e:
+                item_for_direct_purchase['total_price_before_gst'] = safe_decimal(item_for_direct_purchase.get('total_price_before_gst'))
+                item_for_direct_purchase['gst_amount'] = safe_decimal(item_for_direct_purchase.get('gst_amount'))
+                item_for_direct_purchase['total_price'] = safe_decimal(item_for_direct_purchase.get('total_price'))
+                item_for_direct_purchase['unit_price_before_options'] = safe_decimal(item_for_direct_purchase.get('unit_price_before_options'))
+                item_for_direct_purchase['unit_price_before_gst'] = safe_decimal(item_for_direct_purchase.get('unit_price_before_gst'))
+                item_for_direct_purchase['gst_percentage'] = safe_decimal(item_for_direct_purchase.get('gst_percentage'))
+            except Exception as e:
                 app.logger.error(f"Error converting direct purchase item decimals on GET /purchase_form: {e}", exc_info=True)
                 flash("Error processing direct purchase item. Please try again.", "danger")
-                session.pop('direct_purchase_item', None) # Clear invalid item
+                session.pop('direct_purchase_item', None)
                 session.modified = True
                 return redirect(url_for('all_products'))
 
@@ -1284,19 +1156,26 @@ def purchase_form():
                 'total_gst_amount': item_for_direct_purchase['gst_amount'],
                 'cgst_amount': item_for_direct_purchase['gst_amount'] / Decimal('2'),
                 'sgst_amount': item_for_direct_purchase['gst_amount'] / Decimal('2'),
-                'shipping_charge': Decimal('0.00'), 
-                'grand_total': Decimal('0.00')    
+                'shipping_charge': Decimal('0.00'),
+                'grand_total': Decimal('0.00')
             }
-            if cart_summary['subtotal_before_gst'] > 0 and cart_summary['subtotal_before_gst'] < MAX_SHIPPING_COST_FREE_THRESHOLD:
-                cart_summary['shipping_charge'] = DEFAULT_SHIPPING_CHARGE
-            cart_summary['grand_total'] = cart_summary['subtotal_before_gst'] + cart_summary['total_gst_amount'] + cart_summary['shipping_charge']
 
-        else: # This branch is for items coming from the regular cart session
-            cart_data_from_session = session.get('cart', {})
+            if 0 < cart_summary['subtotal_before_gst'] < MAX_SHIPPING_COST_FREE_THRESHOLD:
+                cart_summary['shipping_charge'] = DEFAULT_SHIPPING_CHARGE
+
+            cart_summary['grand_total'] = (
+                cart_summary['subtotal_before_gst'] +
+                cart_summary['total_gst_amount'] +
+                cart_summary['shipping_charge']
+            )
+
+        else:
+            # ✅ FIXED: Now uses latest cart after quantity update
+            cart_data_from_session = session.get('checkout_cart', {})
             if not isinstance(cart_data_from_session, dict):
-                app.logger.warning(f"Session cart was not a dictionary on /purchase_form (cart path). Resetting cart for session ID: {session.sid}")
+                app.logger.warning(f"Session checkout_cart was not a dictionary. Resetting for session ID: {session.sid}")
                 cart_data_from_session = {}
-                session['cart'] = cart_data_from_session 
+                session['checkout_cart'] = cart_data_from_session
                 session.modified = True
 
             if not cart_data_from_session:
@@ -1305,81 +1184,81 @@ def purchase_form():
 
             artworks_data = load_artworks_data()
             cart_summary = calculate_cart_totals(cart_data_from_session, artworks_data)
-            
+
             try:
-                cart_summary['subtotal_before_gst'] = Decimal(str(cart_summary.get('subtotal_before_gst', '0.00')))
-                cart_summary['total_gst_amount'] = Decimal(str(cart_summary.get('total_gst_amount', '0.00')))
-                cart_summary['cgst_amount'] = Decimal(str(cart_summary.get('cgst_amount', '0.00')))
-                cart_summary['sgst_amount'] = Decimal(str(cart_summary.get('sgst_amount', '0.00')))
-                cart_summary['shipping_charge'] = Decimal(str(cart_summary.get('shipping_charge', '0.00')))
-                cart_summary['grand_total'] = Decimal(str(cart_summary.get('grand_total', '0.00')))
-            except InvalidOperation as e:
-                app.logger.error(f"Error converting cart_summary decimals in /purchase_form (cart path): {e}", exc_info=True)
+                cart_summary['subtotal_before_gst'] = safe_decimal(cart_summary.get('subtotal_before_gst'))
+                cart_summary['total_gst_amount'] = safe_decimal(cart_summary.get('total_gst_amount'))
+                cart_summary['cgst_amount'] = safe_decimal(cart_summary.get('cgst_amount'))
+                cart_summary['sgst_amount'] = safe_decimal(cart_summary.get('sgst_amount'))
+                cart_summary['shipping_charge'] = safe_decimal(cart_summary.get('shipping_charge'))
+                cart_summary['grand_total'] = safe_decimal(cart_summary.get('grand_total'))
+            except Exception as e:
+                app.logger.error(f"Error converting cart summary decimals: {e}", exc_info=True)
                 flash("Error processing cart. Please try again.", "danger")
-                session.pop('cart', None) 
+                session.pop('checkout_cart', None)
                 session.modified = True
                 return redirect(url_for('all_products'))
 
-
             if not cart_summary['cart_items']:
-                flash('Your cart is empty or all items are out of stock. Please add items to proceed.', 'info')
+                flash('Your cart is empty or items are out of stock.', 'info')
                 return redirect(url_for('all_products'))
 
         user = current_user
-        users_data = load_users_data() 
-        user_data_from_db = next((u for u in users_data if u['id'] == str(user.id)), None)
+        users_data = load_users_data()
+        user_data = next((u for u in users_data if u['id'] == str(user.id)), None)
 
         context = {
-            'prefill_name': user_data_from_db.get('name') if user_data_from_db else '',
-            'prefill_email': user_data_from_db.get('email') if user_data_from_db else '',
-            'prefill_phone': user_data_from_db.get('phone') if user_data_from_db else '',
-            'prefill_address': user_data_from_db.get('address') if user_data_from_db else '',
-            'prefill_pincode': user_data_from_db.get('pincode') if user_data_from_db else '',
+            'prefill_name': user_data.get('name') if user_data else '',
+            'prefill_email': user_data.get('email') if user_data else '',
+            'prefill_phone': user_data.get('phone') if user_data else '',
+            'prefill_address': user_data.get('address') if user_data else '',
+            'prefill_pincode': user_data.get('pincode') if user_data else '',
             'cart_summary': cart_summary,
             'cart_json': json.dumps(cart_summary['cart_items'], cls=CustomJsonEncoder)
         }
         return render_template('purchase_form.html', **context)
 
+    # === POST ===
     elif request.method == 'POST':
+        session.pop('checkout_cart', None)  # ✅ Clean up session
         user_id = str(current_user.id)
-        
         item_for_direct_purchase = session.pop('direct_purchase_item', None)
         session.modified = True
 
         if item_for_direct_purchase:
             items_to_process = [item_for_direct_purchase]
-            subtotal_before_gst = Decimal(str(item_for_direct_purchase.get('total_price_before_gst', '0.00')))
-            total_gst_amount = Decimal(str(item_for_direct_purchase.get('gst_amount', '0.00')))
-            shipping_charge = DEFAULT_SHIPPING_CHARGE if (subtotal_before_gst > 0 and subtotal_before_gst < MAX_SHIPPING_COST_FREE_THRESHOLD) else Decimal('0.00')
+            subtotal_before_gst = safe_decimal(item_for_direct_purchase.get('total_price_before_gst'))
+            total_gst_amount = safe_decimal(item_for_direct_purchase.get('gst_amount'))
+            shipping_charge = DEFAULT_SHIPPING_CHARGE if 0 < subtotal_before_gst < MAX_SHIPPING_COST_FREE_THRESHOLD else Decimal('0.00')
             total_amount = subtotal_before_gst + total_gst_amount + shipping_charge
         else:
-            cart_data_from_session = session.pop('cart', {})
+            cart_data = session.pop('cart', {})
             session.modified = True
-            if not cart_data_from_session:
+            if not cart_data:
                 flash("Your cart is empty, cannot proceed with purchase.", "danger")
                 return redirect(url_for('cart'))
-            
+
             artworks_data = load_artworks_data()
-            cart_summary = calculate_cart_totals(cart_data_from_session, artworks_data)
+            cart_summary = calculate_cart_totals(cart_data, artworks_data)
             items_to_process = cart_summary['cart_items']
-            total_amount = Decimal(str(cart_summary.get('grand_total', '0.00')))
-            subtotal_before_gst = Decimal(str(cart_summary.get('subtotal_before_gst', '0.00')))
-            total_gst_amount = Decimal(str(cart_summary.get('total_gst_amount', '0.00')))
-            shipping_charge = Decimal(str(cart_summary.get('shipping_charge', '0.00'))) 
+            subtotal_before_gst = safe_decimal(cart_summary.get('subtotal_before_gst'))
+            total_gst_amount = safe_decimal(cart_summary.get('total_gst_amount'))
+            shipping_charge = safe_decimal(cart_summary.get('shipping_charge'))
+            total_amount = safe_decimal(cart_summary.get('grand_total'))
 
         if not items_to_process:
             flash("No items to purchase. Please add items to your cart.", "danger")
             return redirect(url_for('index'))
-        
+
         customer_name = request.form.get('name', current_user.name)
         customer_email = request.form.get('email', current_user.email)
         customer_phone = request.form.get('phone', current_user.phone)
         customer_address = request.form.get('address', current_user.address)
         customer_pincode = request.form.get('pincode', current_user.pincode)
 
-        users = load_users_data() 
-        for i, u_data in enumerate(users):
-            if str(u_data['id']) == user_id:
+        users = load_users_data()
+        for i, u in enumerate(users):
+            if str(u['id']) == user_id:
                 users[i]['name'] = customer_name
                 users[i]['email'] = customer_email
                 users[i]['phone'] = customer_phone
@@ -1395,7 +1274,6 @@ def purchase_form():
 
         try:
             new_order_id = str(uuid.uuid4())[:8].upper()
-            
             new_order = {
                 'order_id': new_order_id,
                 'user_id': user_id,
@@ -1405,17 +1283,17 @@ def purchase_form():
                 'customer_address': customer_address,
                 'customer_pincode': customer_pincode,
                 'placed_on': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                'items': items_to_process, 
+                'items': items_to_process,
                 'subtotal_before_gst': subtotal_before_gst,
                 'total_gst_amount': total_gst_amount,
                 'cgst_amount': total_gst_amount / Decimal('2'),
                 'sgst_amount': total_gst_amount / Decimal('2'),
                 'shipping_charge': shipping_charge,
                 'total_amount': total_amount,
-                'status': "Pending Payment", # Initial status before payment screen
+                'status': "Pending Payment",
                 'remark': '',
-                'courier': '', # Initialize new fields
-                'tracking_number': '', # Initialize new fields
+                'courier': '',
+                'tracking_number': '',
                 'invoice_details': {
                     'invoice_status': 'Not Applicable',
                     'is_held_by_admin': False,
@@ -1427,35 +1305,27 @@ def purchase_form():
             orders.append(new_order)
             save_json('orders.json', orders)
 
-            # --- Stock Deduction ---
-            artworks_to_update = load_artworks_data() # Load current stock
-            artwork_map = {a['sku']: a for a in artworks_to_update} # Create a map for efficient lookup
-
+            # Deduct stock
+            artworks = load_artworks_data()
+            artwork_map = {a['sku']: a for a in artworks}
             for item in items_to_process:
                 sku = item['sku']
-                quantity_ordered = item['quantity']
+                qty = item['quantity']
                 if sku in artwork_map:
-                    original_stock = artwork_map[sku].get('stock', 0)
-                    if original_stock >= quantity_ordered:
-                        artwork_map[sku]['stock'] = original_stock - quantity_ordered
-                    else:
-                        app.logger.warning(f"Ordered quantity {quantity_ordered} for SKU {sku} exceeds available stock {original_stock} during final order placement. Stock will go negative.")
-                        artwork_map[sku]['stock'] = 0 # Or handle negative stock if business logic allows
-            save_json('artworks.json', artworks_to_update) # Save updated stock levels
-
+                    stock = artwork_map[sku].get('stock', 0)
+                    artwork_map[sku]['stock'] = max(0, stock - qty)
+            save_json('artworks.json', artworks)
 
             flash("Order placed successfully. Please complete the payment.", "success")
-            return redirect(url_for('payment_initiate', order_id=new_order_id, amount=float(new_order['total_amount'])))
+            return redirect(url_for('payment_initiate', order_id=new_order_id, amount=float(total_amount)))
 
         except Exception as e:
-            app.logger.error(f"An unexpected error occurred during purchase form submission: {e}", exc_info=True)
-            flash(f"An unexpected error occurred during your purchase. Please try again. Error: {e}", "danger")
-            if not item_for_direct_purchase:
-                # If it was a cart purchase, restore cart items to session
-                session['cart'] = {item['id']: item for item in items_to_process}
-            else:
-                # If it was a direct purchase, restore the single item to session
+            app.logger.error(f"Unexpected error during order placement: {e}", exc_info=True)
+            flash(f"An unexpected error occurred. Please try again. Error: {e}", "danger")
+            if item_for_direct_purchase:
                 session['direct_purchase_item'] = items_to_process[0]
+            else:
+                session['cart'] = {item['id']: item for item in items_to_process}
             session.modified = True
             return redirect(url_for('purchase_form'))
 
@@ -2596,30 +2466,30 @@ def verify_otp():
         stored_data = otp_storage.get(email_for_otp_verification)
 
         if stored_data and stored_data['otp'] == user_otp and datetime.now() < stored_data['expiry']:
-            # OTP is valid and not expired
+            # OTP is valid
             new_user_data = stored_data['user_data']
 
             users = load_users_data()
             matched_user = next((u for u in users if u['email'] == new_user_data['email']), None)
 
             if not matched_user:
-                # New user, save to users.json
                 users.append(new_user_data)
                 save_json('users.json', users)
                 matched_user = new_user_data
 
-            # ✅ Restore cart that was saved before signup
+            # ✅ Restore saved cart before login
             saved_cart = session.pop('saved_cart_before_signup', [])
 
-            # Clean up OTP and temp session values
+            # Clean up OTP and session values
             otp_storage.pop(email_for_otp_verification, None)
             session.pop('email_for_otp_verification', None)
 
-            # Clear and reset session to prevent leakage, then restore cart
+            # ✅ Fully reset session and restore saved cart
             session.clear()
+            session.permanent = True  # 🔐 Keeps login for session timeout
             session['cart'] = saved_cart
 
-            # Log in user
+            # Login user using flask-login
             login_user(User(
                 matched_user.get('id', str(uuid.uuid4())),
                 matched_user.get('email', ''),
@@ -2638,7 +2508,7 @@ def verify_otp():
 
     return render_template('verify_otp.html', email=email_for_otp_verification, next_url=next_url)
 
-@app.route('/user-login', methods=['GET', 'POST'])
+@app.route('/user-login', methods=['GET', 'POST']) # Corrected route name
 def user_login():
     next_url = request.args.get('next') or request.form.get('next') or url_for('index')
 
@@ -2677,6 +2547,9 @@ def user_login():
                     matched_user.get('pincode', ''),
                     matched_user.get('role', 'user')
                 ))
+
+                # CHANGE THIS LINE: Set session to be non-permanent
+                session.permanent = False # <--- UPDATED THIS LINE
 
                 # ✅ Restore cart after login
                 session['cart'] = saved_cart
@@ -2728,6 +2601,55 @@ def profile():
     # If user not found
     flash("User not found.", "danger")
     return redirect(url_for('user_login'))
+
+import uuid
+
+@app.route('/my-addresses')
+@login_required
+def my_addresses():
+    user_email = current_user.email
+    users = load_users_data()
+    user = next((u for u in users if u["email"] == user_email), None)
+    address_list = user.get('addresses', []) if user else []
+    return render_template("my_addresses.html", addresses=address_list)
+
+@app.route('/add-address', methods=['GET', 'POST'])
+@login_required
+def add_address():
+    if request.method == 'POST':
+        data = request.form
+        new_address = {
+            "id": str(uuid.uuid4())[:8],
+            "label": data.get('label'),
+            "full_name": data.get('full_name'),
+            "phone": data.get('phone'),
+            "address": data.get('address'),
+            "pincode": data.get('pincode')
+        }
+        users = load_users_data()
+        for u in users:
+            if u['email'] == current_user.email:
+                if 'addresses' not in u:
+                    u['addresses'] = []
+                u['addresses'].append(new_address)
+                break
+        save_json('users.json', users)
+        flash("✅ Address added successfully!", "success")
+        return redirect(url_for('my_addresses'))
+
+    return render_template("add_address.html")
+
+@app.route('/delete-address/<addr_id>', methods=['POST'])
+@login_required
+def delete_address(addr_id):
+    users = load_users_data()
+    for u in users:
+        if u['email'] == current_user.email:
+            u['addresses'] = [a for a in u.get('addresses', []) if a['id'] != addr_id]
+            break
+    save_json('users.json', users)
+    flash("🗑️ Address deleted.", "info")
+    return redirect(url_for('my_addresses'))
 
 
 @csrf.exempt  # 💥 disables CSRF for this route
@@ -2846,7 +2768,53 @@ def inject_globals():
 
 
 
+
+
+
+
+# -------------------- FIXED CART SESSION ROUTES --------------------
+@csrf.exempt  # 💥 disables CSRF for this route
+@app.route('/update_cart_item_quantity', methods=['POST'])
+def update_cart_item_quantity():
+    data = request.get_json()
+    # Check for 'item_id' as per your cart.html's JavaScript
+    if not data or 'item_id' not in data or 'quantity' not in data:
+        return jsonify({'error': 'Missing item_id or quantity'}), 400
+
+    cart = session.get('cart', [])
+    found = False
+    for item in cart:
+        if item['sku'] == data['item_id']: # Using sku from cart item, but matching item_id from request
+            item['quantity'] = int(data['quantity'])
+            found = True
+            break
+    if not found:
+        return jsonify({'error': 'Item not found in cart'}), 404
+
+    session['cart'] = cart
+    return jsonify({'message': 'Cart updated successfully'}), 200
+
+@csrf.exempt  # 💥 disables CSRF for this route
+@app.route('/remove_from_cart', methods=['POST'])
+def remove_from_cart():
+    data = request.get_json()
+    sku = data.get('sku')
+    if not sku:
+        return jsonify({'error': 'Missing SKU'}), 400
+
+    cart = session.get('cart', [])
+    cart = [item for item in cart if item['sku'] != sku]
+    session['cart'] = cart
+    return jsonify({'message': 'Item removed'}), 200
+
+@app.route('/get_cart_count')
+def get_cart_count():
+    cart = session.get('cart', {})
+    count = sum(item.get('quantity', 1) for item in cart.values())
+    return jsonify({'count': count})
+
+
+
 if __name__ == '__main__':
     create_default_admin_if_not_exists() # CALL THE FUNCTION TO CREATE ADMIN ON STARTUP
     app.run(debug=True)
-

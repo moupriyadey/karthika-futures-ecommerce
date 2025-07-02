@@ -4,336 +4,150 @@
 
 {% block extra_css %}
 <style>
-    /* Main Content Area - A clean, central block */
-    .main-content-area {
-        background-color: rgba(255, 255, 255, 0.98); /* Near-opaque white */
-        padding: 2.5rem;
-        border-radius: 1rem; /* More prominent rounded corners */
-        box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.08); /* Soft, professional shadow */
-        margin-top: 2rem; /* Space from fixed navbar */
-        margin-bottom: 2rem;
-        position: relative;
-        overflow: hidden; /* Contains any floating elements */
-        z-index: 10; /* Ensures it's above the body background */
-        border: 1px solid #e0e0e0; /* Subtle border for definition */
+    body {
+        background-image: url('{{ url_for('static', filename='images/background_krishna_motif.jpg') }}');
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        background-position: center;
     }
-
-    /* Section Headers */
+    .main-content-area {
+        background-color: rgba(255, 255, 255, 0.95);
+        border-radius: 1.5rem;
+        padding: 2rem;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(10px);
+    }
+    .product-card {
+        border: 4px solid #f3e5ab;
+        border-radius: 1rem;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+        transition: transform 0.2s;
+        background: white url('{{ url_for('static', filename='images/flute_watermark.png') }}') no-repeat bottom right;
+        background-size: 80px;
+    }
+    .product-card:hover {
+        transform: scale(1.02);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+    }
+    .product-card-img-container {
+        height: 240px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f9f9f9;
+        border-bottom: 1px solid #eee;
+    }
+    .product-card-img {
+        max-height: 100%;
+        object-fit: contain;
+    }
+    .product-card-title {
+        font-size: 1.3rem;
+        font-weight: bold;
+        color: #40210f;
+    }
+    .product-card-artist, .product-card-category {
+        font-size: 0.9rem;
+        color: #555;
+    }
+    .product-card-price {
+        font-size: 1.4rem;
+        font-weight: bold;
+        color: #228b22;
+    }
+    .product-card-stock {
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
     .section-header {
+        font-family: 'Georgia', serif;
         font-size: 2.5rem;
-        font-weight: 700;
-        color: #6b4e28; /* Earthy tone from previous version, good for theme */
+        color: #4b2e17;
         text-align: center;
-        margin-bottom: 2.5rem;
-        position: relative;
+        margin-bottom: 2rem;
+        border-bottom: 3px solid #d2a679;
+        display: inline-block;
         padding-bottom: 0.5rem;
     }
-    .section-header::after {
-        content: '';
-        display: block;
-        width: 80px;
-        height: 4px;
-        background-color: #007bff; /* Accent color for underline */
-        margin: 0.5rem auto 0;
-        border-radius: 2px;
+    .krishna-carousel {
+        margin-top: 2rem;
+        margin-bottom: 3rem;
+        background: rgba(255, 255, 255, 0.7);
+        padding: 1.5rem;
+        border-radius: 1rem;
+        font-family: 'Georgia', serif;
+        font-style: italic;
+        text-align: center;
+        color: #2f3e46;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
     }
-
-    /* Artwork Card Styling - Highly refined */
-    .card.artwork-card {
-        border: none;
-        border-radius: 0.75rem;
-        overflow: hidden;
-        transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
-        box-shadow: 0 0.25rem 1rem rgba(0,0,0,0.07); /* Subtle card shadow */
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        background-color: #ffffff; /* White background for card */
-        border: 1px solid #f0f0f0; /* Very light border */
-    }
-    .card.artwork-card:hover {
-        transform: translateY(-8px); /* More pronounced lift on hover */
-        box-shadow: 0 0.8rem 2rem rgba(0,0,0,0.15); /* Stronger shadow on hover */
-    }
-    .artwork-card img {
-        width: 100%;
-        height: 220px; /* Consistent image height */
-        object-fit: cover;
-        border-bottom: 1px solid #f0f0f0; /* Lighter border below image */
-        border-top-left-radius: 0.75rem; /* Match card radius */
-        border-top-right-radius: 0.75rem; /* Match card radius */
-        cursor: zoom-in;
-    }
-    .card-body {
-        flex-grow: 1;
-        display: flex;
-        flex-direction: column;
-        padding: 1.5rem; /* More padding inside card body */
-    }
-    .card-title {
-        font-size: 1.4rem; /* Larger title */
-        font-weight: 600;
-        color: #333;
-        margin-bottom: 0.75rem;
-    }
-    .card-text-description { /* Specific class for description */
-        font-size: 0.95rem;
-        color: #555;
-        margin-bottom: 1rem;
-        line-height: 1.5;
-        overflow: hidden;
-        display: -webkit-box;
-        -webkit-line-clamp: 3; /* Limit to 3 lines */
-        -webkit-box-orient: vertical;
-        flex-grow: 1; /* Allows it to take available space */
-    }
-    .final-price {
-        font-size: 1.75rem; /* Larger final price */
-        font-weight: 700;
-        color: #28a745; /* Prominent green for price */
-        margin-top: 1rem;
-        margin-bottom: 1rem;
-    }
-    .price-old {
-        color: #999;
-        font-size: 1rem;
-        margin-right: 0.5rem;
-        text-decoration: line-through; /* Strikethrough for old price */
-    }
-
-    /* Form Selects & Inputs within Cards */
-    .form-select, .form-control {
-        border-radius: 0.4rem; /* Rounded inputs */
-        border: 1px solid #dee2e6;
-        padding: 0.6rem 0.9rem;
-        font-size: 0.9rem;
-        color: #333;
-    }
-    .form-select:focus, .form-control:focus {
-        border-color: #86b7fe;
-        box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25);
-    }
-    .form-label {
+    .divine-footer {
+        background: linear-gradient(to right, #faf3e0, #fdfaf6);
+        padding: 1.2rem 0;
+        border-top: 2px solid #e0c097;
+        text-align: center;
+        color: #5e412f;
         font-weight: 500;
-        color: #495057;
-        margin-bottom: 0.4rem;
-        font-size: 0.95rem;
-    }
-    /* Adjusted margin for form elements to match the original intent */
-    .option-group {
-        margin-bottom: 1rem; 
-    }
-    .option-group:last-of-type {
-        margin-bottom: 0.5rem; /* Less margin for last option group before quantity */
-    }
-    .quantity-group {
-        margin-bottom: 1.5rem;
-    }
-
-    /* Buttons */
-    .btn {
-        font-weight: 600;
-        padding: 0.75rem 1.25rem;
-        border-radius: 0.5rem;
-        transition: all 0.2s ease-in-out;
-        box-shadow: 0 0.2rem 0.5rem rgba(0,0,0,0.1); /* Button shadow */
-    }
-    .add-to-cart-btn {
-        background-color: #007bff; /* Primary blue */
-        border-color: #007bff;
-        color: white;
-    }
-    .add-to-cart-btn:hover {
-        background-color: #0056b3;
-        border-color: #0056b3;
-        transform: translateY(-2px);
-    }
-    .buy-now-btn {
-        background-color: #6f42c1; /* Purple accent */
-        border-color: #6f42c1;
-        color: white;
-    }
-    .buy-now-btn:hover {
-        background-color: #563d7c;
-        border-color: #563d7c;
-        transform: translateY(-2px);
-    }
-    /* Added style for View Details button */
-    .view-details-btn {
-        background-color: #6c757d; /* Muted grey */
-        border-color: #6c757d;
-        color: white;
-    }
-    .view-details-btn:hover {
-        background-color: #5a6268;
-        border-color: #5a6268;
-        transform: translateY(-2px);
-    }
-
-    .d-grid.gap-2 {
-        margin-top: auto; /* Push buttons to the bottom of the card body */
-        padding-top: 1rem; /* Space above buttons */
-        border-top: 1px solid #f0f0f0; /* Separator line */
-    }
-
-    /* Responsive Adjustments (ensure consistency with index.html) */
-    @media (max-width: 991.98px) { /* Tablets and below */
-        .main-content-area {
-            padding: 1.5rem;
-        }
-        .section-header {
-            font-size: 2rem;
-        }
-        .artwork-card img {
-            height: 180px;
-        }
-        .card-title {
-            font-size: 1.2rem;
-        }
-        .final-price {
-            font-size: 1.5rem;
-        }
-        .card-body {
-            padding: 1rem;
-        }
-    }
-
-    @media (max-width: 767.98px) { /* Mobile devices */
-        .main-content-area {
-            padding: 1rem;
-            margin-top: 4rem; /* Adjust for smaller navbar on mobile */
-        }
-        .section-header {
-            font-size: 1.8rem;
-            margin-bottom: 2rem;
-        }
-        .artwork-card img {
-            height: 160px;
-        }
-        .card-title {
-            font-size: 1rem;
-        }
-        .card-text-description {
-            font-size: 0.85rem;
-            -webkit-line-clamp: 2; /* Limit description to 2 lines on mobile */
-        }
-        .final-price {
-            font-size: 1.3rem;
-        }
-        .btn {
-            font-size: 0.9rem;
-            padding: 0.6rem 1rem;
-        }
-        .d-grid.gap-2 {
-             display: flex !important; /* Override d-grid for small screens to stack vertically */
-             flex-direction: column;
-             gap: 0.5rem; /* Space between stacked buttons */
-        }
+        font-family: 'Georgia', serif;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container main-content-area position-relative pt-5">
-    <h2 class="section-header">All Artworks</h2>
-    
+<div class="container main-content-area mt-5">
+    <h1 class="section-header">All Artworks</h1>
+    <div class="krishna-carousel">
+        <div id="krishnaQuotes"></div>
+    </div>
+
     {% if artworks %}
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
         {% for artwork in artworks %}
+        {% set outer_loop_index = loop.index %} {# Capture the outer loop's index here #}
         <div class="col">
-            <div class="card artwork-card h-100" data-artwork-sku="{{ artwork.sku }}">
-                {# Use first image if available, otherwise placeholder #}
-                {% if artwork.images and artwork.images[0] %}
-                <img src="{{ url_for('static', filename=artwork.images[0]) }}" class="card-img-top clickable-image" alt="{{ artwork.name }}"
-                        onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/placeholder.png') }}';" loading="lazy">
-                {% else %}
-                <img src="{{ url_for('static', filename='images/placeholder.png') }}" class="card-img-top clickable-image" alt="No Image Available" loading="lazy">
-                {% endif %}
-                <div class="card-body">
-                    <h5 class="card-title">{{ artwork.name }}</h5>
-                    <h6 class="card-subtitle text-muted mb-2">Category: {{ artwork.category }}</h6>
-                    
-                    <p class="card-text-description">{{ artwork.description | default("No description available for this artwork.") }}</p>
-                    
-                    {# Display initial price (Original Price) #}
-                    <p class="final-price" data-original-price="{{ artwork.original_price | round(2) }}">
-                        ₹{{ artwork.original_price | round(2) }}
-                    </p>
-
-                    {# Options section - only for 'Paintings' category #}
-                    {% if artwork.category == 'Paintings' %}
-                        <div class="option-group">
-                            <label for="size-{{ artwork.sku }}" class="form-label">Size</label>
-                            <select class="form-select size-select" id="size-{{ artwork.sku }}">
-                                <option value="Original" data-price="0">Original (No Change)</option>
-                                {% if artwork.size_a4 %}
-                                    <option value="A4" data-price="{{ artwork.size_a4 }}">A4 (+₹{{ artwork.size_a4 | round(2) }})</option>
-                                {% endif %}
-                                {% if artwork.size_a5 %}
-                                    <option value="A5" data-price="{{ artwork.size_a5 }}">A5 (+₹{{ artwork.size_a5 | round(2) }})</option>
-                                {% endif %}
-                                {% if artwork.size_letter %}
-                                    <option value="Letter" data-price="{{ artwork.size_letter }}">Letter (+₹{{ artwork.size_letter | round(2) }})</option>
-                                {% endif %}
-                                {% if artwork.size_legal %}
-                                    <option value="Legal" data-price="{{ artwork.size_legal }}">Legal (+₹{{ artwork.size_legal | round(2) }})</option>
-                                {% endif %}
-                            </select>
+            <div class="product-card h-100" data-sku="{{ artwork.sku }}">
+                <div class="product-card-img-container">
+                    <div id="carousel-{{ outer_loop_index }}" class="carousel slide" data-bs-ride="carousel">
+                        <div class="carousel-inner">
+                            {% for img in artwork.images %}
+                            <div class="carousel-item {% if loop.first %}active{% endif %}">
+                                <img src="{{ url_for('static', filename=img) }}" class="d-block w-100 product-card-img pop-image lazy" alt="{{ artwork.name }}" data-full="{{ url_for('static', filename=img) }}">
+                            </div>
+                            {% endfor %}
                         </div>
-                        <div class="option-group">
-                            <label for="frame-{{ artwork.sku }}" class="form-label">Frame</label>
-                            <select class="form-select frame-select" id="frame-{{ artwork.sku }}">
-                                <option value="None" data-price="0">None</option>
-                                {% if artwork.frame_wooden %}
-                                    <option value="Wooden" data-price="{{ artwork.frame_wooden }}">Wooden (+₹{{ artwork.frame_wooden | round(2) }})</option>
-                                {% endif %}
-                                {% if artwork.frame_metal %}
-                                    <option value="Metal" data-price="{{ artwork.frame_metal }}">Metal (+₹{{ artwork.frame_metal | round(2) }})</option>
-                                {% endif %}
-                                {% if artwork.frame_pvc %}
-                                    <option value="PVC" data-price="{{ artwork.frame_pvc }}">PVC (+₹{{ artwork.frame_pvc | round(2) }})</option>
-                                {% endif %}
-                            </select>
-                        </div>
-                        <div class="option-group">
-                            <label for="glass-{{ artwork.sku }}" class="form-label">Glass</label>
-                            <select class="form-select glass-select" id="glass-{{ artwork.sku }}">
-                                <option value="None" data-price="0">Without Glass</option>
-                                {% if artwork.glass_price %}
-                                    <option value="Standard" data-price="{{ artwork.glass_price }}">With Glass (+₹{{ artwork.glass_price | round(2) }})</option>
-                                {% endif %}
-                            </select>
-                        </div>
-                    {% else %}
-                        {# Hidden inputs for non-painting categories to ensure options are sent as 'Original' / 'None' #}
-                        <input type="hidden" class="size-select" value="Original" data-price="0">
-                        <input type="hidden" class="frame-select" value="None" data-price="0">
-                        <input type="hidden" class="glass-select" value="None" data-price="0">
-                    {% endif %}
-                    
-                    <div class="mb-3 quantity-group">
-                        <label for="quantity-{{ artwork.sku }}" class="form-label">Quantity</label>
-                        <input type="number" class="form-control quantity-input" id="quantity-{{ artwork.sku }}" value="1" min="1" max="{{ artwork.stock }}">
-                        <small class="text-muted">Available: {{ artwork.stock }}</small>
+                        {% if artwork.images|length > 1 %}
+                        <button class="carousel-control-prev" type="button" data-bs-target="#carousel-{{ outer_loop_index }}" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#carousel-{{ outer_loop_index }}" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                        {% endif %}
                     </div>
-                    
-                    <div class="d-grid gap-2">
-                        <button class="btn btn-primary add-to-cart-btn" data-sku="{{ artwork.sku }}"
-                                data-name="{{ artwork.name }}"
-                                data-image="{{ url_for('static', filename=artwork.images[0]) if artwork.images else url_for('static', filename='images/placeholder.png') }}"
-                                {% if artwork.stock == 0 %} disabled {% endif %}>
-                            🛒 Add to Cart
-                        </button>
-                        <button class="btn btn-purple buy-now-btn" data-sku="{{ artwork.sku }}"
-                                data-name="{{ artwork.name }}"
-                                data-image="{{ url_for('static', filename=artwork.images[0]) if artwork.images else url_for('static', filename='images/placeholder.png') }}"
-                                {% if artwork.stock == 0 %} disabled {% endif %}>
-                            Buy Now
-                        </button>
-                        {# NEW: View Details Button #}
-                        <button class="btn btn-outline-secondary view-details-btn" data-image-src="{{ url_for('static', filename=artwork.images[0]) if artwork.images else url_for('static', filename='images/placeholder.png') }}">
-                            View Details
-                        </button>
+                </div>
+                <div class="d-flex justify-content-center flex-wrap gap-2 mt-2">
+                    {% for thumb in artwork.images %}
+                    <img src="{{ url_for('static', filename=thumb) }}" class="img-thumbnail thumbnail-nav"
+                         style="height: 50px; width: auto; cursor: pointer; border: 2px solid #ccc;"
+                         data-bs-target="#carousel-{{ outer_loop_index }}" data-bs-slide-to="{{ loop.index0 }}" aria-label="Slide {{ loop.index }}">
+                    {% endfor %}
+                </div>
+                <div class="p-3">
+                    <h5 class="product-card-title">{{ artwork.name }}</h5>
+                    <p class="product-card-artist">by {{ artwork.artist }}</p>
+                    <p class="product-card-category">Category: {{ artwork.category }}</p>
+                    <p class="product-card-price">₹{{ artwork.get('total_price_incl_gst', artwork.get('original_price', '0.00')) | float | format_currency }}</p>
+                    <p class="product-card-stock {% if artwork.stock == 0 %}text-danger{% elif artwork.stock <= 5 %}text-warning{% else %}text-success{% endif %}">
+                        Stock: {% if artwork.stock == 0 %}Out of Stock{% else %}{{ artwork.stock }} left{% endif %}
+                    </p>
+                    <div class="d-grid gap-2 mt-3">
+                        <button class="btn btn-primary add-to-cart-btn" {% if artwork.stock == 0 %}disabled{% endif %} data-sku="{{ artwork.sku }}">Add to Cart</button>
+                        <button class="btn btn-success buy-now-btn" {% if artwork.stock == 0 %}disabled{% endif %} data-sku="{{ artwork.sku }}">Buy Now</button>
+                        <a class="btn btn-outline-secondary" href="{{ url_for('product_detail', sku=artwork.sku) }}">View Details</a>
                     </div>
                 </div>
             </div>
@@ -341,400 +155,184 @@
         {% endfor %}
     </div>
     {% else %}
-    <p class="text-center text-muted fs-5 py-4">No artworks found.</p>
+    <p class="text-center lead">No artworks found matching your criteria.</p>
     {% endif %}
+</div>
+
+<div class="modal fade" id="artworkDetailsModal" tabindex="-1" aria-labelledby="artworkDetailsLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="artworkDetailsLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div style="position: relative; display: inline-block;">
+                    <img id="artworkModalImage" class="img-fluid mb-3" style="max-height: 450px; object-fit: contain; filter: brightness(0.9); cursor: zoom-in;" src="" alt="Artwork" onclick="this.requestFullscreen();">
+                    <span style="position: absolute; bottom: 10px; right: 10px; background: rgba(255,255,255,0.7); padding: 2px 6px; font-size: 0.8rem; font-weight: bold; color: #444; border-radius: 3px;">Karthikafutures</span>
+                </div>
+                <p id="artworkModalDescription" class="lead text-muted"></p>
+            </div>
+            <div class="modal-footer">
+                <form method="POST" action="{{ url_for('add_to_cart') }}" style="display:inline" class="modal-add-to-cart-form">
+                    <input type="hidden" name="sku" id="modalSku">
+                    <button type="submit" class="btn btn-primary">Add to Cart</button>
+                </form>
+                <form method="POST" action="{{ url_for('purchase_form') }}" style="display:inline" class="modal-buy-now-form">
+                    <input type="hidden" name="sku" id="modalBuySku">
+                    <button type="submit" class="btn btn-success">Buy Now</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="divine-footer">
+    <div>
+        "Whenever dharma declines and the purpose of life is forgotten, I manifest myself on earth." – Lord Krishna, Bhagavad Gita
+    </div>
+    <div class="mt-3">
+        <strong style="font-size: 1.15rem; display: block;">Please donate in the name of Hariseva and Dharmaseva</strong>
+        <img src="{{ url_for('static', filename='qr_code.png') }}" alt="Donate QR" style="height: 160px; margin-top: 0.5rem;">
+        <div style="font-size: 1rem; color: #5c4433; font-weight: 500;">Scan the QR code to support our sacred cause</div>
+    </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
+{{ super() }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-lazyload/17.8.3/lazyload.min.js"></script>
 <script>
-    // --- Global functions (INLINED for debugging purposes) ---
-
-    // Global function to show custom flash messages
-    function showCustomAlert(message, type) {
-        const container = document.getElementById('flash-messages-container');
-        if (!container) {
-            console.error("Flash messages container not found!");
-            alert(`ALERT: ${message}`); // Fallback for critical debugging
-            return;
-        }
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} flash-message`;
-        alertDiv.textContent = message;
-        container.appendChild(alertDiv);
-
-        setTimeout(() => {
-            alertDiv.remove();
-        }, 5000);
-    }
-
-    // Global function to update cart count in the navbar
-    async function updateCartCountDisplay() {
-        try {
-            const response = await fetch('{{ url_for("update_cart_session") }}', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({})
-            });
-            const data = await response.json();
-
-            if (data.success && data.cart_items) {
-                const totalItemsQuantity = Object.values(data.cart_items).reduce((sum, item) => sum + item.quantity, 0);
-                const cartCountElement = document.getElementById('cart-count');
-                if (cartCountElement) {
-                    cartCountElement.textContent = totalItemsQuantity;
-                    cartCountElement.style.display = totalItemsQuantity > 0 ? 'block' : 'none';
-                }
-            } else {
-                console.error("Failed to fetch cart count:", data.message);
-                const cartCountElement = document.getElementById('cart-count');
-                if (cartCountElement) {
-                    cartCountElement.textContent = '0';
-                    cartCountElement.style.display = 'none';
-                }
-            }
-        } catch (error) {
-            console.error("Network error fetching cart count:", error);
-            const cartCountElement = document.getElementById('cart-count');
-            if (cartCountElement) {
-                cartCountElement.textContent = '0';
-                cartCountElement.style.display = 'none';
-            }
+    var lazyLoadInstance = new LazyLoad({ elements_selector: ".lazy" });
+    const quotes = [
+        "Change is the law of the universe. You can be a millionaire or a pauper in an instant.",
+        "You have the right to work, but never to the fruit of work.",
+        "Perform your duty and abandon all attachment to success or failure.",
+        "I am the beginning, middle, and end of creation.",
+        "Those who worship Me with devotion live in Me."
+    ];
+    let currentQuote = 0;
+    function cycleQuotes() {
+        const display = document.getElementById('krishnaQuotes');
+        if (display) {
+            display.textContent = quotes[currentQuote];
+            currentQuote = (currentQuote + 1) % quotes.length;
         }
     }
+    setInterval(cycleQuotes, 5000);
+    window.onload = cycleQuotes;
 
-    // Global function to add to cart (sends to server via AJAX)
-    async function addToCart(sku, name, imageUrl, unitPriceAfterOptions, options, quantity = 1) {
-        // Proactive check for authentication
-        if ("{{ current_user.is_authenticated }}" !== "True") {
-            const itemToAddAfterLogin = { sku, name, imageUrl, options, quantity };
-            sessionStorage.setItem('itemToAddAfterLogin', JSON.stringify(itemToAddAfterLogin));
-            sessionStorage.setItem('redirect_after_login_endpoint', 'cart'); 
-            
-            window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=add_to_cart';
-            return;
-        }
+    // Handle "Add to Cart" button clicks on product cards
+    document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+        button.addEventListener('click', function () {
+            const card = button.closest('.product-card');
+            const sku = button.dataset.sku; // Get SKU directly from data attribute on button
+            // Get the image from the currently active carousel item for the specific card
+            const imageElement = card.querySelector('.carousel-item.active .product-card-img');
+            const image = imageElement ? imageElement.getAttribute('src') : '';
+            const name = card.querySelector('.product-card-title')?.innerText.trim();
 
-        try {
-            const response = await fetch('{{ url_for("add_to_cart") }}', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+            fetch("{{ url_for('add_to_cart') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
                 body: JSON.stringify({
                     sku: sku,
-                    size: options.size || 'Original',
-                    frame: options.frame || 'None',
-                    glass: options.glass || 'None',
-                    quantity: quantity
+                    name: name,
+                    image: image,
+                    size: "Original", // Default values for size, frame, glass
+                    frame: "None",
+                    glass: "None",
+                    quantity: 1
                 })
+            })
+            .then(res => {
+                if (!res.ok) {
+                    // Check for non-2xx responses (e.g., 400, 500)
+                    return res.json().then(errorData => { throw new Error(errorData.message || 'Server error'); });
+                }
+                return res.json();
+            })
+            .then(data => {
+                alert(data.message || "Added to cart!");
+                // Optionally update cart count in UI here
+            })
+            .catch(err => {
+                alert("Error adding to cart: " + err.message);
+                console.error("Fetch error:", err);
             });
-
-            if (response.status === 401) {
-                console.warn("Received 401 on add to cart despite client-side check. Redirecting.");
-                const itemToAddAfterLogin = { sku, name, imageUrl, options, quantity };
-                sessionStorage.setItem('itemToAddAfterLogin', JSON.stringify(itemToAddAfterLogin));
-                sessionStorage.setItem('redirect_after_login_endpoint', 'cart');
-                window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=add_to_cart';
-                return; 
-            }
-
-            const contentType = response.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                console.error("Server did not return JSON. Content-Type:", contentType, "Status:", response.status);
-                const errorText = await response.text();
-                console.error("Server Response (Non-JSON):", errorText);
-                showCustomAlert("An unexpected error occurred. Please try again.", 'danger');
-                return;
-            }
-
-            const data = await response.json();
-
-            if (data.success) {
-                const addedItem = data.cart_items.find(item => 
-                    item.sku === sku && 
-                    item.size === (options.size || 'Original') && 
-                    item.frame === (options.frame || 'None') && 
-                    item.glass === (options.glass || 'None')
-                );
-                if (addedItem) {
-                     showCustomAlert(`✅ "${name}" added to cart for ₹${addedItem.total_price.toFixed(2)}`, 'success');
-                } else {
-                    showCustomAlert(`✅ "${name}" added to cart!`, 'success');
-                }
-               
-                updateCartCountDisplay();
-            } else {
-                showCustomAlert(`❌ Failed to add "${name}" to cart: ${data.message}`, 'danger');
-                console.error("Add to cart error:", data.message);
-            }
-        } catch (error) {
-            console.error("Network error adding to cart (catch block):", error);
-            showCustomAlert("Network error. Please check your connection and try again.", 'danger');
-        }
-    }
-
-    // Global function for direct "Buy Now"
-    async function buyNow(sku, name, imageUrl, options, quantity = 1) {
-        // Proactive check for authentication
-        if ("{{ current_user.is_authenticated }}" !== "True") {
-            const itemToBuyNow = { sku, name, imageUrl, options, quantity };
-            sessionStorage.setItem('itemToBuyNow', JSON.stringify(itemToBuyNow));
-            sessionStorage.setItem('redirect_after_login_endpoint', 'order_summary_page'); 
-            
-            window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=buy_now';
-            return;
-        }
-
-        try {
-            const itemData = {
-                id: `${sku}-${options.size}-${options.frame}-${options.glass}`,
-                sku: sku,
-                name: name,
-                image: imageUrl,
-                size: options.size,
-                frame: options.frame,
-                glass: options.glass,
-                quantity: quantity
-            };
-
-            const response = await fetch('{{ url_for("create_direct_order") }}', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cart: { [itemData.id]: itemData } }) 
-            });
-
-            if (response.status === 401) { 
-                console.warn("Received 401 on buy now despite client-side check. Redirecting.");
-                sessionStorage.setItem('itemToBuyNow', JSON.stringify(itemData));
-                sessionStorage.setItem('redirect_after_login_endpoint', 'order_summary_page'); 
-                window.location.href = '{{ url_for("user_login") }}?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=buy_now';
-                return; 
-            }
-            
-            const contentType = response.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                console.error("Server did not return JSON. Content-Type:", contentType, "Status:", response.status);
-                const errorText = await response.text();
-                console.error("Server Response (Non-JSON):", errorText);
-                showCustomAlert("An unexpected error occurred. Please try again.", 'danger');
-                return;
-            }
-
-            const data = await response.json();
-
-            if (data.success) {
-                showCustomAlert(`✅ "${name}" order placed. Redirecting to summary...`, 'success');
-                // Clear cart count as it's a direct purchase and user is leaving current page
-                const cartCountElement = document.getElementById('cart-count');
-                if (cartCountElement) {
-                    cartCountElement.textContent = '0';
-                    cartCountElement.style.display = 'none';
-                }
-                // This redirect_url should come from the server and already point to order_summary_page
-                window.location.href = data.redirect_url; 
-            } else {
-                showCustomAlert(`❌ Failed to buy "${name}" to cart: ${data.message}`, 'danger');
-                console.error("Buy now error:", data.message);
-            }
-        } catch (error) {
-            console.error("Network error for Buy Now (catch block):", error);
-            showCustomAlert("Network error. Please check your connection and try again.", 'danger');
-        }
-    }
-
-
-    // --- Artwork card specific logic (from your previous extra_js) ---
-    document.addEventListener('DOMContentLoaded', function () {
-        // Loop through each artwork card to attach event listeners and calculate price
-        document.querySelectorAll('.artwork-card').forEach(card => {
-            // Get references to all relevant elements within the current card
-            const sizeSelect = card.querySelector('.size-select');
-            const frameSelect = card.querySelector('.frame-select');
-            const glassSelect = card.querySelector('.glass-select');
-            const quantityInput = card.querySelector('.quantity-input');
-            const addToCartBtn = card.querySelector('.add-to-cart-btn');
-            const buyNowBtn = card.querySelector('.buy-now-btn');
-            const viewDetailsBtn = card.querySelector('.view-details-btn');
-            const cardImage = card.querySelector('.clickable-image');
-
-            // Function to calculate and display final price based on selected options and quantity
-            function calculateAndDisplayPrice(currentCard) {
-                const originalPriceElement = currentCard.querySelector('.final-price');
-                const originalPrice = parseFloat(originalPriceElement && originalPriceElement.dataset.originalPrice ? originalPriceElement.dataset.originalPrice : 0);
-
-                let selectedSize = 'Original';
-                let selectedFrame = 'None';
-                let selectedGlass = 'None';
-                let sizePrice = 0;
-                let framePrice = 0;
-                let glassPrice = 0;
-
-                // Safely get selected options and their prices, checking if elements and options exist
-                if (sizeSelect) {
-                    if (sizeSelect.tagName === 'SELECT' && sizeSelect.options.length > 0) {
-                        selectedSize = sizeSelect.value;
-                        const selectedOption = sizeSelect.options[sizeSelect.selectedIndex];
-                        sizePrice = parseFloat(selectedOption && selectedOption.dataset.price ? selectedOption.dataset.price : 0);
-                    } else if (sizeSelect.tagName === 'INPUT' && sizeSelect.type === 'hidden') {
-                        selectedSize = sizeSelect.value;
-                        sizePrice = parseFloat(sizeSelect.dataset.price || 0);
-                    }
-                }
-
-                if (frameSelect) {
-                    if (frameSelect.tagName === 'SELECT' && frameSelect.options.length > 0) {
-                        selectedFrame = frameSelect.value;
-                        const selectedOption = frameSelect.options[frameSelect.selectedIndex];
-                        framePrice = parseFloat(selectedOption && selectedOption.dataset.price ? selectedOption.dataset.price : 0);
-                    } else if (frameSelect.tagName === 'INPUT' && frameSelect.type === 'hidden') {
-                        selectedFrame = frameSelect.value;
-                        framePrice = parseFloat(frameSelect.dataset.price || 0);
-                    }
-                }
-
-                if (glassSelect) {
-                    if (glassSelect.tagName === 'SELECT' && glassSelect.options.length > 0) {
-                        selectedGlass = glassSelect.value;
-                        const selectedOption = glassSelect.options[glassSelect.selectedIndex];
-                        glassPrice = parseFloat(selectedOption && selectedOption.dataset.price ? selectedOption.dataset.price : 0);
-                    } else if (glassSelect.tagName === 'INPUT' && glassSelect.type === 'hidden') {
-                        selectedGlass = glassSelect.value;
-                        glassPrice = parseFloat(glassSelect.dataset.price || 0);
-                    }
-                }
-                
-                // Safely get quantity and clamp it to available stock
-                let selectedQuantity = 1;
-                let maxStock = 9999; 
-
-                if (quantityInput) {
-                    selectedQuantity = parseInt(quantityInput.value) || 1;
-                    maxStock = parseInt(quantityInput.max) || 9999;
-
-                    if (selectedQuantity > maxStock) {
-                        selectedQuantity = maxStock;
-                        quantityInput.value = selectedQuantity;
-                        if (typeof showCustomAlert === 'function') {
-                            showCustomAlert(`Only ${maxStock} available. Quantity adjusted.`, 'warning');
-                        } else {
-                            console.warn(`Only ${maxStock} available. Quantity adjusted. (showCustomAlert not found)`);
-                        }
-                    } else if (selectedQuantity < 1) {
-                        selectedQuantity = 1;
-                        quantityInput.value = selectedQuantity;
-                    }
-                }
-
-                const unitPriceAfterOptions = originalPrice + sizePrice + framePrice + glassPrice;
-                const finalCalculatedPrice = unitPriceAfterOptions * selectedQuantity;
-
-                if (originalPriceElement) {
-                    originalPriceElement.textContent = `₹${finalCalculatedPrice.toFixed(2)}`;
-                }
-
-                currentCard.dataset.calculatedUnitPrice = unitPriceAfterOptions.toFixed(2);
-                currentCard.dataset.currentQuantity = selectedQuantity;
-                currentCard.dataset.currentSize = selectedSize;
-                currentCard.dataset.currentFrame = selectedFrame;
-                currentCard.dataset.currentGlass = selectedGlass;
-            }
-
-            // Attach event listeners for option changes and quantity input
-            if (sizeSelect && sizeSelect.tagName === 'SELECT') sizeSelect.addEventListener('change', () => calculateAndDisplayPrice(card));
-            if (frameSelect && frameSelect.tagName === 'SELECT') frameSelect.addEventListener('change', () => calculateAndDisplayPrice(card));
-            if (glassSelect && glassSelect.tagName === 'SELECT') glassSelect.addEventListener('change', () => calculateAndDisplayPrice(card));
-            if (quantityInput) {
-                quantityInput.addEventListener('input', () => calculateAndDisplayPrice(card));
-                quantityInput.addEventListener('change', () => calculateAndDisplayPrice(card));
-            }
-
-            // Initial price calculation when the page loads for each card
-            calculateAndDisplayPrice(card);
-
-            // Add to Cart button functionality
-            if (addToCartBtn) {
-                addToCartBtn.addEventListener('click', async function () {
-                    const sku = this.dataset.sku;
-                    const name = this.dataset.name;
-                    const imageUrl = this.dataset.image;
-
-                    const currentSize = card.dataset.currentSize;
-                    const currentFrame = card.dataset.currentFrame;
-                    const currentGlass = card.dataset.currentGlass;
-                    const currentQuantity = parseInt(card.dataset.currentQuantity);
-                    const unitPriceAfterOptions = parseFloat(card.dataset.calculatedUnitPrice);
-
-                    const options = {
-                        size: currentSize,
-                        frame: currentFrame,
-                        glass: currentGlass,
-                    };
-
-                    await addToCart(sku, name, imageUrl, unitPriceAfterOptions, options, currentQuantity);
-                });
-            }
-
-            // Buy Now button functionality
-            if (buyNowBtn) {
-                buyNowBtn.addEventListener('click', async function () {
-                    const sku = this.dataset.sku;
-                    const name = this.dataset.name;
-                    const imageUrl = this.dataset.image;
-
-                    const selectedSize = card.dataset.currentSize;
-                    const selectedFrame = card.dataset.currentFrame;
-                    const selectedGlass = card.dataset.currentGlass;
-                    const selectedQuantity = parseInt(card.dataset.currentQuantity);
-                    const unitPriceAfterOptions = parseFloat(card.dataset.calculatedUnitPrice);
-
-                    const options = {
-                        size: selectedSize,
-                        frame: selectedFrame,
-                        glass: selectedGlass,
-                    };
-
-                    await buyNow(sku, name, imageUrl, options, selectedQuantity);
-                });
-            }
-
-            // View Details Button functionality
-            if (viewDetailsBtn) {
-                viewDetailsBtn.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    const modalImage = document.getElementById('modalImage');
-                    const imageModal = document.getElementById('imageModal');
-                    const imageSrc = viewDetailsBtn.dataset.imageSrc;
-
-                    if (modalImage && imageModal && imageSrc) {
-                        modalImage.src = imageSrc;
-                        imageModal.style.display = 'flex';
-                    } else {
-                        console.error("Image modal elements or image source not found for View Details button.");
-                        showCustomAlert("Image preview not available.", 'warning');
-                    }
-                });
-            }
-
-            // Image click functionality
-            if (cardImage) {
-                cardImage.style.cursor = 'zoom-in';
-                cardImage.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    const modalImage = document.getElementById('modalImage');
-                    const imageModal = document.getElementById('imageModal');
-                    if (modalImage && imageModal) {
-                        modalImage.src = cardImage.src;
-                        imageModal.style.display = 'flex';
-                    } else {
-                        console.error("Image modal elements not found for direct image click.");
-                        showCustomAlert("Image preview not available.", 'warning');
-                    }
-                });
-            }
         });
-
-        // Event listener for DOMContentLoaded - make sure this is *outside* the extra_js block
-        // (This part is already in _base.html and initiates updateCartCountDisplay on load)
-        // updateCartCountDisplay(); // This is called in _base.html already
     });
+
+    // Handle "Buy Now" button clicks on product cards
+    document.querySelectorAll('.buy-now-btn').forEach(button => {
+        button.addEventListener('click', function () {
+            const sku = button.dataset.sku; // Get SKU directly from data attribute on button
+            // Dynamically create a form and submit it to the purchase route
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = "{{ url_for('purchase_form') }}";
+
+            const skuInput = document.createElement('input');
+            skuInput.type = 'hidden';
+            skuInput.name = 'sku';
+            skuInput.value = sku;
+            form.appendChild(skuInput);
+
+            document.body.appendChild(form); // Append to body to submit
+            form.submit();
+        });
+    });
+
+    // Handle thumbnail clicks to update carousel and show modal
+    document.querySelectorAll('.thumbnail-nav').forEach(thumbnail => {
+        thumbnail.addEventListener('click', function () {
+            const carouselId = this.getAttribute('data-bs-target');
+            const slideTo = parseInt(this.getAttribute('data-bs-slide-to'));
+            const carouselElement = document.querySelector(carouselId);
+            const carousel = bootstrap.Carousel.getInstance(carouselElement) || new bootstrap.Carousel(carouselElement);
+
+            carousel.to(slideTo); // Go to the clicked slide
+
+            // Now, populate the modal with the details of the artwork clicked
+            const card = this.closest('.product-card');
+            const artworkName = card.querySelector('.product-card-title').innerText;
+            const artworkDescription = "This is a placeholder description. You might want to fetch a more detailed description from your backend or store it as a data attribute on the card."; // Placeholder
+            const imageUrl = this.src; // Use the thumbnail's src or the data-full from the main image
+            const sku = card.getAttribute('data-sku');
+
+            document.getElementById('artworkDetailsLabel').innerText = artworkName;
+            document.getElementById('artworkModalImage').src = imageUrl; // Set the image in the modal
+            document.getElementById('artworkModalDescription').innerText = artworkDescription;
+            document.getElementById('modalSku').value = sku; // For add to cart in modal
+            document.getElementById('modalBuySku').value = sku; // For buy now in modal
+
+            // Show the modal
+            const artworkDetailsModal = new bootstrap.Modal(document.getElementById('artworkDetailsModal'));
+            artworkDetailsModal.show();
+        });
+    });
+
+    // Handle modal image click for full screen
+    document.getElementById('artworkModalImage').addEventListener('click', function() {
+        if (this.requestFullscreen) {
+            this.requestFullscreen();
+        } else if (this.webkitRequestFullscreen) { /* Safari */
+            this.webkitRequestFullscreen();
+        } else if (this.msRequestFullscreen) { /* IE11 */
+            this.msRequestFullscreen();
+        }
+    });
+
+    // Initialize Bootstrap carousels (important if they are not auto-initializing)
+    var myCarousel = document.querySelector('#carouselExampleIndicators');
+    if (myCarousel) {
+        var carousel = new bootstrap.Carousel(myCarousel, {
+            interval: 2000,
+            wrap: true
+        });
+    }
+
 </script>
 {% endblock %}

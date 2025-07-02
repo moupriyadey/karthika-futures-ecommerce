@@ -1,100 +1,92 @@
 {% extends '_base.html' %}
 
 {% block content %}
-<div class="container mx-auto p-4 bg-white bg-opacity-90 rounded-lg shadow-lg">
-    <h2 class="text-4xl font-bold text-gray-800 mb-6 text-center">My Orders</h2>
+<div class="container my-5 px-3">
+  <h2 class="text-center mb-4 fw-bold text-primary">📦 My Orders</h2>
 
-    <!-- Return and Refund Message -->
-    <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-md shadow-sm mb-8" role="alert">
-        <p class="font-bold">Returns & Refunds:</p>
-        <p>For returns and refunds, please contact us via WhatsApp on <a href="https://wa.me/919123700057" class="text-blue-600 hover:underline font-semibold">+91 9123700057</a>. We will happily arrange for return pickup.</p>
-    </div>
+  <div class="alert alert-warning shadow-sm rounded small">
+    <strong>Returns & Refunds:</strong><br>
+    Contact us on <a href="https://wa.me/919123700057" target="_blank" class="fw-semibold text-success text-decoration-underline">WhatsApp +91 9123700057</a>. We’ll arrange pickup.
+  </div>
 
-    {% if orders %}
-    <div class="overflow-x-auto">
-        <table class="min-w-full bg-white rounded-lg shadow-md">
-            <thead class="bg-gray-200">
-                <tr>
-                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Order ID</th>
-                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Placed On</th>
-                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Items</th>
-                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Total Amount (₹)</th>
-                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Status</th>
-                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Invoice Status</th>
-                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Remark</th>
-                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for order in orders %}
-                <tr class="border-b border-gray-200 hover:bg-gray-50">
-                    <td class="py-3 px-4 text-sm text-gray-800 font-medium">{{ order.order_id }}</td>
-                    <td class="py-3 px-4 text-sm text-gray-700">{{ order.placed_on }}</td>
-                    <td class="py-3 px-4 text-sm text-gray-700">
-                        <ul class="list-disc list-inside space-y-1">
-                            {% for item in order.items %} {# CORRECTED: Removed parentheses #}
-                                <li>{{ item.name }} (x{{ item.quantity }}) - ₹{{ item.total_price | floatformat(2) }}</li> {# CORRECTED: Added floatformat #}
-                            {% endfor %}
-                        </ul>
-                    </td>
-                    <td class="py-3 px-4 text-sm text-gray-800 font-bold">₹{{ order.total_amount | floatformat(2) }}</td> {# CORRECTED: Changed to floatformat #}
-                    <td class="py-3 px-4 text-sm text-gray-700">
-                        <span class="px-2 py-1 rounded-full text-xs font-semibold
-                            {% if order.status == 'Shipped' %}bg-green-100 text-green-800
-                            {% elif order.status == 'Delivered' %}bg-purple-100 text-purple-800
-                            {% elif order.status == 'Cancelled by User' or order.status == 'Cancelled by Admin' %}bg-red-100 text-red-800
-                            {% elif order.status == 'Payment Submitted - Awaiting Verification' %}bg-yellow-100 text-yellow-800
-                            {% else %}bg-blue-100 text-blue-800{% endif %}">
-                            {{ order.status }}
-                        </span>
-                    </td>
-                    <td class="py-3 px-4 text-sm text-gray-700">
-                        <span class="px-2 py-1 rounded-full text-xs font-semibold
-                            {% if order.invoice_details and order.invoice_details.invoice_status == 'Sent' %}bg-green-100 text-green-800
-                            {% elif order.invoice_details and order.invoice_details.invoice_status == 'Held' %}bg-yellow-100 text-yellow-800
-                            {% elif order.invoice_details and (order.invoice_details.invoice_status == 'PDF Gen Failed' or order.invoice_details.invoice_status == 'Email Failed') %}bg-red-100 text-red-800
-                            {% elif order.invoice_details and order.invoice_details.invoice_status == 'Edited' %}bg-orange-100 text-orange-800
-                            {% else %}bg-gray-100 text-gray-800{% endif %}">
-                            {{ order.invoice_details.invoice_status if order.invoice_details else 'N/A' }}
-                        </span>
-                    </td>
-                     <td class="py-3 px-4 text-sm text-gray-700">
-                        {{ order.remark if order.remark else 'No remarks' }}
-                    </td>
-                    <td class="py-3 px-4 text-sm">
-                        <div class="flex flex-col space-y-2">
-                            {% if order.status in ["Pending Payment", "Payment Submitted - Awaiting Verification"] %}
-                            <form action="{{ url_for('cancel_order', order_id=order.order_id) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel this order?');">
-                                <button type="submit" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-1.5 px-3 rounded-md text-xs transition duration-200">
-                                    Cancel Order
-                                </button>
-                            </form>
-                            {% endif %}
-                            {% if order.status == 'Pending Payment' %}
-                            <a href="{{ url_for('payment_initiate', order_id=order.order_id, amount=order.total_amount) }}" 
-                               class="w-full text-center bg-green-500 hover:bg-green-600 text-white font-bold py-1.5 px-3 rounded-md text-xs transition duration-200">
-                                Complete Payment
-                            </a>
-                            {% endif %}
-                            {% if order.invoice_details and order.invoice_details.invoice_pdf_path and order.invoice_details.invoice_status in ['Prepared', 'Sent', 'Held', 'Edited', 'Email Failed', 'PDF Gen Failed'] %}
-                            <a href="{{ url_for('download_invoice', order_id=order.order_id) }}" 
-                               class="w-full text-center bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-1.5 px-3 rounded-md text-xs transition duration-200" download>
-                                Download Invoice
-                            </a>
-                            {% else %}
-                            <span class="w-full text-center bg-gray-400 text-white font-bold py-1.5 px-3 rounded-md text-xs cursor-not-allowed">
-                                Invoice N/A
-                            </span>
-                            {% endif %}
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% else %}
-    <p class="text-center text-gray-600 text-lg">You haven't placed any orders yet.</p>
-    {% endif %}
+  {% if orders %}
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover text-sm shadow-sm bg-white">
+      <thead class="table-light">
+        <tr class="text-nowrap">
+          <th>Order ID</th>
+          <th>Date</th>
+          <th>Items</th>
+          <th>Total (₹)</th>
+          <th>Status</th>
+          <th>Invoice</th>
+          <th>Remark</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for order in orders %}
+        <tr>
+          <td class="fw-semibold">{{ order.order_id }}</td>
+          <td>{{ order.placed_on }}</td>
+          <td>
+            <ul class="list-unstyled mb-0">
+              {% for item in order["items"] %}
+              <li>📌 {{ item["name"] }} × {{ item["quantity"] }} — ₹{{ item["total_price"] | floatformat(2) }}</li>
+              {% endfor %}
+            </ul>
+          </td>
+          <td><strong>₹{{ order.total_amount | floatformat(2) }}</strong></td>
+          <td>
+            <span class="badge 
+              {% if order.status == 'Shipped' %} bg-success 
+              {% elif order.status == 'Delivered' %} bg-primary 
+              {% elif 'Cancelled' in order.status %} bg-danger 
+              {% elif 'Awaiting Verification' in order.status %} bg-warning text-dark 
+              {% else %} bg-secondary {% endif %}">
+              {{ order.status }}
+            </span>
+          </td>
+          <td>
+            {% if order.invoice_details and order.invoice_details.invoice_status in ['Prepared', 'Sent', 'Held', 'Edited', 'Email Failed', 'PDF Gen Failed'] %}
+              <span class="badge bg-info text-dark">{{ order.invoice_details.invoice_status }}</span>
+            {% elif order.status in ['Shipped', 'Delivered'] %}
+              <span class="text-muted small">Will be available soon</span>
+            {% else %}
+              <span class="text-muted small">Available after shipping</span>
+            {% endif %}
+          </td>
+          <td>{{ order.remark if order.remark else '—' }}</td>
+          <td>
+            <div class="d-grid gap-2">
+              {% if order.status in ['Pending Payment', 'Payment Submitted - Awaiting Verification'] %}
+              <form method="POST" action="{{ url_for('cancel_order', order_id=order.order_id) }}"
+                    onsubmit="return confirm('Are you sure you want to cancel this order?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-danger">Cancel Order</button>
+              </form>
+              {% endif %}
+
+              {% if order.status == 'Pending Payment' %}
+              <a href="{{ url_for('payment_initiate', order_id=order.order_id, amount=order.total_amount) }}"
+                 class="btn btn-sm btn-success">Complete Payment</a>
+              {% endif %}
+
+              {% if order.invoice_details and order.invoice_details.invoice_pdf_path %}
+              <a href="{{ url_for('download_invoice', order_id=order.order_id) }}" download
+                 class="btn btn-sm btn-outline-primary">Download Invoice</a>
+              {% else %}
+              <button class="btn btn-sm btn-secondary" disabled>Invoice Unavailable</button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-center text-muted fs-5">You haven’t placed any orders yet.</p>
+  {% endif %}
 </div>
 {% endblock %}

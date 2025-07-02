@@ -1,0 +1,43 @@
+{% extends "_base.html" %}
+
+{% block title %}Add New Address - Karthika Futures{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="mx-auto p-4 bg-white shadow rounded" style="max-width: 600px;">
+    <h3 class="text-center mb-4 text-primary">➕ Add New Address</h3>
+    <form method="POST" action="{{ url_for('add_address') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="mb-3">
+        <label for="label" class="form-label">Label (e.g., Home, Office)</label>
+        <input type="text" class="form-control" id="label" name="label" required>
+      </div>
+
+      <div class="mb-3">
+        <label for="full_name" class="form-label">Recipient Full Name</label>
+        <input type="text" class="form-control" id="full_name" name="full_name" required>
+      </div>
+
+      <div class="mb-3">
+        <label for="phone" class="form-label">Phone Number</label>
+        <input type="tel" class="form-control" id="phone" name="phone" required>
+      </div>
+
+      <div class="mb-3">
+        <label for="address" class="form-label">Full Address</label>
+        <textarea class="form-control" id="address" name="address" rows="3" required></textarea>
+      </div>
+
+      <div class="mb-3">
+        <label for="pincode" class="form-label">Pincode</label>
+        <input type="text" class="form-control" id="pincode" name="pincode" required>
+      </div>
+
+      <div class="d-grid">
+        <button type="submit" class="btn btn-success">Save Address</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "_base.html" %}
+
+{% block title %}My Addresses - Karthika Futures{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">📍 My Addresses</h2>
+    <a href="{{ url_for('add_address') }}" class="btn btn-success btn-sm">➕ Add New Address</a>
+  </div>
+
+  {% if addresses %}
+  <div class="row g-4">
+    {% for addr in addresses %}
+    <div class="col-md-6 col-lg-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h5 class="card-title text-primary fw-bold">{{ addr.label }}</h5>
+          <p class="mb-1"><strong>{{ addr.full_name }}</strong></p>
+          <p class="mb-1">📞 {{ addr.phone }}</p>
+          <p class="mb-1">🏠 {{ addr.address }}</p>
+          <p class="mb-2">📮 {{ addr.pincode }}</p>
+
+          <form method="POST" action="{{ url_for('delete_address', addr_id=addr.id) }}" onsubmit="return confirm('Delete this address?');">
+            <button type="submit" class="btn btn-sm btn-outline-danger w-100">🗑️ Delete</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert alert-info text-center mt-4">
+    No addresses saved yet. <a href="{{ url_for('add_address') }}" class="text-primary fw-semibold">Add one now</a>.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

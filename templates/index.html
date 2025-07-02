@@ -155,6 +155,59 @@
     window.isUserLoggedIn = {{ 'true' if current_user.is_authenticated else 'false' }};
 </script>
 
+<script>
+function parsePrice(value) {
+  let val = parseFloat(value);
+  return isNaN(val) ? 0 : val;
+}
+
+function calculateFinalPrice(base, frame, size, glass) {
+  let total = parsePrice(base) + parsePrice(frame) + parsePrice(size) + parsePrice(glass);
+  return total.toFixed(2);
+}
+
+function updateCartCount() {
+  fetch('/get_cart_count')
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById("cart-count").textContent = data.count;
+    })
+    .catch(err => console.error("Cart count fetch failed:", err));
+}
+
+function updateItemQuantity(sku, qty) {
+  fetch('/update_cart_session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ item_id: sku, quantity: qty })
+  })
+  .then(res => res.json())
+  .then(data => {
+    console.log("Cart updated:", data);
+    updateCartCount();
+  })
+  .catch(err => console.error("Update failed:", err));
+}
+
+function removeFromCart(sku) {
+  fetch('/remove_from_cart', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sku })
+  })
+  .then(res => res.json())
+  .then(data => {
+    console.log("Removed:", data);
+    updateCartCount();
+    location.reload(); // refresh cart view
+  })
+  .catch(err => console.error("Remove failed:", err));
+}
+
+// Call it once when the page loads
+updateCartCount();
+</script>
+
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>

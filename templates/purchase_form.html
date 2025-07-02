@@ -1,286 +1,66 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Purchase Form - Karthika Futures</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-            color: #333;
-            line-height: 1.6;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-        .header {
-            background-color: #ffffff;
-            padding: 1.5rem 2rem;
-            border-bottom: 1px solid #e2e8f0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            border-radius: 0.75rem;
-            margin-bottom: 2rem;
-        }
-        .logo {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: #4a5568;
-        }
-        .nav-link {
-            padding: 0.5rem 1rem;
-            color: #4a5568;
-            font-weight: 500;
-            transition: color 0.2s ease-in-out;
-        }
-        .nav-link:hover {
-            color: #2d3748;
-        }
-        .btn-primary {
-            background-color: #4f46e5;
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            transition: background-color 0.2s ease-in-out;
-        }
-        .btn-primary:hover {
-            background-color: #4338ca;
-        }
-        .card {
-            background-color: #ffffff;
-            border-radius: 0.75rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 2rem;
-        }
-        .flash-messages {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            z-index: 1000;
-        }
-        .flash-message {
-            padding: 1rem;
-            border-radius: 0.5rem;
-            margin-bottom: 0.5rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            opacity: 0;
-            animation: fadeInOut 5s forwards;
-        }
-        .flash-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .flash-danger {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .flash-info {
-            background-color: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-        @keyframes fadeInOut {
-            0% { opacity: 0; transform: translateY(-20px); }
-            10% { opacity: 1; transform: translateY(0); }
-            90% { opacity: 1; transform: translateY(0); }
-            100% { opacity: 0; transform: translateY(-20px); }
-        }
-        .order-summary-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start; /* Align items to start for multi-line description */
-            padding-bottom: 0.5rem;
-            margin-bottom: 0.5rem;
-            border-bottom: 1px dashed #e2e8f0;
-        }
-        .order-summary-item:last-child {
-            border-bottom: none;
-        }
-        .item-details {
-            flex: 1;
-            margin-right: 1rem;
-        }
-        .item-name {
-            font-weight: 600;
-            color: #1f2937;
-        }
-        .item-options {
-            font-size: 0.875rem;
-            color: #6b7280;
-        }
-        .item-price-total {
-            font-weight: 600;
-            color: #4b5563;
-        }
-    </style>
-</head>
-<body class="bg-gray-100 min-h-screen flex flex-col">
-    <header class="header">
-        <div class="logo">Karthika Futures</div>
-        <nav>
-            <a href="{{ url_for('index') }}" class="nav-link">Home</a>
-            <a href="{{ url_for('all_products') }}" class="nav-link">All Products</a>
-            {% if current_user.is_authenticated %}
-                <a href="{{ url_for('user_dashboard') }}" class="nav-link">Dashboard</a>
-                <a href="{{ url_for('my_orders') }}" class="nav-link">My Orders</a>
-                <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
-            {% else %}
-                <a href="{{ url_for('user_login') }}" class="nav-link">Login</a>
-                <a href="{{ url_for('signup') }}" class="nav-link">Signup</a>
-            {% endif %}
-            <a href="{{ url_for('cart') }}" class="btn-primary flex items-center justify-center space-x-2">
-                <i class="fas fa-shopping-cart"></i> <span>Cart (<span id="cart-item-count">0</span>)</span>
-            </a>
-        </nav>
-    </header>
-
-    <div class="flash-messages">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="flash-message flash-{{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-    </div>
-
-    <main class="flex-grow container">
-        <h1 class="text-3xl font-bold text-gray-800 mb-8 text-center">Checkout</h1>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Delivery Details Form -->
-            <div class="lg:col-span-1 card">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6">Delivery Details</h2>
-                <form action="{{ url_for('purchase_form') }}" method="post" class="space-y-6">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    {# Use cart_summary.cart_items instead of cart_json, and ensure it's JSON encoded if needed for backend #}
-                    {# The backend expects cart_summary data, which is already correctly passed to context #}
-                    {# Instead of cart_json, ensure the current_user data is correctly pre-filled #}
-                    {# The shipping_charge is derived from cart_summary on the backend, so we don't need a hidden input for it here #}
-                    
-                    <div>
-                        <label for="name" class="block text-sm font-medium text-gray-700">Full Name</label>
-                        <input type="text" id="name" name="name" value="{{ prefill_name | default('') }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
-                    </div>
-                    <div>
-                        <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-                        <input type="text" id="email" name="email" value="{{ prefill_email | default('') }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm bg-gray-100 cursor-not-allowed p-2" readonly>
-                    </div>
-                    <div>
-                        <label for="phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
-                        <input type="tel" id="phone" name="phone" value="{{ prefill_phone | default('') }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
-                    </div>
-                    <div>
-                        <label for="address" class="block text-sm font-medium text-gray-700">Delivery Address</label>
-                        <textarea id="address" name="address" rows="3" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">{{ prefill_address | default('') }}</textarea>
-                    </div>
-                    <div>
-                        <label for="pincode" class="block text-sm font-medium text-gray-700">Pincode</label>
-                        <input type="text" id="pincode" name="pincode" value="{{ prefill_pincode | default('') }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
-                    </div>
-                    <button type="submit" class="w-full btn-primary py-3 px-6 text-xl rounded-lg shadow-lg hover:shadow-xl transition duration-300">
-                        Confirm Details & Place Order
-                    </button>
-                </form>
-            </div>
-
-            <!-- Order Summary -->
-            <div class="lg:col-span-1 card">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6">Your Order</h2>
-                <div class="space-y-4">
-                    {% if cart_summary.cart_items %} {# Use cart_summary.cart_items as the iterable #}
-                        {% for item in cart_summary.cart_items %}
-                            <div class="order-summary-item">
-                                <div class="item-details">
-                                    <div class="item-name">{{ item.name | default('N/A') }} (x{{ item.quantity | default(1) }})</div>
-                                    <div class="item-options">
-                                        Size: {{ item.size | default('Original') }} | Frame: {{ item.frame | default('None') }} | Glass: {{ item.glass | default('None') }}
-                                    </div>
-                                    <div class="item-options text-sm text-gray-500">
-                                        {# Use floatformat filter for consistency #}
-                                        Unit Price (Pre-GST): ₹{{ item.unit_price_before_gst | floatformat(2) }} | GST: {{ item.gst_percentage | floatformat(2) }}%
-                                    </div>
-                                </div>
-                                {# Use floatformat filter for consistency #}
-                                <div class="item-price-total">₹{{ item.total_price | floatformat(2) }}</div> {# This is the item's total price WITH GST #}
-                            </div>
-                        {% endfor %}
-                    {% else %}
-                        <p class="text-center text-gray-600">No items in order summary. Please go back to cart.</p>
-                    {% endif %}
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <!-- Delivery Form -->
+        <div class="col-md-6">
+            <h4 class="mb-4">Delivery Details</h4>
+            <form method="POST">
+                <div class="mb-3">
+                    <label for="name" class="form-label">Full Name</label>
+                    <input type="text" name="name" class="form-control" value="{{ prefill_name }}" required>
                 </div>
-                
-                <div class="border-t pt-4 mt-6 space-y-3 text-lg">
-                    <div class="flex justify-between">
-                        <span>Subtotal (Pre-GST):</span>
-                        {# Use floatformat filter for consistency #}
-                        <span>₹<span id="display-subtotal">{{ cart_summary.subtotal_before_gst | floatformat(2) }}</span></span>
-                    </div>
-                    <div class="flex justify-between text-sm text-gray-600 ml-4">
-                        <span>Total GST:</span>
-                        {# Use floatformat filter for consistency #}
-                        <span>₹<span id="display-total-gst">{{ cart_summary.total_gst_amount | floatformat(2) }}</span></span>
-                    </div>
-                    <div class="flex justify-between text-sm text-gray-600 ml-8">
-                        <span>CGST:</span>
-                        {# Use floatformat filter for consistency #}
-                        <span>₹<span id="display-cgst">{{ cart_summary.cgst_amount | floatformat(2) }}</span></span>
-                    </div>
-                    <div class="flex justify-between text-sm text-gray-600 ml-8">
-                        <span>SGST:</span>
-                        {# Use floatformat filter for consistency #}
-                        <span>₹<span id="display-sgst">{{ cart_summary.sgst_amount | floatformat(2) }}</span></span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span>Shipping Charges:</span>
-                        <span>
-                            {# Use floatformat filter for consistency #}
-                            ₹<span id="display-shipping">{{ cart_summary.shipping_charge | floatformat(2) }}</span>
-                            {% if cart_summary.shipping_charge | floatformat(2) == "0.00" %}<span class="text-green-600 font-bold ml-2">FREE Shipping!</span>{% endif %}
-                        </span>
-                    </div>
-                    <div class="border-t pt-4 mt-4 flex justify-between font-bold text-xl text-gray-900">
-                        <span>Grand Total:</span>
-                        {# Use floatformat filter for consistency #}
-                        <span>₹<span id="display-grand-total">{{ cart_summary.grand_total | floatformat(2) }}</span></span>
-                    </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control" value="{{ prefill_email }}" required>
                 </div>
-            </div>
+                <div class="mb-3">
+                    <label for="phone" class="form-label">Phone</label>
+                    <input type="text" name="phone" class="form-control" value="{{ prefill_phone }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="address" class="form-label">Address</label>
+                    <textarea name="address" class="form-control" required>{{ prefill_address }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="pincode" class="form-label">Pincode</label>
+                    <input type="text" name="pincode" class="form-control" value="{{ prefill_pincode }}" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Place Order</button>
+            </form>
         </div>
-    </main>
 
-    <script>
-        // Update cart item count in header
-        // This JavaScript needs to fetch the actual cart count from the server.
-        // It relies on the global updateCartCountDisplay function from _base.html
-        document.addEventListener('DOMContentLoaded', () => {
-            if (typeof updateCartCountDisplay === 'function') {
-                updateCartCountDisplay(); // Call the global function to update cart count
-            } else {
-                console.warn("updateCartCountDisplay function not found in _base.html. Cart count may not be accurate.");
-            }
-            
-            // Function to handle flash messages disappearance
-            document.querySelectorAll('.flash-message').forEach(message => {
-                setTimeout(() => {
-                    message.style.opacity = '0';
-                    message.style.transform = 'translateY(-20px)';
-                    message.style.transition = 'opacity 1s ease-out, transform 1s ease-out';
-                    message.addEventListener('transitionend', () => message.remove());
-                }, 4500); // Start fading out after 4.5 seconds
-            });
-        });
-    </script>
-</body>
-</html>
+        <!-- Order Summary -->
+        <div class="col-md-6">
+            <h4 class="mb-4">Order Summary</h4>
+            {% for item in cart_summary.cart_items %}
+            <div class="border p-3 mb-3 rounded">
+                <strong>{{ item.name }} (x{{ item.quantity }})</strong><br>
+                Size: {{ item.options.size }} | Frame: {{ item.options.frame }} | Glass: {{ item.options.glass }}<br>
+                Price: ₹{{ item.unit_price_before_gst }} | GST: {{ item.gst_percentage }}%
+                <div class="text-end fw-bold mt-2">₹{{ item.total_price }}</div>
+            </div>
+            {% endfor %}
+
+            <ul class="list-group">
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Subtotal (Pre-GST):</span>
+                    <strong>₹{{ cart_summary.subtotal_before_gst }}</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>GST:</span>
+                    <strong>₹{{ cart_summary.total_gst_amount }}</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Shipping:</span>
+                    <strong>₹{{ cart_summary.shipping_charge }}</strong>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Total:</span>
+                    <strong>₹{{ cart_summary.grand_total }}</strong>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

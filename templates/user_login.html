@@ -16,7 +16,8 @@
 
         <div class="mb-3">
     <label for="email" class="form-label">Email address or Mobile</label>
-    <input type="text" class="form-control" id="email" name="email" value="{{ prefill_email or '' }}" required placeholder="Enter email or mobile">
+    <input type="text" class="form-control" id="email" name="email" value="{{ prefill_email or '' }}" required oninvalid="this.setCustomValidity('Enter your email or mobile')" oninput="setCustomValidity('')">
+
 </div>
 
 

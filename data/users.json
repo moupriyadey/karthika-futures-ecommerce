@@ -15,8 +15,8 @@
         "password": "scrypt:32768:8:1$tSZeAEv9xnQJbNVa$240018f8094c6dbeba12f39fc633ae9441bdecce8e6b9d35d973d79d8000ef886b14b151189baca092230593f5ea0a75bf444b7c654b6e42a3eabd91c9ae2e2f",
         "name": "rupa",
         "phone": "9090909090",
-        "address": "kolkata",
-        "pincode": "900900",
+        "address": "kolkata 53",
+        "pincode": "900901",
         "role": "user"
     }
 ]
