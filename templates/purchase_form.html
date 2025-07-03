@@ -1,42 +1,109 @@
-{% extends 'base.html' %}
+{% extends '_base.html' %}
+
 {% block content %}
 <div class="container py-4">
     <div class="row">
         <!-- Delivery Form -->
         <div class="col-md-6">
-            <h4 class="mb-4">Delivery Details</h4>
-            <form method="POST">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0">Shipping Address</h4>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#changeAddressModal">
+                    Change
+                </button>
+            </div>
+
+            {% if saved_addresses %}
+            <form method="POST" id="deliveryForm">
+                <div class="mb-3">
+                    {% for addr in saved_addresses %}
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="shipping_address" id="ship{{ loop.index0 }}" value="{{ loop.index0 }}">
+                        <label class="form-check-label" for="ship{{ loop.index0 }}">
+                            <strong>{{ addr.full_name }}</strong>, {{ addr.phone }}<br>
+                            {{ addr.address }}<br>
+                            {{ addr.pincode }}<br>
+                            <small class="text-muted">Tap to autofill fields</small>
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <h5 class="mt-4">Enter New Shipping Details</h5>
                 <div class="mb-3">
                     <label for="name" class="form-label">Full Name</label>
-                    <input type="text" name="name" class="form-control" value="{{ prefill_name }}" required>
+                    <input type="text" name="name" class="form-control" id="nameInput" value="{{ prefill_name }}" required>
                 </div>
                 <div class="mb-3">
                     <label for="email" class="form-label">Email</label>
-                    <input type="email" name="email" class="form-control" value="{{ prefill_email }}" required>
+                    <input type="email" name="email" class="form-control" id="emailInput" value="{{ prefill_email }}" required>
                 </div>
                 <div class="mb-3">
                     <label for="phone" class="form-label">Phone</label>
-                    <input type="text" name="phone" class="form-control" value="{{ prefill_phone }}" required>
+                    <input type="text" name="phone" class="form-control" id="phoneInput" value="{{ prefill_phone }}" required>
                 </div>
                 <div class="mb-3">
                     <label for="address" class="form-label">Address</label>
-                    <textarea name="address" class="form-control" required>{{ prefill_address }}</textarea>
+                    <textarea name="address" class="form-control" id="addressInput" required>{{ prefill_address }}</textarea>
                 </div>
                 <div class="mb-3">
                     <label for="pincode" class="form-label">Pincode</label>
-                    <input type="text" name="pincode" class="form-control" value="{{ prefill_pincode }}" required>
+                    <input type="text" name="pincode" class="form-control" id="pincodeInput" value="{{ prefill_pincode }}" required>
                 </div>
-                <button type="submit" class="btn btn-primary">Place Order</button>
+
+                <h4 class="mt-5">Billing Address</h4>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="sameAsShipping" checked>
+                    <label class="form-check-label" for="sameAsShipping">Billing address same as shipping</label>
+                </div>
+
+                <div id="billingSelector" class="mb-3" style="display: none;">
+                    {% for addr in saved_addresses %}
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="billing_address" id="bill{{ loop.index0 }}" value="{{ loop.index0 }}">
+                        <label class="form-check-label" for="bill{{ loop.index0 }}">
+                            <strong>{{ addr.full_name }}</strong>, {{ addr.phone }}<br>
+                            {{ addr.address }}<br>
+                            {{ addr.pincode }}<br>
+                            <small class="text-muted">Tap to autofill fields</small>
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div id="billingFields" style="display: none;">
+                    <div class="mb-3">
+                        <label for="billing_name" class="form-label">Billing Name</label>
+                        <input type="text" name="billing_name" class="form-control" id="billingName">
+                    </div>
+                    <div class="mb-3">
+                        <label for="billing_phone" class="form-label">Billing Phone</label>
+                        <input type="text" name="billing_phone" class="form-control" id="billingPhone">
+                    </div>
+                    <div class="mb-3">
+                        <label for="billing_address" class="form-label">Billing Address</label>
+                        <textarea name="billing_address" class="form-control" id="billingAddress"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="billing_pincode" class="form-label">Billing Pincode</label>
+                        <input type="text" name="billing_pincode" class="form-control" id="billingPincode">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">Place Order</button>
             </form>
         </div>
 
         <!-- Order Summary -->
         <div class="col-md-6">
             <h4 class="mb-4">Order Summary</h4>
+
             {% for item in cart_summary.cart_items %}
             <div class="border p-3 mb-3 rounded">
                 <strong>{{ item.name }} (x{{ item.quantity }})</strong><br>
-                Size: {{ item.options.size }} | Frame: {{ item.options.frame }} | Glass: {{ item.options.glass }}<br>
+                {% set opts = item.options if item.options is defined else {} %}
+                Size: {{ opts.size if opts.size is defined else 'N/A' }} |
+                Frame: {{ opts.frame if opts.frame is defined else 'N/A' }} |
+                Glass: {{ opts.glass if opts.glass is defined else 'N/A' }}<br>
                 Price: ₹{{ item.unit_price_before_gst }} | GST: {{ item.gst_percentage }}%
                 <div class="text-end fw-bold mt-2">₹{{ item.total_price }}</div>
             </div>
@@ -63,4 +130,92 @@
         </div>
     </div>
 </div>
+
+<!-- Modal for Changing Address -->
+<div class="modal fade" id="changeAddressModal" tabindex="-1" aria-labelledby="changeAddressModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="changeAddressModalLabel">Select a Saved Address</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        {% if saved_addresses %}
+          <div class="list-group">
+            {% for addr in saved_addresses %}
+            <button type="button" class="list-group-item list-group-item-action"
+                onclick="selectAddress({{ addr | tojson | safe }})" data-bs-dismiss="modal">
+              <strong>{{ addr.label }}:</strong> {{ addr.full_name }} - {{ addr.phone }}<br>
+              {{ addr.address }} - {{ addr.pincode }}
+            </button>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p>No saved addresses found. You can add one from your <a href="{{ url_for('my_addresses') }}">profile</a>.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if saved_addresses %}
+<script>
+  const savedAddresses = {{ saved_addresses | tojson }};
+
+  const shippingRadios = document.querySelectorAll('input[name="shipping_address"]');
+  shippingRadios.forEach((radio, idx) => {
+    radio.addEventListener('change', () => {
+      const addr = savedAddresses[radio.value];
+      if (addr) {
+        document.getElementById('nameInput').value = addr.full_name || '';
+        document.getElementById('emailInput').value = addr.email || '{{ current_user.email }}';
+        document.getElementById('phoneInput').value = addr.phone || '';
+        document.getElementById('addressInput').value = addr.address || '';
+        document.getElementById('pincodeInput').value = addr.pincode || '';
+      }
+    });
+  });
+
+  const billingRadios = document.querySelectorAll('input[name="billing_address"]');
+  billingRadios.forEach((radio, idx) => {
+    radio.addEventListener('change', () => {
+      const addr = savedAddresses[radio.value];
+      if (addr) {
+        document.getElementById('billingName').value = addr.full_name || '';
+        document.getElementById('billingPhone').value = addr.phone || '';
+        document.getElementById('billingAddress').value = addr.address || '';
+        document.getElementById('billingPincode').value = addr.pincode || '';
+      }
+    });
+  });
+
+  document.getElementById('sameAsShipping').addEventListener('change', function() {
+    const billingFields = document.getElementById('billingFields');
+    const billingSelector = document.getElementById('billingSelector');
+    const showBilling = !this.checked;
+    billingFields.style.display = showBilling ? 'block' : 'none';
+    billingSelector.style.display = showBilling ? 'block' : 'none';
+  });
+
+  function selectAddress(addr) {
+    document.getElementById('nameInput').value = addr.full_name || '';
+    document.getElementById('emailInput').value = addr.email || '{{ current_user.email }}';
+    document.getElementById('phoneInput').value = addr.phone || '';
+    document.getElementById('addressInput').value = addr.address || '';
+    document.getElementById('pincodeInput').value = addr.pincode || '';
+
+    const radios = document.querySelectorAll('input[name="shipping_address"]');
+    radios.forEach((radio, idx) => {
+      const match = savedAddresses[idx];
+      if (
+        match.full_name === addr.full_name &&
+        match.phone === addr.phone &&
+        match.address === addr.address
+      ) {
+        radio.checked = true;
+      }
+    });
+  }
+</script>
+{% endif %}
 {% endblock %}

@@ -17,6 +17,16 @@
         "phone": "9090909090",
         "address": "kolkata 53",
         "pincode": "900901",
-        "role": "user"
+        "role": "user",
+        "addresses": [
+            {
+                "id": "fec64f7c",
+                "label": "5F",
+                "full_name": "PADMA",
+                "phone": "5656565656",
+                "address": "ALAPPUZHA",
+                "pincode": "160251"
+            }
+        ]
     }
 ]

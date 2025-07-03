@@ -1,227 +1,154 @@
-{% extends '_base.html' %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit Artwork - Admin Panel</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+</head>
+<body>
+  <main class="container mt-4">
+    <h2>Edit Artwork: {{ artwork.name }}</h2>
+    <form method="POST" action="{{ url_for('edit_artwork', sku=artwork.sku) }}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-{% block title %}Edit Artwork: {{ artwork.name }} - Karthika Futures{% endblock %}
+      <label>SKU:</label>
+      <input type="text" name="sku" value="{{ artwork.sku }}" readonly>
 
-{% block content %}
-<div class="container main-content-area position-relative pt-5"> {# Added pt-5 for consistent top spacing #}
-    <h2 class="text-center mb-4 text-primary font-bold">Edit Artwork: {{ artwork.name }}</h2> {# Added text-primary font-bold #}
+      <label>Name:</label>
+      <input type="text" name="name" value="{{ artwork.name }}" required>
 
-    {# Admin Navigation Tabs - Added for consistency #}
-    <ul class="nav nav-tabs nav-justified mb-4">
-        <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">Dashboard</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('admin_users_view') }}">Users</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="{{ url_for('admin_artworks_view') }}">Artworks</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('admin_orders_view') }}">Orders</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('admin_categories_view') }}">Categories</a>
-        </li>
-    </ul>
+      <label>Category:</label>
+      <select name="category" required>
+        {% for cat in categories %}
+        <option value="{{ cat.name }}" {% if artwork.category == cat.name %}selected{% endif %}>{{ cat.name }}</option>
+        {% endfor %}
+      </select>
 
-    <form action="{{ url_for('edit_artwork', sku=artwork.sku) }}" method="POST" enctype="multipart/form-data" class="p-6 bg-white rounded-lg shadow-lg" id="editArtworkForm">
-         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="row g-3 mb-4">
-            <div class="col-md-6">
-                <label for="name" class="form-label text-gray-700">Artwork Name</label>
-                <input type="text" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="name" name="name" value="{{ artwork.name }}" required>
-            </div>
-            <div class="col-md-6">
-                <label for="sku" class="form-label text-gray-700">SKU (Unique Identifier)</label>
-                <input type="text" class="form-control rounded-md" id="sku" name="sku" value="{{ artwork.sku }}" readonly disabled>
-                <input type="hidden" name="sku" value="{{ artwork.sku }}"> {# Send SKU as hidden for POST #}
-            </div>
-        </div>
+      <label>Price (₹):</label>
+      <input type="number" name="original_price" step="0.01" value="{{ artwork.original_price }}" required>
 
-        <div class="row g-3 mb-4">
-            <div class="col-md-6">
-                <label for="category" class="form-label text-gray-700">Category</label>
-                <select class="form-select rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="category" name="category" required>
-                    <option value="">Select a Category</option>
-                    {% for cat in categories %}
-                    <option value="{{ cat.name }}" {% if artwork.category == cat.name %}selected{% endif %}>{{ cat.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-6">
-                <label for="original_price" class="form-label text-gray-700">Original Price (₹)</label>
-                <input type="number" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="original_price" name="original_price" step="0.01" min="0" value="{{ artwork.original_price | floatformat(2) }}" required>
-            </div>
-        </div>
-        
-        <div class="row g-3 mb-4">
-            <div class="col-md-6">
-                <label for="stock" class="form-label text-gray-700">Stock Quantity</label>
-                <input type="number" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="stock" name="stock" min="0" value="{{ artwork.stock }}" required>
-            </div>
-            <div class="col-md-6">
-                <label for="gst_percentage" class="form-label text-gray-700">GST Percentage (%)</label>
-                <input type="number" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="gst_percentage" name="gst_percentage" step="0.01" min="0" max="100" value="{{ artwork.gst_percentage | default(default_gst_percentage) | floatformat(2) }}" required>
-            </div>
-        </div>
+      <label>Stock:</label>
+      <input type="number" name="stock" value="{{ artwork.stock }}" required>
 
-        <div class="mb-4">
-            <label for="description" class="form-label text-gray-700">Description</label>
-            <textarea class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="description" name="description" rows="4">{{ artwork.description }}</textarea>
-        </div>
+      <label>GST %:</label>
+      <input type="number" name="gst_percentage" step="0.01" value="{{ artwork.gst_percentage }}">
 
-        <div class="form-check mb-4">
-            <input class="form-check-input" type="checkbox" id="is_featured" name="is_featured" value="1" {% if artwork.is_featured %}checked{% endif %}>
-            <label class="form-check-label text-gray-700" for="is_featured">
-                Mark as Featured Artwork
-            </label>
-        </div>
+      <label>Description:</label>
+      <textarea name="description">{{ artwork.description }}</textarea>
 
-        <!-- Existing Images Display and Management -->
-        <div class="mb-4">
-            <h4 class="mb-3 text-secondary">Existing Images</h4>
-            {% if artwork.images %}
-                <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">
-                    {% for image_url in artwork.images %}
-                    <div class="col">
-                        <div class="card h-100 shadow-sm position-relative rounded-md"> {# Added rounded-md #}
-                            <img src="{{ url_for('static', filename=image_url) }}" class="card-img-top rounded-t-md" alt="Artwork Image" style="height: 120px; object-fit: cover;">
-                            <div class="form-check position-absolute top-0 end-0 m-2">
-                                <input class="form-check-input image-checkbox" type="checkbox" value="{{ image_url }}" checked id="image-{{ loop.index }}">
-                                <label class="form-check-label visually-hidden" for="image-{{ loop.index }}">Keep Image</label>
-                            </div>
-                            <div class="card-footer text-center bg-transparent border-top-0 pt-1 pb-0">
-                                <small class="text-muted">Keep</small>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                <div class="form-text mt-2 text-gray-500">Uncheck images you wish to delete.</div>
-            {% else %}
-                <p class="text-muted">No images currently uploaded for this artwork.</p>
-            {% endif %}
-            {# Hidden input to send JSON array of images to keep #}
-            <input type="hidden" name="images_to_keep" id="imagesToKeepHiddenInput" value="">
-        </div>
+      <!-- ✅ Basic Option Pricing -->
+      <fieldset>
+        <legend>Option Pricing</legend>
+        <label>Frame - Wooden:</label><input type="number" name="frame_wooden" step="0.01" value="{{ artwork.frame_wooden }}">
+        <label>Frame - Metal:</label><input type="number" name="frame_metal" step="0.01" value="{{ artwork.frame_metal }}">
+        <label>Frame - PVC:</label><input type="number" name="frame_pvc" step="0.01" value="{{ artwork.frame_pvc }}">
+        <label>Glass:</label><input type="number" name="glass_price" step="0.01" value="{{ artwork.glass_price }}">
+        <label>Size - A4:</label><input type="number" name="size_a4" step="0.01" value="{{ artwork.size_a4 }}">
+        <label>Size - A5:</label><input type="number" name="size_a5" step="0.01" value="{{ artwork.size_a5 }}">
+        <label>Size - Letter:</label><input type="number" name="size_letter" step="0.01" value="{{ artwork.size_letter }}">
+        <label>Size - Legal:</label><input type="number" name="size_legal" step="0.01" value="{{ artwork.size_legal }}">
+      </fieldset>
 
-        <!-- New Images Upload -->
-        <div class="mb-4">
-            <label for="new_images" class="form-label text-gray-700">Upload New Images (Max 16MB per file)</label>
-            <input type="file" class="form-control rounded-md file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100" id="new_images" name="new_images" accept="image/*" multiple>
-            <div class="form-text text-gray-500">Select one or more new image files to add.</div>
-        </div>
+      <!-- ✅ Enable Custom Options -->
+      <div class="form-check mt-3">
+        <input class="form-check-input" type="checkbox" id="enable_custom_options" name="has_custom_options" {% if artwork.has_custom_options | default(false) %}checked{% endif %}>
+        <label class="form-check-label" for="enable_custom_options">
+          Enable Custom Options with Pricing
+        </label>
+      </div>
 
-        <h4 class="mb-3 mt-5 text-secondary">Pricing for Options</h4>
-        <p class="text-muted mb-4">Enter additional prices for different sizes, frames, and glass. Enter 0 if not applicable. These options are typically applicable to 'Paintings' and 'photos'.</p>
+      <!-- ✅ Edit Existing Custom Options -->
+      <div id="custom_options_section" style="display: none; border: 1px solid #ccc; padding: 1rem; border-radius: 6px;">
+        <div id="option-groups-container"></div>
+        <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addOptionGroup()">+ Add Option Group</button>
+      </div>
 
-        <div class="row g-3 mb-4" id="options-pricing-section">
-            <div class="col-md-4">
-                <label for="frame_wooden" class="form-label text-gray-700">Frame: Wooden Price (₹)</label>
-                <input type="number" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="frame_wooden" name="frame_wooden" step="0.01" min="0" value="{{ artwork.frame_wooden | default('0.00') | floatformat(2) }}">
-            </div>
-            <div class="col-md-4">
-                <label for="frame_metal" class="form-label text-gray-700">Frame: Metal Price (₹)</label>
-                <input type="number" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="frame_metal" name="frame_metal" step="0.01" min="0" value="{{ artwork.frame_metal | default('0.00') | floatformat(2) }}">
-            </div>
-            <div class="col-md-4">
-                <label for="frame_pvc" class="form-label text-gray-700">Frame: PVC Price (₹)</label>
-                <input type="number" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="frame_pvc" name="frame_pvc" step="0.01" min="0" value="{{ artwork.frame_pvc | default('0.00') | floatformat(2) }}">
-            </div>
-        </div>
+      <input type="hidden" name="custom_options_json" id="custom_options_json">
 
-        <div class="row g-3 mb-4">
-            <div class="col-md-6">
-                <label for="glass_price" class="form-label text-gray-700">Glass Price (₹)</label>
-                <input type="number" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="glass_price" name="glass_price" step="0.01" min="0" value="{{ artwork.glass_price | default('0.00') | floatformat(2) }}">
-            </div>
-        </div>
-
-        <div class="row g-3 mb-4">
-            <div class="col-md-3">
-                <label for="size_a4" class="form-label text-gray-700">Size: A4 Price (₹)</label>
-                <input type="number" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="size_a4" name="size_a4" step="0.01" min="0" value="{{ artwork.size_a4 | default('0.00') | floatformat(2) }}">
-            </div>
-            <div class="col-md-3">
-                <label for="size_a5" class="form-label text-gray-700">Size: A5 Price (₹)</label>
-                <input type="number" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="size_a5" name="size_a5" step="0.01" min="0" value="{{ artwork.size_a5 | default('0.00') | floatformat(2) }}">
-            </div>
-            <div class="col-md-3">
-                <label for="size_letter" class="form-label text-gray-700">Size: Letter Price (₹)</label>
-                <input type="number" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="size_letter" name="size_letter" step="0.01" min="0" value="{{ artwork.size_letter | default('0.00') | floatformat(2) }}">
-            </div>
-            <div class="col-md-3">
-                <label for="size_legal" class="form-label text-gray-700">Size: Legal Price (₹)</label>
-                <input type="number" class="form-control rounded-md focus:ring-indigo-500 focus:border-indigo-500" id="size_legal" name="size_legal" step="0.01" min="0" value="{{ artwork.size_legal | default('0.00') | floatformat(2) }}">
-            </div>
-        </div>
-        
-        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-            <button type="submit" class="btn btn-primary btn-lg rounded-md shadow-sm transition-transform hover:scale-105">Update Artwork</button>
-            <a href="{{ url_for('admin_artworks_view') }}" class="btn btn-secondary btn-lg rounded-md shadow-sm transition-transform hover:scale-105">Cancel</a>
-        </div>
+      <button type="submit" class="btn btn-primary mt-3">Update Artwork</button>
     </form>
-</div>
+  </main>
 
-{% endblock %}
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const enableCustomOptions = document.getElementById('enable_custom_options');
+    const section = document.getElementById('custom_options_section');
+    const container = document.getElementById('option-groups-container');
+    const jsonInput = document.getElementById('custom_options_json');
 
-{% block extra_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('editArtworkForm');
-        const imagesToKeepHiddenInput = document.getElementById('imagesToKeepHiddenInput');
-        const imageCheckboxes = document.querySelectorAll('.image-checkbox');
-        const categorySelect = document.getElementById('category');
-        const optionsPricingSection = document.getElementById('options-pricing-section');
-        // Select all option inputs by their names or common class if they are not exclusively in options-pricing-section
-        const allOptionInputs = document.querySelectorAll('#frame_wooden, #frame_metal, #frame_pvc, #glass_price, #size_a4, #size_a5, #size_letter, #size_legal');
+    const existingOptions = {{ artwork.custom_options | default({}) | tojson | safe }};
+    if (enableCustomOptions.checked) section.style.display = 'block';
 
+    if (existingOptions && Object.keys(existingOptions).length > 0) {
+      Object.entries(existingOptions).forEach(([group, values]) => {
+        const div = document.createElement('div');
+        div.classList.add('mb-3');
+        div.innerHTML = `
+          <label>Option Group Name:</label>
+          <input type="text" class="form-control option-group-name mb-2" value="${group}" />
+          <div class="option-values">
+            ${Object.entries(values).map(([label, price]) => `
+              <div class='input-group mb-1'>
+                <input type='text' class='form-control form-control-sm option-label' value='${label}' placeholder='Option label'>
+                <input type='number' class='form-control form-control-sm option-price' value='${price}' placeholder='Additional price'>
+              </div>
+            `).join('')}
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-primary mb-2" onclick="addOptionValue(this)">+ Add Value</button>
+        `;
+        container.appendChild(div);
+      });
+    }
 
-        function updateImagesToKeepHiddenInput() {
-            const checkedImages = [];
-            imageCheckboxes.forEach(checkbox => {
-                if (checkbox.checked) {
-                    checkedImages.push(checkbox.value);
-                }
-            });
-            // Ensure the hidden input always contains a valid JSON array string
-            imagesToKeepHiddenInput.value = JSON.stringify(checkedImages);
-            console.log("DEBUG: imagesToKeepHiddenInput value updated to:", imagesToKeepHiddenInput.value);
-        }
-
-        // --- Option Pricing Toggle Logic ---
-        function toggleOptionsPricing() {
-            const selectedCategory = categorySelect.value;
-            // Define categories where options apply
-            const isOptionsApplicable = ['Paintings', 'photos'].includes(selectedCategory);
-
-            if (isOptionsApplicable) {
-                optionsPricingSection.style.display = 'flex'; // Or 'block', 'grid' depending on its default layout
-                optionsPricingSection.previousElementSibling.style.display = 'block'; // Show "Pricing for Options" H4
-                optionsPricingSection.nextElementSibling.style.display = 'block'; // Show the paragraph below H4
-            } else {
-                optionsPricingSection.style.display = 'none';
-                optionsPricingSection.previousElementSibling.style.display = 'none'; // Hide "Pricing for Options" H4
-                optionsPricingSection.nextElementSibling.style.display = 'none'; // Hide the paragraph below H4
-
-                // Reset values to '0.00' when hidden to ensure data consistency
-                allOptionInputs.forEach(input => {
-                    input.value = '0.00';
-                });
-            }
-        }
-
-        // Event Listeners
-        imageCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', updateImagesToKeepHiddenInput);
-        });
-
-        categorySelect.addEventListener('change', toggleOptionsPricing);
-
-        // Initial calls on page load
-        updateImagesToKeepHiddenInput(); // Populate hidden input with initial checked images
-        toggleOptionsPricing(); // Set initial visibility of options section
+    enableCustomOptions.addEventListener('change', function () {
+      section.style.display = this.checked ? 'block' : 'none';
     });
-</script>
-{% endblock %}
+
+    window.addOptionGroup = function () {
+      const groupDiv = document.createElement('div');
+      groupDiv.classList.add('mb-3');
+      groupDiv.innerHTML = `
+        <label>Option Group Name:</label>
+        <input type="text" class="form-control option-group-name mb-2" placeholder="e.g. Material">
+        <div class="option-values"></div>
+        <button type="button" class="btn btn-sm btn-outline-primary mb-2" onclick="addOptionValue(this)">+ Add Value</button>
+      `;
+      container.appendChild(groupDiv);
+    }
+
+    window.addOptionValue = function (btn) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'input-group mb-1';
+      wrapper.innerHTML = `
+        <input type="text" class="form-control form-control-sm option-label" placeholder="Option label">
+        <input type="number" class="form-control form-control-sm option-price" placeholder="Additional price">
+      `;
+      btn.previousElementSibling.appendChild(wrapper);
+    }
+
+    document.querySelector('form').addEventListener('submit', function () {
+      if (!enableCustomOptions.checked) return;
+      const groups = container.querySelectorAll('div');
+      const result = {};
+      groups.forEach(group => {
+        const name = group.querySelector('.option-group-name')?.value?.trim();
+        const values = Array.from(group.querySelectorAll('.input-group'))
+                            .map(row => {
+                              const label = row.querySelector('.option-label')?.value.trim();
+                              const price = parseFloat(row.querySelector('.option-price')?.value || '0');
+                              return [label, price];
+                            })
+                            .filter(([label]) => label);
+        if (name && values.length > 0) {
+          result[name] = {};
+          values.forEach(([label, price]) => {
+            result[name][label] = price;
+          });
+        }
+      });
+      jsonInput.value = JSON.stringify(result);
+    });
+  });
+  </script>
+</body>
+</html>

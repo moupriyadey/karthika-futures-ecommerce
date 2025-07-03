@@ -46,6 +46,32 @@
 {% endblock %}
 
 {% block extra_js %}
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const redirectAfterLogin = sessionStorage.getItem('redirect_after_login_endpoint');
+  const itemToBuyNow = sessionStorage.getItem('itemToBuyNow');
+
+  if (redirectAfterLogin === 'purchase_form' && itemToBuyNow) {
+    // Send to Flask route that handles setting the item in session
+    fetch("/create_direct_order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: itemToBuyNow
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success && data.redirect_url) {
+        sessionStorage.removeItem('itemToBuyNow');
+        sessionStorage.removeItem('redirect_after_login_endpoint');
+        window.location.href = data.redirect_url;
+      }
+    })
+    .catch(err => console.error("Direct order setup failed:", err));
+  }
+});
+</script>
+
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     if (typeof updateCartCountDisplay === 'function') {

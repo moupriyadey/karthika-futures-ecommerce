@@ -8,216 +8,358 @@ function showCustomAlert(message, type = 'info') {
     setTimeout(() => alertDiv.remove(), 5000);
 }
 
-async function buyNow(sku, name, imageUrl, options, quantity) {
-    const payload = { sku, name, imageUrl, options, quantity };
+// Global variable to store CSRF token
+
+// Helper function to get headers including CSRF token
+// Helper function to get headers including CSRF token
+function getHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    if (window.csrfToken) { // Use the global window.csrfToken
+        headers['X-CSRFToken'] = window.csrfToken;
+    }
+    return headers;
+}
+/**
+ * Handles the "Buy Now" action, directly preparing an order.
+ * @param {string} sku - The SKU of the product.
+ * @param {string} name - The name of the product.
+ * @param {string} imageUrl - The URL of the product image.
+ * @param {Object} options - Object containing selected options (size, frame, glass).
+ * @param {number} quantity - The selected quantity.
+ * @param {number} basePrice - The base price of the product without options.
+ * @param {number} gstPercentage - The GST percentage applicable.
+ */
+async function buyNow(sku, name, imageUrl, options, quantity, basePrice, gstPercentage) {
+    const itemToBuyNow = {
+        sku: sku,
+        name: name,
+        imageUrl: imageUrl,
+        options: options, // options should already contain size, frame, glass
+        quantity: quantity,
+        unitPrice: basePrice,
+        gstPercentage: gstPercentage
+    };
+
+    // Check if isUserLoggedIn is defined and true globally (e.g., set in _base.html)
+    if (!window.isUserLoggedIn) {
+        sessionStorage.setItem('itemToBuyNow', JSON.stringify(itemToBuyNow));
+        sessionStorage.setItem('redirect_after_login_endpoint', 'purchase_form');
+        window.location.href = '/user-login?next=' + encodeURIComponent('/purchase_form');
+        return;
+    }
+
     try {
-        const response = await fetch("/purchase-form", {
-            method: "POST",
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+        const response = await fetch('/create_direct_order', {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(itemToBuyNow)
         });
 
-        if (response.ok) {
-            window.location.href = "/purchase-form";
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            showCustomAlert(data.message || 'Direct purchase initiated. Redirecting...', 'success');
+            window.location.href = data.redirect_url;
         } else {
-            showCustomAlert("Failed to place order. Try again.", 'danger');
+            showCustomAlert(data.message || 'Failed to initiate direct purchase.', 'danger');
         }
-    } catch (err) {
-        showCustomAlert("Error placing order.", 'danger');
+    } catch (error) {
+        console.error('Error in buyNow fetch:', error);
+        showCustomAlert('An error occurred during purchase. Please try again.', 'danger');
     }
 }
 
-async function addToCart(sku, name, imageUrl, options, quantity) {
-    const payload = {
-        sku,
-        quantity,
-        size: options.size,
-        frame: options.frame,
-        glass: options.glass
+/**
+ * Handles adding an item to the cart.
+ * @param {string} sku - The SKU of the product.
+ * @param {number} quantity - The selected quantity.
+ * @param {string|null} size - The selected size option.
+ * @param {string|null} frame - The selected frame option.
+ * @param {string|null} glass - The selected glass option.
+ */
+async function addToCart(sku, quantity, size, frame, glass) {
+    const itemData = {
+        sku: sku,
+        quantity: quantity,
+        size: size,
+        frame: frame,
+        glass: glass
     };
     try {
-        const response = await fetch("/add-to-cart", {
-            method: "POST",
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+        const response = await fetch('/add-to-cart', {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(itemData)
         });
 
-        const result = await response.json();
-
-        if (response.ok && result.success) {
-            showCustomAlert(result.message || "Item added to cart!", "success");
-
-            const cartCountElement = document.getElementById('cart-count');
-            if (cartCountElement && result.total_quantity !== undefined) {
-                cartCountElement.textContent = result.total_quantity;
-                cartCountElement.style.display = result.total_quantity > 0 ? 'inline-block' : 'none';
+        const data = await response.json();
+        if (response.ok && data.success) {
+            showCustomAlert(data.message || 'Item added to cart!', 'success');
+            // Update cart count if the function exists
+            if (typeof updateCartCountDisplay === 'function') {
+                updateCartCountDisplay();
             }
         } else {
-            showCustomAlert(result.message || "Failed to add to cart.", "danger");
+            showCustomAlert(data.message || 'Failed to add item to cart.', 'danger');
         }
-    } catch (err) {
-        showCustomAlert("Error adding to cart.", 'danger');
+    } catch (error) {
+        console.error('Error adding to cart:', error);
+        showCustomAlert('An error occurred. Please try again.', 'danger');
     }
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-    fetch('/update_cart_session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success && data.total_quantity !== undefined) {
-            const cartCountElement = document.getElementById('cart-count');
-            if (cartCountElement) {
-                cartCountElement.textContent = data.total_quantity;
-                cartCountElement.style.display = data.total_quantity > 0 ? 'inline-block' : 'none';
-            }
+// Global update for cart count display (used in _base.html and other pages)
+function updateCartCountDisplay() {
+    const count = localStorage.getItem('cartCount');
+    const badge = document.getElementById('cart-count');
+    if (badge) {
+        const displayCount = parseInt(count) || 0;
+        badge.textContent = displayCount;
+        badge.style.display = displayCount > 0 ? 'inline-block' : 'none';
+    }
+}
+
+// Function to fetch cart count from the server (used on page load)
+async function fetchCartCount() {
+    try {
+        const response = await fetch('/get_cart_count');
+        const data = await response.json();
+        if (data.success) {
+            localStorage.setItem('cartCount', data.cart_count);
+            updateCartCountDisplay();
         }
-    });
+    } catch (error) {
+        console.error("Error fetching cart count:", error);
+    }
+}
 
-    document.querySelectorAll('.artwork-card').forEach(card => {
-        const sizeSelect = card.querySelector('.size-select');
-        const frameSelect = card.querySelector('.frame-select');
-        const glassSelect = card.querySelector('.glass-select');
-        const quantityInput = card.querySelector('.quantity-input');
-        const addToCartBtn = card.querySelector('.add-to-cart-btn');
-        const buyNowBtn = card.querySelector('.buy-now-btn');
-        const viewDetailsBtn = card.querySelector('.view-details-btn');
-        const cardImage = card.querySelector('.clickable-image');
-        const finalPriceElement = card.querySelector('.final-price');
-        const originalBasePrice = parseFloat(card.dataset.originalPrice || 0);
-        const gstPercentage = parseFloat(card.dataset.gstPercentage || 0);
-        const category = card.dataset.category;
+// All DOM-related interactions should be inside DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+    // --- CSRF Token Initialization ---
+   console.log("CSRF Token initialized from window:", window.csrfToken);
 
-        function calculateAndDisplayPrice(currentCard) {
-            let currentBasePrice = originalBasePrice;
-            let selectedSize = 'Original', selectedFrame = 'None', selectedGlass = 'None';
-            let sizePrice = 0, framePrice = 0, glassPrice = 0;
+    // Initial fetch of cart count when the page loads
+    fetchCartCount();
 
-            if (sizeSelect?.tagName === 'SELECT') {
-                const selectedOption = sizeSelect.options[sizeSelect.selectedIndex];
-                selectedSize = sizeSelect.value;
-                sizePrice = parseFloat(selectedOption?.dataset.price || 0);
-            } else if (sizeSelect?.type === 'hidden') {
-                selectedSize = sizeSelect.value;
-                sizePrice = parseFloat(sizeSelect.dataset.price || 0);
-            }
+    // Ensure window.isUserLoggedIn is set if the user is logged in
+    // This variable should be initialized in your HTML template (e.g., _base.html)
+    // The line below provides a default if not set in HTML, but setting in HTML is preferred.
+    window.isUserLoggedIn = typeof window.isUserLoggedIn !== 'undefined' ? window.isUserLoggedIn : false;
 
-            if (frameSelect?.tagName === 'SELECT') {
-                const selectedOption = frameSelect.options[frameSelect.selectedIndex];
-                selectedFrame = frameSelect.value;
-                framePrice = parseFloat(selectedOption?.dataset.price || 0);
-            } else if (frameSelect?.type === 'hidden') {
-                selectedFrame = frameSelect.value;
-                framePrice = parseFloat(frameSelect.dataset.price || 0);
-            }
 
-            if (glassSelect?.tagName === 'SELECT') {
-                const selectedOption = glassSelect.options[glassSelect.selectedIndex];
-                selectedGlass = glassSelect.value;
-                glassPrice = parseFloat(selectedOption?.dataset.price || 0);
-            } else if (glassSelect?.type === 'hidden') {
-                selectedGlass = glassSelect.value;
-                glassPrice = parseFloat(glassSelect.dataset.price || 0);
-            }
+    // --- Event Listeners for Product Card Forms (all_products.html) ---
 
-            if (category === 'Paintings') {
-                currentBasePrice += sizePrice + framePrice + glassPrice;
-            }
+    // 1. Add to Cart Forms
+    document.querySelectorAll('.add-to-cart-form').forEach(form => {
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault(); // Prevent default form submission (page reload)
 
-            let selectedQuantity = parseInt(quantityInput?.value || 1);
-            let maxStock = parseInt(quantityInput?.max || 9999);
+            const sku = form.dataset.sku || form.querySelector('input[name="sku"]')?.value;
+            const quantityInput = form.querySelector('.quantity-input') || form.querySelector('input[name="quantity"]');
+            const selectedQuantity = parseInt(quantityInput?.value || 1, 10);
 
-            if (selectedQuantity > maxStock) {
-                selectedQuantity = maxStock;
-                quantityInput.value = selectedQuantity;
-                showCustomAlert(`Only ${maxStock} available. Quantity adjusted.`, 'warning');
-            } else if (selectedQuantity < 1) {
-                selectedQuantity = 1;
-                quantityInput.value = selectedQuantity;
-            }
+            const sizeSelect = form.querySelector('.size-select');
+            const frameSelect = form.querySelector('.frame-select');
+            const glassSelect = form.querySelector('.glass-select');
 
-            const priceBeforeGst = currentBasePrice * selectedQuantity;
-            const gstAmount = priceBeforeGst * (gstPercentage / 100);
-            const finalCalculatedPrice = priceBeforeGst + gstAmount;
+            const selectedSize = sizeSelect ? sizeSelect.value : null;
+            const selectedFrame = frameSelect ? frameSelect.value : null;
+            const selectedGlass = glassSelect ? glassSelect.value : null;
 
-            finalPriceElement.textContent = `₹${finalCalculatedPrice.toFixed(2)}`;
-            currentCard.dataset.calculatedUnitPrice = currentBasePrice.toFixed(2);
-            currentCard.dataset.currentQuantity = selectedQuantity;
-            currentCard.dataset.currentSize = selectedSize;
-            currentCard.dataset.currentFrame = selectedFrame;
-            currentCard.dataset.currentGlass = selectedGlass;
-        }
+            console.log("Preparing to add to cart:", { sku, selectedQuantity, selectedSize, selectedFrame, selectedGlass });
 
-        sizeSelect?.addEventListener('change', () => calculateAndDisplayPrice(card));
-        frameSelect?.addEventListener('change', () => calculateAndDisplayPrice(card));
-        glassSelect?.addEventListener('change', () => calculateAndDisplayPrice(card));
-        quantityInput?.addEventListener('input', () => calculateAndDisplayPrice(card));
-        quantityInput?.addEventListener('change', () => calculateAndDisplayPrice(card));
-        calculateAndDisplayPrice(card);
-
-        addToCartBtn?.addEventListener('click', async function () {
-            const sku = this.dataset.sku;
-            const name = this.dataset.name;
-            const imageUrl = this.dataset.image;
-            const currentQuantity = parseInt(card.dataset.currentQuantity);
-            const options = {
-                size: category === 'Paintings' ? card.dataset.currentSize : 'Original',
-                frame: category === 'Paintings' ? card.dataset.currentFrame : 'None',
-                glass: category === 'Paintings' ? card.dataset.currentGlass : 'None',
-            };
-
-            await addToCart(sku, name, imageUrl, options, currentQuantity);
-        });
-
-        buyNowBtn?.addEventListener('click', async function () {
-            const sku = this.dataset.sku;
-            const name = this.dataset.name;
-            const imageUrl = this.dataset.image;
-            const selectedQuantity = parseInt(card.dataset.currentQuantity);
-            const options = {
-                size: category === 'Paintings' ? card.dataset.currentSize : 'Original',
-                frame: category === 'Paintings' ? card.dataset.currentFrame : 'None',
-                glass: category === 'Paintings' ? card.dataset.currentGlass : 'None',
-            };
-
-            const isLoggedIn = typeof window.isUserLoggedIn !== 'undefined' && window.isUserLoggedIn;
-
-            if (!isLoggedIn) {
-                const itemToBuyNow = { sku, name, imageUrl, options, quantity: selectedQuantity };
-                sessionStorage.setItem('itemToBuyNow', JSON.stringify(itemToBuyNow));
-                sessionStorage.setItem('redirect_after_login_endpoint', 'purchase_form');
-                window.location.href = '/user-login?next=' + encodeURIComponent(window.location.pathname + window.location.search) + '&login_prompt=buy_now';
+            if (!sku || isNaN(selectedQuantity) || selectedQuantity < 1) {
+                showCustomAlert('Please select a valid product and quantity.', 'danger');
                 return;
             }
 
-            await buyNow(sku, name, imageUrl, options, selectedQuantity);
-        });
-
-        viewDetailsBtn?.addEventListener('click', (event) => {
-            event.preventDefault();
-            const modalImage = document.getElementById('modalImage');
-            const imageModal = document.getElementById('imageModal');
-            const imageSrc = viewDetailsBtn.dataset.imageSrc;
-            if (modalImage && imageModal && imageSrc) {
-                modalImage.src = imageSrc;
-                imageModal.style.display = 'flex';
-            } else {
-                showCustomAlert("Image preview not available.", 'warning');
+            try {
+                await addToCart(sku, selectedQuantity, selectedSize, selectedFrame, selectedGlass);
+            } catch (error) {
+                console.error("Error in Add to Cart form submission:", error);
+                showCustomAlert("Failed to add item to cart. Please try again.", 'danger');
             }
         });
+    });
 
-        cardImage?.addEventListener('click', (event) => {
-            event.preventDefault();
-            const modalImage = document.getElementById('modalImage');
-            const imageModal = document.getElementById('imageModal');
-            if (modalImage && imageModal) {
-                modalImage.src = cardImage.src;
-                imageModal.style.display = 'flex';
-            } else {
-                showCustomAlert("Image preview not available.", 'warning');
+    // 2. Buy Now Forms
+    document.querySelectorAll('.buy-now-form').forEach(form => {
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault(); // Prevent default form submission (page reload)
+
+            const sku = form.dataset.sku || form.querySelector('input[name="sku"]')?.value;
+            const quantityInput = form.querySelector('.quantity-input') || form.querySelector('input[name="quantity"]');
+            const selectedQuantity = parseInt(quantityInput?.value || 1, 10);
+
+            // Collect options from select elements within the form
+            const options = {
+                size: form.querySelector('.size-select')?.value || null,
+                frame: form.querySelector('.frame-select')?.value || null,
+                glass: form.querySelector('.glass-select')?.value || null
+            };
+
+            const productCard = form.closest('.product-card');
+            const name = productCard?.querySelector('.card-title')?.textContent.trim();
+            const imageUrl = productCard?.querySelector('.product-image')?.src;
+            // Ensure these data-attributes are correctly set on your .product-card HTML element
+            const basePrice = parseFloat(productCard?.dataset.originalPrice || 0);
+            const gstPercentage = parseFloat(productCard?.dataset.gstPercentage || 0);
+
+            console.log("Preparing for Buy Now:", { sku, name, imageUrl, options, selectedQuantity, basePrice, gstPercentage });
+
+            if (!sku || !name || !imageUrl || isNaN(selectedQuantity) || selectedQuantity < 1) {
+                showCustomAlert('Please select a valid product and quantity for direct purchase.', 'danger');
+                return;
+            }
+
+            try {
+                await buyNow(sku, name, imageUrl, options, selectedQuantity, basePrice, gstPercentage);
+            } catch (error) {
+                console.error("Error in Buy Now form submission:", error);
+                showCustomAlert("Failed to process direct purchase. Please try again.", 'danger');
             }
         });
+    });
+
+
+    // --- Modal Event Listeners (for forms within the product details modal) ---
+    // Ensure your modal forms and their inputs have the correct IDs/classes as used here
+
+    // Modal Add to Cart Form
+    document.querySelectorAll('.modal-add-to-cart-form').forEach(form => {
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            // Get SKU from modal's hidden input or data attribute
+            const sku = form.querySelector('#modalSku')?.value;
+            const quantityInput = form.querySelector('.modal-quantity-input') || form.querySelector('input[name="quantity"]');
+            const selectedQuantity = parseInt(quantityInput?.value || 1, 10);
+
+            // Get selected options from modal's select elements
+            const sizeSelect = form.querySelector('.modal-size-select');
+            const frameSelect = form.querySelector('.modal-frame-select');
+            const glassSelect = form.querySelector('.modal-glass-select');
+
+            const selectedSize = sizeSelect ? sizeSelect.value : null;
+            const selectedFrame = frameSelect ? frameSelect.value : null;
+            const selectedGlass = glassSelect ? glassSelect.value : null;
+
+            console.log("Adding from modal to cart:", { sku, selectedQuantity, selectedSize, selectedFrame, selectedGlass });
+
+            if (!sku || isNaN(selectedQuantity) || selectedQuantity < 1) {
+                showCustomAlert('Please select a valid product and quantity from the modal.', 'danger');
+                return;
+            }
+
+            try {
+                await addToCart(sku, selectedQuantity, selectedSize, selectedFrame, selectedGlass);
+                // Optionally hide the modal after successful add to cart
+                const modalElement = form.closest('.modal');
+                if (modalElement) {
+                    const bootstrapModal = bootstrap.Modal.getInstance(modalElement);
+                    if (bootstrapModal) bootstrapModal.hide();
+                }
+            } catch (error) {
+                console.error("Error adding from modal to cart:", error);
+                showCustomAlert("Failed to add item from modal to cart. Please try again.", 'danger');
+            }
+        });
+    });
+
+    // Modal Buy Now Form
+    document.querySelectorAll('.modal-buy-now-form').forEach(form => {
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            // Get SKU from modal's hidden input
+            const sku = form.querySelector('#modalBuySku')?.value;
+            const quantityInput = form.querySelector('.modal-quantity-input') || form.querySelector('input[name="quantity"]');
+            const selectedQuantity = parseInt(quantityInput?.value || 1, 10);
+
+            // Collect options from modal select elements
+            const options = {
+                size: form.querySelector('.modal-size-select')?.value || null,
+                frame: form.querySelector('.modal-frame-select')?.value || null,
+                glass: form.querySelector('.modal-glass-select')?.value || null
+            };
+
+            // Assuming name, imageUrl, price, and GST can be read from elements populated when modal opens
+            const name = document.getElementById('modalTitle')?.textContent.trim();
+            const imageUrl = document.getElementById('modalImage')?.src;
+            // Ensure #modalPrice has data-original-price and data-gst-percentage
+            const basePrice = parseFloat(document.getElementById('modalPrice')?.dataset.originalPrice || 0);
+            const gstPercentage = parseFloat(document.getElementById('modalPrice')?.dataset.gstPercentage || 0);
+
+            console.log("Preparing for Buy Now from modal:", { sku, name, imageUrl, options, selectedQuantity, basePrice, gstPercentage });
+
+            if (!sku || !name || !imageUrl || isNaN(selectedQuantity) || selectedQuantity < 1) {
+                showCustomAlert('Please select a valid product and quantity for direct purchase from the modal.', 'danger');
+                return;
+            }
+
+            try {
+                await buyNow(sku, name, imageUrl, options, selectedQuantity, basePrice, gstPercentage);
+                // Optionally hide the modal after successful buy now
+                const modalElement = form.closest('.modal');
+                if (modalElement) {
+                    const bootstrapModal = bootstrap.Modal.getInstance(modalElement);
+                    if (bootstrapModal) bootstrapModal.hide();
+                }
+            } catch (error) {
+                console.error("Error processing Buy Now from modal:", error);
+                showCustomAlert("Failed to process direct purchase from modal. Please try again.", 'danger');
+            }
+        });
+    });
+
+    // --- Existing View Details and Image Click Listeners ---
+    // These listeners typically open a modal to view product details.
+    // They are separate from the Add to Cart/Buy Now forms themselves.
+    document.querySelectorAll('.view-details-btn, .product-image').forEach(element => {
+        element.addEventListener('click', (event) => {
+            event.preventDefault();
+            const card = element.closest('.product-card');
+            if (!card) return;
+
+            const sku = card.dataset.sku;
+            const name = card.querySelector('.card-title')?.textContent.trim();
+            const imageUrl = card.querySelector('.product-image')?.src;
+            const description = card.querySelector('.product-description')?.textContent.trim();
+            const originalPrice = card.dataset.originalPrice; // Ensure this is set on .product-card
+            const category = card.dataset.category; // Ensure this is set on .product-card
+            const gstPercentage = card.dataset.gstPercentage; // Ensure this is set on .product-card
+
+            // Populate the modal with details from the clicked card
+            document.getElementById('modalImage').src = imageUrl;
+            document.getElementById('modalTitle').textContent = name;
+            document.getElementById('modalDescription').textContent = description;
+            document.getElementById('modalCategory').textContent = `Category: ${category}`;
+            document.getElementById('modalPrice').textContent = `Price: ₹${originalPrice}`;
+            // Set data attributes on modalPrice for use by modal Buy Now form
+            document.getElementById('modalPrice').dataset.originalPrice = originalPrice;
+            document.getElementById('modalPrice').dataset.gstPercentage = gstPercentage;
+
+            document.getElementById('modalSku').value = sku; // Set SKU for modal's Add to Cart form
+            document.getElementById('modalBuySku').value = sku; // Set SKU for modal's Buy Now form
+
+            // Reset or populate modal's option selectors if necessary
+            // These would need to be updated based on specific product's available options
+            const modalSizeSelect = document.querySelector('#productModal .modal-size-select');
+            const modalFrameSelect = document.querySelector('#productModal .modal-frame-select');
+            const modalGlassSelect = document.querySelector('#productModal .modal-glass-select');
+
+            if (modalSizeSelect) modalSizeSelect.value = 'default'; // Or set to first option
+            if (modalFrameSelect) modalFrameSelect.value = 'default';
+            if (modalGlassSelect) modalGlassSelect.value = 'default';
+
+            // Show the modal
+            const productModal = new bootstrap.Modal(document.getElementById('productModal'));
+            productModal.show();
+        });
+    });
+
+    // Close image modal (if you have a separate image pop-up)
+    document.getElementById('closeImageModal')?.addEventListener('click', () => {
+        document.getElementById('imageModal').style.display = 'none';
     });
 });

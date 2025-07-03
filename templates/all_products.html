@@ -1,338 +1,240 @@
-{% extends '_base.html' %}
-
-{% block title %}All Artworks - Karthika Futures{% endblock %}
-
-{% block extra_css %}
-<style>
-    body {
-        background-image: url('{{ url_for('static', filename='images/background_krishna_motif.jpg') }}');
-        background-size: cover;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-        background-position: center;
-    }
-    .main-content-area {
-        background-color: rgba(255, 255, 255, 0.95);
-        border-radius: 1.5rem;
-        padding: 2rem;
-        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-        backdrop-filter: blur(10px);
-    }
-    .product-card {
-        border: 4px solid #f3e5ab;
-        border-radius: 1rem;
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
-        transition: transform 0.2s;
-        background: white url('{{ url_for('static', filename='images/flute_watermark.png') }}') no-repeat bottom right;
-        background-size: 80px;
-    }
-    .product-card:hover {
-        transform: scale(1.02);
-        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
-    }
-    .product-card-img-container {
-        height: 240px;
-        overflow: hidden;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: #f9f9f9;
-        border-bottom: 1px solid #eee;
-    }
-    .product-card-img {
-        max-height: 100%;
-        object-fit: contain;
-    }
-    .product-card-title {
-        font-size: 1.3rem;
-        font-weight: bold;
-        color: #40210f;
-    }
-    .product-card-artist, .product-card-category {
-        font-size: 0.9rem;
-        color: #555;
-    }
-    .product-card-price {
-        font-size: 1.4rem;
-        font-weight: bold;
-        color: #228b22;
-    }
-    .product-card-stock {
-        font-size: 0.85rem;
-        font-weight: 500;
-    }
-    .section-header {
-        font-family: 'Georgia', serif;
-        font-size: 2.5rem;
-        color: #4b2e17;
-        text-align: center;
-        margin-bottom: 2rem;
-        border-bottom: 3px solid #d2a679;
-        display: inline-block;
-        padding-bottom: 0.5rem;
-    }
-    .krishna-carousel {
-        margin-top: 2rem;
-        margin-bottom: 3rem;
-        background: rgba(255, 255, 255, 0.7);
-        padding: 1.5rem;
-        border-radius: 1rem;
-        font-family: 'Georgia', serif;
-        font-style: italic;
-        text-align: center;
-        color: #2f3e46;
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-    }
-    .divine-footer {
-        background: linear-gradient(to right, #faf3e0, #fdfaf6);
-        padding: 1.2rem 0;
-        border-top: 2px solid #e0c097;
-        text-align: center;
-        color: #5e412f;
-        font-weight: 500;
-        font-family: 'Georgia', serif;
-    }
-</style>
-{% endblock %}
-
-{% block content %}
-<div class="container main-content-area mt-5">
-    <h1 class="section-header">All Artworks</h1>
-    <div class="krishna-carousel">
-        <div id="krishnaQuotes"></div>
-    </div>
-
-    {% if artworks %}
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-        {% for artwork in artworks %}
-        {% set outer_loop_index = loop.index %} {# Capture the outer loop's index here #}
-        <div class="col">
-            <div class="product-card h-100" data-sku="{{ artwork.sku }}">
-                <div class="product-card-img-container">
-                    <div id="carousel-{{ outer_loop_index }}" class="carousel slide" data-bs-ride="carousel">
-                        <div class="carousel-inner">
-                            {% for img in artwork.images %}
-                            <div class="carousel-item {% if loop.first %}active{% endif %}">
-                                <img src="{{ url_for('static', filename=img) }}" class="d-block w-100 product-card-img pop-image lazy" alt="{{ artwork.name }}" data-full="{{ url_for('static', filename=img) }}">
-                            </div>
-                            {% endfor %}
-                        </div>
-                        {% if artwork.images|length > 1 %}
-                        <button class="carousel-control-prev" type="button" data-bs-target="#carousel-{{ outer_loop_index }}" data-bs-slide="prev">
-                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                            <span class="visually-hidden">Previous</span>
-                        </button>
-                        <button class="carousel-control-next" type="button" data-bs-target="#carousel-{{ outer_loop_index }}" data-bs-slide="next">
-                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                            <span class="visually-hidden">Next</span>
-                        </button>
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="d-flex justify-content-center flex-wrap gap-2 mt-2">
-                    {% for thumb in artwork.images %}
-                    <img src="{{ url_for('static', filename=thumb) }}" class="img-thumbnail thumbnail-nav"
-                         style="height: 50px; width: auto; cursor: pointer; border: 2px solid #ccc;"
-                         data-bs-target="#carousel-{{ outer_loop_index }}" data-bs-slide-to="{{ loop.index0 }}" aria-label="Slide {{ loop.index }}">
-                    {% endfor %}
-                </div>
-                <div class="p-3">
-                    <h5 class="product-card-title">{{ artwork.name }}</h5>
-                    <p class="product-card-artist">by {{ artwork.artist }}</p>
-                    <p class="product-card-category">Category: {{ artwork.category }}</p>
-                    <p class="product-card-price">₹{{ artwork.get('total_price_incl_gst', artwork.get('original_price', '0.00')) | float | format_currency }}</p>
-                    <p class="product-card-stock {% if artwork.stock == 0 %}text-danger{% elif artwork.stock <= 5 %}text-warning{% else %}text-success{% endif %}">
-                        Stock: {% if artwork.stock == 0 %}Out of Stock{% else %}{{ artwork.stock }} left{% endif %}
-                    </p>
-                    <div class="d-grid gap-2 mt-3">
-                        <button class="btn btn-primary add-to-cart-btn" {% if artwork.stock == 0 %}disabled{% endif %} data-sku="{{ artwork.sku }}">Add to Cart</button>
-                        <button class="btn btn-success buy-now-btn" {% if artwork.stock == 0 %}disabled{% endif %} data-sku="{{ artwork.sku }}">Buy Now</button>
-                        <a class="btn btn-outline-secondary" href="{{ url_for('product_detail', sku=artwork.sku) }}">View Details</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% else %}
-    <p class="text-center lead">No artworks found matching your criteria.</p>
-    {% endif %}
-</div>
-
-<div class="modal fade" id="artworkDetailsModal" tabindex="-1" aria-labelledby="artworkDetailsLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="artworkDetailsLabel"></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body text-center">
-                <div style="position: relative; display: inline-block;">
-                    <img id="artworkModalImage" class="img-fluid mb-3" style="max-height: 450px; object-fit: contain; filter: brightness(0.9); cursor: zoom-in;" src="" alt="Artwork" onclick="this.requestFullscreen();">
-                    <span style="position: absolute; bottom: 10px; right: 10px; background: rgba(255,255,255,0.7); padding: 2px 6px; font-size: 0.8rem; font-weight: bold; color: #444; border-radius: 3px;">Karthikafutures</span>
-                </div>
-                <p id="artworkModalDescription" class="lead text-muted"></p>
-            </div>
-            <div class="modal-footer">
-                <form method="POST" action="{{ url_for('add_to_cart') }}" style="display:inline" class="modal-add-to-cart-form">
-                    <input type="hidden" name="sku" id="modalSku">
-                    <button type="submit" class="btn btn-primary">Add to Cart</button>
-                </form>
-                <form method="POST" action="{{ url_for('purchase_form') }}" style="display:inline" class="modal-buy-now-form">
-                    <input type="hidden" name="sku" id="modalBuySku">
-                    <button type="submit" class="btn btn-success">Buy Now</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="divine-footer">
-    <div>
-        "Whenever dharma declines and the purpose of life is forgotten, I manifest myself on earth." – Lord Krishna, Bhagavad Gita
-    </div>
-    <div class="mt-3">
-        <strong style="font-size: 1.15rem; display: block;">Please donate in the name of Hariseva and Dharmaseva</strong>
-        <img src="{{ url_for('static', filename='qr_code.png') }}" alt="Donate QR" style="height: 160px; margin-top: 0.5rem;">
-        <div style="font-size: 1rem; color: #5c4433; font-weight: 500;">Scan the QR code to support our sacred cause</div>
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_js %}
-{{ super() }}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-lazyload/17.8.3/lazyload.min.js"></script>
-<script>
-    var lazyLoadInstance = new LazyLoad({ elements_selector: ".lazy" });
-    const quotes = [
-        "Change is the law of the universe. You can be a millionaire or a pauper in an instant.",
-        "You have the right to work, but never to the fruit of work.",
-        "Perform your duty and abandon all attachment to success or failure.",
-        "I am the beginning, middle, and end of creation.",
-        "Those who worship Me with devotion live in Me."
-    ];
-    let currentQuote = 0;
-    function cycleQuotes() {
-        const display = document.getElementById('krishnaQuotes');
-        if (display) {
-            display.textContent = quotes[currentQuote];
-            currentQuote = (currentQuote + 1) % quotes.length;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Artworks - Karthika Futures</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-image: url('{{ url_for('static', filename='images/background_krishna_motif.jpg') }}');
+            background-size: cover;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            background-position: center;
         }
-    }
-    setInterval(cycleQuotes, 5000);
-    window.onload = cycleQuotes;
+        .main-content-area {
+            background-color: rgba(255,255,255,0.95);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+        .product-card {
+            border: 3px solid #f3e5ab;
+            border-radius: 1rem;
+            background: #fff;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+            padding: 1rem;
+        }
+        .product-card-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #40210f;
+        }
+        .product-card-price {
+            color: #228b22;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+        .section-header {
+            font-family: 'Georgia', serif;
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #4b2e17;
+            border-bottom: 3px solid #d2a679;
+            padding-bottom: 0.5rem;
+        }
+        .cart-preview {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #fff;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 1rem;
+            max-width: 300px;
+            z-index: 999;
+        }
+        .cart-preview h5 {
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    {% include '_navbar.html' %}
 
-    // Handle "Add to Cart" button clicks on product cards
-    document.querySelectorAll('.add-to-cart-btn').forEach(button => {
-        button.addEventListener('click', function () {
-            const card = button.closest('.product-card');
-            const sku = button.dataset.sku; // Get SKU directly from data attribute on button
-            // Get the image from the currently active carousel item for the specific card
-            const imageElement = card.querySelector('.carousel-item.active .product-card-img');
-            const image = imageElement ? imageElement.getAttribute('src') : '';
-            const name = card.querySelector('.product-card-title')?.innerText.trim();
+    <div class="container main-content-area mt-5">
+        <h1 class="section-header">All Artworks</h1>
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% for artwork in artworks %}
+            <div class="col">
+                <div class="product-card h-100" data-sku="{{ artwork.sku }}" data-base-price="{{ artwork.original_price }}">
+                    <img src="{{ url_for('static', filename=artwork.images[0]) }}" class="img-fluid rounded shadow-sm" alt="{{ artwork.name }}" style="cursor: pointer;" onclick="showFullscreenImage('{{ url_for('static', filename=artwork.images[0]) }}')">
 
-            fetch("{{ url_for('add_to_cart') }}", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    sku: sku,
-                    name: name,
-                    image: image,
-                    size: "Original", // Default values for size, frame, glass
-                    frame: "None",
-                    glass: "None",
-                    quantity: 1
+                    <div class="p-2">
+                        <h5 class="product-card-title">{{ artwork.name }}</h5>
+                        <p class="product-card-category">Category: {{ artwork.category }}</p>
+                        <p class="product-card-price">Unit Price: ₹<span class="base-price">{{ artwork.original_price }}</span></p>
+                        <p class="product-card-price text-danger">Total: ₹<span class="final-price">{{ artwork.original_price }}</span></p>
+
+                        {% if artwork.has_custom_options %}
+                            {% for group, values in artwork.custom_options.items() %}
+                                <label class="fw-bold d-block mt-2">{{ group }}</label>
+                                <div>
+                                    {% for label, price in values.items() %}
+                                    <label class="me-2">
+                                        <input type="radio" name="{{ group }}-{{ artwork.sku }}" value="{{ label }}" data-additional-price="{{ price }}" required> {{ label }} (+₹{{ price }})
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+
+                        <div class="mt-3">
+                            <label for="quantity-{{ artwork.sku }}">Quantity:</label>
+                            <input type="number" id="quantity-{{ artwork.sku }}" class="form-control quantity-input" value="1" min="1" max="{{ artwork.stock }}">
+                            <small class="text-muted">In stock: {{ artwork.stock }}</small>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-3">
+                            <button class="btn btn-primary add-to-cart-btn" data-sku="{{ artwork.sku }}">Add to Cart</button>
+                            <button class="btn btn-success buy-now-btn" data-sku="{{ artwork.sku }}">Buy Now</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div id="cart-preview" class="cart-preview d-none">
+        <h5>Cart Updated ✅</h5>
+        <p id="cart-summary"></p>
+        <a href="/cart" class="btn btn-sm btn-outline-primary">View Cart</a>
+    </div>
+
+    <footer class="text-center mt-5 mb-4">
+        <p class="fw-bold">Please support our dharmic mission</p>
+        <img src="{{ url_for('static', filename='qr_code.png') }}" alt="Donation QR" style="height: 160px;">
+        <p>Scan the QR code to donate 🙏</p>
+    </footer>
+
+    <script>
+        function showFullscreenImage(url) {
+            const win = window.open('', '_blank');
+            win.document.write('<img src="' + url + '" style="width:100%; watermark:Karthikafutures">');
+            win.document.title = 'Artwork Preview';
+        }
+
+        const isUserLoggedIn = {{ 'true' if session.get('user_email') else 'false' }};
+
+        function getOptionsForCard(card) {
+            const radios = card.querySelectorAll('input[type=radio]:checked');
+            const options = {};
+            radios.forEach(radio => {
+                const groupName = radio.name.split('-')[0];
+                options[groupName] = radio.value;
+            });
+            return options;
+        }
+
+        function calculateFinalPrice(card) {
+            const basePrice = parseFloat(card.dataset.basePrice || '0');
+            const radios = card.querySelectorAll('input[type=radio]:checked');
+            const quantity = parseInt(card.querySelector('.quantity-input')?.value || '1');
+            let total = basePrice;
+
+            radios.forEach(radio => {
+                const extra = parseFloat(radio.dataset.additionalPrice || '0');
+                total += extra;
+            });
+
+            return (total * quantity).toFixed(2);
+        }
+
+        function updateDisplayedPrice(card) {
+            const finalPriceElement = card.querySelector('.final-price');
+            finalPriceElement.textContent = calculateFinalPrice(card);
+        }
+
+        document.querySelectorAll('.product-card').forEach(card => {
+            card.querySelectorAll('input[type=radio]').forEach(radio => {
+                radio.addEventListener('change', () => updateDisplayedPrice(card));
+            });
+
+            card.querySelector('.quantity-input').addEventListener('input', () => updateDisplayedPrice(card));
+        });
+
+        function showCartPreview(sku, quantity, total) {
+            const preview = document.getElementById('cart-preview');
+            const summary = document.getElementById('cart-summary');
+            summary.textContent = `SKU: ${sku} | Qty: ${quantity} | Total: ₹${total}`;
+            preview.classList.remove('d-none');
+            setTimeout(() => preview.classList.add('d-none'), 5000);
+        }
+
+        document.querySelectorAll('.buy-now-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const card = btn.closest('.product-card');
+                const sku = btn.dataset.sku;
+                const quantity = parseInt(card.querySelector('.quantity-input')?.value || '1');
+                const options = getOptionsForCard(card);
+
+                fetch('/set_direct_purchase_item', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sku, quantity, ...options })
                 })
-            })
-            .then(res => {
-                if (!res.ok) {
-                    // Check for non-2xx responses (e.g., 400, 500)
-                    return res.json().then(errorData => { throw new Error(errorData.message || 'Server error'); });
-                }
-                return res.json();
-            })
-            .then(data => {
-                alert(data.message || "Added to cart!");
-                // Optionally update cart count in UI here
-            })
-            .catch(err => {
-                alert("Error adding to cart: " + err.message);
-                console.error("Fetch error:", err);
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = '/purchase-form';
+                    } else if (!isUserLoggedIn) {
+                        window.location.href = '/login?next=purchase-form';
+                    } else {
+                        alert('Error: ' + (data.message || 'Unexpected error'));
+                    }
+                });
             });
         });
-    });
 
-    // Handle "Buy Now" button clicks on product cards
-    document.querySelectorAll('.buy-now-btn').forEach(button => {
-        button.addEventListener('click', function () {
-            const sku = button.dataset.sku; // Get SKU directly from data attribute on button
-            // Dynamically create a form and submit it to the purchase route
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = "{{ url_for('purchase_form') }}";
+        document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const card = btn.closest('.product-card');
+                const sku = btn.dataset.sku;
+                const quantity = parseInt(card.querySelector('.quantity-input')?.value || '1');
+                const total = calculateFinalPrice(card);
+                const options = getOptionsForCard(card);
 
-            const skuInput = document.createElement('input');
-            skuInput.type = 'hidden';
-            skuInput.name = 'sku';
-            skuInput.value = sku;
-            form.appendChild(skuInput);
-
-            document.body.appendChild(form); // Append to body to submit
-            form.submit();
+                fetch('/add-to-cart', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sku, quantity, ...options })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        if (isUserLoggedIn) {
+                            const cartCount = document.getElementById('cart-count');
+                            if (cartCount) {
+                                fetch('/get_cart_count')
+                                    .then(res => res.json())
+                                    .then(data => {
+                                        cartCount.textContent = data.count;
+                                    });
+                            }
+                            showCartPreview(sku, quantity, total);
+                        } else {
+                            window.location.href = '/login?next=all-products';
+                        }
+                    } else {
+                        alert('Error: ' + (data.message || 'Unexpected error'));
+                    }
+                });
+            });
         });
-    });
-
-    // Handle thumbnail clicks to update carousel and show modal
-    document.querySelectorAll('.thumbnail-nav').forEach(thumbnail => {
-        thumbnail.addEventListener('click', function () {
-            const carouselId = this.getAttribute('data-bs-target');
-            const slideTo = parseInt(this.getAttribute('data-bs-slide-to'));
-            const carouselElement = document.querySelector(carouselId);
-            const carousel = bootstrap.Carousel.getInstance(carouselElement) || new bootstrap.Carousel(carouselElement);
-
-            carousel.to(slideTo); // Go to the clicked slide
-
-            // Now, populate the modal with the details of the artwork clicked
-            const card = this.closest('.product-card');
-            const artworkName = card.querySelector('.product-card-title').innerText;
-            const artworkDescription = "This is a placeholder description. You might want to fetch a more detailed description from your backend or store it as a data attribute on the card."; // Placeholder
-            const imageUrl = this.src; // Use the thumbnail's src or the data-full from the main image
-            const sku = card.getAttribute('data-sku');
-
-            document.getElementById('artworkDetailsLabel').innerText = artworkName;
-            document.getElementById('artworkModalImage').src = imageUrl; // Set the image in the modal
-            document.getElementById('artworkModalDescription').innerText = artworkDescription;
-            document.getElementById('modalSku').value = sku; // For add to cart in modal
-            document.getElementById('modalBuySku').value = sku; // For buy now in modal
-
-            // Show the modal
-            const artworkDetailsModal = new bootstrap.Modal(document.getElementById('artworkDetailsModal'));
-            artworkDetailsModal.show();
-        });
-    });
-
-    // Handle modal image click for full screen
-    document.getElementById('artworkModalImage').addEventListener('click', function() {
-        if (this.requestFullscreen) {
-            this.requestFullscreen();
-        } else if (this.webkitRequestFullscreen) { /* Safari */
-            this.webkitRequestFullscreen();
-        } else if (this.msRequestFullscreen) { /* IE11 */
-            this.msRequestFullscreen();
-        }
-    });
-
-    // Initialize Bootstrap carousels (important if they are not auto-initializing)
-    var myCarousel = document.querySelector('#carouselExampleIndicators');
-    if (myCarousel) {
-        var carousel = new bootstrap.Carousel(myCarousel, {
-            interval: 2000,
-            wrap: true
-        });
-    }
-
-</script>
-{% endblock %}
+    </script>
+</body>
+</html>

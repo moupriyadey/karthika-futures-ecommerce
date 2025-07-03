@@ -94,7 +94,7 @@
                     </td>
                     <td class="py-3 px-4 align-middle text-sm text-gray-900">
                         <ul class="list-unstyled mb-0">
-                            {% for item in order.items %}
+                            {% for item in order['items'] %}
                                 <li>{{ item.name }} (x{{ item.quantity }}) - ₹{{ item.total_price | floatformat(2) }}</li>
                             {% endfor %}
                         </ul>

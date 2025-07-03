@@ -108,7 +108,15 @@ function updateCartItem(itemId, quantity, sku, size, frame, glass) {
     fetch("{{ url_for('update_cart_item_quantity') }}", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: itemId, quantity, sku, size, frame, glass })
+        body: JSON.stringify({
+  item_id: itemId,
+  quantity: quantity,
+  sku: sku,
+  size: size,
+  frame: frame,
+  glass: glass
+})
+
     })
     .then(async (res) => {
         if (!res.ok) {

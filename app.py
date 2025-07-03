@@ -7,6 +7,7 @@ from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask import Flask, render_template, redirect, url_for, flash, request, session, jsonify, make_response, g, Response, send_file
+from flask import current_app  # ✅ correct import
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from collections import defaultdict
 from decimal import Decimal, InvalidOperation
@@ -14,6 +15,7 @@ import random
 import qrcode
 import io
 import base64
+
 # Email Sending
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -21,8 +23,7 @@ from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 
 # CSRF protection
-from flask_wtf.csrf import CSRFProtect, generate_csrf  # ✅ CORRECT
-
+from flask_wtf.csrf import CSRFProtect, generate_csrf
 
 # PDF generation
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
@@ -159,25 +160,36 @@ otp_storage = {} # {'email': {'otp': '123456', 'expiry': datetime_object, 'user_
 
 # --- User Model ---
 class User(UserMixin):
-    def __init__(self, id, email, password, name, phone=None, address=None, pincode=None, role='user'):
-        self.id = str(id) # Ensure ID is string for Flask-Login
+    def __init__(self, id, email, password, name, phone, address, pincode, role='user', addresses=None):
+        self.id = id
         self.email = email
         self.password = password
         self.name = name
         self.phone = phone
         self.address = address
         self.pincode = pincode
-        self.role = role # 'user' or 'admin'
+        self.role = role
+        self.addresses = addresses or []
 
     def is_admin(self):
         return self.role == 'admin'
 
     @staticmethod
     def get(user_id):
-        users = load_json('users.json')
+        users = load_users_data()
         for user_data in users:
-            if str(user_data['id']) == str(user_id):
-                return User(**user_data)
+            if user_data.get('id') == user_id:
+                return User(
+                    id=user_data.get('id'),
+                    email=user_data.get('email'),
+                    password=user_data.get('password'),
+                    name=user_data.get('name'),
+                    phone=user_data.get('phone'),
+                    address=user_data.get('address'),
+                    pincode=user_data.get('pincode'),
+                    role=user_data.get('role', 'user'),
+                    addresses=user_data.get('addresses', [])
+                )
         return None
 
     @staticmethod
@@ -185,7 +197,17 @@ class User(UserMixin):
         users = load_json('users.json')
         for user_data in users:
             if user_data['email'] == email:
-                return User(**user_data)
+                return User(
+                    id=user_data.get('id'),
+                    email=user_data.get('email'),
+                    password=user_data.get('password'),
+                    name=user_data.get('name'),
+                    phone=user_data.get('phone'),
+                    address=user_data.get('address'),
+                    pincode=user_data.get('pincode'),
+                    role=user_data.get('role', 'user'),
+                    addresses=user_data.get('addresses', [])
+                )
         return None
 
 @login_manager.user_loader
@@ -196,8 +218,7 @@ def load_user(user_id):
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.is_admin:
-            flash("Admin access required.", "danger")
+        if not session.get('admin_logged_in'):
             return redirect(url_for('admin_login'))
         return f(*args, **kwargs)
     return decorated_function
@@ -869,8 +890,6 @@ def product_detail(sku):
     flash("Product not found.", "danger")
     return redirect(url_for('index'))
 
-from decimal import Decimal
-from flask import request, session, jsonify
 
 @csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/add-to-cart', methods=['POST'])
@@ -1556,9 +1575,6 @@ def admin_artworks_view():
     return render_template('admin_artworks_view.html', artworks=artworks)
 
 
-
-
-
 @csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/admin/users')
 @admin_required
@@ -2049,6 +2065,7 @@ def add_artwork():
         description = request.form.get('description', '').strip()
         gst_percentage = Decimal(request.form.get('gst_percentage', str(DEFAULT_GST_PERCENTAGE)))
 
+        # Option pricing fields
         size_a4 = Decimal(request.form.get('size_a4', '0.00'))
         size_a5 = Decimal(request.form.get('size_a5', '0.00'))
         size_letter = Decimal(request.form.get('size_letter', '0.00'))
@@ -2058,12 +2075,15 @@ def add_artwork():
         frame_pvc = Decimal(request.form.get('frame_pvc', '0.00'))
         glass_price = Decimal(request.form.get('glass_price', '0.00'))
 
-        artworks = load_artworks_data()
+        # ✅ Handle custom options
+        has_custom_options = 'has_custom_options' in request.form
+        custom_options_json = request.form.get('custom_options_json', '{}')
+        try:
+            custom_options = json.loads(custom_options_json)
+        except:
+            custom_options = {}
 
-        if any(a['sku'] == sku for a in artworks):
-            flash('Artwork with this SKU already exists. Please use a unique SKU.', 'danger')
-            return render_template('add_artwork.html', categories=categories, form_data=request.form) # Pass request.form
-        
+        # ✅ Handle images
         image_filenames = []
         if 'images' in request.files:
             for file in request.files.getlist('images'):
@@ -2073,10 +2093,11 @@ def add_artwork():
                     file_path = os.path.join(app.config['PRODUCT_IMAGES_FOLDER'], unique_filename)
                     file.save(file_path)
                     image_filenames.append(f'uploads/product_images/{unique_filename}')
-        
-        if not image_filenames:
-            image_filenames.append('/static/images/placeholder.png') # Changed to /static/
 
+        if not image_filenames:
+            image_filenames.append('static/images/placeholder.png')
+
+        # ✅ Final artwork dictionary
         new_artwork = {
             'sku': sku,
             'name': name,
@@ -2094,13 +2115,26 @@ def add_artwork():
             'frame_metal': frame_metal,
             'frame_pvc': frame_pvc,
             'glass_price': glass_price,
-            'is_featured': False
+            'is_featured': False,
+            'has_custom_options': has_custom_options,
+            'custom_options': custom_options
         }
+
+        # ✅ Check for duplicate SKU
+        artworks = load_artworks_data()
+        if any(a['sku'] == sku for a in artworks):
+            flash('Artwork with this SKU already exists. Please use a unique SKU.', 'danger')
+            return render_template('add_artwork.html', categories=categories, form_data=request.form)
+
+        # ✅ Save to artworks.json
         artworks.append(new_artwork)
         save_json('artworks.json', artworks)
-        flash(f'Artwork "{name}" added successfully!', 'success')
+
+        flash(f'Artwork \"{name}\" added successfully!', 'success')
         return redirect(url_for('admin_artworks_view'))
-    return render_template('add_artwork.html', categories=categories, form_data={}) # Pass empty dict for GET
+
+    # GET method
+    return render_template('add_artwork.html', categories=categories, form_data={})
 
 @csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/edit_artwork/<sku>', methods=['GET', 'POST'])
@@ -2123,7 +2157,16 @@ def edit_artwork(sku):
         artwork['gst_percentage'] = Decimal(request.form.get('gst_percentage', str(DEFAULT_GST_PERCENTAGE)))
         artwork['is_featured'] = 'is_featured' in request.form
 
-        # Ensure that only 'Paintings' and 'photos' category will have custom size/frame/glass options
+        # ✅ Handle dynamic custom options
+        artwork['has_custom_options'] = 'has_custom_options' in request.form
+        custom_options_json = request.form.get('custom_options_json', '{}')
+        try:
+            artwork['custom_options'] = json.loads(custom_options_json)
+        except json.JSONDecodeError as e:
+            app.logger.warning(f"Invalid custom_options_json: {e}")
+            artwork['custom_options'] = {}
+
+        # ✅ Optional price additions for Paintings/photos only
         if artwork['category'] in ['Paintings', 'photos']:
             artwork['size_a4'] = Decimal(request.form.get('size_a4', '0.00'))
             artwork['size_a5'] = Decimal(request.form.get('size_a5', '0.00'))
@@ -2134,18 +2177,11 @@ def edit_artwork(sku):
             artwork['frame_pvc'] = Decimal(request.form.get('frame_pvc', '0.00'))
             artwork['glass_price'] = Decimal(request.form.get('glass_price', '0.00'))
         else:
-            # Reset these fields if category changes to non-applicable
-            artwork['size_a4'] = Decimal('0.00')
-            artwork['size_a5'] = Decimal('0.00')
-            artwork['size_letter'] = Decimal('0.00')
-            artwork['size_legal'] = Decimal('0.00')
-            artwork['frame_wooden'] = Decimal('0.00')
-            artwork['frame_metal'] = Decimal('0.00')
-            artwork['frame_pvc'] = Decimal('0.00')
-            artwork['glass_price'] = Decimal('0.00')
+            artwork['size_a4'] = artwork['size_a5'] = artwork['size_letter'] = artwork['size_legal'] = Decimal('0.00')
+            artwork['frame_wooden'] = artwork['frame_metal'] = artwork['frame_pvc'] = artwork['glass_price'] = Decimal('0.00')
 
+        # ✅ Image retention and upload logic
         new_image_filenames = []
-        # Process existing images to keep
         images_to_keep_json = request.form.get('images_to_keep')
         if images_to_keep_json:
             try:
@@ -2154,7 +2190,6 @@ def edit_artwork(sku):
             except json.JSONDecodeError:
                 app.logger.error("Failed to decode images_to_keep JSON.")
 
-        # Add newly uploaded images
         if 'new_images' in request.files:
             for file in request.files.getlist('new_images'):
                 if file and file.filename:
@@ -2163,17 +2198,18 @@ def edit_artwork(sku):
                     file_path = os.path.join(app.config['PRODUCT_IMAGES_FOLDER'], unique_filename)
                     file.save(file_path)
                     new_image_filenames.append(f'uploads/product_images/{unique_filename}')
-        
-        if not new_image_filenames: # Ensure there's always at least a placeholder
-            new_image_filenames.append('/static/images/placeholder.png') 
-        
+
+        if not new_image_filenames:
+            new_image_filenames.append('/static/images/placeholder.png')
+
         artwork['images'] = new_image_filenames
 
         save_json('artworks.json', artworks)
         flash(f'Artwork "{artwork["name"]}" updated successfully!', 'success')
         return redirect(url_for('admin_artworks_view'))
-    
+
     return render_template('edit_artwork.html', artwork=artwork, categories=categories)
+
 
 @csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/delete_artwork/<sku>', methods=['GET'])
@@ -2508,7 +2544,8 @@ def verify_otp():
 
     return render_template('verify_otp.html', email=email_for_otp_verification, next_url=next_url)
 
-@app.route('/user-login', methods=['GET', 'POST']) # Corrected route name
+
+@app.route('/user-login', methods=['GET', 'POST'])  # Corrected route name
 def user_login():
     next_url = request.args.get('next') or request.form.get('next') or url_for('index')
 
@@ -2533,35 +2570,37 @@ def user_login():
                 flash("This account was created using OTP. Please login via OTP.", "warning")
                 return redirect(url_for('user_login', next=next_url))
 
-            if check_password_hash(matched_user['password'], password):
-                # ✅ Backup cart before login
-                saved_cart = session.get('cart', [])
+            # ✅ Backup cart before login
+            saved_cart = session.get('cart', {})
+            if not isinstance(saved_cart, dict):
+                saved_cart = {}
 
-                login_user(User(
-                    matched_user.get('id', str(uuid.uuid4())),
-                    matched_user.get('email', ''),
-                    matched_user.get('password', ''),
-                    matched_user.get('name', ''),
-                    matched_user.get('phone', ''),
-                    matched_user.get('address', ''),
-                    matched_user.get('pincode', ''),
-                    matched_user.get('role', 'user')
-                ))
+            login_user(User(
+                matched_user.get('id', str(uuid.uuid4())),
+                matched_user.get('email', ''),
+                matched_user.get('password', ''),
+                matched_user.get('name', ''),
+                matched_user.get('phone', ''),
+                matched_user.get('address', ''),
+                matched_user.get('pincode', ''),
+                matched_user.get('role', 'user')
+            ))
 
-                # CHANGE THIS LINE: Set session to be non-permanent
-                session.permanent = False # <--- UPDATED THIS LINE
+            session.permanent = False  # Non-permanent session
 
-                # ✅ Restore cart after login
-                session['cart'] = saved_cart
+            # ✅ Restore cart after login
+            session['cart'] = saved_cart
 
-                flash("Logged in successfully!", "success")
-                return redirect(next_url)
-            else:
-                flash("Invalid email or password", "danger")
-                return redirect(url_for('user_login', next=next_url))
+            # 🔁 Restore Buy Now session if present (JS must send this to backend)
+            # 🔁 Restore Buy Now session if present
+            if 'direct_purchase_item' in session:
+                next_url = url_for('purchase_form')
 
-        # === CASE B: No password → Send OTP ===
+        
+            flash("Logged in successfully!", "success")
+            return redirect(next_url)
         else:
+            # === CASE B: No password → Send OTP ===
             otp = generate_otp()
             expiry = datetime.now() + timedelta(minutes=10)
             otp_storage[email_or_mobile] = {
@@ -2577,6 +2616,23 @@ def user_login():
     # Prefill email if available
     prefill_email = request.args.get('email', '')
     return render_template("user_login.html", next_url=next_url, prefill_email=prefill_email)
+
+
+@app.route('/set_direct_purchase_item', methods=['POST'])
+@csrf.exempt
+def set_direct_purchase_item():
+    try:
+        item = request.get_json()
+        if not item:
+            return jsonify(success=False, message="No item received."), 400
+        session['direct_purchase_item'] = item
+        session.modified = True
+        return jsonify(success=True, redirect_url='/purchase-form')
+    except Exception as e:
+        app.logger.error(f"Error in /set_direct_purchase_item: {e}", exc_info=True)
+        return jsonify(success=False, message="Error saving Buy Now item."), 500
+
+
 
 @app.route('/profile', methods=['GET', 'POST'])
 @login_required
@@ -2777,41 +2833,77 @@ def inject_globals():
 @app.route('/update_cart_item_quantity', methods=['POST'])
 def update_cart_item_quantity():
     data = request.get_json()
-    # Check for 'item_id' as per your cart.html's JavaScript
     if not data or 'item_id' not in data or 'quantity' not in data:
         return jsonify({'error': 'Missing item_id or quantity'}), 400
 
-    cart = session.get('cart', [])
-    found = False
-    for item in cart:
-        if item['sku'] == data['item_id']: # Using sku from cart item, but matching item_id from request
-            item['quantity'] = int(data['quantity'])
-            found = True
-            break
-    if not found:
-        return jsonify({'error': 'Item not found in cart'}), 404
+    cart = session.get('cart', {})
+    item_id = data['item_id']
+    quantity = int(data['quantity'])
 
-    session['cart'] = cart
-    return jsonify({'message': 'Cart updated successfully'}), 200
+    if item_id in cart:
+        cart[item_id]['quantity'] = quantity
+
+        # Recalculate totals
+        unit_price = Decimal(str(cart[item_id]['unit_price_before_gst']))
+        gst_percent = Decimal(str(cart[item_id]['gst_percentage'])) / 100
+        cart[item_id]['total_price_before_gst'] = float(unit_price * quantity)
+        cart[item_id]['gst_amount'] = float((unit_price * quantity) * gst_percent)
+        cart[item_id]['total_price'] = cart[item_id]['total_price_before_gst'] + cart[item_id]['gst_amount']
+
+        session['cart'] = cart
+        session.modified = True
+        return jsonify({'message': 'Cart updated successfully'}), 200
+    else:
+        return jsonify({'error': 'Item not found in cart'}), 404
 
 @csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/remove_from_cart', methods=['POST'])
 def remove_from_cart():
-    data = request.get_json()
-    sku = data.get('sku')
-    if not sku:
-        return jsonify({'error': 'Missing SKU'}), 400
+    try:
+        data = request.get_json()
+        item_id = data.get('sku')  # This is the item's unique ID (like generated via size+frame+glass)
 
-    cart = session.get('cart', [])
-    cart = [item for item in cart if item['sku'] != sku]
-    session['cart'] = cart
-    return jsonify({'message': 'Item removed'}), 200
+        cart = session.get('cart', {})
+
+        # ✅ Ensure cart is a dict, not list
+        if not isinstance(cart, dict):
+            app.logger.warning(f"Cart was not dict: {type(cart)}. Resetting to empty.")
+            cart = {}
+            session['cart'] = cart
+            session.modified = True
+            return jsonify({"success": False, "message": "Cart was corrupted and reset."}), 400
+
+        if item_id in cart:
+            del cart[item_id]
+            session['cart'] = cart
+            session.modified = True
+            return jsonify({"success": True, "message": "Item removed from cart."})
+        else:
+            return jsonify({"success": False, "message": "Item not found in cart."}), 404
+
+    except Exception as e:
+        app.logger.error(f"Error in remove_from_cart: {e}", exc_info=True)
+        return jsonify({"success": False, "message": "Server error while removing item."}), 500
+
+
 
 @app.route('/get_cart_count')
 def get_cart_count():
     cart = session.get('cart', {})
-    count = sum(item.get('quantity', 1) for item in cart.values())
-    return jsonify({'count': count})
+
+    # Ensure cart is a dict. If not, reset it to empty dict.
+    if not isinstance(cart, dict):
+        current_app.logger.warning(f"Cart was not dict: {type(cart)}. Resetting to empty.")
+        cart = {}
+        session['cart'] = cart
+        session.modified = True
+
+    total_items_in_cart = 0
+    for item in cart.values():
+        total_items_in_cart += item.get('quantity', 0)
+
+    return jsonify({'cart_count': total_items_in_cart})
+
 
 
 

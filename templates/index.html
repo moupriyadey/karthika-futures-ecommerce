@@ -3,211 +3,125 @@
 {% block title %}Karthika Futures - Divine Art Marketplace{% endblock %}
 
 {% block extra_css_from_page %}
+<style>
+  body::before {
+    content: "";
+    background: url('{{ url_for('static', filename='images/background_krishna_motif.png') }}') no-repeat center center fixed;
+    background-size: cover;
+    opacity: 0.08;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: -1;
+  }
+  .artwork-carousel .carousel-inner {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  .artwork-carousel .carousel-item {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    width: 300px;
+  }
+</style>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 {% endblock %}
 
 {% block content %}
 <div class="container main-content-area position-relative pt-5">
 
-    {# Hero Section #}
-    <section class="hero-section">
-        <h1>Welcome to Karthika Futures</h1>
-        <p class="lead">Immerse yourself in a world of spiritual and divine art. Each piece is a journey into timeless wisdom, crafted to inspire and uplift your spirit.</p>
-        <a href="{{ url_for('all_products') }}" class="btn btn-lg btn-light rounded-pill px-5 py-3 shadow-lg">
-            Explore Our Collection <i class="fas fa-arrow-right ms-2"></i>
-        </a>
-    </section>
+  <!-- Hero -->
+  <section class="hero-section text-center mb-5">
+    <h1>Welcome to Karthika Futures</h1>
+    <p class="lead">Immerse yourself in a world of spiritual and divine art. Each piece is a journey into timeless wisdom, crafted to inspire and uplift your spirit.</p>
+    <a href="{{ url_for('all_products') }}" class="btn btn-lg btn-light rounded-pill px-5 py-3 shadow-lg">
+      Explore Our Collection <i class="fas fa-arrow-right ms-2"></i>
+    </a>
+  </section>
 
-    {# Macro to render artwork sections by category or featured #}
-    {% macro render_artwork_section(title, artworks) %}
-    <section class="py-5">
-        <h2 class="section-header">{{ title }}</h2>
-        {% if artworks %}
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-            {% for artwork in artworks %}
-            <div class="col">
-                <div class="card artwork-card h-100" data-artwork-sku="{{ artwork.sku }}" data-original-price="{{ artwork.original_price | round(2) }}" data-gst-percentage="{{ artwork.gst_percentage | default(0) }}" data-category="{{ artwork.category }}">
-                    {% if artwork.images and artwork.images[0] %}
-                    <img src="{{ url_for('static', filename=artwork.images[0]) }}" class="card-img-top clickable-image" alt="{{ artwork.name }}"
-                         onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/placeholder.png') }}';" loading="lazy">
-                    {% else %}
-                    <img src="{{ url_for('static', filename='images/placeholder.png') }}" class="card-img-top clickable-image" alt="No Image Available" loading="lazy">
-                    {% endif %}
-                    <div class="card-body">
-                        <h5 class="card-title">{{ artwork.name }}</h5>
-                        <h6 class="card-subtitle text-muted mb-2">Category: {{ artwork.category }}</h6>
-                        <p class="card-text-description">{{ artwork.description | default("No description available for this artwork.") }}</p>
-                        <p class="final-price">₹{{ artwork.original_price | default(0.0) | round(2) }}</p>
-
-                        {% if artwork.category == 'Paintings' %}
-                        <div class="option-group">
-                            <label for="size-{{ artwork.sku }}" class="form-label">Size</label>
-                            <select class="form-select size-select" id="size-{{ artwork.sku }}">
-                                <option value="Original" data-price="0">Original (No Change)</option>
-                                {% if artwork.size_a4 %}<option value="A4" data-price="{{ artwork.size_a4 }}">A4 (+₹{{ artwork.size_a4 | round(2) }})</option>{% endif %}
-                                {% if artwork.size_a5 %}<option value="A5" data-price="{{ artwork.size_a5 }}">A5 (+₹{{ artwork.size_a5 | round(2) }})</option>{% endif %}
-                                {% if artwork.size_letter %}<option value="Letter" data-price="{{ artwork.size_letter }}">Letter (+₹{{ artwork.size_letter | round(2) }})</option>{% endif %}
-                                {% if artwork.size_legal %}<option value="Legal" data-price="{{ artwork.size_legal }}">Legal (+₹{{ artwork.size_legal | round(2) }})</option>{% endif %}
-                            </select>
-                        </div>
-                        <div class="option-group">
-                            <label for="frame-{{ artwork.sku }}" class="form-label">Frame</label>
-                            <select class="form-select frame-select" id="frame-{{ artwork.sku }}">
-                                <option value="None" data-price="0">None</option>
-                                {% if artwork.frame_wooden %}<option value="Wooden" data-price="{{ artwork.frame_wooden }}">Wooden (+₹{{ artwork.frame_wooden | round(2) }})</option>{% endif %}
-                                {% if artwork.frame_metal %}<option value="Metal" data-price="{{ artwork.frame_metal }}">Metal (+₹{{ artwork.frame_metal | round(2) }})</option>{% endif %}
-                                {% if artwork.frame_pvc %}<option value="PVC" data-price="{{ artwork.frame_pvc }}">PVC (+₹{{ artwork.frame_pvc | round(2) }})</option>{% endif %}
-                            </select>
-                        </div>
-                        <div class="option-group">
-                            <label for="glass-{{ artwork.sku }}" class="form-label">Glass</label>
-                            <select class="form-select glass-select" id="glass-{{ artwork.sku }}">
-                                <option value="None" data-price="0">Without Glass</option>
-                                {% if artwork.glass_price %}<option value="Standard" data-price="{{ artwork.glass_price }}">With Glass (+₹{{ artwork.glass_price | round(2) }})</option>{% endif %}
-                            </select>
-                        </div>
-                        {% else %}
-                        <input type="hidden" class="size-select" value="Original" data-price="0">
-                        <input type="hidden" class="frame-select" value="None" data-price="0">
-                        <input type="hidden" class="glass-select" value="None" data-price="0">
-                        {% endif %}
-
-                        <div class="mb-3 quantity-group">
-                            <label for="quantity-{{ artwork.sku }}" class="form-label">Quantity</label>
-                            <input type="number" class="form-control quantity-input" id="quantity-{{ artwork.sku }}" value="1" min="1" max="{{ artwork.stock }}">
-                            <small class="text-muted">Available: {{ artwork.stock }}</small>
-                        </div>
-
-                        <div class="d-grid gap-2">
-                            <button class="btn btn-primary add-to-cart-btn" data-sku="{{ artwork.sku }}"
-                                    data-name="{{ artwork.name }}"
-                                    data-image="{{ url_for('static', filename=artwork.images[0]) if artwork.images else url_for('static', filename='images/placeholder.png') }}"
-                                    {% if artwork.stock == 0 %} disabled {% endif %}>
-                                🛒 Add to Cart
-                            </button>
-                            <button class="btn btn-purple buy-now-btn" data-sku="{{ artwork.sku }}"
-                                    data-name="{{ artwork.name }}"
-                                    data-image="{{ url_for('static', filename=artwork.images[0]) if artwork.images else url_for('static', filename='images/placeholder.png') }}"
-                                    {% if artwork.stock == 0 %} disabled {% endif %}>
-                                Buy Now
-                            </button>
-                            <button class="btn btn-outline-secondary view-details-btn" data-image-src="{{ url_for('static', filename=artwork.images[0]) if artwork.images else url_for('static', filename='images/placeholder.png') }}">
-                                View Details
-                            </button>
-                        </div>
-                    </div>
-                </div>
+  <!-- Artworks by Category -->
+  {% macro render_carousel(title, artworks) %}
+    <section class="mb-5">
+      <h2 class="section-header">{{ title }}</h2>
+      <div class="artwork-carousel">
+        <div class="carousel-inner">
+          {% for artwork in artworks %}
+          <div class="carousel-item">
+            <div class="card artwork-card h-100">
+              <a href="{{ url_for('all_products') }}">
+                <img src="{{ url_for('static', filename=artwork.images[0].replace('static/', '')) if artwork.images else url_for('static', filename='images/placeholder.png') }}"
+                     class="card-img-top clickable-image" alt="{{ artwork.name }}" loading="lazy">
+              </a>
+              <div class="card-body">
+                <h5 class="card-title">{{ artwork.name }}</h5>
+                <h6 class="card-subtitle text-muted mb-2">Category: {{ artwork.category }}</h6>
+                <p class="card-text-description small">{{ artwork.description | default('No description available.') }}</p>
+                <p class="final-price">₹{{ artwork.original_price | round(2) }}</p>
+                <a href="{{ url_for('all_products') }}" class="btn btn-outline-secondary w-100 mt-2">View Details</a>
+              </div>
             </div>
-            {% endfor %}
+          </div>
+          {% endfor %}
         </div>
-        {% else %}
-        <p class="text-center text-muted fs-5 py-4">No artworks found in this category yet.</p>
-        {% endif %}
+      </div>
     </section>
-    {% endmacro %}
+  {% endmacro %}
 
-    {% if featured_artworks %}{{ render_artwork_section("\ud83c\udf1f Featured Artworks", featured_artworks) }}{% endif %}
-    {% if artworks_by_category %}{% for category_name, artworks_in_category in artworks_by_category.items() %}{{ render_artwork_section(category_name + " Collection", artworks_in_category) }}{% endfor %}{% endif %}
-    {% if not featured_artworks and not artworks_by_category %}<p class="text-center text-muted fs-5 py-4">No artworks available yet. Please check back later!</p>{% endif %}
+  {% if featured_artworks %}{{ render_carousel('🌟 Featured Artworks', featured_artworks) }}{% endif %}
+  {% if artworks_by_category %}
+    {% for category_name, artworks_in_category in artworks_by_category.items() %}
+      {{ render_carousel(category_name + ' Collection', artworks_in_category) }}
+    {% endfor %}
+  {% endif %}
 
-    {% if testimonials %}
-    <section class="testimonials-section">
-        <h3 class="section-header">What Our Customers Say</h3>
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-            {% for testimonial in testimonials %}
-            <div class="col">
-                <div class="testimonial-card">
-                    <div>
-                        <img src="{{ url_for('static', filename=testimonial.image) }}" alt="{{ testimonial.name }}" class="testimonial-image"
-                             onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/user-placeholder.png') }}';">
-                        <div class="rating mb-2">
-                            {% for _ in range(testimonial.rating) %}<i class="fas fa-star"></i>{% endfor %}
-                            {% for _ in range(5 - testimonial.rating) %}<i class="far fa-star"></i>{% endfor %}
-                        </div>
-                        <p class="feedback">"{{ testimonial.feedback }}"</p>
-                    </div>
-                    <div>
-                        <p class="author">- {{ testimonial.name }}</p>
-                        {% if testimonial.product_sku %}<p class="product-sku">Purchased: SKU: {{ testimonial.product_sku }}</p>{% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
+  {% if not featured_artworks and not artworks_by_category %}
+    <p class="text-center text-muted fs-5 py-4">No artworks available yet. Please check back later!</p>
+  {% endif %}
+
+  <!-- Testimonials -->
+  {% if testimonials %}
+  <section class="testimonials-section">
+    <h3 class="section-header">What Our Customers Say</h3>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+      {% for testimonial in testimonials %}
+      <div class="col">
+        <div class="testimonial-card">
+          <img src="{{ url_for('static', filename=testimonial.image.replace('static/', '')) }}"
+               class="testimonial-image"
+               alt="{{ testimonial.name }}"
+               onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/user-placeholder.png') }}';">
+          <div class="rating mb-2">
+            {% for _ in range(testimonial.rating) %}<i class="fas fa-star"></i>{% endfor %}
+            {% for _ in range(5 - testimonial.rating) %}<i class="far fa-star"></i>{% endfor %}
+          </div>
+          <p class="feedback">"{{ testimonial.feedback }}"</p>
+          <p class="author">- {{ testimonial.name }}</p>
+          {% if testimonial.product_sku %}
+          <p class="product-sku">Purchased: SKU: {{ testimonial.product_sku }}</p>
+          {% endif %}
         </div>
-    </section>
-    {% endif %}
-
-    <div class="row mt-5">
-        <div class="col-md-6 offset-md-3">
-            <div class="qr-code-section">
-                <h3>Support Our Divine Mission</h3>
-                <p>Your contributions help us share sacred art and wisdom.</p>
-                <img src="{{ url_for('static', filename='uploads/qr_code.png') }}" alt="Donation QR Code">
-                <p class="lead">Scan to Donate via UPI</p>
-            </div>
-        </div>
+      </div>
+      {% endfor %}
     </div>
+  </section>
+  {% endif %}
+
+  <!-- QR Donation Section -->
+  <div class="row mt-5">
+    <div class="col-md-6 offset-md-3">
+      <div class="qr-code-section text-center">
+        <h3>Support Our Divine Mission</h3>
+        <p>Your contributions help us share sacred art and wisdom.</p>
+        <img src="{{ url_for('static', filename='uploads/qr_code.png') }}" alt="Donation QR Code">
+        <p class="lead">Scan to Donate via UPI</p>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
-
-
-<script>
-    window.isUserLoggedIn = {{ 'true' if current_user.is_authenticated else 'false' }};
-</script>
-
-<script>
-function parsePrice(value) {
-  let val = parseFloat(value);
-  return isNaN(val) ? 0 : val;
-}
-
-function calculateFinalPrice(base, frame, size, glass) {
-  let total = parsePrice(base) + parsePrice(frame) + parsePrice(size) + parsePrice(glass);
-  return total.toFixed(2);
-}
-
-function updateCartCount() {
-  fetch('/get_cart_count')
-    .then(res => res.json())
-    .then(data => {
-      document.getElementById("cart-count").textContent = data.count;
-    })
-    .catch(err => console.error("Cart count fetch failed:", err));
-}
-
-function updateItemQuantity(sku, qty) {
-  fetch('/update_cart_session', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ item_id: sku, quantity: qty })
-  })
-  .then(res => res.json())
-  .then(data => {
-    console.log("Cart updated:", data);
-    updateCartCount();
-  })
-  .catch(err => console.error("Update failed:", err));
-}
-
-function removeFromCart(sku) {
-  fetch('/remove_from_cart', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sku })
-  })
-  .then(res => res.json())
-  .then(data => {
-    console.log("Removed:", data);
-    updateCartCount();
-    location.reload(); // refresh cart view
-  })
-  .catch(err => console.error("Remove failed:", err));
-}
-
-// Call it once when the page loads
-updateCartCount();
-</script>
-
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
