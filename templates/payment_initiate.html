@@ -4,119 +4,264 @@
 
 {% block extra_css %}
 <style>
-    body {
-        background-color: #f5f7fa;
+    :root {
+        --primary-blue: #007bff; /* Standard Bootstrap Blue */
+        --accent-green: #28a745; /* Success Green */
+        --text-dark: #212529;
+        --text-medium: #495057;
+        --text-light: #6c757d;
+        --bg-light: #f8f9fa;
+        --bg-white: #ffffff;
+        --border-color: #dee2e6;
+        --shadow-light: rgba(0, 0, 0, 0.05);
+        --shadow-medium: rgba(0, 0, 0, 0.1);
+        --shadow-strong: rgba(0, 0, 0, 0.2);
     }
+
+    body {
+        background-color: var(--bg-light);
+        font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        line-height: 1.6;
+        color: var(--text-medium);
+    }
+
     .payment-container {
-        padding: 3rem;
-        background-color: #ffffff;
-        border-radius: 1rem;
-        box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.1);
+        padding: 2.5rem;
+        background-color: var(--bg-white);
+        border-radius: 1rem; /* Slightly larger radius for modern look */
+        box-shadow: 0 1rem 3rem var(--shadow-medium); /* More prominent, softer shadow */
         margin-top: 3rem;
         margin-bottom: 3rem;
         text-align: center;
-        max-width: 700px;
+        max-width: 650px; /* Slightly wider for better content flow */
         margin-left: auto;
         margin-right: auto;
     }
+
     h2 {
-        color: #333;
+        color: var(--text-dark);
         font-weight: 700;
-        margin-bottom: 2rem;
-    }
-    .lead {
-        font-size: 1.25rem;
-        color: #444;
-        margin-bottom: 1rem;
-    }
-    .upi-details {
-        font-size: 1.1rem;
-        color: #555;
         margin-bottom: 1.5rem;
+        font-size: 2.5rem; /* Larger and more impactful */
+        letter-spacing: -0.03em;
     }
+
+    .lead {
+        font-size: 1.25rem; /* Slightly larger lead text */
+        color: var(--text-dark);
+        margin-bottom: 1rem;
+        font-weight: 500;
+    }
+
+    .upi-details {
+        font-size: 1.05rem;
+        color: var(--text-medium);
+        margin-bottom: 2.5rem; /* More space */
+        line-height: 1.5;
+    }
+
     #qrcode {
-        width: 250px;
-        height: 250px;
-        margin: 30px auto;
-        border: 2px solid #ddd;
-        padding: 15px;
-        background-color: #f9f9f9;
-        border-radius: 0.75rem;
+        width: 220px; /* Larger QR code */
+        height: 220px; /* Larger QR code */
+        margin: 25px auto; /* Increased margin */
+        border: 3px solid white; /* Stylish, thicker white border */
+        padding: 15px; /* Increased padding */
+        background-color: #fefefe; /* Very light background for white effect */
+        border-radius: 1rem; /* CURVED CORNERS - More pronounced */
         display: flex;
         justify-content: center;
         align-items: center;
         font-size: 0.9em;
-        color: #888;
-        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.08);
-    }
-    .payment-instructions {
-        margin-top: 25px;
-        font-size: 1rem;
-        color: #666;
-        line-height: 1.6;
-        text-align: left;
-        padding: 0 20px;
-    }
-    .payment-form-section {
-        margin-top: 3.5rem;
-        border-top: 1px dashed #ced4da;
-        padding-top: 2.5rem;
-        background-color: #fcfcfc;
-        border-radius: 0.75rem;
-        box-shadow: 0 0.25rem 0.75rem rgba(0,0,0,0.05);
-        padding: 2.5rem;
-    }
-    .form-label {
-        font-weight: 600;
-        color: #495057;
-    }
-    .form-control {
-        border-radius: 0.5rem;
-        padding: 0.75rem 1rem;
-    }
-    .form-text {
-        font-size: 0.875em;
-        color: #888;
-    }
-    .btn-primary {
-        background-color: #007bff;
-        border-color: #007bff;
-        font-weight: 600;
-        padding: 0.75rem 1.5rem;
-        border-radius: 0.5rem;
-        transition: 0.2s ease-in-out;
-    }
-    .btn-primary:hover {
-        background-color: #0056b3;
-        border-color: #004085;
-        transform: translateY(-2px);
-    }
-    .btn-link {
-        color: #007bff;
-        font-weight: 500;
+        color: var(--text-light);
+        /* Embossed effect with shade and prominent shadow under it */
+        box-shadow:
+            inset 0 3px 6px rgba(0,0,0,0.08), /* Inner shadow for subtle embossed depth */
+            0 10px 20px rgba(0,0,0,0.3); /* Stronger, more distinct outer shadow for lift */
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
     }
 
+    #qrcode:hover {
+        transform: translateY(-2px);
+        box-shadow:
+            inset 0 3px 6px rgba(0,0,0,0.1),
+            0 14px 28px rgba(0,0,0,0.4); /* Even stronger shadow on hover */
+    }
+
+    .upi-apps {
+        margin-top: 1.5rem;
+        display: flex;
+        justify-content: center;
+        gap: 15px; /* Space between icons */
+        flex-wrap: wrap; /* Allow wrapping on small screens */
+    }
+
+    .upi-apps img {
+        width: 50px; /* Standard icon size */
+        height: 50px;
+        object-fit: contain;
+        border-radius: 8px; /* Slightly rounded corners for icons */
+        box-shadow: 0 2px 5px var(--shadow-light); /* Subtle shadow for icons */
+        transition: transform 0.2s ease-in-out;
+    }
+
+    .upi-apps img:hover {
+        transform: scale(1.08); /* Slight enlarge on hover */
+    }
+
+    .payment-instructions {
+        margin-top: 3rem;
+        font-size: 1rem;
+        color: var(--text-dark);
+        line-height: 1.8;
+        text-align: left;
+        padding: 1rem 15px; /* Reduced padding for compactness */
+        background-color: var(--bg-white); /* Keep white background for readability */
+        border-radius: 0.75rem;
+    }
+
+    .payment-instructions h5 {
+        font-weight: 700;
+        color: var(--text-dark);
+        margin-bottom: 1rem;
+        font-size: 1.3rem;
+    }
+
+    .payment-instructions ol {
+        padding-left: 30px;
+        margin-bottom: 0;
+    }
+
+    .payment-instructions li {
+        margin-bottom: 1rem;
+        padding-left: 0.5rem; /* Indent list items */
+    }
+
+    .payment-form-section {
+        margin-top: 3rem;
+        background-color: var(--bg-light); /* Lighter background than main container */
+        border-radius: 1rem;
+        padding: 2.5rem;
+        border: 1px solid var(--border-color); /* Subtle border */
+        box-shadow: 0 0.5rem 1.5rem var(--shadow-light); /* Soft shadow */
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control {
+        border-radius: 0.5rem;
+        padding: 0.85rem 1.2rem;
+        font-size: 1rem;
+        border: 1px solid var(--border-color);
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .form-control:focus {
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25);
+    }
+
+    .form-text {
+        font-size: 0.875em;
+        color: var(--text-light);
+        margin-top: 0.25rem;
+    }
+
+    .btn-primary {
+        background-color: var(--accent-green); /* Use green for primary action */
+        border-color: var(--accent-green);
+        font-weight: 600;
+        padding: 0.9rem 2rem;
+        border-radius: 0.5rem;
+        font-size: 1.1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(40, 167, 69, 0.2); /* Green shadow */
+    }
+
+    .btn-primary:hover {
+        background-color: #218838; /* Darker green on hover */
+        border-color: #1e7e34;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(40, 167, 69, 0.3);
+    }
+
+    .btn-link {
+        color: var(--primary-blue);
+        font-weight: 500;
+        text-decoration: none;
+        transition: color 0.2s ease;
+    }
+
+    .btn-link:hover {
+        text-decoration: underline;
+        color: #0056b3;
+    }
+
+    /* Mobile adjustments */
     @media (max-width: 767.98px) {
         .payment-container {
             margin: 1rem;
             padding: 1.5rem;
+            border-radius: 0.75rem;
         }
         h2 {
             font-size: 2rem;
+            margin-bottom: 1rem;
         }
         .lead {
             font-size: 1.1rem;
         }
+        .upi-details {
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+        }
         #qrcode {
-            width: 200px;
-            height: 200px;
+            width: 180px;
+            height: 180px;
+            margin: 20px auto;
+            padding: 10px;
+            border-radius: 0.75rem; /* Adjusted for mobile */
+            border: 2px solid white; /* Adjusted for mobile */
+        }
+        .upi-apps {
+            gap: 10px;
+            margin-top: 1rem;
+        }
+        .upi-apps img {
+            width: 45px;
+            height: 45px;
         }
         .payment-instructions {
             font-size: 0.95rem;
-            padding: 0 10px;
+            padding: 0.75rem 10px; /* Reduced padding for mobile compactness */
+            margin-top: 2rem;
+        }
+        .payment-instructions h5 {
+            font-size: 1.2rem;
+        }
+        .payment-instructions ol {
+            padding-left: 25px;
+        }
+        .payment-instructions li {
+            margin-bottom: 0.75rem;
         }
         .payment-form-section {
             padding: 1.5rem;
+            margin-top: 2rem;
+            border-radius: 0.75rem;
+        }
+        .form-control {
+            padding: 0.75rem 1rem;
+            font-size: 0.95rem;
+            border-radius: 0.4rem;
+        }
+        .btn-primary {
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            border-radius: 0.4rem;
         }
     }
 </style>
@@ -127,24 +272,28 @@
     <h2 class="mb-4">💰 Complete Your Payment</h2>
 
     <p class="lead">Please scan the QR code below to pay <strong>₹{{ amount | round(2) }}</strong> for Order ID: <strong>{{ order_id }}</strong>.</p>
-    <p class="upi-details">Your UPI ID: <strong>{{ upi_id }}</strong> | Banking Name: <strong>{{ banking_name }}</strong> (Bank: {{ bank_name }})</p>
+    <p class="upi-details">
+        Your UPI ID: <strong>{{ upi_id }}</strong>
+    </p>
 
     <div id="qrcode"></div>
-    <p id="qrcode-fallback" style="display:none; color: red;">QR code generation failed. You can also scan the static QR below.</p>
+    <p id="qrcode-fallback" style="display:none; color: #dc3545; font-size: 0.9em; margin-top: 10px;">QR code generation failed. Please use the UPI ID above to pay manually.</p>
 
-    <div class="text-center mb-4">
-        <h4>Scan to Pay</h4>
-        <img src="data:image/png;base64,{{ qr_image }}" alt="UPI QR Code" class="img-fluid rounded shadow mb-3" style="max-width: 300px;">
-        <p><strong>UPI ID:</strong> {{ upi_id }}<br>
-        <strong>Payee Name:</strong> {{ banking_name }}</p>
-        <p class="text-muted">Amount: ₹{{ amount }}</p>
-    </div>
+    <div class="upi-apps">
+        <img src="https://uxwing.com/wp-content/themes/uxwing/download/brands-social-media/bhim-upi-icon.png" alt="BHIM UPI" title="Pay with BHIM UPI">
+        <img src="https://uxwing.com/wp-content/themes/uxwing/download/brands-social-media/google-pay-icon.png" alt="Google Pay" title="Pay with Google Pay">
+        <img src="https://uxwing.com/wp-content/themes/uxwing/download/brands-social-media/phonepe-icon.png" alt="PhonePe" title="Pay with PhonePe">
+        <img src="https://uxwing.com/wp-content/themes/uxwing/download/brands-social-media/paytm-icon.png" alt="Paytm" title="Pay with Paytm">
+        </div>
 
-    <div class="payment-instructions">
-        <p>1. Open any UPI app (Google Pay, PhonePe, Paytm, etc.)</p>
-        <p>2. Tap “Scan QR” and scan the code above</p>
-        <p>3. Confirm the amount and recipient</p>
-        <p>4. Complete payment and note down the Transaction/Reference ID</p>
+    <div class="payment-instructions card mt-5">
+        <h5>How to Pay:</h5>
+        <ol>
+            <li>Open any UPI app (e.g., BHIM UPI, Google Pay, PhonePe, Paytm).</li>
+            <li>Tap “Scan QR” and scan the code displayed above.</li>
+            <li>Confirm the payment amount (<strong>₹{{ amount | round(2) }}</strong>) and recipient.</li>
+            <li>Complete the payment and make sure to note down the **12-digit UTR (Unique Transaction Reference) number**.</li>
+        </ol>
     </div>
 
     <div class="payment-form-section card p-4 shadow-sm">
@@ -152,14 +301,16 @@
         <form method="POST" action="{{ url_for('payment_submit', order_id=order_id) }}" enctype="multipart/form-data">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="mb-3">
-                <label for="transaction_id" class="form-label">Transaction ID / UTR</label>
-                <input type="text" class="form-control" id="transaction_id" name="transaction_id" required placeholder="e.g., 012345678912">
-                <div class="form-text">This helps us verify your payment quickly.</div>
+                <label for="transaction_id" class="form-label">Transaction ID / UTR <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="transaction_id" name="transaction_id" required
+                       placeholder="e.g., 012345678912" pattern="[0-9]{12}" maxlength="12" inputmode="numeric"
+                       title="Please enter a 12-digit UTR number" oninput="this.value = this.value.replace(/[^0-9]/g, '');">
+                <div class="form-text">Enter the 12-digit UTR number from your UPI transaction. This helps us verify your payment quickly.</div>
             </div>
             <div class="mb-3">
-                <label for="screenshot" class="form-label">Upload Screenshot (optional)</label>
+                <label for="screenshot" class="form-label">Upload Screenshot <small class="text-muted">(Optional)</small></label>
                 <input type="file" class="form-control" id="screenshot" name="payment_screenshot" accept="image/*">
-                <div class="form-text">Screenshots help us confirm payment faster.</div>
+                <div class="form-text">Uploading a screenshot can help expedite your payment verification.</div>
             </div>
             <div class="d-grid gap-2 mt-4">
                 <button type="submit" class="btn btn-primary btn-lg">I Have Paid – Submit</button>
@@ -168,7 +319,7 @@
     </div>
 
     <div class="mt-4">
-        <p class="text-muted">Your order will be verified and updated shortly.</p>
+        <p class="text-muted mb-2">Your order will be verified and updated shortly. Thank you for your payment!</p>
         <a href="{{ url_for('my_orders') }}" class="btn btn-link">← Back to My Orders</a>
     </div>
 </div>
@@ -178,13 +329,14 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        // Prevent back button from leaving the payment page
         history.pushState(null, null, location.href);
         window.addEventListener('popstate', function () {
             history.go(1);
         });
 
-        const upiId = "smarasada@okaxis";
-        const bankingName = "SUBHASH S";
+        const upiId = "{{ upi_id }}";
+        const bankingName = "{{ banking_name }}";
         const orderId = "{{ order_id }}";
         const amount = "{{ amount | round(2) }}";
         const encodedBankingName = encodeURIComponent(bankingName);
@@ -192,11 +344,11 @@
 
         try {
             const qrDiv = document.getElementById("qrcode");
-            qrDiv.innerHTML = "";
+            qrDiv.innerHTML = ""; // Clear existing content
             new QRCode(qrDiv, {
                 text: upiLink,
-                width: 250,
-                height: 250,
+                width: 220, // Matched with CSS
+                height: 220, // Matched with CSS
                 colorDark: "#000",
                 colorLight: "#fff",
                 correctLevel: QRCode.CorrectLevel.H
@@ -204,8 +356,17 @@
             document.getElementById("qrcode-fallback").style.display = "none";
         } catch (error) {
             console.error("QR generation error:", error);
-            document.getElementById("qrcode").innerHTML = "QR code failed.";
+            document.getElementById("qrcode").innerHTML = "QR code generation failed.";
             document.getElementById("qrcode-fallback").style.display = "block";
+        }
+
+        // Optional: Add an input filter for the transaction_id to only allow numbers
+        const transactionIdInput = document.getElementById('transaction_id');
+        if (transactionIdInput) {
+            transactionIdInput.addEventListener('input', function(e) {
+                // Remove any non-digit characters
+                e.target.value = e.target.value.replace(/\D/g, '');
+            });
         }
     });
 </script>

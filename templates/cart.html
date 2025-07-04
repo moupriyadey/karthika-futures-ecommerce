@@ -104,19 +104,29 @@
 
 {% block extra_js %}
 <script>
+// Assuming getHeaders() is defined in main.js and available globally
+// If not, it needs to be defined here or main.js must be loaded before this script block.
+// Example getHeaders definition if it's not guaranteed to be global from main.js:
+// function getHeaders() {
+//     const headers = { 'Content-Type': 'application/json' };
+//     if (window.csrfToken) {
+//         headers['X-CSRFToken'] = window.csrfToken;
+//     }
+//     return headers;
+// }
+
 function updateCartItem(itemId, quantity, sku, size, frame, glass) {
     fetch("{{ url_for('update_cart_item_quantity') }}", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getHeaders(), // Use the getHeaders function
         body: JSON.stringify({
-  item_id: itemId,
-  quantity: quantity,
-  sku: sku,
-  size: size,
-  frame: frame,
-  glass: glass
-})
-
+            item_id: itemId,
+            quantity: quantity,
+            sku: sku,
+            size: size,
+            frame: frame,
+            glass: glass
+        })
     })
     .then(async (res) => {
         if (!res.ok) {
@@ -133,6 +143,10 @@ function updateCartItem(itemId, quantity, sku, size, frame, glass) {
         if (data.success) {
             if (data.item_removed) {
                 document.getElementById("cart-item-" + itemId)?.remove();
+                // Check if the cart is now empty and update the display accordingly
+                if (document.querySelectorAll('[id^="cart-item-"]').length === 0) {
+                    location.reload(); // Reload to show the empty cart message
+                }
             } else {
                 document.getElementById("item-total-" + itemId).textContent =
                     parseFloat(data.updated_item.total_price).toFixed(2);
@@ -175,17 +189,69 @@ document.addEventListener("DOMContentLoaded", function () {
             const input = this.closest(".input-group").querySelector(".cart-item-quantity");
             let qty = parseInt(input.value);
             qty += this.classList.contains("btn-increase-quantity") ? 1 : -1;
-            if (qty < 1) qty = 1;
-            input.value = qty;
-            const data = getItemData(input);
-            updateCartItem(data.id, qty, data.sku, data.size, data.frame, data.glass);
+            if (qty < 1) qty = 1; // Ensure quantity doesn't go below 1, unless removing
+            
+            // If quantity becomes 0 due to decrease, consider it a remove action if not 1
+            if (qty === 0 && this.classList.contains("btn-decrease-quantity")) {
+                const data = getItemData(input);
+                if (confirm("Remove this item from your cart?")) {
+                    // Call remove function directly if quantity becomes 0
+                    fetch("{{ url_for('remove_from_cart') }}", {
+                        method: "POST",
+                        headers: getHeaders(), // Use the getHeaders function
+                        body: JSON.stringify(data)
+                    })
+                    .then(async (res) => {
+                        if (!res.ok) {
+                            const text = await res.text();
+                            console.error("Remove failed:", text);
+                            alert("Something went wrong while removing the item.");
+                            return;
+                        }
+                        return res.json();
+                    })
+                    .then(removeData => {
+                        if (!removeData) return;
+                        if (removeData.success) {
+                            document.getElementById("cart-item-" + removeData.id)?.remove();
+                            // Update summary
+                            document.getElementById("cart-subtotal-before-gst").textContent = parseFloat(removeData.cart_summary.subtotal_before_gst).toFixed(2);
+                            document.getElementById("cart-total-gst").textContent = parseFloat(removeData.cart_summary.total_gst_amount).toFixed(2);
+                            document.getElementById("cart-shipping-charge").textContent = parseFloat(removeData.cart_summary.shipping_charge).toFixed(2);
+                            document.getElementById("cart-grand-total").textContent = parseFloat(removeData.cart_summary.grand_total).toFixed(2);
+                            if (window.updateCartCount) updateCartCount();
+                            // If no more items, reload to show empty cart message
+                            if (document.querySelectorAll('[id^="cart-item-"]').length === 0) {
+                                location.reload();
+                            }
+                        } else {
+                            alert(removeData.message || "Remove failed.");
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Remove error:", err);
+                        alert("Error removing item.");
+                    });
+                } else {
+                    // If user cancels remove, revert quantity to 1
+                    input.value = 1;
+                    const data = getItemData(input);
+                    updateCartItem(data.id, 1, data.sku, data.size, data.frame, data.glass);
+                }
+            } else {
+                input.value = qty;
+                const data = getItemData(input);
+                updateCartItem(data.id, qty, data.sku, data.size, data.frame, data.glass);
+            }
         });
     });
 
     document.querySelectorAll(".cart-item-quantity").forEach(input => {
         input.addEventListener("change", function () {
             let qty = parseInt(this.value);
-            if (qty < 1) qty = 1;
+            if (qty < 1 || isNaN(qty)) { // Handle non-numeric or less than 1 input
+                qty = 1; // Default to 1 if invalid
+            }
             this.value = qty;
             const data = getItemData(this);
             updateCartItem(data.id, qty, data.sku, data.size, data.frame, data.glass);
@@ -198,7 +264,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!confirm("Remove this item?")) return;
             fetch("{{ url_for('remove_from_cart') }}", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: getHeaders(), // Use the getHeaders function
                 body: JSON.stringify(data)
             })
             .then(async (res) => {
@@ -226,6 +292,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     // Optionally update cart count
                     if (window.updateCartCount) updateCartCount();
+
+                    // If no more items in the cart, display the empty cart message
+                    if (document.querySelectorAll('[id^="cart-item-"]').length === 0) {
+                        location.reload(); // Reload the page to show the empty cart state
+                    }
                 } else {
                     alert(data.message || "Remove failed.");
                 }

@@ -3,7 +3,6 @@
 {% block content %}
 <div class="container py-4">
     <div class="row">
-        <!-- Delivery Form -->
         <div class="col-md-6">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h4 class="mb-0">Shipping Address</h4>
@@ -12,8 +11,8 @@
                 </button>
             </div>
 
-            {% if saved_addresses %}
             <form method="POST" id="deliveryForm">
+                {% if saved_addresses %}
                 <div class="mb-3">
                     {% for addr in saved_addresses %}
                     <div class="form-check mb-2">
@@ -27,9 +26,9 @@
                     </div>
                     {% endfor %}
                 </div>
-            {% endif %}
+                {% endif %} {# End of saved_addresses if for the radio buttons #}
 
-            <h5 class="mt-4">Enter New Shipping Details</h5>
+                <h5 class="mt-4">Enter New Shipping Details</h5>
                 <div class="mb-3">
                     <label for="name" class="form-label">Full Name</label>
                     <input type="text" name="name" class="form-control" id="nameInput" value="{{ prefill_name }}" required>
@@ -58,6 +57,7 @@
                 </div>
 
                 <div id="billingSelector" class="mb-3" style="display: none;">
+                    {% if saved_addresses %} {# This if is for billing address selector #}
                     {% for addr in saved_addresses %}
                     <div class="form-check mb-2">
                         <input class="form-check-input" type="radio" name="billing_address" id="bill{{ loop.index0 }}" value="{{ loop.index0 }}">
@@ -69,6 +69,7 @@
                         </label>
                     </div>
                     {% endfor %}
+                    {% endif %} {# End of billing address selector if #}
                 </div>
 
                 <div id="billingFields" style="display: none;">
@@ -93,7 +94,6 @@
             </form>
         </div>
 
-        <!-- Order Summary -->
         <div class="col-md-6">
             <h4 class="mb-4">Order Summary</h4>
 
@@ -131,7 +131,6 @@
     </div>
 </div>
 
-<!-- Modal for Changing Address -->
 <div class="modal fade" id="changeAddressModal" tabindex="-1" aria-labelledby="changeAddressModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-scrollable modal-lg">
     <div class="modal-content">
@@ -158,64 +157,107 @@
   </div>
 </div>
 
-{% if saved_addresses %}
+{# Start of JavaScript section, moved out of conditional blocks for general availability #}
 <script>
-  const savedAddresses = {{ saved_addresses | tojson }};
+    // This script block should always be present, regardless of saved_addresses
+    {% if saved_addresses %}
+    const savedAddresses = {{ saved_addresses | tojson }};
 
-  const shippingRadios = document.querySelectorAll('input[name="shipping_address"]');
-  shippingRadios.forEach((radio, idx) => {
-    radio.addEventListener('change', () => {
-      const addr = savedAddresses[radio.value];
-      if (addr) {
+    const shippingRadios = document.querySelectorAll('input[name="shipping_address"]');
+    shippingRadios.forEach((radio, idx) => {
+        radio.addEventListener('change', () => {
+            const addr = savedAddresses[radio.value];
+            if (addr) {
+                document.getElementById('nameInput').value = addr.full_name || '';
+                document.getElementById('emailInput').value = addr.email || '{{ current_user.email }}';
+                document.getElementById('phoneInput').value = addr.phone || '';
+                document.getElementById('addressInput').value = addr.address || '';
+                document.getElementById('pincodeInput').value = addr.pincode || '';
+            }
+        });
+    });
+
+    const billingRadios = document.querySelectorAll('input[name="billing_address"]');
+    billingRadios.forEach((radio, idx) => {
+        radio.addEventListener('change', () => {
+            const addr = savedAddresses[radio.value];
+            if (addr) {
+                document.getElementById('billingName').value = addr.full_name || '';
+                document.getElementById('billingPhone').value = addr.phone || '';
+                document.getElementById('billingAddress').value = addr.address || '';
+                document.getElementById('billingPincode').value = addr.pincode || '';
+            }
+        });
+    });
+
+    function selectAddress(addr) {
         document.getElementById('nameInput').value = addr.full_name || '';
         document.getElementById('emailInput').value = addr.email || '{{ current_user.email }}';
         document.getElementById('phoneInput').value = addr.phone || '';
         document.getElementById('addressInput').value = addr.address || '';
         document.getElementById('pincodeInput').value = addr.pincode || '';
-      }
+
+        const radios = document.querySelectorAll('input[name="shipping_address"]');
+        radios.forEach((radio, idx) => {
+            const match = savedAddresses[idx];
+            if (
+                match.full_name === addr.full_name &&
+                match.phone === addr.phone &&
+                match.address === addr.address
+            ) {
+                radio.checked = true;
+            }
+        });
+    }
+    {% endif %} {# End of if saved_addresses for this script block #}
+
+    document.getElementById('sameAsShipping').addEventListener('change', function() {
+        const billingFields = document.getElementById('billingFields');
+        const billingSelector = document.getElementById('billingSelector');
+        const showBilling = !this.checked;
+        billingFields.style.display = showBilling ? 'block' : 'none';
+        billingSelector.style.display = showBilling ? 'block' : 'none';
     });
-  });
-
-  const billingRadios = document.querySelectorAll('input[name="billing_address"]');
-  billingRadios.forEach((radio, idx) => {
-    radio.addEventListener('change', () => {
-      const addr = savedAddresses[radio.value];
-      if (addr) {
-        document.getElementById('billingName').value = addr.full_name || '';
-        document.getElementById('billingPhone').value = addr.phone || '';
-        document.getElementById('billingAddress').value = addr.address || '';
-        document.getElementById('billingPincode').value = addr.pincode || '';
-      }
-    });
-  });
-
-  document.getElementById('sameAsShipping').addEventListener('change', function() {
-    const billingFields = document.getElementById('billingFields');
-    const billingSelector = document.getElementById('billingSelector');
-    const showBilling = !this.checked;
-    billingFields.style.display = showBilling ? 'block' : 'none';
-    billingSelector.style.display = showBilling ? 'block' : 'none';
-  });
-
-  function selectAddress(addr) {
-    document.getElementById('nameInput').value = addr.full_name || '';
-    document.getElementById('emailInput').value = addr.email || '{{ current_user.email }}';
-    document.getElementById('phoneInput').value = addr.phone || '';
-    document.getElementById('addressInput').value = addr.address || '';
-    document.getElementById('pincodeInput').value = addr.pincode || '';
-
-    const radios = document.querySelectorAll('input[name="shipping_address"]');
-    radios.forEach((radio, idx) => {
-      const match = savedAddresses[idx];
-      if (
-        match.full_name === addr.full_name &&
-        match.phone === addr.phone &&
-        match.address === addr.address
-      ) {
-        radio.checked = true;
-      }
-    });
-  }
 </script>
-{% endif %}
+
+{% block extra_js %}
+<script>
+    // This entire block is specifically for the direct order setup
+    document.addEventListener('DOMContentLoaded', async () => {
+        const itemToBuyNowString = sessionStorage.getItem('itemToBuyNow');
+        const redirectAfterLoginEndpoint = sessionStorage.getItem('redirect_after_login_endpoint');
+
+        if (itemToBuyNowString && redirectAfterLoginEndpoint === 'purchase_form') {
+            sessionStorage.removeItem('itemToBuyNow'); // Clear item immediately to prevent re-processing
+            sessionStorage.removeItem('redirect_after_login_endpoint'); // Clear redirect flag
+
+            try {
+                const itemToBuyNow = JSON.parse(itemToBuyNowString);
+
+                // Assuming getHeaders and showCustomAlert are globally accessible via main.js and _base.html setup.
+                const response = await fetch('/create_direct_order', {
+                    method: 'POST',
+                    headers: getHeaders(), // Use the getHeaders function from main.js
+                    body: JSON.stringify(itemToBuyNow)
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showCustomAlert(data.message || 'Direct purchase initiated. Redirecting...', 'success');
+                    window.location.href = data.redirect_url; // Redirect to payment/confirmation
+                } else {
+                    showCustomAlert(data.message || 'Failed to initiate direct purchase after login.', 'danger');
+                    console.error('Direct order initiation failed:', data.message);
+                    // Optionally redirect back to products or cart if purchase fails
+                    // window.location.href = '/all-products';
+                }
+            } catch (error) {
+                console.error('Error initiating direct purchase after login:', error);
+                showCustomAlert('An error occurred during direct purchase setup. Please try again.', 'danger');
+            }
+        }
+    });
+</script>
+{% endblock %}
 {% endblock %}

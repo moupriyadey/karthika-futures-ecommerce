@@ -259,5 +259,99 @@
             "invoice_pdf_path": null
         },
         "final_invoice_amount": "0.00"
+    },
+    {
+        "order_id": "EFC4E52F",
+        "user_id": "b2693a58-0d9a-42ef-aded-5c1c7c1b97c2",
+        "user_email": "rupadeydiamond@gmail.com",
+        "customer_name": "rupa",
+        "customer_phone": "9090909090",
+        "customer_address": "kolkata 53",
+        "customer_pincode": "900901",
+        "placed_on": "2025-07-04 17:52:40",
+        "items": [
+            {
+                "category": "POOJA ITEMS",
+                "frame": "None",
+                "glass": "None",
+                "gst_amount": "221.40",
+                "gst_percentage": "18",
+                "image": "uploads/product_images/1fd5c6ab-e762-43fd-8165-8ecee95d3074_Screenshot_2025-03-29_165132.png",
+                "name": "NEW TERMINAL",
+                "quantity": 1,
+                "size": "Original",
+                "sku": "789456",
+                "total_price": "1451.40",
+                "total_price_before_gst": "1230",
+                "unit_price_before_gst": "1230",
+                "unit_price_before_options": "1230"
+            }
+        ],
+        "subtotal_before_gst": "1230",
+        "total_gst_amount": "221.40",
+        "cgst_amount": "110.70",
+        "sgst_amount": "110.70",
+        "shipping_charge": "50.00",
+        "total_amount": "1501.40",
+        "status": "Payment Submitted - Awaiting Verification",
+        "remark": "Order cancelled by user.",
+        "courier": "",
+        "tracking_number": "",
+        "invoice_details": {
+            "invoice_status": "Not Applicable",
+            "is_held_by_admin": false,
+            "invoice_pdf_path": null
+        },
+        "final_invoice_amount": "0.00",
+        "transaction_id": "121221555454",
+        "payment_submitted_on": "2025-07-04 19:47:14",
+        "cancelled_on": "2025-07-04 19:36:12"
+    },
+    {
+        "order_id": "647E811B",
+        "user_id": "b2693a58-0d9a-42ef-aded-5c1c7c1b97c2",
+        "user_email": "rupadeydiamond@gmail.com",
+        "customer_name": "rupa",
+        "customer_phone": "9090909090",
+        "customer_address": "kolkata 53",
+        "customer_pincode": "900901",
+        "placed_on": "2025-07-04 20:20:16",
+        "items": [
+            {
+                "category": "POOJA ITEMS",
+                "frame": "None",
+                "glass": "None",
+                "gst_amount": "221.40",
+                "gst_percentage": "18",
+                "image": "uploads/product_images/1fd5c6ab-e762-43fd-8165-8ecee95d3074_Screenshot_2025-03-29_165132.png",
+                "name": "NEW TERMINAL",
+                "quantity": 1,
+                "size": "Original",
+                "sku": "789456",
+                "total_price": "1451.40",
+                "total_price_before_gst": "1230",
+                "unit_price_before_gst": "1230",
+                "unit_price_before_options": "1230"
+            }
+        ],
+        "subtotal_before_gst": "1230",
+        "total_gst_amount": "221.40",
+        "cgst_amount": "110.70",
+        "sgst_amount": "110.70",
+        "shipping_charge": "50.00",
+        "total_amount": "1501.40",
+        "status": "Payment Submitted - Awaiting Verification",
+        "remark": "",
+        "courier": "",
+        "tracking_number": "",
+        "invoice_details": {
+            "invoice_status": "Not Applicable",
+            "is_held_by_admin": false,
+            "invoice_pdf_path": null
+        },
+        "final_invoice_amount": "0.00",
+        "transaction_id": "121212121545",
+        "payment_submitted_on": "2025-07-04 20:20:38",
+        "payment_screenshot_path": "uploads/payment_screenshots/be3ffdc7-51cc-406e-95a5-0a2e9ee06ce4_ravan.png"
     }
 ]

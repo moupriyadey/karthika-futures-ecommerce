@@ -351,6 +351,49 @@ def send_otp(recipient, otp):
 
 
 # --- NEW: load_users_data helper function ---
+
+from decimal import Decimal
+
+def enrich_direct_purchase_item(data):
+    sku = data.get('sku')
+    quantity = int(data.get('quantity', 1))
+    options = {k: v for k, v in data.items() if k not in ['sku', 'quantity']}
+
+    artworks = load_artworks_data()
+    artwork = next((a for a in artworks if a['sku'] == sku), None)
+    if not artwork:
+        return None
+
+    base_price = Decimal(str(artwork.get('original_price', 0)))
+    gst_percentage = Decimal(str(artwork.get('gst_percentage', 0)))
+    extra_price = Decimal('0.00')
+
+    for group, value in options.items():
+        try:
+            extra_price += Decimal(str(artwork['custom_options'][group][value]))
+        except Exception:
+            pass  # ignore missing or mismatched options
+
+    unit_price = base_price + extra_price
+    total_price_before_gst = unit_price * quantity
+    gst_amount = (total_price_before_gst * gst_percentage) / Decimal('100')
+    total_price = total_price_before_gst + gst_amount
+
+    return {
+        **data,
+        'name': artwork.get('name', 'Artwork'),
+        'category': artwork.get('category', ''),
+        'image': artwork['images'][0] if artwork.get('images') else '',
+        'unit_price_before_options': base_price,
+        'unit_price_before_gst': unit_price,
+        'total_price_before_gst': total_price_before_gst,
+        'gst_percentage': gst_percentage,
+        'gst_amount': gst_amount,
+        'total_price': total_price
+    }
+
+
+
 def load_users_data():
     """Loads user data from users.json."""
     return load_json('users.json')
@@ -1039,6 +1082,7 @@ def get_cart_summary():
     except Exception as e:
         app.logger.error(f"Error in get_cart_summary: {e}", exc_info=True)
         return jsonify({'success': False, 'message': 'Failed to retrieve cart summary due0 to a server error.'}), 500
+
 # --- NEW: Endpoint to process checkout from cart page ---
 @app.route('/process_checkout_from_cart', methods=['POST'])
 @login_required
@@ -1058,6 +1102,9 @@ def process_checkout_from_cart():
     if not cart_summary['cart_items']:
         flash("Your cart is empty or all items are out of stock. Please add items to proceed.", "danger")
         return redirect(url_for('all_products'))
+    
+    session['checkout_cart'] = session.get('cart', {})
+    session.modified = True
 
     # If everything is fine, redirect to the purchase form
     # The purchase_form route will then load the cart data from session['cart']
@@ -1390,42 +1437,59 @@ def payment_submit(order_id):
     Handles submission of payment screenshot and updates order status.
     """
     orders = load_orders_data()
-    order_found = False
+    order_index = -1
     for i, order in enumerate(orders):
         if order.get('order_id') == order_id and order.get('user_id') == str(current_user.id):
-            order_found = True
-            if 'payment_screenshot' in request.files:
-                file = request.files['payment_screenshot']
-                if file and file.filename:
-                    filename = secure_filename(file.filename)
-                    unique_filename = str(uuid.uuid4()) + '_' + filename
-                    file_path = os.path.join(app.config['PAYMENT_SCREENSHOTS_FOLDER'], unique_filename)
-                    file.save(file_path)
-                    orders[i]['payment_screenshot_path'] = f'uploads/payment_screenshots/{unique_filename}'
-                    orders[i]['transaction_id'] = request.form.get('transaction_id', '').strip()
-                    orders[i]['payment_submitted_on'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    orders[i]['status'] = 'Payment Submitted - Awaiting Verification' # More precise status
-                    save_json('orders.json', orders)
-                    flash('Payment details submitted successfully! Your order is now under review.', 'success')
-
-                    # Empty the cart after successful payment submission
-                    session.pop('cart', None)
-                    session.pop('direct_purchase_item', None) # Clear direct purchase item too
-                    session.modified = True
-
-                    return redirect(url_for('thank_you_page', order_id=order_id))
-                else:
-                    flash('No payment screenshot uploaded.', 'danger')
-            else:
-                flash('Payment screenshot is required.', 'danger')
+            order_index = i
             break
-    
-    if not order_found:
-        flash('Order not found or you do not have permission to update it.', 'danger')
-    
-    # If there was an error, redirect back to payment initiation with flash message
-    return redirect(url_for('payment_initiate', order_id=order_id, amount=order.get('total_amount', Decimal('0.00'))))
 
+    if order_index == -1:
+        flash('Order not found or you do not have permission to update it.', 'danger')
+        return redirect(url_for('my_orders'))
+
+    order = orders[order_index]
+
+    transaction_id = request.form.get('transaction_id', '').strip()
+
+    # --- UTR Validation ---
+    if not transaction_id:
+        flash('Transaction ID (UTR) is required.', 'danger')
+        # Redirect back to the payment page with the correct order details
+        return redirect(url_for('payment_initiate', order_id=order_id, amount=order.get('total_amount', Decimal('0.00'))))
+
+    if not (transaction_id.isdigit() and len(transaction_id) == 12):
+        flash('Please enter a valid 12-digit UTR number.', 'danger')
+        return redirect(url_for('payment_initiate', order_id=order_id, amount=order.get('total_amount', Decimal('0.00'))))
+    # --- End UTR Validation ---
+
+    # Process screenshot if provided (now optional)
+    screenshot_path = None
+    if 'payment_screenshot' in request.files:
+        file = request.files['payment_screenshot']
+        if file and file.filename:
+            filename = secure_filename(file.filename)
+            unique_filename = str(uuid.uuid4()) + '_' + filename
+            file_path = os.path.join(app.config['PAYMENT_SCREENSHOTS_FOLDER'], unique_filename)
+            file.save(file_path)
+            screenshot_path = f'uploads/payment_screenshots/{unique_filename}'
+        # Else: if no file or empty filename, screenshot_path remains None (optional)
+
+    # Update order details
+    orders[order_index]['transaction_id'] = transaction_id
+    if screenshot_path: # Only update path if a screenshot was actually uploaded
+        orders[order_index]['payment_screenshot_path'] = screenshot_path
+
+    orders[order_index]['payment_submitted_on'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    orders[order_index]['status'] = 'Payment Submitted - Awaiting Verification' # More precise status
+    save_json('orders.json', orders)
+
+    # Empty the cart after successful payment submission
+    session.pop('cart', None)
+    session.pop('direct_purchase_item', None) # Clear direct purchase item too
+    session.modified = True
+
+    flash('Payment details submitted successfully! Your order is now under review.', 'success')
+    return redirect(url_for('thank_you_page', order_id=order_id))
 
 @app.route('/thank_you/<order_id>')
 @login_required
@@ -2622,10 +2686,11 @@ def user_login():
 @csrf.exempt
 def set_direct_purchase_item():
     try:
-        item = request.get_json()
-        if not item:
-            return jsonify(success=False, message="No item received."), 400
-        session['direct_purchase_item'] = item
+        raw_item = request.get_json()
+        enriched = enrich_direct_purchase_item(raw_item)
+        if not enriched:
+            return jsonify(success=False, message="Invalid artwork or options."), 400
+        session['direct_purchase_item'] = enriched
         session.modified = True
         return jsonify(success=True, redirect_url='/purchase-form')
     except Exception as e:
@@ -2856,16 +2921,16 @@ def update_cart_item_quantity():
     else:
         return jsonify({'error': 'Item not found in cart'}), 404
 
-@csrf.exempt  # 💥 disables CSRF for this route
 @app.route('/remove_from_cart', methods=['POST'])
+# @csrf.exempt # Keep this if you're handling CSRF manually or disabling it for this route
 def remove_from_cart():
     try:
         data = request.get_json()
-        item_id = data.get('sku')  # This is the item's unique ID (like generated via size+frame+glass)
+        # ✅ FIX: Use 'id' from frontend, which is the unique cart item ID
+        item_to_remove_id = data.get('id')
 
         cart = session.get('cart', {})
 
-        # ✅ Ensure cart is a dict, not list
         if not isinstance(cart, dict):
             app.logger.warning(f"Cart was not dict: {type(cart)}. Resetting to empty.")
             cart = {}
@@ -2873,18 +2938,39 @@ def remove_from_cart():
             session.modified = True
             return jsonify({"success": False, "message": "Cart was corrupted and reset."}), 400
 
-        if item_id in cart:
-            del cart[item_id]
+        if item_to_remove_id in cart:
+            del cart[item_to_remove_id]
             session['cart'] = cart
             session.modified = True
-            return jsonify({"success": True, "message": "Item removed from cart."})
+
+            # ✅ FIX: Recalculate and return the updated cart summary
+            artworks_data = load_artworks_data() # Assuming this function is available
+            updated_cart_summary = calculate_cart_totals(cart, artworks_data) # Assuming this function is available
+
+            return jsonify({
+                "success": True,
+                "message": "Item removed from cart.",
+                "id": item_to_remove_id, # Return ID for frontend to remove element
+                "cart_summary": updated_cart_summary
+            })
         else:
+            # Return 404 if item not found, consistent with the error message
             return jsonify({"success": False, "message": "Item not found in cart."}), 404
 
     except Exception as e:
         app.logger.error(f"Error in remove_from_cart: {e}", exc_info=True)
         return jsonify({"success": False, "message": "Server error while removing item."}), 500
 
+# You also need to ensure your `update_cart_item_quantity` route
+# (which isn't shown but is called from cart.html)
+# also returns the full `cart_summary` in its successful response.
+# It should look similar to the `remove_from_cart` success response:
+# return jsonify({
+#     "success": True,
+#     "message": "Cart updated successfully.",
+#     "updated_item": updated_item_details, # if applicable
+#     "cart_summary": updated_cart_summary
+# })
 
 
 @app.route('/get_cart_count')
@@ -2898,11 +2984,12 @@ def get_cart_count():
         session['cart'] = cart
         session.modified = True
 
-    total_items_in_cart = 0
-    for item in cart.values():
-        total_items_in_cart += item.get('quantity', 0)
+    total_items_in_cart = sum(item.get('quantity', 0) for item in cart.values())
 
-    return jsonify({'cart_count': total_items_in_cart})
+    return jsonify({
+        'success': True,                  # ✅ add this line
+        'cart_count': total_items_in_cart
+    })
 
 
 

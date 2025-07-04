@@ -1,3 +1,6 @@
+console.log("✅ main.js loaded and running");
+
+
 function showCustomAlert(message, type = 'info') {
     const container = document.getElementById('flash-messages-container') || document.body;
     const alertDiv = document.createElement('div');
@@ -91,20 +94,23 @@ async function addToCart(sku, quantity, size, frame, glass) {
             headers: getHeaders(),
             body: JSON.stringify(itemData)
         });
-
         const data = await response.json();
         if (response.ok && data.success) {
-            showCustomAlert(data.message || 'Item added to cart!', 'success');
-            // Update cart count if the function exists
-            if (typeof updateCartCountDisplay === 'function') {
-                updateCartCountDisplay();
+            showCustomAlert(data.message || "Item added to cart!", "success");
+            // ✅ Fix: Safely check for data.cart_summary before accessing its properties
+            if (data.cart_summary && typeof data.cart_summary.total_items_in_cart !== 'undefined') {
+                localStorage.setItem('cartCount', data.cart_summary.total_items_in_cart);
+                window.updateCartCountDisplay(); // Call the global function
+            } else {
+                console.warn("Cart summary or total_items_in_cart not found in response, attempting to fetch cart count.");
+                fetchCartCount(); // Fallback: fetch the cart count if not provided in the response
             }
         } else {
-            showCustomAlert(data.message || 'Failed to add item to cart.', 'danger');
+            showCustomAlert(data.message || "Failed to add item to cart.", "danger");
         }
     } catch (error) {
-        console.error('Error adding to cart:', error);
-        showCustomAlert('An error occurred. Please try again.', 'danger');
+        console.error("Error adding to cart:", error);
+        showCustomAlert("An error occurred. Please try again.", "danger");
     }
 }
 
@@ -112,11 +118,35 @@ async function addToCart(sku, quantity, size, frame, glass) {
 function updateCartCountDisplay() {
     const count = localStorage.getItem('cartCount');
     const badge = document.getElementById('cart-count');
+
     if (badge) {
         const displayCount = parseInt(count) || 0;
         badge.textContent = displayCount;
-        badge.style.display = displayCount > 0 ? 'inline-block' : 'none';
+
+        // Force it to show only if count > 0
+        if (displayCount > 0) {
+            badge.style.display = 'inline-block';
+        } else {
+            badge.style.display = 'none';
+        }
+    } else {
+        console.warn("🛑 cart-count badge not found in DOM");
     }
+}
+
+
+function updateCartCount() {
+    fetch("/get_cart_count")
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.cart_count !== undefined) {
+                localStorage.setItem('cartCount', data.cart_count);
+                updateCartCountDisplay();    // update the badge
+            }
+        })
+        .catch(err => {
+            console.error("Error fetching cart count:", err);
+        });
 }
 
 // Function to fetch cart count from the server (used on page load)
@@ -147,24 +177,31 @@ document.addEventListener('DOMContentLoaded', () => {
     window.isUserLoggedIn = typeof window.isUserLoggedIn !== 'undefined' ? window.isUserLoggedIn : false;
 
 
-    // --- Event Listeners for Product Card Forms (all_products.html) ---
+    // --- Event Listeners for Product Card Buttons (all_products.html) ---
 
-    // 1. Add to Cart Forms
-    document.querySelectorAll('.add-to-cart-form').forEach(form => {
-        form.addEventListener('submit', async (event) => {
-            event.preventDefault(); // Prevent default form submission (page reload)
+    // 1. Add to Cart Buttons
+    document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+        button.addEventListener('click', async (event) => {
+            event.preventDefault(); // Prevent default form submission (if button is part of a form)
 
-            const sku = form.dataset.sku || form.querySelector('input[name="sku"]')?.value;
-            const quantityInput = form.querySelector('.quantity-input') || form.querySelector('input[name="quantity"]');
-            const selectedQuantity = parseInt(quantityInput?.value || 1, 10);
+            const productCard = button.closest('.product-card'); // Get the parent product card
+            const sku = productCard.dataset.sku; // Get SKU from data-sku attribute on product-card
+            const quantityInput = productCard.querySelector('.quantity-input');
+            const selectedQuantity = parseInt(quantityInput?.value || '1', 10);
 
-            const sizeSelect = form.querySelector('.size-select');
-            const frameSelect = form.querySelector('.frame-select');
-            const glassSelect = form.querySelector('.glass-select');
+            // Get selected options (radio buttons)
+            let selectedSize = '';
+            let selectedFrame = '';
+            let selectedGlass = '';
 
-            const selectedSize = sizeSelect ? sizeSelect.value : null;
-            const selectedFrame = frameSelect ? frameSelect.value : null;
-            const selectedGlass = glassSelect ? glassSelect.value : null;
+            const sizeOption = productCard.querySelector(`input[name="size-${sku}"]:checked`);
+            if (sizeOption) selectedSize = sizeOption.value;
+
+            const frameOption = productCard.querySelector(`input[name="frame-${sku}"]:checked`);
+            if (frameOption) selectedFrame = frameOption.value;
+
+            const glassOption = productCard.querySelector(`input[name="glass-${sku}"]:checked`);
+            if (glassOption) selectedGlass = glassOption.value;
 
             console.log("Preparing to add to cart:", { sku, selectedQuantity, selectedSize, selectedFrame, selectedGlass });
 
@@ -176,34 +213,38 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await addToCart(sku, selectedQuantity, selectedSize, selectedFrame, selectedGlass);
             } catch (error) {
-                console.error("Error in Add to Cart form submission:", error);
+                console.error("Error in Add to Cart button click:", error);
                 showCustomAlert("Failed to add item to cart. Please try again.", 'danger');
             }
         });
     });
 
-    // 2. Buy Now Forms
-    document.querySelectorAll('.buy-now-form').forEach(form => {
-        form.addEventListener('submit', async (event) => {
-            event.preventDefault(); // Prevent default form submission (page reload)
+    // 2. Buy Now Buttons
+    document.querySelectorAll('.buy-now-btn').forEach(button => {
+        button.addEventListener('click', async (event) => {
+            event.preventDefault(); // Prevent default form submission (if button is part of a form)
 
-            const sku = form.dataset.sku || form.querySelector('input[name="sku"]')?.value;
-            const quantityInput = form.querySelector('.quantity-input') || form.querySelector('input[name="quantity"]');
-            const selectedQuantity = parseInt(quantityInput?.value || 1, 10);
+            const productCard = button.closest('.product-card'); // Get the parent product card
+            const sku = productCard.dataset.sku; // Get SKU from data-sku attribute on product-card
+            const quantityInput = productCard.querySelector('.quantity-input');
+            const selectedQuantity = parseInt(quantityInput?.value || '1', 10);
 
-            // Collect options from select elements within the form
-            const options = {
-                size: form.querySelector('.size-select')?.value || null,
-                frame: form.querySelector('.frame-select')?.value || null,
-                glass: form.querySelector('.glass-select')?.value || null
-            };
+            // Collect selected options (radio buttons) for buy now
+            let options = {};
+            productCard.querySelectorAll('input[type="radio"]:checked').forEach(optionInput => {
+                const groupName = optionInput.name.split('-')[0]; // e.g., 'size', 'frame', 'glass'
+                options[groupName] = optionInput.value;
+            });
 
-            const productCard = form.closest('.product-card');
-            const name = productCard?.querySelector('.card-title')?.textContent.trim();
-            const imageUrl = productCard?.querySelector('.product-image')?.src;
+            const name = productCard.querySelector('.product-card-title')?.textContent.trim();
+            const imageUrl = productCard.querySelector('img')?.src; // Assuming img is direct child or easily found
             // Ensure these data-attributes are correctly set on your .product-card HTML element
-            const basePrice = parseFloat(productCard?.dataset.originalPrice || 0);
-            const gstPercentage = parseFloat(productCard?.dataset.gstPercentage || 0);
+            const basePrice = parseFloat(productCard.dataset.basePrice || 0);
+            // You need to ensure gstPercentage is available on the product card or from a global source
+            // For now, assuming it's part of the `artwork` object rendered in the template,
+            // you might need to add it as a data-attribute to the product-card div
+            // Example: <div class="product-card" data-sku="..." data-base-price="..." data-gst-percentage="{{ artwork.gst_percentage }}">
+            const gstPercentage = parseFloat(productCard.dataset.gstPercentage || 0); // Add data-gst-percentage to your product-card HTML
 
             console.log("Preparing for Buy Now:", { sku, name, imageUrl, options, selectedQuantity, basePrice, gstPercentage });
 
@@ -215,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await buyNow(sku, name, imageUrl, options, selectedQuantity, basePrice, gstPercentage);
             } catch (error) {
-                console.error("Error in Buy Now form submission:", error);
+                console.error("Error in Buy Now button click:", error);
                 showCustomAlert("Failed to process direct purchase. Please try again.", 'danger');
             }
         });
@@ -322,10 +363,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!card) return;
 
             const sku = card.dataset.sku;
-            const name = card.querySelector('.card-title')?.textContent.trim();
-            const imageUrl = card.querySelector('.product-image')?.src;
+            const name = card.querySelector('.product-card-title')?.textContent.trim(); // Changed from .card-title
+            const imageUrl = card.querySelector('img')?.src; // Changed from .product-image
             const description = card.querySelector('.product-description')?.textContent.trim();
-            const originalPrice = card.dataset.originalPrice; // Ensure this is set on .product-card
+            const originalPrice = card.dataset.basePrice; // Changed from .originalPrice
             const category = card.dataset.category; // Ensure this is set on .product-card
             const gstPercentage = card.dataset.gstPercentage; // Ensure this is set on .product-card
 

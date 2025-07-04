@@ -1,1 +1,40 @@
-[]
+[
+    {
+        "sku": "789456",
+        "name": "NEW TERMINAL",
+        "category": "POOJA ITEMS",
+        "original_price": "1230",
+        "stock": 99,
+        "description": "NEW TERMINAL",
+        "gst_percentage": "18",
+        "images": [
+            "uploads/product_images/1fd5c6ab-e762-43fd-8165-8ecee95d3074_Screenshot_2025-03-29_165132.png"
+        ],
+        "size_a4": "0.00",
+        "size_a5": "0.00",
+        "size_letter": "0.00",
+        "size_legal": "0.00",
+        "frame_wooden": "0.00",
+        "frame_metal": "0.00",
+        "frame_pvc": "0.00",
+        "glass_price": "0.00",
+        "is_featured": false,
+        "has_custom_options": true,
+        "custom_options": {
+            "HEIGHT": {
+                "2FT": 10,
+                "3FT": 20
+            },
+            "MATERIAL": {
+                "GOLD": 100,
+                "SILVER": 500,
+                "BRONZE": 250,
+                "COPPER": 100
+            },
+            "WEIGHT": {
+                "1 KG": 0,
+                "2KG": 500
+            }
+        }
+    }
+]

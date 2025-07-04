@@ -146,15 +146,5 @@
     themeToggle.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
   });
 
-  // ✅ Cart count updater
-  function updateCartCount() {
-    fetch('/get_cart_count')
-      .then(res => res.json())
-      .then(data => {
-        const span = document.getElementById('cart-count');
-        if (span) span.textContent = data.count;
-      })
-      .catch(err => console.error("Cart count error:", err));
-  }
-  document.addEventListener("DOMContentLoaded", updateCartCount);
+
 </script>
