@@ -1,92 +1,133 @@
 {% extends '_base.html' %}
 
+{% block title %}My Orders - Karthika Futures{% endblock %}
+
 {% block content %}
-<div class="container my-5 px-3">
-  <h2 class="text-center mb-4 fw-bold text-primary">📦 My Orders</h2>
+<div class="container main-content-area py-4">
+    <h2 class="text-center mb-4">My Orders</h2>
 
-  <div class="alert alert-warning shadow-sm rounded small">
-    <strong>Returns & Refunds:</strong><br>
-    Contact us on <a href="https://wa.me/919123700057" target="_blank" class="fw-semibold text-success text-decoration-underline">WhatsApp +91 9123700057</a>. We’ll arrange pickup.
-  </div>
-
-  {% if orders %}
-  <div class="table-responsive">
-    <table class="table table-bordered table-hover text-sm shadow-sm bg-white">
-      <thead class="table-light">
-        <tr class="text-nowrap">
-          <th>Order ID</th>
-          <th>Date</th>
-          <th>Items</th>
-          <th>Total (₹)</th>
-          <th>Status</th>
-          <th>Invoice</th>
-          <th>Remark</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for order in orders %}
-        <tr>
-          <td class="fw-semibold">{{ order.order_id }}</td>
-          <td>{{ order.placed_on }}</td>
-          <td>
-            <ul class="list-unstyled mb-0">
-              {% for item in order["items"] %}
-              <li>📌 {{ item["name"] }} × {{ item["quantity"] }} — ₹{{ item["total_price"] | floatformat(2) }}</li>
-              {% endfor %}
-            </ul>
-          </td>
-          <td><strong>₹{{ order.total_amount | floatformat(2) }}</strong></td>
-          <td>
-            <span class="badge 
-              {% if order.status == 'Shipped' %} bg-success 
-              {% elif order.status == 'Delivered' %} bg-primary 
-              {% elif 'Cancelled' in order.status %} bg-danger 
-              {% elif 'Awaiting Verification' in order.status %} bg-warning text-dark 
-              {% else %} bg-secondary {% endif %}">
-              {{ order.status }}
-            </span>
-          </td>
-          <td>
-            {% if order.invoice_details and order.invoice_details.invoice_status in ['Prepared', 'Sent', 'Held', 'Edited', 'Email Failed', 'PDF Gen Failed'] %}
-              <span class="badge bg-info text-dark">{{ order.invoice_details.invoice_status }}</span>
-            {% elif order.status in ['Shipped', 'Delivered'] %}
-              <span class="text-muted small">Will be available soon</span>
-            {% else %}
-              <span class="text-muted small">Available after shipping</span>
-            {% endif %}
-          </td>
-          <td>{{ order.remark if order.remark else '—' }}</td>
-          <td>
-            <div class="d-grid gap-2">
-              {% if order.status in ['Pending Payment', 'Payment Submitted - Awaiting Verification'] %}
-              <form method="POST" action="{{ url_for('cancel_order', order_id=order.order_id) }}"
-                    onsubmit="return confirm('Are you sure you want to cancel this order?');">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-sm btn-danger">Cancel Order</button>
-              </form>
-              {% endif %}
-
-              {% if order.status == 'Pending Payment' %}
-              <a href="{{ url_for('payment_initiate', order_id=order.order_id, amount=order.total_amount) }}"
-                 class="btn btn-sm btn-success">Complete Payment</a>
-              {% endif %}
-
-              {% if order.invoice_details and order.invoice_details.invoice_pdf_path %}
-              <a href="{{ url_for('download_invoice', order_id=order.order_id) }}" download
-                 class="btn btn-sm btn-outline-primary">Download Invoice</a>
-              {% else %}
-              <button class="btn btn-sm btn-secondary" disabled>Invoice Unavailable</button>
-              {% endif %}
+    <div class="row justify-content-center">
+        <div class="col-lg-10 col-md-12"> {# Use col-lg-10 for large screens, col-md-12 for medium and smaller #}
+            <div class="card shadow-sm border-0 rounded-lg p-4">
+                <div class="card-header bg-light py-3 rounded-top-lg">
+                    <h5 class="mb-0">Your Order History</h5>
+                </div>
+                <div class="card-body">
+                    {% if orders %}
+                    <div class="table-responsive"> {# Makes table scroll horizontally on small screens #}
+                        <table class="table table-hover table-striped align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Date</th>
+                                    <th>Items</th>
+                                    <th>Total Amount</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in orders %}
+                                <tr>
+                                    <td>{{ order.id }}</td>
+                                    <td>{{ order.order_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <ul class="list-unstyled mb-0">
+                                            {% for item in order.order_items %}
+                                            <li>{{ item.name }} (x{{ item.quantity }})</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </td>
+                                    <td>₹{{ order.total_amount | floatformat(2) }}</td>
+                                    <td>
+                                        <span class="badge {% if order.status == 'Delivered' %}bg-success{% elif order.status == 'Shipped' %}bg-primary{% elif 'Pending' in order.status or 'Awaiting' in order.status %}bg-warning text-dark{% elif 'Cancelled' in order.status %}bg-danger{% else %}bg-secondary{% endif %}">
+                                            {{ order.status }}
+                                        </span>
+                                        {% if 'Cancelled' in order.status %}
+                                            <div class="text-muted small mt-1">
+                                                Cancelled on: {{ order.cancellation_timestamp.strftime('%Y-%m-%d %H:%M') if order.cancellation_timestamp else 'N/A' }}<br>
+                                                Reason: {{ order.cancellation_reason or 'No reason provided.' }}
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-column gap-2"> {# Stack buttons vertically on small screens #}
+                                            <a href="{{ url_for('payment_initiate', order_id=order.id, amount=order.total_amount) }}" class="btn btn-sm btn-info {% if order.status != 'Pending Payment' %}disabled{% endif %}">Pay Now</a>
+                                            <button type="button" class="btn btn-sm btn-danger cancel-order-btn" data-order-id="{{ order.id }}"
+                                                    {% if order.status not in ["Pending Payment", "Payment Submitted - Awaiting Verification"] %}disabled{% endif %}>
+                                                Cancel
+                                            </button>
+                                            <a href="{{ url_for('thank_you_page', order_id=order.id) }}" class="btn btn-sm btn-outline-primary">View Details</a>
+                                            <a href="{{ url_for('download_invoice', order_id=order.id) }}" class="btn btn-sm btn-outline-secondary {% if not order.get_invoice_details().get('invoice_pdf_path') %}disabled{% endif %}">Download Invoice</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center">You haven't placed any orders yet.</p>
+                    {% endif %}
+                </div>
             </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-  <p class="text-center text-muted fs-5">You haven’t placed any orders yet.</p>
-  {% endif %}
+        </div>
+    </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Helper function to get CSRF token
+        function getHeaders() {
+            return {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': window.csrfToken
+            };
+        }
+
+        // Helper function to show custom alerts
+        function showCustomAlert(message, type = 'info') {
+            const container = document.getElementById('flash-messages-container');
+            if (!container) {
+                console.error("Flash messages container not found!");
+                alert(message); // Fallback to browser alert if container is missing
+                return;
+            }
+
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} flash-message position-fixed top-0 end-0 m-3 shadow`;
+            alertDiv.style.zIndex = 9999;
+            alertDiv.textContent = message;
+            container.appendChild(alertDiv);
+            setTimeout(() => alertDiv.remove(), 5000);
+        }
+
+        document.querySelectorAll('.cancel-order-btn').forEach(button => {
+            button.addEventListener('click', async function() {
+                const orderId = this.dataset.orderId;
+                if (confirm('Are you sure you want to cancel this order? This action cannot be undone.')) {
+                    try {
+                        const response = await fetch(`/cancel_order/${orderId}`, {
+                            method: 'POST', // Ensure POST method
+                            headers: getHeaders()
+                        });
+                        const data = await response.json(); // Expect JSON response
+
+                        if (response.ok && data.success) {
+                            showCustomAlert(data.message || 'Order cancelled successfully!', 'success');
+                            location.reload(); // Reload page to reflect changes
+                        } else {
+                            showCustomAlert(data.message || 'Failed to cancel order.', 'danger');
+                        }
+                    } catch (error) {
+                        console.error('Error cancelling order:', error);
+                        showCustomAlert('An error occurred while cancelling the order.', 'danger');
+                    }
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}

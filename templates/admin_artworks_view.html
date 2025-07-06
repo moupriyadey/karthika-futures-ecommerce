@@ -1,97 +1,148 @@
 {% extends '_base.html' %}
 
-{% block title %}Manage Artworks - Karthika Futures Admin{% endblock %}
+{% block title %}Manage Artworks - Karthika Futures{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2 class="text-primary mb-4 text-center">Manage Artworks</h2>
+<div class="container-fluid py-4 main-content-area">
+    <h2 class="mb-4 text-center">Manage Artworks</h2>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <a href="{{ url_for('add_artwork') }}" class="btn btn-success">
-            <i class="fas fa-plus-circle me-2"></i>Add New Artwork
-        </a>
-        <a href="{{ url_for('export_artworks_csv') }}" class="btn btn-info">
-            <i class="fas fa-file-csv me-2"></i>Export Artworks CSV
-        </a>
-    </div>
+    {% include 'admin_navbar.html' %}
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <div class="mb-3">
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light py-3 rounded-top-lg d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Artworks List</h5>
+            <a href="{{ url_for('add_artwork') }}" class="btn btn-success">
+                <i class="fas fa-plus me-1"></i> Add New Artwork
+            </a>
+        </div>
+        <div class="card-body">
+            <form class="row g-3 mb-3" action="{{ url_for('admin_artworks_view') }}" method="GET">
+                <div class="col-md-6">
+                    <input type="text" class="form-control" name="search_query" placeholder="Search by SKU, Name, Description" value="{{ search_query }}">
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" name="category_id">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}" {% if category.id == selected_category_id %}selected{% endif %}>{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Apply Filter</button>
+                </div>
+            </form>
+
+            {% if artworks %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>SKU</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Price (₹)</th>
+                            <th>Stock</th>
+                            <th>Featured</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for artwork in artworks %}
+                        <tr>
+                            <td>
+                                {% set images_list = artwork.get_images_list() %}
+                                {% if images_list %}
+                                    {# Ensure the path is correct for url_for('static') #}
+                                    <img src="{{ url_for('static', filename=images_list[0]) }}" alt="{{ artwork.name }}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
+                                {% else %}
+                                    <img src="{{ url_for('static', filename='images/placeholder.png') }}" alt="No Image" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
+                                {% endif %}
+                            </td>
+                            <td>{{ artwork.sku }}</td>
+                            <td>{{ artwork.name }}</td>
+                            <td>{{ artwork.category.name if artwork.category else 'N/A' }}</td>
+                            <td>₹{{ artwork.original_price | floatformat(2) }}</td>
+                            <td>{{ artwork.stock }}</td>
+                            <td>
+                                {% if artwork.is_featured %}
+                                <i class="fas fa-check-circle text-success"></i>
+                                {% else %}
+                                <i class="fas fa-times-circle text-danger"></i>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('edit_artwork', sku=artwork.sku) }}" class="btn btn-sm btn-info me-2">Edit</a>
+                                <button type="button" class="btn btn-sm btn-danger delete-artwork-btn" data-sku="{{ artwork.sku }}">Delete</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-        {% endif %}
-    {% endwith %}
-
-    {% if artworks %}
-    
-
-    <div class="table-responsive">
-        <table class="table table-hover table-striped shadow-sm rounded-lg overflow-hidden">
-            <thead class="bg-dark text-white">
-                <tr>
-                    <th scope="col">SKU</th>
-                    <th scope="col">Image</th>
-                    <th scope="col">Name</th>
-                    <th scope="col">Category</th>
-                    <th scope="col">Original Price</th>
-                    <th scope="col">Stock</th>
-                    <th scope="col">Featured</th>
-                    <th scope="col">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for artwork in artworks %}
-                <tr>
-                    <td>{{ artwork.sku }}</td>
-                    <td>
-                        <img src="/static/{{ artwork.images[0] }}" 
-                             alt="{{ artwork.name }}" 
-                             class="img-thumbnail" 
-                             style="width: 70px; height: 70px; object-fit: cover;">
-                    </td>
-                    <td>{{ artwork.name }}</td>
-                    <td>{{ artwork.category }}</td>
-                    <td>₹{{ artwork.original_price | float }}</td>
-                    <td>
-                        <span class="badge 
-                            {% if artwork.stock <= 0 %}bg-danger
-                            {% elif artwork.stock < 10 %}bg-warning
-                            {% else %}bg-success{% endif %}">
-                            {{ artwork.stock }}
-                        </span>
-                    </td>
-                    <td>
-                        {% if artwork.is_featured %}
-                            <i class="fas fa-star text-warning"></i> Yes
-                        {% else %}
-                            No
-                        {% endif %}
-                    </td>
-                    <td>
-                        <a href="{{ url_for('edit_artwork', sku=artwork.sku) }}" class="btn btn-sm btn-primary me-2" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </a>
-                        <a href="{{ url_for('delete_artwork', sku=artwork.sku) }}" class="btn btn-sm btn-danger" 
-                           onclick="return confirm('Are you sure you want to delete this artwork (SKU: {{ artwork.sku }})?');" 
-                           title="Delete">
-                            <i class="fas fa-trash-alt"></i>
-                        </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+            {% else %}
+            <p class="text-center">No artworks found. Add one above!</p>
+            {% endif %}
+        </div>
     </div>
-    {% else %}
-    <div class="alert alert-info text-center" role="alert">
-        No artworks found. <a href="{{ url_for('add_artwork') }}" class="alert-link">Add one now!</a>
-    </div>
-    {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("admin_artworks_view.html: DOMContentLoaded event fired."); // Debugging log
+
+        // Helper function to get CSRF token
+        function getHeaders() {
+            return {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': window.csrfToken
+            };
+        }
+
+        // Helper function to show custom alerts
+        function showCustomAlert(message, type = 'info') {
+            const container = document.getElementById('flash-messages-container') || document.body;
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} flash-message position-fixed top-0 end-0 m-3 shadow`;
+            alertDiv.style.zIndex = 9999;
+            alertDiv.textContent = message;
+            container.appendChild(alertDiv);
+            setTimeout(() => alertDiv.remove(), 5000);
+        }
+
+        // Delete Artwork Button Logic
+        document.querySelectorAll('.delete-artwork-btn').forEach(button => {
+            button.addEventListener('click', async function() {
+                console.log("Delete button clicked."); // Debugging log
+                const sku = this.dataset.sku;
+                if (confirm(`Are you sure you want to delete artwork with SKU: ${sku}? This action cannot be undone.`)) {
+                    try {
+                        const response = await fetch(`/delete_artwork/${sku}`, {
+                            method: 'POST', // Ensure POST method
+                            headers: getHeaders()
+                        });
+                        const data = await response.json();
+
+                        if (response.ok && data.success) {
+                            showCustomAlert(data.message || 'Artwork deleted successfully!', 'success');
+                            this.closest('tr').remove(); // Remove the row from the table
+                            // Optionally, check if table is empty and show "No artworks found" message
+                            if (document.querySelectorAll('.delete-artwork-btn').length === 0) {
+                                document.querySelector('tbody').innerHTML = '<tr><td colspan="8" class="text-center">No artworks found. Add one above!</td></tr>';
+                            }
+                        } else {
+                            showCustomAlert(data.message || 'Failed to delete artwork.', 'danger');
+                        }
+                    } catch (error) {
+                        console.error('Error deleting artwork:', error);
+                        showCustomAlert('An error occurred while deleting the artwork.', 'danger');
+                    }
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}

@@ -1,7 +1,7 @@
 {% extends '_base.html' %}
 
 {% block content %}
-<div class="container py-4">
+<div class="container main-content-area py-4">
     <div class="row">
         <div class="col-md-6">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -16,40 +16,54 @@
                 <div class="mb-3">
                     {% for addr in saved_addresses %}
                     <div class="form-check mb-2">
-                        <input class="form-check-input" type="radio" name="shipping_address" id="ship{{ loop.index0 }}" value="{{ loop.index0 }}">
+                        <input class="form-check-input" type="radio" name="shipping_address" id="ship{{ loop.index0 }}" value="{{ loop.index0 }}" {% if loop.first %}checked{% endif %}>
                         <label class="form-check-label" for="ship{{ loop.index0 }}">
-                            <strong>{{ addr.full_name }}</strong>, {{ addr.phone }}<br>
+                            <strong>{{ addr.label }} - {{ addr.full_name }}</strong>, {{ addr.phone }}<br>
                             {{ addr.address }}<br>
                             {{ addr.pincode }}<br>
                             <small class="text-muted">Tap to autofill fields</small>
                         </label>
                     </div>
                     {% endfor %}
+                    <hr>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="shipping_address" id="shipNew" value="new_address">
+                        <label class="form-check-label" for="shipNew">
+                            <strong>Enter a New Address</strong>
+                        </label>
+                    </div>
                 </div>
                 {% endif %} {# End of saved_addresses if for the radio buttons #}
 
+<<<<<<< HEAD
                 <h5 class="mt-4">Enter New Shipping Details</h5>
+=======
+                <h5 class="mt-4">Enter Delivery Details</h5>
+>>>>>>> a3989ae (SQL v2)
                 <div class="mb-3">
-                    <label for="name" class="form-label">Full Name</label>
-                    <input type="text" name="name" class="form-control" id="nameInput" value="{{ prefill_name }}" required>
+                    <label for="name" class="form-label">Recipient Name</label>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ prefill_name }}" placeholder="Full Name" required>
                 </div>
                 <div class="mb-3">
                     <label for="email" class="form-label">Email</label>
-                    <input type="email" name="email" class="form-control" id="emailInput" value="{{ prefill_email }}" required>
+                    <input type="email" class="form-control" id="email" name="email" value="{{ prefill_email }}" placeholder="e.g., your.email@example.com" required>
                 </div>
                 <div class="mb-3">
-                    <label for="phone" class="form-label">Phone</label>
-                    <input type="text" name="phone" class="form-control" id="phoneInput" value="{{ prefill_phone }}" required>
+                    <label for="phone" class="form-label">Mobile Number</label>
+                    <input type="tel" class="form-control" id="phone" name="phone" value="{{ prefill_phone }}" placeholder="e.g., 9876543210" pattern="[0-9]{10}" maxlength="10" required>
+                    <small class="form-text text-muted">10-digit mobile number.</small>
                 </div>
                 <div class="mb-3">
-                    <label for="address" class="form-label">Address</label>
-                    <textarea name="address" class="form-control" id="addressInput" required>{{ prefill_address }}</textarea>
+                    <label for="address" class="form-label">Delivery Address</label>
+                    <textarea class="form-control" id="address" name="address" rows="3" placeholder="House No, Street, Locality, City, State" required>{{ prefill_address }}</textarea>
                 </div>
                 <div class="mb-3">
                     <label for="pincode" class="form-label">Pincode</label>
-                    <input type="text" name="pincode" class="form-control" id="pincodeInput" value="{{ prefill_pincode }}" required>
+                    <input type="text" class="form-control" id="pincode" name="pincode" value="{{ prefill_pincode }}" placeholder="e.g., 560001" pattern="[0-9]{6}" maxlength="6" required>
+                    <small class="form-text text-muted">6-digit pincode.</small>
                 </div>
 
+<<<<<<< HEAD
                 <h4 class="mt-5">Billing Address</h4>
                 <div class="form-check mb-3">
                     <input class="form-check-input" type="checkbox" id="sameAsShipping" checked>
@@ -91,72 +105,99 @@
                     </div>
                 </div>
                 <button type="submit" class="btn btn-primary mt-3">Place Order</button>
+=======
+                <button type="submit" class="btn btn-success btn-lg w-100 mt-4">Proceed to Payment</button>
+>>>>>>> a3989ae (SQL v2)
             </form>
         </div>
 
         <div class="col-md-6">
-            <h4 class="mb-4">Order Summary</h4>
+            <h4 class="mb-3">Order Summary</h4>
+            <div class="card shadow-sm border-0 rounded-lg">
+                <div class="card-body p-4">
+                    <ul class="list-group list-group-flush mb-3">
+                        {% for item in cart_summary.cart_items %}
+                        <li class="list-group-item d-flex align-items-center">
+                            <img src="{{ url_for('static', filename=item.image) }}" alt="{{ item.name }}" class="img-fluid rounded me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-0">{{ item.name }} (x{{ item.quantity }})</h6>
+                                <small class="text-muted">SKU: {{ item.sku }}</small>
+                                {# Display dynamic custom options #}
+                                {% for key, value in item.items() %}
+                                    {# Exclude known non-option keys and hardcoded options #}
+                                    {% if key not in ['id', 'sku', 'name', 'image', 'category', 'size', 'frame', 'glass', 'quantity', 'unit_price_before_options', 'unit_price_before_gst', 'total_price_before_gst', 'gst_percentage', 'gst_amount', 'total_price', 'stock_available'] %}
+                                        <small class="d-block">{{ key | replace('_', ' ') | capitalize }}: {{ value }}</small>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            <span class="fw-bold">₹{{ item.total_price | floatformat(2) }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
 
-            {% for item in cart_summary.cart_items %}
-            <div class="border p-3 mb-3 rounded">
-                <strong>{{ item.name }} (x{{ item.quantity }})</strong><br>
-                {% set opts = item.options if item.options is defined else {} %}
-                Size: {{ opts.size if opts.size is defined else 'N/A' }} |
-                Frame: {{ opts.frame if opts.frame is defined else 'N/A' }} |
-                Glass: {{ opts.glass if opts.glass is defined else 'N/A' }}<br>
-                Price: ₹{{ item.unit_price_before_gst }} | GST: {{ item.gst_percentage }}%
-                <div class="text-end fw-bold mt-2">₹{{ item.total_price }}</div>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Subtotal (before GST):
+                            <span>₹{{ cart_summary.subtotal_before_gst | floatformat(2) }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Total GST ({{ default_gst_rate | floatformat(0) }}%):
+                            <span>₹{{ cart_summary.total_gst_amount | floatformat(2) }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Shipping Charge:
+                            <span>₹{{ cart_summary.shipping_charge | floatformat(2) }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center fw-bold text-primary">
+                            Grand Total:
+                            <span>₹{{ cart_summary.grand_total | floatformat(2) }}</span>
+                        </li>
+                    </ul>
+                </div>
             </div>
-            {% endfor %}
-
-            <ul class="list-group">
-                <li class="list-group-item d-flex justify-content-between">
-                    <span>Subtotal (Pre-GST):</span>
-                    <strong>₹{{ cart_summary.subtotal_before_gst }}</strong>
-                </li>
-                <li class="list-group-item d-flex justify-content-between">
-                    <span>GST:</span>
-                    <strong>₹{{ cart_summary.total_gst_amount }}</strong>
-                </li>
-                <li class="list-group-item d-flex justify-content-between">
-                    <span>Shipping:</span>
-                    <strong>₹{{ cart_summary.shipping_charge }}</strong>
-                </li>
-                <li class="list-group-item d-flex justify-content-between">
-                    <span>Total:</span>
-                    <strong>₹{{ cart_summary.grand_total }}</strong>
-                </li>
-            </ul>
         </div>
     </div>
 </div>
 
+<<<<<<< HEAD
+=======
+{# Change Address Modal #}
+>>>>>>> a3989ae (SQL v2)
 <div class="modal fade" id="changeAddressModal" tabindex="-1" aria-labelledby="changeAddressModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-scrollable modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="changeAddressModalLabel">Select a Saved Address</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        {% if saved_addresses %}
-          <div class="list-group">
-            {% for addr in saved_addresses %}
-            <button type="button" class="list-group-item list-group-item-action"
-                onclick="selectAddress({{ addr | tojson | safe }})" data-bs-dismiss="modal">
-              <strong>{{ addr.label }}:</strong> {{ addr.full_name }} - {{ addr.phone }}<br>
-              {{ addr.address }} - {{ addr.pincode }}
-            </button>
-            {% endfor %}
-          </div>
-        {% else %}
-          <p>No saved addresses found. You can add one from your <a href="{{ url_for('my_addresses') }}">profile</a>.</p>
-        {% endif %}
-      </div>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changeAddressModalLabel">Select or Add Address</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% if saved_addresses %}
+                <p class="fw-bold">Choose a saved address:</p>
+                <div class="list-group mb-3">
+                    {% for addr in saved_addresses %}
+                    <a href="#" class="list-group-item list-group-item-action select-address-btn"
+                       data-full-name="{{ addr.full_name }}"
+                       data-phone="{{ addr.phone }}"
+                       data-address="{{ addr.address }}"
+                       data-pincode="{{ addr.pincode }}">
+                        <strong>{{ addr.label }} - {{ addr.full_name }}</strong><br>
+                        {{ addr.address }}<br>
+                        {{ addr.pincode }}, {{ addr.phone }}
+                    </a>
+                    {% endfor %}
+                </div>
+                <hr>
+                {% endif %}
+                <p class="fw-bold">Or enter new details:</p>
+                <button type="button" class="btn btn-outline-primary w-100" id="enterNewAddressBtn">
+                    Enter New Address Details
+                </button>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 
+<<<<<<< HEAD
 {# Start of JavaScript section, moved out of conditional blocks for general availability #}
 <script>
     // This script block should always be present, regardless of saved_addresses
@@ -231,11 +272,148 @@
             sessionStorage.removeItem('itemToBuyNow'); // Clear item immediately to prevent re-processing
             sessionStorage.removeItem('redirect_after_login_endpoint'); // Clear redirect flag
 
+=======
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Helper function to get headers including CSRF token (copied from main.js for self-containment)
+        function getHeaders() {
+            const headers = { 'Content-Type': 'application/json' };
+            if (window.csrfToken) {
+                headers['X-CSRFToken'] = window.csrfToken;
+            }
+            return headers;
+        }
+
+        // Helper function to display custom alerts (copied from main.js for self-containment)
+        function showCustomAlert(message, type = 'info', showCartLink = false) {
+            const container = document.getElementById('flash-messages-container') || document.body;
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `custom-alert alert-${type}`;
+            alertDiv.style.zIndex = 9999;
+
+            let contentHtml = `<div class="custom-alert-message">${message}</div>`;
+            if (showCartLink) {
+                contentHtml += `<a href="/cart" class="btn btn-primary mt-3">Go To Cart</a>`;
+            }
+            alertDiv.innerHTML = contentHtml;
+            
+            container.appendChild(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        const deliveryForm = document.getElementById('deliveryForm');
+        const nameInput = document.getElementById('name');
+        const emailInput = document.getElementById('email');
+        const phoneInput = document.getElementById('phone');
+        const addressInput = document.getElementById('address');
+        const pincodeInput = document.getElementById('pincode');
+
+        // Function to fill form fields
+        function fillFormFields(data) {
+            nameInput.value = data.full_name || '';
+            phoneInput.value = data.phone || '';
+            addressInput.value = data.address || '';
+            pincodeInput.value = data.pincode || '';
+            // Email is typically not part of address, so we don't change it here
+        }
+
+        // Event listener for selecting a saved address from the modal
+        document.querySelectorAll('.select-address-btn').forEach(button => {
+            button.addEventListener('click', function(event) {
+                event.preventDefault();
+                const data = this.dataset;
+                fillFormFields(data);
+                const changeAddressModal = bootstrap.Modal.getInstance(document.getElementById('changeAddressModal'));
+                changeAddressModal.hide();
+                // Select the "Enter a New Address" radio button if it exists
+                const newAddressRadio = document.getElementById('shipNew');
+                if (newAddressRadio) {
+                    newAddressRadio.checked = true;
+                }
+            });
+        });
+
+        // Event listener for "Enter New Address Details" button in modal
+        document.getElementById('enterNewAddressBtn')?.addEventListener('click', function() {
+            const changeAddressModal = bootstrap.Modal.getInstance(document.getElementById('changeAddressModal'));
+            changeAddressModal.hide();
+            // Clear fields if the user explicitly chooses to enter new details
+            nameInput.value = '';
+            // emailInput.value = ''; // Keep email as it's user's login email
+            phoneInput.value = '';
+            addressInput.value = '';
+            pincodeInput.value = '';
+            // Select the "Enter a New Address" radio button
+            const newAddressRadio = document.getElementById('shipNew');
+            if (newAddressRadio) {
+                newAddressRadio.checked = true;
+            }
+        });
+
+        // Event listener for radio button change to autofill or clear
+        document.querySelectorAll('input[name="shipping_address"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (this.value !== 'new_address') {
+                    const index = parseInt(this.value);
+                    const savedAddresses = JSON.parse('{{ saved_addresses | tojson | safe }}');
+                    if (savedAddresses && savedAddresses[index]) {
+                        fillFormFields(savedAddresses[index]);
+                    }
+                } else {
+                    // If "Enter a New Address" is selected, clear fields
+                    nameInput.value = '';
+                    // emailInput.value = ''; // Keep email as it's user's login email
+                    phoneInput.value = '';
+                    addressInput.value = '';
+                    pincodeInput.value = '';
+                }
+            });
+        });
+
+        // Handle initial form fill if saved_addresses exist and first radio is checked
+        {% if saved_addresses %}
+            const firstRadio = document.querySelector('input[name="shipping_address"]:checked');
+            if (firstRadio && firstRadio.value !== 'new_address') {
+                const index = parseInt(firstRadio.value);
+                const savedAddresses = JSON.parse('{{ saved_addresses | tojson | safe }}');
+                if (savedAddresses && savedAddresses[index]) {
+                    fillFormFields(savedAddresses[index]);
+                }
+            } else if (firstRadio && firstRadio.value === 'new_address') {
+                // If 'new_address' is initially checked, clear fields
+                nameInput.value = '';
+                phoneInput.value = '';
+                addressInput.value = '';
+                pincodeInput.value = '';
+            }
+        {% endif %}
+
+        // This script block handles the redirection after login for 'Buy Now'
+        // It's crucial for the direct purchase flow.
+        const itemToBuyNowString = sessionStorage.getItem('itemToBuyNow');
+        if (itemToBuyNowString) {
+            // Clear it immediately to prevent re-triggering on subsequent page loads
+            sessionStorage.removeItem('itemToBuyNow'); 
+            sessionStorage.removeItem('redirect_after_login_endpoint');
+
+            // This block is for when a user clicked 'Buy Now', was redirected to login,
+            // logged in, and now is on the purchase form.
+            // The item details need to be sent to the backend to be stored in session['direct_purchase_item']
+            // which the Flask route /purchase_form then uses.
+>>>>>>> a3989ae (SQL v2)
             try {
                 const itemToBuyNow = JSON.parse(itemToBuyNowString);
 
                 // Assuming getHeaders and showCustomAlert are globally accessible via main.js and _base.html setup.
+<<<<<<< HEAD
                 const response = await fetch('/create_direct_order', {
+=======
+                const response = await fetch('/create_direct_order', { // This route now handles setting the item in session
+>>>>>>> a3989ae (SQL v2)
                     method: 'POST',
                     headers: getHeaders(), // Use the getHeaders function from main.js
                     body: JSON.stringify(itemToBuyNow)
@@ -245,16 +423,29 @@
 
                 if (response.ok && data.success) {
                     showCustomAlert(data.message || 'Direct purchase initiated. Redirecting...', 'success');
+<<<<<<< HEAD
                     window.location.href = data.redirect_url; // Redirect to payment/confirmation
+=======
+                    // The backend should handle the redirect now, so no client-side redirect here
+                    // window.location.href = data.redirect_url; // Flask will redirect after setting session
+>>>>>>> a3989ae (SQL v2)
                 } else {
                     showCustomAlert(data.message || 'Failed to initiate direct purchase after login.', 'danger');
                     console.error('Direct order initiation failed:', data.message);
                     // Optionally redirect back to products or cart if purchase fails
+<<<<<<< HEAD
                     // window.location.href = '/all-products';
+=======
+                    window.location.href = '/all-products'; // Redirect to a safe page
+>>>>>>> a3989ae (SQL v2)
                 }
             } catch (error) {
                 console.error('Error initiating direct purchase after login:', error);
                 showCustomAlert('An error occurred during direct purchase setup. Please try again.', 'danger');
+<<<<<<< HEAD
+=======
+                window.location.href = '/all-products'; // Redirect to a safe page
+>>>>>>> a3989ae (SQL v2)
             }
         }
     });

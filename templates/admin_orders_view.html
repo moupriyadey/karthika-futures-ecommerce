@@ -1,267 +1,149 @@
 {% extends '_base.html' %}
 
-{% block title %}Manage Orders - Admin - Karthika Futures{% endblock %}
+{% block title %}Manage Orders - Karthika Futures{% endblock %}
 
 {% block content %}
-<div class="container main-content-area position-relative pt-5">
-    <h2 class="text-center mb-4 text-primary font-bold">Manage Orders</h2>
+<div class="container-fluid py-4 main-content-area">
+    <h2 class="mb-4 text-center">Manage Orders</h2>
 
-    {# Admin Navigation Tabs #}
-    <ul class="nav nav-tabs nav-justified mb-4">
-        <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+    {% include 'admin_navbar.html' %}
 
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('admin_artworks_view') }}">Artworks</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="{{ url_for('admin_orders_view') }}">Orders</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('admin_categories_view') }}">Categories</a>
-        </li>
-    </ul>
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">All Orders</h5>
+        </div>
+        <div class="card-body">
+            <form class="row g-3 mb-3" action="{{ url_for('admin_orders_view') }}" method="GET">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" name="search_query" placeholder="Search by Order ID, Customer Name, Email" value="{{ current_search_query }}">
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" name="status">
+                        <option value="">All Statuses</option>
+                        <option value="Pending Payment" {% if current_filter_status == 'Pending Payment' %}selected{% endif %}>Pending Payment</option>
+                        <option value="Payment Submitted - Awaiting Verification" {% if current_filter_status == 'Payment Submitted - Awaiting Verification' %}selected{% endif %}>Payment Submitted - Awaiting Verification</option>
+                        <option value="Payment Verified – Preparing Order" {% if current_filter_status == 'Payment Verified – Preparing Order' %}selected{% endif %}>Payment Verified – Preparing Order</option>
+                        <option value="Shipped" {% if current_filter_status == 'Shipped' %}selected{% endif %}>Shipped</option>
+                        <option value="Delivered" {% if current_filter_status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                        <option value="Cancelled by User" {% if current_filter_status == 'Cancelled by User' %}selected{% endif %}>Cancelled by User</option>
+                        <option value="Cancelled by Admin" {% if current_filter_status == 'Cancelled by Admin' %}selected{% endif %}>Cancelled by Admin</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" name="invoice_status">
+                        <option value="">All Invoice Statuses</option>
+                        <option value="Not Applicable" {% if current_filter_invoice_status == 'Not Applicable' %}selected{% endif %}>Not Applicable</option>
+                        <option value="Prepared" {% if current_filter_invoice_status == 'Prepared' %}selected{% endif %}>Prepared</option>
+                        <option value="Sent" {% if current_filter_invoice_status == 'Sent' %}selected{% endif %}>Sent</option>
+                        <option value="Edited" {% if current_filter_invoice_status == 'Edited' %}selected{% endif %}>Edited</option>
+                        <option value="Email Failed" {% if current_filter_invoice_status == 'Email Failed' %}selected{% endif %}>Email Failed</option>
+                        <option value="Held" {% if current_filter_invoice_status == 'Held' %}selected{% endif %}>Held by Admin</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ url_for('admin_orders_view') }}" class="btn btn-outline-secondary w-100">Clear Filters</a>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ url_for('export_orders_csv') }}" class="btn btn-success w-100"><i class="fas fa-file-csv me-2"></i>Export CSV</a>
+                </div>
+            </form>
 
-    {# Order Filtering Section #}
-    <div class="mb-4 p-4 bg-light rounded-lg shadow-sm">
-        <h4 class="mb-3 text-secondary">Filter Orders</h4>
-        <form id="filter-form" action="{{ url_for('admin_orders_view') }}" method="GET" class="row g-3 align-items-end">
-            <div class="col-md-4">
-                <label for="filterStatus" class="form-label">Order Status:</label>
-                <select class="form-select" id="filterStatus" name="status">
-                    <option value="">All Statuses</option>
-                    <option value="Pending Payment" {% if current_filter_status == 'Pending Payment' %}selected{% endif %}>Pending Payment</option>
-                    <option value="Payment Submitted - Awaiting Verification" {% if current_filter_status == 'Payment Submitted - Awaiting Verification' %}selected{% endif %}>Payment Submitted - Awaiting Verification</option>
-                    <option value="Processing" {% if current_filter_status == 'Processing' %}selected{% endif %}>Processing</option>
-                    <option value="Shipped" {% if current_filter_status == 'Shipped' %}selected{% endif %}>Shipped</option>
-                    <option value="Delivered" {% if current_filter_status == 'Delivered' %}selected{% endif %}>Delivered</option>
-                    <option value="Cancelled by User" {% if current_filter_status == 'Cancelled by User' %}selected{% endif %}>Cancelled by User</option>
-                    <option value="Cancelled by Admin" {% if current_filter_status == 'Cancelled by Admin' %}selected{% endif %}>Cancelled by Admin</option>
-                </select>
-            </div>
-            <div class="col-md-4">
-                <label for="filterInvoiceStatus" class="form-label">Invoice Status:</label>
-                <select class="form-select" id="filterInvoiceStatus" name="invoice_status">
-                    <option value="">All Invoice Statuses</option>
-                    <option value="Not Applicable" {% if current_filter_invoice_status == 'Not Applicable' %}selected{% endif %}>Not Applicable</option>
-                    <option value="Prepared" {% if current_filter_invoice_status == 'Prepared' %}selected{% endif %}>Prepared (Ready to Send)</option>
-                    <option value="Sent" {% if current_filter_invoice_status == 'Sent' %}selected{% endif %}>Sent</option>
-                    <option value="Held" {% if current_filter_invoice_status == 'Held' %}selected{% endif %}>Held by Admin</option>
-                    <option value="Edited" {% if current_filter_invoice_status == 'Edited' %}selected{% endif %}>Edited by Admin</option>
-                    <option value="Email Failed" {% if current_filter_invoice_status == 'Email Failed' %}selected{% endif %}>Email Failed</option>
-                    <option value="PDF Gen Failed" {% if current_filter_invoice_status == 'PDF Gen Failed' %}selected{% endif %}>PDF Generation Failed</option>
-                    <option value="Cancelled" {% if current_filter_invoice_status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
-                </select>
-            </div>
-            <div class="col-md-4">
-                <label for="searchQuery" class="form-label">Search (Order ID, Customer):</label>
-                <input type="text" class="form-control" id="searchQuery" name="search_query" placeholder="Search orders..." value="{{ current_search_query | default('') }}">
-            </div>
-            <div class="col-12 d-flex justify-content-end">
-                <button type="submit" class="btn btn-primary me-2"><i class="fas fa-filter me-2"></i>Apply Filters</button>
-                <a href="{{ url_for('admin_orders_view') }}" class="btn btn-outline-secondary"><i class="fas fa-undo me-2"></i>Clear Filters</a>
-            </div>
-        </form>
-    </div>
-
-    {% if orders %}
-    <div class="table-responsive bg-white rounded-lg shadow-lg p-4">
-        <table class="table table-hover table-striped mb-0">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th scope="col" class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-                    <th scope="col" class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer Info</th>
-                    <th scope="col" class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
-                    <th scope="col" class="py-3 px-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Amount</th>
-                    <th scope="col" class="py-3 px-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Order Status</th>
-                    <th scope="col" class="py-3 px-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice Status</th>
-                    <th scope="col" class="py-3 px-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200">
-                {% for order in orders %}
-                <tr id="order-row-{{ order.order_id }}">
-                    <td class="py-3 px-4 align-middle text-sm text-gray-900">
-                        <strong>{{ order.order_id }}</strong><br>
-                        <small class="text-muted">{{ order.placed_on }}</small>
-                    </td>
-                    <td class="py-3 px-4 align-middle text-sm text-gray-900">
-                        <strong>{{ order.customer_name }}</strong><br>
-                        <small>{{ order.user_email }}</small><br>
-                        <small>Phone: {{ order.customer_phone }}</small><br>
-                        <small>Address: {{ order.customer_address }}, {{ order.customer_pincode }}</small>
-                    </td>
-                    <td class="py-3 px-4 align-middle text-sm text-gray-900">
-                        <ul class="list-unstyled mb-0">
-                            {% for item in order['items'] %}
-                                <li>{{ item.name }} (x{{ item.quantity }}) - ₹{{ item.total_price | floatformat(2) }}</li>
-                            {% endfor %}
-                        </ul>
-                    </td>
-                    <td class="py-3 px-4 align-middle text-sm text-gray-900 text-right">
-                        ₹{{ order.total_amount | floatformat(2) }}
-                    </td>
-                    <td class="py-3 px-4 align-middle text-sm text-center">
-                        <span class="badge 
-                            {% if order.status == 'Pending Payment' %}bg-warning text-dark
-                            {% elif order.status == 'Payment Submitted - Awaiting Verification' %}bg-info
-                            {% elif order.status == 'Processing' %}bg-primary
-                            {% elif order.status == 'Shipped' %}bg-secondary
-                            {% elif order.status == 'Delivered' %}bg-success
-                            {% else %}bg-danger{% endif %}">
-                            {{ order.status }}
-                        </span>
-                        {% if order.status == 'Shipped' and order.get('courier') and order.get('tracking_number') %}
-                            <br><small class="text-muted">Courier: {{ order.courier }}</small>
-                            <br><small class="text-muted">Tracking: {{ order.tracking_number }}</small>
-                        {% endif %}
-                        {% if order.payment_screenshot_path %}
-                            <br><button type="button" class="btn btn-sm btn-outline-info mt-1 view-screenshot-btn" 
-                                data-bs-toggle="modal" data-bs-target="#paymentScreenshotModal" 
-                                data-screenshot-src="{{ url_for('static', filename=order.payment_screenshot_path) }}">
-                                <i class="fas fa-image"></i> View Payment Proof
-                            </button>
-                        {% endif %}
-                        {% if order.remark %}
-                            <br><button type="button" class="btn btn-sm btn-outline-dark mt-1 view-remark-btn" 
-                                data-bs-toggle="modal" data-bs-target="#addRemarkModal" 
-                                data-order-id="{{ order.order_id }}" 
-                                data-remark="{{ order.remark | e }}"
-                                data-current-status="{{ order.status }}" {# Added for remark modal #}
-                                data-courier="{{ order.courier | default('') }}" {# Added for remark modal #}
-                                data-tracking="{{ order.tracking_number | default('') }}"> {# Added for remark modal #}
-                                <i class="fas fa-comment-dots"></i> View Remark
-                            </button>
-                        {% else %}
-                            {# Show "Add Remark" button if no remark exists #}
-                            <br><button type="button" class="btn btn-sm btn-outline-secondary mt-1 view-remark-btn" 
-                                data-bs-toggle="modal" data-bs-target="#addRemarkModal" 
-                                data-order-id="{{ order.order_id }}" 
-                                data-remark="" {# Empty remark #}
-                                data-current-status="{{ order.status }}" {# Added for remark modal #}
-                                data-courier="{{ order.courier | default('') }}" {# Added for remark modal #}
-                                data-tracking="{{ order.tracking_number | default('') }}"> {# Added for remark modal #}
-                                <i class="fas fa-comment"></i> Add Remark
-                            </button>
-                        {% endif %}
-                    </td>
-                    <td class="py-3 px-4 align-middle text-sm text-center">
-                        {% set invoice_status = order.invoice_details.get('invoice_status') | default('N/A') %}
-                        {% set is_held_by_admin = order.invoice_details.get('is_held_by_admin') | default(false) %}
-                        
-                        <span class="badge 
-                            {% if invoice_status == 'Sent' %}bg-success
-                            {% elif invoice_status == 'Prepared' %}bg-primary
-                            {% elif invoice_status == 'Held' %}bg-warning text-dark
-                            {% elif invoice_status == 'Edited' %}bg-info
-                            {% elif invoice_status == 'Email Failed' or invoice_status == 'PDF Gen Failed' %}bg-danger
-                            {% else %}bg-secondary{% endif %}">
-                            {{ invoice_status }}
-                        </span>
-                        {% if invoice_status != 'Not Applicable' %}
-                            <br><small class="text-muted">Inv #{{ order.invoice_details.invoice_number | default('N/A') }}</small>
-                            <br><small class="text-muted">Date: {{ order.invoice_details.invoice_date | default('N/A') }}</small>
-                            {% if order.invoice_details.invoice_pdf_path %}
-                                <br><a href="{{ url_for('download_invoice', order_id=order.order_id) }}" class="btn btn-sm btn-outline-dark mt-1" target="_blank">
-                                    <i class="fas fa-download"></i> PDF
-                                </a>
-                            {% endif %}
-                        {% endif %}
-                    </td>
-                    <td class="py-3 px-4 align-middle text-sm text-center">
-                        <div class="dropdown">
-                            <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" id="actionsDropdown{{ order.order_id }}" data-bs-toggle="dropdown" aria-expanded="false">
-                                Actions
-                            </button>
-                            <ul class="dropdown-menu" aria-labelledby="actionsDropdown{{ order.order_id }}">
-                                <li>
-                                    <button type="button" class="dropdown-item update-status-btn" 
-                                            data-bs-toggle="modal" data-bs-target="#updateStatusModal"
-                                            data-order-id="{{ order.order_id }}"
-                                            data-current-status="{{ order.status }}"
-                                            data-courier="{{ order.get('courier', '') }}"
-                                            data-tracking="{{ order.get('tracking_number', '') }}">
-                                            <i class="fas fa-edit me-2"></i> Update Status
-                                    </button>
-                                </li>
-                                <li><hr class="dropdown-divider"></li>
-                                {# Invoice Management Actions #}
-                                {% if order.status == 'Shipped' or order.invoice_details.get('invoice_status') != 'Not Applicable' %} {# Allow invoice actions if already shipped or an invoice exists #}
-                                    <li>
-                                        {% if is_held_by_admin %}
-                                            <button type="button" class="dropdown-item text-success release-invoice-btn" data-order-id="{{ order.order_id }}">
-                                                <i class="fas fa-unlock me-2"></i> Release Invoice
-                                            </button>
-                                        {% else %}
-                                            <button type="button" class="dropdown-item text-warning hold-invoice-btn" data-order-id="{{ order.order_id }}">
-                                                <i class="fas fa-hand-paper me-2"></i> Hold Invoice
-                                            </button>
-                                        {% endif %}
-                                    </li>
-                                    <li>
-                                        <a href="{{ url_for('admin_edit_invoice', order_id=order.order_id) }}" class="dropdown-item text-primary">
-                                            <i class="fas fa-file-invoice me-2"></i> Edit Invoice
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <button type="button" class="dropdown-item text-info send-invoice-email-btn" data-order-id="{{ order.order_id }}">
-                                            <i class="fas fa-paper-plane me-2"></i> Send Invoice Email
-                                        </button>
-                                    </li>
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Date</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Cancellation Details</th> {# NEW COLUMN #}
+                            <th>Invoice</th>
+                            <th>Courier</th>
+                            <th>Tracking ID</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td>{{ order.id }}</td>
+                            <td>{{ order.customer_name }} ({{ order.customer_email }})</td>
+                            <td>{{ order.order_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>₹{{ order.total_amount | floatformat(2) }}</td>
+                            <td>
+                                <span class="badge {% if order.status == 'Delivered' %}bg-success{% elif order.status == 'Shipped' %}bg-primary{% elif 'Pending' in order.status or 'Awaiting' in order.status %}bg-warning text-dark{% elif 'Cancelled' in order.status %}bg-danger{% else %}bg-secondary{% endif %}">{{ order.status }}</span>
+                            </td>
+                            <td> {# NEW CELL FOR CANCELLATION DETAILS #}
+                                {% if 'Cancelled' in order.status %}
+                                    <div class="text-muted small">
+                                        On: {{ order.cancellation_timestamp.strftime('%Y-%m-%d %H:%M') if order.cancellation_timestamp else 'N/A' }}<br>
+                                        By: {% if order.cancelled_by_admin %}<span class="badge bg-danger">Admin</span>{% elif order.cancelled_by_user %}<span class="badge bg-warning text-dark">User</span>{% else %}Unknown{% endif %}<br>
+                                        Reason: {{ order.cancellation_reason or 'No reason provided.' }}
+                                    </div>
                                 {% else %}
-                                    <li><span class="dropdown-item text-muted">Invoice actions available once Shipped</span></li>
+                                    N/A
                                 {% endif %}
-                                <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <button type="button" class="dropdown-item add-remark-btn"
-                                            data-bs-toggle="modal" data-bs-target="#addRemarkModal"
-                                            data-order-id="{{ order.order_id }}"
-                                            data-remark="{{ order.remark | default('') | e }}"
-                                            data-current-status="{{ order.status }}"
-                                            data-courier="{{ order.courier | default('') }}"
-                                            data-tracking="{{ order.tracking_number | default('') }}">
-                                        <i class="fas fa-comment me-2"></i> Add/Edit Remark
-                                    </button>
-                                </li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <button type="button" class="dropdown-item text-danger delete-order-btn" data-order-id="{{ order.order_id }}">
-                                        <i class="fas fa-trash-alt me-2"></i> Delete Order
-                                    </button>
-                                </li>
-                            </ul>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                            </td>
+                            <td>
+                                {% set invoice_det = order.get_invoice_details() %}
+                                {% if invoice_det.get('is_held_by_admin') %}
+                                    <span class="badge bg-danger">Held</span>
+                                {% elif invoice_det.get('invoice_status') == 'Sent' %}
+                                    <span class="badge bg-success">Sent</span>
+                                {% elif invoice_det.get('invoice_status') == 'Prepared' %}
+                                    <span class="badge bg-info">Prepared</span>
+                                {% elif invoice_det.get('invoice_status') == 'Email Failed' %}
+                                    <span class="badge bg-danger">Email Failed</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ invoice_det.get('invoice_status', 'N/A') }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ order.courier or 'N/A' }}</td>
+                            <td>{{ order.tracking_number or 'N/A' }}</td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-primary edit-order-btn"
+                                        data-bs-toggle="modal" data-bs-target="#editOrderModal"
+                                        data-order-id="{{ order.id }}"
+                                        data-current-status="{{ order.status }}"
+                                        data-remark="{{ order.remark or '' }}"
+                                        data-courier="{{ order.courier or '' }}"
+                                        data-tracking-number="{{ order.tracking_number or '' }}"
+                                        data-cancellation-reason="{{ order.cancellation_reason or '' }}"> {# NEW DATA ATTRIBUTE #}
+                                    Edit
+                                </button>
+                                <a href="{{ url_for('admin_edit_invoice', order_id=order.id) }}" class="btn btn-sm btn-info me-1">Invoice</a>
+                                <button type="button" class="btn btn-sm btn-danger delete-order-btn" data-order-id="{{ order.id }}">Delete</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-    {% else %}
-    <p class="text-center text-gray-600 text-lg py-4">No orders found matching the criteria.</p>
-    {% endif %}
 </div>
 
-{# Modals #}
-
-{# Update Status Modal #}
-<div class="modal fade" id="updateStatusModal" tabindex="-1" aria-labelledby="updateStatusModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+{# Edit Order Modal #}
+<div class="modal fade" id="editOrderModal" tabindex="-1" aria-labelledby="editOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="updateStatusModalLabel">Update Order Status for <span id="modalOrderIdStatus"></span></h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-header">
+                <h5 class="modal-title" id="editOrderModalLabel">Edit Order Status & Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="updateStatusForm">
-                <div class="modal-body">
-                    <input type="hidden" name="order_id" id="statusOrderId">
+            <div class="modal-body">
+                <form id="editOrderForm">
+                    <input type="hidden" id="modal_order_id" name="order_id">
                     <div class="mb-3">
-                        <label for="orderStatus" class="form-label">Order Status</label>
-                        <select class="form-select" id="orderStatus" name="status" required>
+                        <label for="modal_status" class="form-label">Order Status</label>
+                        <select class="form-select" id="modal_status" name="status" required>
                             <option value="Pending Payment">Pending Payment</option>
                             <option value="Payment Submitted - Awaiting Verification">Payment Submitted - Awaiting Verification</option>
-                            <option value="Processing">Processing</option>
+                            <option value="Payment Verified – Preparing Order">Payment Verified – Preparing Order</option>
                             <option value="Shipped">Shipped</option>
                             <option value="Delivered">Delivered</option>
                             <option value="Cancelled by User">Cancelled by User</option>
@@ -269,68 +151,23 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="courierName" class="form-label">Courier (Optional)</label>
-                        <input type="text" class="form-control" id="courierName" name="courier" placeholder="e.g., Delhivery, FedEx">
+                        <label for="modal_remark" class="form-label">Remark</label>
+                        <textarea class="form-control" id="modal_remark" name="remark" rows="3"></textarea>
                     </div>
                     <div class="mb-3">
-                        <label for="trackingNumber" class="form-label">Tracking Number (Optional)</label>
-                        <input type="text" class="form-control" id="trackingNumber" name="tracking_number" placeholder="Tracking ID">
+                        <label for="modal_courier" class="form-label">Courier Name</label>
+                        <input type="text" class="form-control" id="modal_courier" name="courier">
                     </div>
                     <div class="mb-3">
-                        <label for="orderRemarkStatusUpdate" class="form-label">Remark (Optional)</label>
-                        <textarea class="form-control" id="orderRemarkStatusUpdate" name="remark" rows="3" placeholder="Add a remark for this status update..."></textarea>
+                        <label for="modal_tracking_number" class="form-label">Tracking Number</label>
+                        <input type="text" class="form-control" id="modal_tracking_number" name="tracking_number">
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-{# Add/Edit Remark Modal #}
-<div class="modal fade" id="addRemarkModal" tabindex="-1" aria-labelledby="addRemarkModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-dark text-white">
-                <h5 class="modal-title" id="addRemarkModalLabel">Remark for Order <span id="modalOrderIdRemark"></span></h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="addRemarkForm">
-                <div class="modal-body">
-                    <input type="hidden" id="remarkOrderId" name="order_id">
-                    <input type="hidden" id="remarkCurrentStatus" name="current_status"> {# Hidden field for current status #}
-                    <input type="hidden" id="remarkCourier" name="courier"> {# Hidden field for courier #}
-                    <input type="hidden" id="remarkTrackingNumber" name="tracking_number"> {# Hidden field for tracking #}
-                    <div class="mb-3">
-                        <label for="orderRemark" class="form-label">Internal Remark</label>
-                        <textarea class="form-control" id="orderRemark" name="remark" rows="4" placeholder="Add internal notes about this order..."></textarea>
+                    <div class="mb-3" id="cancellationReasonGroup" style="display: none;"> {# NEW: Cancellation Reason Input #}
+                        <label for="modal_cancellation_reason" class="form-label">Cancellation Reason</label>
+                        <textarea class="form-control" id="modal_cancellation_reason" name="cancellation_reason" rows="2"></textarea>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-dark">Save Remark</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-{# Payment Screenshot Modal #}
-<div class="modal fade" id="paymentScreenshotModal" tabindex="-1" aria-labelledby="paymentScreenshotModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-info text-white">
-                <h5 class="modal-title" id="paymentScreenshotModalLabel">Payment Proof for Order</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body text-center">
-                <img id="screenshotImage" src="" alt="Payment Screenshot" class="img-fluid rounded shadow-md" style="max-height: 80vh;">
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary w-100">Save Changes</button>
+                </form>
             </div>
         </div>
     </div>
@@ -339,249 +176,208 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // --- Modals and their Event Listeners ---
-
-        // Update Status Modal
-        const updateStatusModal = document.getElementById('updateStatusModal');
-        const updateStatusForm = document.getElementById('updateStatusForm');
-        const modalOrderIdStatus = document.getElementById('modalOrderIdStatus');
-        const statusOrderId = document.getElementById('statusOrderId');
-        const orderStatusSelect = document.getElementById('orderStatus');
-        const courierNameInput = document.getElementById('courierName');
-        const trackingNumberInput = document.getElementById('trackingNumber');
-        const orderRemarkStatusUpdate = document.getElementById('orderRemarkStatusUpdate');
-
-
-        updateStatusModal.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const orderId = button.dataset.orderId;
-            const currentStatus = button.dataset.currentStatus;
-            const courier = button.dataset.courier || '';
-            const tracking = button.dataset.tracking || '';
-            // The remark for the status update modal is distinct from the general remark (order.remark)
-            // It's specific to the status change itself.
-            const remark = button.dataset.remark || ''; // If remark is associated with this status update button
-
-            modalOrderIdStatus.textContent = orderId;
-            statusOrderId.value = orderId;
-            orderStatusSelect.value = currentStatus;
-            courierNameInput.value = courier;
-            trackingNumberInput.value = tracking;
-            orderRemarkStatusUpdate.value = remark; // Pre-fill with existing remark if available
-        });
-
-        // Add/Edit Remark Modal
-        const addRemarkModal = document.getElementById('addRemarkModal');
-        const addRemarkForm = document.getElementById('addRemarkForm');
-        const modalOrderIdRemark = document.getElementById('modalOrderIdRemark');
-        const remarkOrderId = document.getElementById('remarkOrderId');
-        const orderRemarkTextarea = document.getElementById('orderRemark');
-        // Hidden fields for original status, courier, tracking number for remark-only updates
-        const remarkCurrentStatus = document.getElementById('remarkCurrentStatus');
-        const remarkCourier = document.getElementById('remarkCourier');
-        const remarkTrackingNumber = document.getElementById('remarkTrackingNumber');
-
-
-        addRemarkModal.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const orderId = button.dataset.orderId;
-            const remark = button.dataset.remark || ''; // This remark comes from the order object
-            const currentStatus = button.dataset.currentStatus; // Get current status from data attribute
-            const courier = button.dataset.courier || ''; // Get courier from data attribute
-            const tracking = button.dataset.tracking || ''; // Get tracking from data attribute
-
-            modalOrderIdRemark.textContent = orderId;
-            remarkOrderId.value = orderId;
-            orderRemarkTextarea.value = remark;
-            remarkCurrentStatus.value = currentStatus; // Store in hidden field
-            remarkCourier.value = courier; // Store in hidden field
-            remarkTrackingNumber.value = tracking; // Store in hidden field
-        });
-
-        // Payment Screenshot Modal
-        const paymentScreenshotModal = document.getElementById('paymentScreenshotModal');
-        const screenshotImage = document.getElementById('screenshotImage');
-
-        paymentScreenshotModal.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const screenshotSrc = button.dataset.screenshotSrc;
-            screenshotImage.src = screenshotSrc;
-        });
-
-
-        // --- AJAX Form Submissions and Button Actions ---
-
-        // Handle Update Status Form Submission (AJAX)
-        updateStatusForm.addEventListener('submit', async function(event) {
-            event.preventDefault();
-            const orderId = statusOrderId.value;
-            const newStatus = orderStatusSelect.value;
-            const courier = courierNameInput.value;
-            const trackingNumber = trackingNumberInput.value;
-            const remark = orderRemarkStatusUpdate.value;
-
-
-            try {
-                const response = await fetch(`{{ url_for('admin_update_order_status', order_id='PLACEHOLDER') }}`.replace('PLACEHOLDER', orderId), {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify({ status: newStatus, remark: remark, courier: courier, tracking_number: trackingNumber })
-                });
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                    showCustomAlert(data.message, 'success');
-                    bootstrap.Modal.getInstance(updateStatusModal).hide(); // Hide modal
-                    window.location.reload(); // Reload the page to reflect changes
-                } else {
-                    showCustomAlert(data.message || 'Failed to update order status.', 'danger');
-                }
-            } catch (error) {
-                console.error('Error updating order status:', error);
-                showCustomAlert('Network error or server issue. Could not update order status.', 'danger');
-            }
-        });
-
-
-        // Handle Add/Edit Remark Form Submission (AJAX)
-        addRemarkForm.addEventListener('submit', async function(event) {
-            event.preventDefault();
-            const orderId = remarkOrderId.value;
-            const remarkText = orderRemarkTextarea.value;
-            const currentStatus = remarkCurrentStatus.value; // Get original status from hidden field
-            const courier = remarkCourier.value; // Get original courier from hidden field
-            const trackingNumber = remarkTrackingNumber.value; // Get original tracking from hidden field
-
-
-            try {
-                const response = await fetch(`{{ url_for('admin_update_order_status', order_id='PLACEHOLDER') }}`.replace('PLACEHOLDER', orderId), {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token() }}'
-                    },
-                    // Send existing status, courier, tracking to ensure they are preserved
-                    body: JSON.stringify({ status: currentStatus, remark: remarkText, courier: courier, tracking_number: trackingNumber })
-                });
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                    showCustomAlert(data.message, 'success');
-                    bootstrap.Modal.getInstance(addRemarkModal).hide(); // Hide modal
-                    window.location.reload(); // Reload the page to reflect changes, including updated remark text/button
-                } else {
-                    showCustomAlert(data.message || 'Failed to save remark.', 'danger');
-                }
-            } catch (error) {
-                console.error('Error saving remark:', error);
-                showCustomAlert('Network error or server issue. Could not save remark.', 'danger');
-            }
-        });
-
-
-        // Handle Invoice Hold/Release Buttons
-        document.querySelectorAll('.hold-invoice-btn, .release-invoice-btn').forEach(button => {
-            button.addEventListener('click', async function() {
-                const orderId = this.dataset.orderId;
-                const isHolding = this.classList.contains('hold-invoice-btn');
-                const actionUrl = isHolding ? `{{ url_for('admin_hold_invoice', order_id='PLACEHOLDER') }}`.replace('PLACEHOLDER', orderId) :
-                                             `{{ url_for('admin_release_invoice', order_id='PLACEHOLDER') }}`.replace('PLACEHOLDER', orderId);
-                const confirmMsg = isHolding ? `Are you sure you want to put invoice for Order ${orderId} on HOLD? This will prevent auto-sending.` :
-                                               `Are you sure you want to RELEASE invoice for Order ${orderId}? It might be auto-sent soon.`;
-                const successMsg = isHolding ? `Invoice for Order ${orderId} has been held.` : `Invoice for Order ${orderId} has been released.`;
-                const failMsg = isHolding ? `Failed to hold invoice for Order ${orderId}.` : `Failed to release invoice for Order ${orderId}.`;
-
-                if (confirm(confirmMsg)) {
-                    try {
-                        const response = await fetch(actionUrl, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': '{{ csrf_token() }}'
-                            },
-                            body: JSON.stringify({}) // Send an empty JSON object
-                        });
-                        const data = await response.json(); 
-                        if (response.ok) {
-                            showCustomAlert(successMsg, 'success');
-                            window.location.reload(); 
-                        } else {
-                            showCustomAlert(data.message || failMsg, 'danger');
+        // Chart.js for Monthly Revenue (from admin_dashboard)
+        // This script block should ideally be in admin_dashboard.html, but keeping it here for now if shared.
+        const revenueChartElement = document.getElementById('revenueChart');
+        if (revenueChartElement) {
+            const ctx = revenueChartElement.getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: {{ revenue_labels | tojson }},
+                    datasets: [{
+                        label: 'Revenue (₹)',
+                        data: {{ revenue_values | tojson }},
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        fill: true,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Revenue (₹)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Month'
+                            }
                         }
-                    } catch (error) {
-                        console.error('Error updating invoice hold status:', error);
-                        showCustomAlert('Network error or server issue. Could not update invoice hold status.', 'danger');
                     }
                 }
             });
+        }
+
+        // Helper function to get CSRF token
+        function getHeaders() {
+            return {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': window.csrfToken
+            };
+        }
+
+        // Helper function to show custom alerts
+        function showCustomAlert(message, type = 'info') {
+            const container = document.getElementById('flash-messages-container');
+            if (!container) {
+                console.error("Flash messages container not found!");
+                alert(message); // Fallback to browser alert if container is missing
+                return;
+            }
+
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} flash-message position-fixed top-0 end-0 m-3 shadow`;
+            alertDiv.style.zIndex = 9999;
+            alertDiv.textContent = message;
+            container.appendChild(alertDiv);
+            setTimeout(() => alertDiv.remove(), 5000);
+        }
+
+        // Edit Order Modal Logic
+        const editOrderModal = document.getElementById('editOrderModal');
+        const modalStatusSelect = editOrderModal.querySelector('#modal_status');
+        const cancellationReasonGroup = document.getElementById('cancellationReasonGroup');
+        const modalCancellationReason = document.getElementById('modal_cancellation_reason');
+
+        editOrderModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const orderId = button.getAttribute('data-order-id');
+            const currentStatus = button.getAttribute('data-current-status');
+            const remark = button.getAttribute('data-remark');
+            const courier = button.getAttribute('data-courier');
+            const trackingNumber = button.getAttribute('data-tracking-number');
+            const cancellationReason = button.getAttribute('data-cancellation-reason'); // NEW
+
+            const modalOrderId = editOrderModal.querySelector('#modal_order_id');
+            const modalRemark = editOrderModal.querySelector('#modal_remark');
+            const modalCourier = editOrderModal.querySelector('#modal_courier');
+            const modalTrackingNumber = editOrderModal.querySelector('#modal_tracking_number');
+
+            modalOrderId.value = orderId;
+            modalStatusSelect.value = currentStatus;
+            modalRemark.value = remark;
+            modalCourier.value = courier;
+            modalTrackingNumber.value = trackingNumber;
+            modalCancellationReason.value = cancellationReason; // NEW
+
+            // Show/hide cancellation reason field based on status
+            toggleCancellationReasonField(currentStatus);
         });
 
-        // Handle Send Invoice Email Button
-        document.querySelectorAll('.send-invoice-email-btn').forEach(button => {
-            button.addEventListener('click', async function() {
-                const orderId = this.dataset.orderId;
-                if (confirm(`Are you sure you want to manually send the invoice email for Order ${orderId}?`)) {
-                    try {
-                        const response = await fetch(`{{ url_for('admin_send_invoice_email', order_id='PLACEHOLDER') }}`.replace('PLACEHOLDER', orderId), {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': '{{ csrf_token() }}'
-                            },
-                            body: JSON.stringify({})
-                        });
-                        const data = await response.json(); 
-
-                        if (response.ok) {
-                            showCustomAlert(data.message || `Invoice email for Order ${orderId} sent successfully.`, 'success');
-                            window.location.reload(); // Reload to reflect updated invoice status
-                        } else {
-                            showCustomAlert(data.message || `Failed to send invoice email for Order ${orderId}.`, 'danger');
-                        }
-                    } catch (error) {
-                        console.error('Error sending invoice email:', error);
-                        showCustomAlert('Network error or server issue. Could not send invoice email.', 'danger');
-                    }
-                }
-            });
+        // Event listener for status change in modal
+        modalStatusSelect.addEventListener('change', function() {
+            toggleCancellationReasonField(this.value);
         });
 
-        // Handle Delete Order Buttons
-        document.querySelectorAll('.delete-order-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const orderId = this.dataset.orderId;
-                if (confirm(`Are you sure you want to delete Order ${orderId}? This action cannot be undone.`)) {
-                    window.location.href = `{{ url_for('delete_order', order_id='PLACEHOLDER') }}`.replace('PLACEHOLDER', orderId);
-                }
-            });
-        });
-
-        // Custom Alert Function (if not already defined in _base.html or main.js)
-        // This is a basic implementation. For production, consider a more sophisticated alert/toast system.
-        function showCustomAlert(message, type) {
-            const alertContainer = document.querySelector('.container.main-content-area'); // Or a dedicated alert container
-            if (alertContainer) {
-                const alertDiv = document.createElement('div');
-                alertDiv.className = `alert alert-${type} alert-dismissible fade show mt-3`;
-                alertDiv.setAttribute('role', 'alert');
-                alertDiv.innerHTML = `
-                    ${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                `;
-                alertContainer.prepend(alertDiv);
-                setTimeout(() => {
-                    bootstrap.Alert.getInstance(alertDiv)?.hide();
-                    alertDiv.remove();
-                }, 5000); // Auto-dismiss after 5 seconds
+        function toggleCancellationReasonField(status) {
+            if (status.includes('Cancelled')) {
+                cancellationReasonGroup.style.display = 'block';
+                modalCancellationReason.setAttribute('required', 'true');
             } else {
-                alert(message); // Fallback to browser alert if container not found
+                cancellationReasonGroup.style.display = 'none';
+                modalCancellationReason.removeAttribute('required');
+                modalCancellationReason.value = ''; // Clear value if not cancelled
             }
         }
+
+
+        const editOrderForm = document.getElementById('editOrderForm');
+        editOrderForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const orderId = document.getElementById('modal_order_id').value;
+            const status = document.getElementById('modal_status').value;
+            const remark = document.getElementById('modal_remark').value;
+            const courier = document.getElementById('modal_courier').value;
+            const tracking_number = document.getElementById('modal_tracking_number').value;
+            const cancellation_reason = document.getElementById('modal_cancellation_reason').value; // NEW
+
+            try {
+                const response = await fetch(`/admin/order/update_status/${orderId}`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({ status, remark, courier, tracking_number, cancellation_reason }) // NEW: send cancellation_reason
+                });
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showCustomAlert(data.message, 'success');
+                    const modalInstance = bootstrap.Modal.getInstance(editOrderModal);
+                    modalInstance.hide();
+                    location.reload(); // Reload page to reflect changes
+                } else {
+                    showCustomAlert(data.message || 'Failed to update order.', 'danger');
+                }
+            } catch (error) {
+                console.error('Error updating order:', error);
+                showCustomAlert('An error occurred while updating the order.', 'danger');
+            }
+        });
+
+        // Delete Order Button Logic (for admin_orders_view.html)
+        document.querySelectorAll('.delete-order-btn').forEach(button => {
+            button.addEventListener('click', async function() {
+                const orderId = this.dataset.orderId;
+                if (confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
+                    try {
+                        const response = await fetch(`/delete_order/${orderId}`, {
+                            method: 'POST', // Ensure POST method for deletion
+                            headers: getHeaders()
+                        });
+                        const data = await response.json();
+
+                        if (response.ok && data.success) {
+                            showCustomAlert(data.message || 'Order deleted successfully.', 'success');
+                            location.reload(); // Reload page to reflect changes
+                        } else {
+                            showCustomAlert(data.message || 'Failed to delete order.', 'danger');
+                        }
+                    } catch (error) {
+                        console.error('Error deleting order:', error);
+                        showCustomAlert('An error occurred while deleting the order.', 'danger');
+                    }
+                }
+            });
+        });
+
+        // Verify Payment Button Logic (from admin_dashboard)
+        document.querySelectorAll('.verify-payment-btn').forEach(button => {
+            button.addEventListener('click', async function() {
+                const orderId = this.dataset.orderId;
+                if (confirm('Are you sure you want to mark this payment as verified?')) {
+                    try {
+                        const response = await fetch('/admin/verify-payment', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'X-CSRFToken': window.csrfToken
+                            },
+                            body: new URLSearchParams({ order_id: orderId }).toString()
+                        });
+                        const data = await response.json();
+                        if (response.ok && data.success) {
+                            showCustomAlert(data.message, 'success');
+                            location.reload();
+                        } else {
+                            showCustomAlert(data.message || 'Failed to verify payment.', 'danger');
+                        }
+                    } catch (error) {
+                        console.error('Error verifying payment:', error);
+                        showCustomAlert('An error occurred while verifying payment.', 'danger');
+                    }
+                }
+            });
+        });
     });
 </script>
 {% endblock %}

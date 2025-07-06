@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -128,6 +129,217 @@
             <button class="btn btn-primary add-to-cart-btn" data-sku="{{ artwork.sku }}">Add to Cart</button>
             <button class="btn btn-success buy-now-btn" data-sku="{{ artwork.sku }}">Buy Now</button>
           </div>
+=======
+{% extends '_base.html' %}
+
+{% block title %}All Artworks - Karthika Futures{% endblock %}
+
+{% block extra_css_from_page %}
+<style>
+  body {
+    background-image: url('{{ url_for('static', filename='images/background_krishna_motif.jpg') }}');
+    background-size: cover;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+  .main-content-area {
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 1.5rem;
+    padding: 1rem;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  }
+  .product-card {
+    border: 2px solid #f3e5ab;
+    border-radius: 1rem;
+    background: #fff;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+    padding: 0.8rem;
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* Ensure cards are same height */
+  }
+  .product-card img {
+    border-radius: 0.8rem;
+    height: 200px; /* Fixed height for images */
+    object-fit: cover;
+    width: 100%;
+  }
+  .product-card .card-body {
+    flex-grow: 1; /* Allow body to take available space */
+    display: flex;
+    flex-direction: column;
+  }
+  .product-card .card-title {
+    font-weight: 600;
+    color: #4a4a4a;
+    margin-bottom: 0.5rem;
+  }
+  .product-card .card-text {
+    font-size: 0.9rem;
+    color: #666;
+    flex-grow: 1; /* Allow description to grow */
+  }
+  .product-card .price {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #d35400; /* A vibrant orange for price */
+    margin-top: auto; /* Push price to bottom */
+  }
+  .product-card .badge {
+    font-size: 0.8rem;
+    padding: 0.4em 0.6em;
+    border-radius: 0.5rem;
+  }
+  .product-card .btn {
+    border-radius: 0.7rem;
+    font-weight: 600;
+  }
+  .cart-preview {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.75rem;
+    padding: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    width: 280px;
+  }
+  .cart-preview h5 {
+    color: #28a745;
+    margin-bottom: 10px;
+  }
+  .cart-preview p {
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+  }
+  .modal-body .product-image-modal {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.8rem;
+  }
+  /* Responsive adjustments */
+  @media (max-width: 767.98px) {
+    .product-card {
+      flex-direction: column; /* Stack image and text vertically */
+      align-items: center;
+    }
+    .product-card img {
+      width: 100%;
+      max-height: 180px; /* Adjust height for mobile */
+    }
+    .product-card .card-body {
+      width: 100%;
+      text-align: center;
+    }
+    .cart-preview {
+      width: calc(100% - 40px); /* Full width minus margins */
+      left: 20px;
+      right: 20px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container main-content-area py-5">
+    <h1 class="text-center mb-4">Our Artworks</h1>
+
+    <div class="row mb-4">
+        <div class="col-md-6 offset-md-3">
+            <form class="d-flex" action="{{ url_for('all_products') }}" method="GET">
+                <input class="form-control me-2" type="search" placeholder="Search artworks..." aria-label="Search" name="search" value="{{ search_query or '' }}">
+                <button class="btn btn-outline-success" type="submit">Search</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% for artwork in artworks %}
+        <div class="col">
+            <div class="product-card">
+                {% set images_list = artwork.get_images_list() %}
+                <img src="{{ url_for('static', filename=images_list[0] if images_list else 'images/placeholder.png') }}"
+                     class="card-img-top" alt="{{ artwork.name }}">
+                <div class="card-body">
+                    <h5 class="card-title">{{ artwork.name }}</h5>
+                    <p class="card-text">{{ artwork.description[:100] }}...</p>
+                    <div class="d-flex justify-content-between align-items-center mt-auto">
+                        <span class="price">₹{{ artwork.original_price | floatformat(2) }}</span>
+                        <span class="badge bg-info text-dark">Stock: {{ artwork.stock }}</span>
+                    </div>
+                    <div class="d-grid gap-2 mt-3">
+                        <button class="btn btn-primary view-product-btn"
+                                data-sku="{{ artwork.sku }}"
+                                data-name="{{ artwork.name }}"
+                                data-description="{{ artwork.description }}"
+                                data-original-price="{{ artwork.original_price }}"
+                                data-gst-percentage="{{ artwork.gst_percentage }}"
+                                data-stock="{{ artwork.stock }}"
+                                data-images="{{ artwork.images | tojson }}" {# Pass JSON string of images #}
+                                data-custom-options="{{ artwork.custom_options | tojson }}"> {# Pass JSON string of custom options #}
+                            View Details
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {# Product Modal #}
+    <div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="productModalLabel">Product Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <img id="modalImage" src="" class="img-fluid rounded product-image-modal" alt="Product Image">
+                            <div id="modalThumbnails" class="d-flex flex-wrap gap-2 mt-2">
+                                {# Thumbnails will be populated by JS #}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h3 id="modalName"></h3>
+                            <p class="text-muted small">SKU: <span id="modalSkuDisplay"></span></p>
+                            <p id="modalDescription"></p>
+                            <h4 class="text-success">Price: ₹<span id="modalPrice" data-original-price="0" data-gst-percentage="0"></span></h4>
+                            <p class="text-muted small">Inclusive of GST</p>
+                            <p class="text-danger" id="modalStock">Stock: </p>
+
+                            <form id="addToCartForm" class="mt-3">
+                                <input type="hidden" id="modalSku" name="sku">
+                                <input type="hidden" id="modalNameForCart" name="name">
+                                <input type="hidden" id="modalImageForCart" name="imageUrl">
+                                <input type="hidden" id="modalBasePriceForCart" name="basePrice">
+                                <input type="hidden" id="modalGstPercentageForCart" name="gstPercentage">
+
+                                {# Dynamic Custom Options will be populated here by JS #}
+                                <div id="modalCustomOptions" class="mb-3">
+                                    {# Options will be dynamically added here #}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="modalQuantity" class="form-label">Quantity:</label>
+                                    <input type="number" class="form-control" id="modalQuantity" name="quantity" value="1" min="1">
+                                </div>
+
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-primary add-to-cart-modal-btn">Add to Cart</button>
+                                    <button type="button" class="btn btn-success buy-now-modal-btn" id="modalBuyNowBtn">Buy Now</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+>>>>>>> a3989ae (SQL v2)
         </div>
       </div>
       {% endfor %}
@@ -142,6 +354,7 @@
 
   <footer class="text-center mt-5 mb-4">
     <p class="fw-bold">Please support our dharmic mission</p>
+<<<<<<< HEAD
     <img src="{{ url_for('static', filename='qr_code.png') }}" alt="Donation QR" style="height: 160px;">
     <p>Scan the QR code to donate 🙏</p>
   </footer>
@@ -151,3 +364,295 @@
 
 </body>
 </html>
+=======
+    <p>&copy; 2024 Karthika Futures. All rights reserved.</p>
+  </footer>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Helper function to get headers including CSRF token
+    function getHeaders() {
+        const headers = { 'Content-Type': 'application/json' };
+        if (window.csrfToken) {
+            headers['X-CSRFToken'] = window.csrfToken;
+        }
+        return headers;
+    }
+
+    // Helper function to show custom alerts
+    function showCustomAlert(message, type = 'info') {
+        const container = document.getElementById('flash-messages-container') || document.body;
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} flash-message position-fixed top-0 end-0 m-3 shadow`;
+        alertDiv.style.zIndex = 9999;
+        alertDiv.textContent = message;
+        container.appendChild(alertDiv);
+        setTimeout(() => alertDiv.remove(), 5000);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Event listener for "View Details" buttons
+        document.querySelectorAll('.view-product-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const sku = this.dataset.sku;
+                const name = this.dataset.name;
+                const description = this.dataset.description;
+                const originalPrice = parseFloat(this.dataset.originalPrice);
+                const gstPercentage = parseFloat(this.dataset.gstPercentage);
+                const images = JSON.parse(this.dataset.images); // Parse images JSON string
+                const customOptions = JSON.parse(this.dataset.customOptions || '{}'); // Parse custom options JSON string
+
+                // Populate modal content
+                document.getElementById('modalName').textContent = name;
+                document.getElementById('modalSkuDisplay').textContent = sku;
+                document.getElementById('modalDescription').textContent = description;
+                document.getElementById('modalStock').textContent = `Stock: ${this.dataset.stock}`;
+
+                // Set main image and thumbnails
+                const modalImage = document.getElementById('modalImage');
+                const modalThumbnails = document.getElementById('modalThumbnails');
+                modalThumbnails.innerHTML = ''; // Clear previous thumbnails
+
+                if (images && images.length > 0) {
+                    modalImage.src = `{{ url_for('static', filename='') }}${images[0]}`;
+                    images.forEach(imgSrc => {
+                        const thumb = document.createElement('img');
+                        thumb.src = `{{ url_for('static', filename='') }}${imgSrc}`;
+                        thumb.className = 'img-thumbnail rounded cursor-pointer';
+                        thumb.style.width = '60px';
+                        thumb.style.height = '60px';
+                        thumb.style.objectFit = 'cover';
+                        thumb.addEventListener('click', () => {
+                            modalImage.src = thumb.src;
+                        });
+                        modalThumbnails.appendChild(thumb);
+                    });
+                } else {
+                    modalImage.src = `{{ url_for('static', filename='images/placeholder.png') }}`;
+                }
+
+                // Populate custom options
+                const modalCustomOptionsDiv = document.getElementById('modalCustomOptions');
+                modalCustomOptionsDiv.innerHTML = ''; // Clear previous options
+                let currentCalculatedPrice = originalPrice;
+                let selectedOptions = {}; // To store selected options for price calculation
+
+                for (const groupName in customOptions) {
+                    if (customOptions.hasOwnProperty(groupName)) {
+                        const groupDiv = document.createElement('div');
+                        groupDiv.className = 'mb-2';
+                        groupDiv.innerHTML = `<label class="form-label fw-bold">${groupName}:</label>`;
+                        
+                        const selectElement = document.createElement('select');
+                        selectElement.className = 'form-select product-option-select';
+                        selectElement.name = `option_${groupName.replace(/\s/g, '_')}`; // Sanitize name for form submission
+                        selectElement.dataset.groupName = groupName; // Store group name for easy access
+                        selectElement.required = true;
+
+                        let defaultOptionAdded = false;
+                        const defaultOption = document.createElement('option');
+                        defaultOption.value = '';
+                        defaultOption.textContent = `Select ${groupName}`;
+                        defaultOption.disabled = true;
+                        defaultOption.selected = true;
+                        selectElement.appendChild(defaultOption);
+
+                        for (const optionLabel in customOptions[groupName]) {
+                            if (customOptions[groupName].hasOwnProperty(optionLabel)) {
+                                const optionPrice = parseFloat(customOptions[groupName][optionLabel]);
+                                const optionElement = document.createElement('option');
+                                optionElement.value = `${optionLabel}|${optionPrice}`; // Store label and price
+                                optionElement.textContent = `${optionLabel} (+₹${optionPrice.toFixed(2)})`;
+                                selectElement.appendChild(optionElement);
+                            }
+                        }
+                        groupDiv.appendChild(selectElement);
+                        modalCustomOptionsDiv.appendChild(groupDiv);
+
+                        // Add event listener to update price when an option is selected
+                        selectElement.addEventListener('change', function() {
+                            const selectedValue = this.value;
+                            const prevSelectedPrice = selectedOptions[this.dataset.groupName] || 0;
+                            
+                            // Remove previous option's price from calculation
+                            currentCalculatedPrice -= prevSelectedPrice;
+
+                            if (selectedValue) {
+                                const parts = selectedValue.split('|');
+                                const price = parseFloat(parts[1]);
+                                selectedOptions[this.dataset.groupName] = price;
+                                currentCalculatedPrice += price;
+                            } else {
+                                delete selectedOptions[this.dataset.groupName];
+                            }
+                            updateModalPrice();
+                        });
+                    }
+                }
+
+                // Initial price calculation (original price + default selected options if any)
+                updateModalPrice();
+
+                function updateModalPrice() {
+                    const gstAmount = currentCalculatedPrice * (gstPercentage / 100);
+                    const finalPrice = currentCalculatedPrice + gstAmount;
+                    document.getElementById('modalPrice').textContent = finalPrice.toFixed(2);
+                    document.getElementById('modalPrice').dataset.originalPrice = currentCalculatedPrice.toFixed(2); // Store for cart
+                    document.getElementById('modalBasePriceForCart').value = currentCalculatedPrice.toFixed(2); // Store for cart
+                }
+
+                // Reset quantity
+                document.getElementById('modalQuantity').value = 1;
+
+                // Set SKU for modal's Add to Cart form and Buy Now form
+                document.getElementById('modalSku').value = sku;
+                document.getElementById('modalNameForCart').value = name;
+                document.getElementById('modalImageForCart').value = images[0] || 'images/placeholder.png';
+                document.getElementById('modalGstPercentageForCart').value = gstPercentage;
+                // modalBasePriceForCart is updated by updateModalPrice()
+
+                // Show the modal
+                const productModal = new bootstrap.Modal(document.getElementById('productModal'));
+                productModal.show();
+            });
+        });
+
+        // Handle Add to Cart from modal
+        document.getElementById('addToCartForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const sku = document.getElementById('modalSku').value;
+            const name = document.getElementById('modalNameForCart').value;
+            const imageUrl = document.getElementById('modalImageForCart').value;
+            const basePrice = parseFloat(document.getElementById('modalBasePriceForCart').value);
+            const gstPercentage = parseFloat(document.getElementById('modalGstPercentageForCart').value);
+            const quantity = parseInt(document.getElementById('modalQuantity').value);
+
+            // Collect selected custom options
+            const selectedCustomOptions = {};
+            document.querySelectorAll('#modalCustomOptions .product-option-select').forEach(select => {
+                const groupName = select.dataset.groupName;
+                const selectedValue = select.value;
+                if (selectedValue) {
+                    const parts = selectedValue.split('|');
+                    selectedCustomOptions[groupName] = parts[0]; // Store only the label
+                }
+            });
+
+            if (quantity <= 0) {
+                showCustomAlert('Quantity must be at least 1.', 'danger');
+                return;
+            }
+
+            try {
+                const response = await fetch('/add_to_cart', {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({
+                        sku: sku,
+                        name: name,
+                        imageUrl: imageUrl,
+                        basePrice: basePrice,
+                        gstPercentage: gstPercentage,
+                        quantity: quantity,
+                        options: selectedCustomOptions // Pass selected custom options
+                    })
+                });
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showCustomAlert(data.message, 'success');
+                    if (data.cart_count !== undefined) {
+                        localStorage.setItem('cartCount', data.cart_count);
+                        if (window.updateCartCountDisplay) {
+                            window.updateCartCountDisplay();
+                        }
+                    }
+                    // Optionally update cart preview
+                    document.getElementById('cart-summary').textContent = `Total items: ${data.cart_count}, Subtotal: ₹${data.cart_subtotal.toFixed(2)}`;
+                    document.getElementById('cart-preview').classList.remove('d-none');
+                    setTimeout(() => {
+                        document.getElementById('cart-preview').classList.add('d-none');
+                    }, 3000);
+
+                    const productModal = bootstrap.Modal.getInstance(document.getElementById('productModal'));
+                    productModal.hide();
+
+                } else {
+                    showCustomAlert(data.message || 'Failed to add to cart.', 'danger');
+                }
+            } catch (error) {
+                console.error('Error adding to cart:', error);
+                showCustomAlert('An error occurred while adding to cart. Please try again.', 'danger');
+            }
+        });
+
+        // Handle Buy Now from modal
+        document.getElementById('modalBuyNowBtn').addEventListener('click', async function() {
+            const sku = document.getElementById('modalSku').value;
+            const name = document.getElementById('modalNameForCart').value;
+            const imageUrl = document.getElementById('modalImageForCart').value;
+            const basePrice = parseFloat(document.getElementById('modalBasePriceForCart').value);
+            const gstPercentage = parseFloat(document.getElementById('modalGstPercentageForCart').value);
+            const quantity = parseInt(document.getElementById('modalQuantity').value);
+
+            // Collect selected custom options
+            const selectedCustomOptions = {};
+            document.querySelectorAll('#modalCustomOptions .product-option-select').forEach(select => {
+                const groupName = select.dataset.groupName;
+                const selectedValue = select.value;
+                if (selectedValue) {
+                    const parts = selectedValue.split('|');
+                    selectedCustomOptions[groupName] = parts[0]; // Store only the label
+                }
+            });
+
+            if (quantity <= 0) {
+                showCustomAlert('Quantity must be at least 1.', 'danger');
+                return;
+            }
+
+            const itemToBuyNow = {
+                sku: sku,
+                name: name,
+                imageUrl: imageUrl,
+                basePrice: basePrice,
+                gstPercentage: gstPercentage,
+                quantity: quantity,
+                options: selectedCustomOptions // Pass selected custom options
+            };
+
+            if (window.isUserLoggedIn === 'true') {
+                // If logged in, send to Flask route that handles setting the item in session
+                try {
+                    const response = await fetch('/create_direct_order', {
+                        method: 'POST',
+                        headers: getHeaders(),
+                        body: JSON.stringify(itemToBuyNow)
+                    });
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        showCustomAlert(data.message || 'Direct purchase initiated. Redirecting...', 'success');
+                        window.location.href = data.redirect_url; // Redirect to payment/confirmation
+                    } else {
+                        showCustomAlert(data.message || 'Failed to initiate direct purchase.', 'danger');
+                        console.error('Direct order initiation failed:', data.message);
+                    }
+                } catch (error) {
+                    console.error('Error initiating direct purchase:', error);
+                    showCustomAlert('An error occurred during direct purchase setup. Please try again.', 'danger');
+                }
+            } else {
+                // If not logged in, store in session storage and redirect to login
+                sessionStorage.setItem('itemToBuyNow', JSON.stringify(itemToBuyNow));
+                sessionStorage.setItem('redirect_after_login_endpoint', 'purchase_form');
+                window.location.href = "{{ url_for('user_login') }}";
+            }
+        });
+    });
+</script>
+{% endblock %}
+>>>>>>> a3989ae (SQL v2)
