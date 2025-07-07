@@ -2,92 +2,72 @@
 
 {% block title %}Verify OTP - Karthika Futures{% endblock %}
 
-{% block extra_css %}
-<style>
-    .otp-container {
-        background-color: #ffffff;
-        padding: 2.5rem;
-        border-radius: 0.5rem;
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
-        width: 100%;
-        max-width: 400px;
-        margin: 20px auto;
-    }
-    .resend-disabled {
-        pointer-events: none;
-        opacity: 0.5;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="otp-container">
-            <h2 class="text-center mb-4">🔐 Verify OTP</h2>
-
-            {% if email %}
-                <p class="text-center text-muted mb-4">
-                    An OTP has been sent to <strong>{{ email }}</strong>.
-                    <br>Check your inbox and spam folder.
-                </p>
-            {% else %}
-                <p class="text-center text-muted mb-4">Please enter the OTP sent to your email.</p>
-            {% endif %}
-
-            <form method="post" id="otpForm">
-                <div class="mb-3">
-                    <label for="otpInput" class="form-label">Enter OTP</label>
-                    <input type="text" class="form-control" id="otpInput" name="otp" required pattern="\d{6}" title="Please enter a 6-digit OTP">
-                    <div class="form-text">6-digit code</div>
-                </div>
-
-                {% if next_url %}
-                <input type="hidden" name="next" value="{{ next_url }}">
-                {% endif %}
-
-                <div class="d-grid gap-2 mt-4">
-                    <button type="submit" class="btn btn-primary btn-lg">Verify OTP</button>
-                </div>
-            </form>
-
-            <div class="text-center mt-3">
-                <small>
-                    Did not receive OTP?
-                    <a id="resendLink" href="{{ url_for('user_login', next=next_url if next_url else '') }}" class="text-decoration-none">Resend OTP</a>
-                    <span id="countdownTimer" class="text-muted ms-2"></span>
-                </small>
+<div class="flex items-center justify-center min-h-screen -mt-16">
+    <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md bg-opacity-95 border border-gray-200">
+        <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">Verify Your Email</h2>
+        <p class="text-center text-gray-600 mb-6">A One-Time Password (OTP) has been sent to <strong class="text-primary">{{ user_email }}</strong>. Please enter it below to verify your account.</p>
+        
+        <form method="POST" action="{{ url_for('verify_otp') }}" class="space-y-5">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div>
+                <label for="otp" class="block text-gray-700 text-sm font-semibold mb-2">OTP</label>
+                <input type="text" id="otp" name="otp" required maxlength="6" pattern="[0-9]{6}"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 text-center text-lg font-bold"
+                       placeholder="Enter 6-digit OTP">
             </div>
-
-            <p class="text-center mt-3">
-                <small><a href="{{ url_for('user_login', next=next_url if next_url else '') }}" class="text-decoration-none">← Edit email / Try again</a></small>
-            </p>
-        </div>
+            <button type="submit"
+                    class="w-full bg-primary hover:bg-orange-700 text-white font-bold py-2.5 px-4 rounded-md transition duration-300 transform hover:scale-105 shadow-md">
+                Verify OTP
+            </button>
+        </form>
+        <p class="text-center text-gray-600 mt-6">
+            Didn't receive the OTP? 
+            <button type="button" id="resendOtpBtn" class="text-blue-600 hover:underline font-semibold bg-transparent border-0 p-0">Resend OTP</button>
+        </p>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-  window.onload = function () {
-    document.getElementById("otpInput").focus();
-    startResendCountdown();
-  };
+    document.addEventListener('DOMContentLoaded', function() {
+        const resendOtpBtn = document.getElementById('resendOtpBtn');
+        if (resendOtpBtn) {
+            resendOtpBtn.addEventListener('click', async function() {
+                // Disable button and show loading indicator
+                resendOtpBtn.disabled = true;
+                resendOtpBtn.textContent = 'Sending...';
 
-  let countdown = 30;
-  function startResendCountdown() {
-    const timer = document.getElementById("countdownTimer");
-    const link = document.getElementById("resendLink");
-    link.classList.add("resend-disabled");
-    const interval = setInterval(() => {
-      if (countdown > 0) {
-        timer.innerText = `Retry in ${countdown--}s`;
-      } else {
-        clearInterval(interval);
-        timer.innerText = "";
-        link.classList.remove("resend-disabled");
-      }
-    }, 1000);
-  }
+                try {
+                    const response = await fetch('/resend_otp', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': window.csrfToken // Use the global CSRF token
+                        },
+                        // No body needed for resend, as user_id is in session
+                    });
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        showCustomAlert(data.message, 'success');
+                    } else {
+                        showCustomAlert(data.message || 'Failed to resend OTP.', 'danger');
+                    }
+                } catch (error) {
+                    console.error('Error resending OTP:', error);
+                    showCustomAlert('An error occurred while resending OTP. Please try again.', 'danger');
+                } finally {
+                    // Re-enable button and reset text after a short delay
+                    setTimeout(() => {
+                        resendOtpBtn.disabled = false;
+                        resendOtpBtn.textContent = 'Resend OTP';
+                    }, 3000); // Wait 3 seconds before allowing resend again
+                }
+            });
+        }
+    });
 </script>
 {% endblock %}

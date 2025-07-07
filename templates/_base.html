@@ -1,385 +1,261 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Karthika Futures{% endblock %}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Karthika Futures{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- CSRF Token for AJAX requests -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    
+    <style>
+        /* Custom styles for the theme */
+        :root {
+            --primary-color: #FF8C00; /* Saffron */
+            --secondary-color: #2E8B57; /* Bright Green */
+            --accent-color: #FFBF00; /* Golden Saffron */
+            --text-color: #333333;
+            --light-bg: #FAF9F6;
+        }
 
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  <meta name="csrf-token" content="{{ csrf_token() }}"> {# CSRF Token for JavaScript fetches #}
+        .text-primary { color: var(--primary-color); }
+        .bg-primary { background-color: var(--primary-color); }
+        .hover\:bg-primary:hover { background-color: var(--primary-color); }
+        .focus\:ring-primary:focus { --tw-ring-color: var(--primary-color); }
+        .border-primary { border-color: var(--primary-color); }
 
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      padding-top: 70px;
-      background-color: #f0f2f5;
-      color: #333;
-    }
+        .btn {
+            @apply font-semibold py-2 px-4 rounded-md transition duration-300 ease-in-out;
+        }
+        .btn-primary {
+            @apply bg-primary text-white hover:bg-orange-700 shadow-md;
+        }
+        .btn-success {
+            @apply bg-secondary-color text-white hover:bg-green-700 shadow-md;
+        }
+        .btn-secondary {
+            @apply bg-gray-500 text-white hover:bg-gray-600 shadow-md;
+        }
+        .form-control {
+            @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500;
+        }
+        .form-select {
+            @apply block w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500;
+        }
+        .form-checkbox {
+            @apply rounded text-primary-color focus:ring-primary-color;
+        }
 
-    /* Styling for Flask's server-side flashed messages */
-    .flash-message {
-      position: fixed;
-      top: 70px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 1050;
-      min-width: 300px;
-      text-align: center;
-      padding: 10px 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      animation: fadeOut 5s forwards;
-    }
+        /* Specific adjustments for layout */
+        .main-content-area {
+            min-height: calc(100vh - 120px - 80px); /* Adjust based on actual header/footer height */
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        
+        /* Custom Alert Styling */
+        .custom-alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: slideInRight 0.5s forwards, fadeOut 0.5s 4.5s forwards;
+            min-width: 250px;
+        }
 
-    @keyframes fadeOut {
-      0% { opacity: 1; transform: translateX(-50%) translateY(0); }
-      80% { opacity: 1; transform: translateX(-50%) translateY(0); }
-      100% { opacity: 0; transform: translateX(-50%) translateY(-50px); display: none; }
-    }
+        .custom-alert-message {
+            margin-right: 15px;
+            font-weight: 500;
+        }
 
-    /* Navbar styling */
-    .navbar {
-      transition: top 0.4s ease-in-out;
-      background-color: #ffffff; /* Light mode default */
-    }
-    .navbar-brand {
-      font-weight: 700;
-      color: #40210f;
-    }
-    .navbar-brand img {
-      height: 40px;
-      margin-right: 10px;
-    }
-    .nav-link {
-      color: #555;
-      font-weight: 500;
-      position: relative;
-      padding-bottom: 5px;
-    }
-    .nav-link.active {
-      color: #d2a679;
-      font-weight: 600;
-    }
-    .nav-link:hover {
-      color: #d2a679;
-    }
-    .shimmer-link {
-      position: relative;
-      display: inline-block;
-      overflow: hidden;
-    }
-    .shimmer-link::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 0;
-      height: 2px;
-      background-color: #d2a679;
-      transition: width 0.3s ease-in-out;
-    }
-    .shimmer-link:hover::after {
-      width: 100%;
-    }
-    .transition-all {
-      transition: top 0.4s ease-in-out, background-color 0.3s ease-in-out;
-    }
-    .dark-mode .navbar {
-      background-color: #1f1f1f !important;
-      color: white;
-    }
-    .dark-mode .navbar .nav-link,
-    .dark-mode .navbar-brand,
-    .dark-mode .navbar .dropdown-menu {
-      color: white !important;
-    }
-    .dark-mode .navbar .dropdown-menu {
-      background-color: #2a2a2a;
-    }
+        .custom-alert.alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 2px solid;
+            border-image: linear-gradient(to right, #28a745, #218838) 1;
+        }
 
-    /* Custom Alert Styling */
-    .custom-alert {
-      position: fixed;
-      top: 20px; /* Adjusted from 70px to be higher */
-      right: 20px;
-      z-index: 9999;
-      background-color: #fff;
-      padding: 1.5rem;
-      border-radius: 10px;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-      animation: slideIn 0.5s forwards, fadeOutAlert 5s forwards 1s; /* Slide in, then fade out after 1s delay */
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      min-width: 250px;
-      max-width: 350px;
-      overflow: hidden; /* To contain the gradient border */
-      border: 2px solid transparent; /* Base for gradient border */
-      background-clip: padding-box; /* Crucial for gradient border */
-    }
+        .custom-alert.alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 2px solid;
+            border-image: linear-gradient(to right, #dc3545, #c82333) 1;
+        }
 
-    .custom-alert::before {
-      content: '';
-      position: absolute;
-      top: -2px;
-      left: -2px;
-      right: -2px;
-      bottom: -2px;
-      border-radius: 12px; /* Slightly larger than parent to cover corners */
-      z-index: -1;
-      background: linear-gradient(45deg, #ff8c00, #ffa500, #32cd32); /* Orange to Green Gradient */
-      box-shadow: 0 0 15px rgba(0, 0, 0, 0.3); /* Outer shadow */
-    }
+        .custom-alert.alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 2px solid;
+            border-image: linear-gradient(to right, #17a2b8, #138496) 1;
+        }
 
-    .custom-alert.alert-success::before {
-        background: linear-gradient(45deg, #28a745, #218838, #1e7e34); /* Green gradient for success */
-    }
-    .custom-alert.alert-danger::before {
-        background: linear-gradient(45deg, #dc3545, #c82333, #bd2130); /* Red gradient for danger */
-    }
-    .custom-alert.alert-info::before {
-        background: linear-gradient(45deg, #0dcaf0, #0aa2c0, #0995b3); /* Blue gradient for info */
-    }
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
 
-
-    .custom-alert-message {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: #333;
-      margin-bottom: 0.5rem; /* Reduced margin, button has mt-3 */
-    }
-
-    .custom-alert .btn {
-      background-color: #007bff;
-      color: white;
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 5px;
-      text-decoration: none;
-      transition: background-color 0.3s ease;
-    }
-
-    .custom-alert .btn:hover {
-      background-color: #0056b3;
-    }
-
-    @keyframes slideIn {
-      from {
-        transform: translateX(100%);
-        opacity: 0;
-      }
-      to {
-        transform: translateX(0);
-        opacity: 1;
-      }
-    }
-
-    @keyframes fadeOutAlert {
-      0% { opacity: 1; }
-      80% { opacity: 1; }
-      100% { opacity: 0; display: none; }
-    }
-
-    /* Adjusting flash messages to use the new custom-alert class if possible */
-    .flash-message.alert {
-        /* Override default flash-message animation if custom-alert is used */
-        animation: none; /* Disable default fadeOut */
-    }
-
-  </style>
-
-  {% block extra_css %}{% endblock %}
-  {% block extra_css_from_page %}{% endblock %}
-
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+    </style>
 </head>
-<body>
+<body class="bg-light-bg">
+    <!-- Navbar -->
+    <nav class="navbar bg-primary p-4 shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <a class="navbar-brand text-white text-2xl font-bold" href="{{ url_for('index') }}">Karthika Futures</a>
+            
+            <div class="flex items-center space-x-4">
+                <ul class="flex space-x-4">
+                    <li><a class="nav-link text-white hover:text-accent-color transition-colors duration-200" href="{{ url_for('all_products') }}">Artworks</a></li>
+                    <li><a class="nav-link text-white hover:text-accent-color transition-colors duration-200" href="{{ url_for('about') }}">About</a></li>
+                    <li><a class="nav-link text-white hover:text-accent-color transition-colors duration-200" href="{{ url_for('contact') }}">Contact</a></li>
+                </ul>
 
-  <!-- Flash messages container for general Flask flashes -->
-  <div id="flash-messages-container" style="position: fixed; top: 0; right: 0; z-index: 1055;"></div>
+                <div class="relative">
+                    <a href="{{ url_for('cart') }}" class="nav-link text-white hover:text-accent-color transition-colors duration-200">
+                        <i class="fas fa-shopping-cart"></i> Cart
+                        <span id="cart-total-quantity" class="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"
+                              style="display: {{ 'inline-block' if cart_count > 0 else 'none' }};">
+                            {{ cart_count }}
+                        </span>
+                    </a>
+                </div>
 
-  <nav id="mainNavbar" class="navbar navbar-expand-lg navbar-light bg-light fixed-top shadow-sm transition-all">
-    <div class="container-fluid px-4">
-      <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
-        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Karthika Futures Logo" style="height: 40px; margin-right: 10px;">
-        <span class="ms-2 fw-bold">Karthika Futures</span>
-      </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %} shimmer-link" href="{{ url_for('index') }}">Home</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'all_products' %}active{% endif %} shimmer-link" href="{{ url_for('all_products') }}">Artworks</a>
-          </li>
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              Categories
-            </a>
-            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-              {% for category in categories %}
-              <li><a class="dropdown-item" href="{{ url_for('all_products', category=category.name) }}">{{ category.name }}</a></li>
-              {% endfor %}
-            </ul>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link {% if request.endpoint == 'contact' %}active{% endif %} shimmer-link" href="{{ url_for('contact') }}">Contact</a>
-          </li>
-        </ul>
+                {% if current_user.is_authenticated %}
+                    <div class="relative group">
+                        <button class="nav-link text-white hover:text-accent-color transition-colors duration-200 flex items-center">
+                            <i class="fas fa-user-circle mr-2"></i> {{ current_user.full_name or current_user.email }} <i class="fas fa-chevron-down ml-2 text-xs"></i>
+                        </button>
+                        <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform scale-95 group-hover:scale-100">
+                            <a href="{{ url_for('user_profile') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">My Profile</a>
+                            <a href="{{ url_for('user_orders') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">My Orders</a>
+                            {% if current_user.is_admin() %}
+                            <a href="{{ url_for('admin_dashboard') }}" class="block px-4 py-2 text-gray-800 hover:bg-gray-100 font-semibold border-t mt-1 pt-2">Admin Dashboard</a>
+                            {% endif %}
+                            <a href="{{ url_for('user_logout') }}" class="block px-4 py-2 text-red-600 hover:bg-red-50 border-t mt-1 pt-2">Logout</a>
+                        </div>
+                    </div>
+                {% else %}
+                    <a href="{{ url_for('user_login') }}" class="btn btn-secondary px-4 py-2 text-white">Login</a>
+                    <a href="{{ url_for('signup') }}" class="btn btn-success px-4 py-2 text-white">Sign Up</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
 
-<<<<<<< HEAD
-  <div id="flash-messages-container"></div>
+    <!-- Flash Messages -->
+    <div class="container mx-auto mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="custom-alert alert-{{ category }}">
+                        <span class="custom-alert-message">{{ message }}</span>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
 
-  <div class="container-fluid">
+    <!-- Main Content -->
     {% block content %}{% endblock %}
-  </div>
 
-  <footer class="footer mt-5">
-    <div class="container text-center">
-      <p>&copy; {{ current_year }} {{ our_business_name }}. All rights reserved.</p>
-      <p>{{ our_business_address }} | Email: {{ our_business_email }}</p>
-      <p>GSTIN: {{ our_gstin }} | PAN: {{ our_pan }}</p>
-=======
-        <ul class="navbar-nav ms-auto">
-          <li class="nav-item me-3">
-            <a class="nav-link position-relative" href="{{ url_for('cart') }}">
-              <i class="fas fa-shopping-cart"></i> Cart
-              <span id="cart-count" class="badge rounded-pill bg-danger position-absolute top-0 start-100 translate-middle" style="display: none;">0</span>
-            </a>
-          </li>
-          <li class="nav-item me-3">
-            <button id="themeToggle" class="btn btn-sm btn-outline-secondary">
-              <i class="fas fa-moon"></i> <span class="d-none d-lg-inline">Dark Mode</span>
-            </button>
-          </li>
-          {% if current_user.is_authenticated %}
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <i class="fas fa-user-circle"></i> {{ current_user.name or current_user.email }}
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-              <li><a class="dropdown-item" href="{{ url_for('user_dashboard') }}">Dashboard</a></li>
-              <li><a class="dropdown-item" href="{{ url_for('profile') }}">Profile</a></li>
-              <li><a class="dropdown-item" href="{{ url_for('my_orders') }}">My Orders</a></li>
-              <li><a class="dropdown-item" href="{{ url_for('my_addresses') }}">My Addresses</a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
-            </ul>
-          </li>
-          {% else %}
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('user_login') }}">Login</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('signup') }}">Sign Up</a>
-          </li>
-          {% endif %}
-          {% if session.get('admin_logged_in') %}
-          <li class="nav-item ms-lg-3">
-            <a class="btn btn-warning btn-sm" href="{{ url_for('admin_panel') }}">Admin Panel</a>
-          </li>
-          {% endif %}
-        </ul>
-      </div>
->>>>>>> a3989ae (SQL v2)
-    </div>
-  </nav>
+    <!-- Footer -->
+    <footer class="footer bg-primary text-white p-8 mt-8">
+        <div class="container mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div>
+                <h5 class="text-xl font-bold mb-4">Karthika Futures</h5>
+                <p class="text-sm">Dedicated to bringing spiritual and artistic masterpieces to your home.</p>
+                <p class="text-sm mt-2">&copy; {{ current_year }} Karthika Futures. All rights reserved.</p>
+            </div>
+            <div>
+                <h5 class="text-xl font-bold mb-4">Quick Links</h5>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="{{ url_for('all_products') }}" class="hover:underline">Artworks</a></li>
+                    <li><a href="{{ url_for('about') }}" class="hover:underline">About Us</a></li>
+                    <li><a href="{{ url_for('contact') }}" class="hover:underline">Contact</a></li>
+                    {% if current_user.is_authenticated %}
+                    <li><a href="{{ url_for('user_orders') }}" class="hover:underline">My Orders</a></li>
+                    <li><a href="{{ url_for('user_profile') }}" class="hover:underline">My Profile</a></li>
+                    {% else %}
+                    <li><a href="{{ url_for('user_login') }}" class="hover:underline">Login</a></li>
+                    <li><a href="{{ url_for('signup') }}" class="hover:underline">Sign Up</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+            <div>
+                <h5 class="text-xl font-bold mb-4">Connect With Us</h5>
+                <p class="text-sm">Follow us on social media for updates and new arrivals.</p>
+                <div class="flex space-x-4 mt-3">
+                    <a href="#" class="text-white hover:text-accent-color transition-colors duration-200"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" class="text-white hover:text-accent-color transition-colors duration-200"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="text-white hover:text-accent-color transition-colors duration-200"><i class="fab fa-instagram"></i></a>
+                    <a href="#" class="text-white hover:text-accent-color transition-colors duration-200"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
 
-  <div class="toast-container position-fixed bottom-0 end-0 p-3">
-    <div id="cartToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="toast-header">
-        <strong class="me-auto">Cart Update</strong>
-        <small>Just now</small>
-        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-      </div>
-      <div class="toast-body">
-        Item added to cart!
-      </div>
-    </div>
-  </div>
+    <script>
+        // Global variable for CSRF token
+        window.csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-  {% block content %}{% endblock %}
+        // Flash message display logic
+        function showCustomAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.classList.add('custom-alert', `alert-${type}`);
+            alertDiv.innerHTML = `
+                <span class="custom-alert-message">${message}</span>
+                <button class="ml-4 text-lg font-bold" onclick="this.parentElement.remove()">&times;</button>
+            `;
+            document.body.appendChild(alertDiv);
 
-  <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1060;">
-    <div id="cartToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="d-flex">
-        <div class="toast-body">Item added to cart!</div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-      </div>
-    </div>
-  </div>
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000); // Remove after 5 seconds
+        }
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+        // Display flashed messages from Flask
+        document.addEventListener('DOMContentLoaded', function() {
+            const flashedMessages = JSON.parse('{{ get_flashed_messages(with_categories=true) | tojson | safe }}');
+            flashedMessages.forEach(function(message) {
+                showCustomAlert(message[1], message[0]);
+            });
 
-  <script>
-<<<<<<< HEAD
-    // ✅ Show toast message (top-right)
-=======
-    // ✅ Show toast message (top-right) - This is for Flask's flash messages, not the new custom alert
->>>>>>> a3989ae (SQL v2)
-    function showToast(message) {
-      const toastEl = document.getElementById("cartToast");
-      if (toastEl) {
-        toastEl.querySelector(".toast-body").textContent = message || "Item added to cart!";
-        const toast = new bootstrap.Toast(toastEl);
-        toast.show();
-      }
-    }
-
-    // ✅ Update cart count badge
-    // ✅ Cart count fallback if fetch fails
-    function updateCartCountDisplay() {
-      const count = localStorage.getItem('cartCount');
-      const badge = document.getElementById('cart-count');
-      if (badge) {
-        const displayCount = parseInt(count) || 0;
-        badge.textContent = displayCount;
-        badge.style.display = displayCount > 0 ? 'inline-block' : 'none';
-      }
-    }
-
-    // ✅ Set global helpers
-    window.isUserLoggedIn = {{ 'true' if current_user.is_authenticated else 'false' }};
-    window.csrfToken = "{{ csrf_token() }}";
-
-    // Call updateCartCountDisplay on page load to initialize the badge
-    document.addEventListener('DOMContentLoaded', () => {
-<<<<<<< HEAD
-      updateCartCountDisplay();
-=======
-        updateCartCountDisplay(); // Initialize cart count on page load
->>>>>>> a3989ae (SQL v2)
-    });
-  </script>
-
-  {% block extra_js %}{% endblock %}
-
-<<<<<<< HEAD
-  {% block extra_js %}{% endblock %}
-=======
->>>>>>> a3989ae (SQL v2)
+            // Fetch and update cart count on page load
+            fetch('/get_cart_count')
+                .then(response => response.json())
+                .then(data => {
+                    const cartCountElement = document.getElementById('cart-total-quantity');
+                    if (cartCountElement) {
+                        cartCountElement.textContent = data.cart_count;
+                        cartCountElement.style.display = data.cart_count > 0 ? 'inline-block' : 'none';
+                    }
+                })
+                .catch(error => console.error('Error fetching cart count:', error));
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
 </body>
 </html>
-<script>
-  // Dark mode toggle
-  document.getElementById('themeToggle').addEventListener('click', () => {
-    document.body.classList.toggle('dark-mode');
-    const isDarkMode = document.body.classList.contains('dark-mode');
-    localStorage.setItem('darkMode', isDarkMode);
-    document.getElementById('themeToggle').innerHTML = isDarkMode ? '<i class="fas fa-sun"></i> <span class="d-none d-lg-inline">Light Mode</span>' : '<i class="fas fa-moon"></i> <span class="d-none d-lg-inline">Dark Mode</span>';
-  });
-
-  // Load dark mode preference from localStorage
-  if (localStorage.getItem('darkMode') === 'true') {
-    document.body.classList.add('dark-mode');
-    document.getElementById('themeToggle').innerHTML = '<i class="fas fa-sun"></i> <span class="d-none d-lg-inline">Light Mode</span>';
-  } else {
-    document.body.classList.remove('dark-mode');
-    document.getElementById('themeToggle').innerHTML = '<i class="fas fa-moon"></i> <span class="d-none d-lg-inline">Dark Mode</span>';
-  } 

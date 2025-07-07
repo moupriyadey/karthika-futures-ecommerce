@@ -4,47 +4,64 @@
 
 {% block content %}
 <div class="container main-content-area py-5">
-    <h2 class="text-center mb-4">Edit Address</h2>
-
     <div class="row justify-content-center">
-        <div class="col-md-8">
+        <div class="col-md-8 col-lg-6">
             <div class="card shadow-sm border-0 rounded-lg p-4">
                 <div class="card-body">
-                    <form method="POST" action="{{ url_for('edit_address', addr_id=address.id) }}">
+                    <h2 class="text-center mb-4">Edit Address: {{ address.label }}</h2>
+                    <p class="text-center text-muted mb-4">Update the details for this shipping address.</p>
+
+                    <form action="{{ url_for('edit_address', address_id=address.id) }}" method="POST">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                         <div class="mb-3">
                             <label for="label" class="form-label">Address Label (e.g., Home, Office)</label>
-                            <input type="text" class="form-control" id="label" name="label" value="{{ address.label }}" placeholder="e.g., Home, Office, Parents' House" required>
+                            <input type="text" class="form-control" id="label" name="label" required value="{{ address.label }}">
                         </div>
-
                         <div class="mb-3">
-                            <label for="full_name" class="form-label">Full Name</label>
-                            <input type="text" class="form-control" id="full_name" name="full_name" value="{{ address.full_name }}" placeholder="Enter recipient's full name" required>
+                            <label for="full_name" class="form-label">Recipient Full Name</label>
+                            <input type="text" class="form-control" id="full_name" name="full_name" required value="{{ address.full_name }}">
                         </div>
-
                         <div class="mb-3">
-                            <label for="phone" class="form-label">Mobile Number</label>
-                            <input type="tel" class="form-control" id="phone" name="phone" value="{{ address.phone }}" placeholder="e.g., 9876543210" pattern="[0-9]{10}" maxlength="10" required>
-                            <small class="form-text text-muted">Please enter a 10-digit mobile number.</small>
+                            <label for="phone" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" pattern="[0-9]{10}" placeholder="e.g., 9876543210" required value="{{ address.phone }}">
+                            <small class="form-text text-muted">Please enter a 10-digit phone number.</small>
                         </div>
-
                         <div class="mb-3">
-                            <label for="address_text" class="form-label">Full Address</label>
-                            <textarea class="form-control" id="address_text" name="address" rows="4" placeholder="House No, Building, Street, Locality, City, State" required>{{ address.address }}</textarea>
+                            <label for="address_line1" class="form-label">Address Line 1</label>
+                            <input type="text" class="form-control" id="address_line1" name="address_line1" required value="{{ address.address_line1 }}">
                         </div>
-
+                        <div class="mb-3">
+                            <label for="address_line2" class="form-label">Address Line 2 (Optional)</label>
+                            <input type="text" class="form-control" id="address_line2" name="address_line2" value="{{ address.address_line2 or '' }}">
+                        </div>
                         <div class="mb-3">
                             <label for="pincode" class="form-label">Pincode</label>
-                            <input type="text" class="form-control" id="pincode" name="pincode" value="{{ address.pincode }}" placeholder="e.g., 560001" pattern="[0-9]{6}" maxlength="6" required>
+                            <input type="text" class="form-control" id="pincode" name="pincode" pattern="[0-9]{6}" placeholder="e.g., 123456" required value="{{ address.pincode }}">
                             <small class="form-text text-muted">Please enter a 6-digit pincode.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="city" class="form-label">City</label>
+                            <input type="text" class="form-control" id="city" name="city" required value="{{ address.city }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="state" class="form-label">State</label>
+                            <input type="text" class="form-control" id="state" name="state" required value="{{ address.state }}">
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="is_default" name="is_default" value="true" {% if address.is_default %}checked{% endif %}>
+                            <label class="form-check-label" for="is_default">Set as default address</label>
                         </div>
 
                         <div class="d-grid gap-2 mt-4">
                             <button type="submit" class="btn btn-primary btn-lg">Update Address</button>
-                            <a href="{{ url_for('my_addresses') }}" class="btn btn-outline-secondary btn-lg">Cancel</a>
                         </div>
                     </form>
+
+                    <p class="text-center mt-3">
+                        <a href="{{ url_for('manage_addresses') }}">Back to My Addresses</a>
+                    </p>
                 </div>
             </div>
         </div>

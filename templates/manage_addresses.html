@@ -1,0 +1,98 @@
+{% extends '_base.html' %}
+
+{% block title %}My Addresses - Karthika Futures{% endblock %}
+
+{% block content %}
+<div class="container main-content-area py-5">
+    <h2 class="text-center mb-4">My Addresses</h2>
+
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-sm border-0 rounded-lg p-4 mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="card-title mb-0">Your Saved Addresses</h4>
+                        <a href="{{ url_for('add_address') }}" class="btn btn-success"><i class="fas fa-plus me-2"></i>Add New Address</a>
+                    </div>
+
+                    {% if addresses %}
+                        <div class="list-group">
+                            {% for address in addresses %}
+                            <div class="list-group-item list-group-item-action mb-3 rounded-lg shadow-sm">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">{{ address.label }} {% if address.is_default %}<span class="badge bg-primary ms-2">Default</span>{% endif %}</h5>
+                                    <div>
+                                        <a href="{{ url_for('edit_address', address_id=address.id) }}" class="btn btn-sm btn-outline-primary me-2"><i class="fas fa-edit"></i> Edit</a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger delete-address-btn" data-address-id="{{ address.id }}" data-address-label="{{ address.label }}"><i class="fas fa-trash-alt"></i> Delete</button>
+                                    </div>
+                                </div>
+                                <p class="mb-1">{{ address.full_name }}</p>
+                                <p class="mb-1">{{ address.address_line1 }}{% if address.address_line2 %}, {{ address.address_line2 }}{% endif %}</p>
+                                <p class="mb-1">{{ address.city }}, {{ address.state }} - {{ address.pincode }}</p>
+                                <p class="mb-0">Phone: {{ address.phone }}</p>
+
+                                {% if not address.is_default %}
+                                <form action="{{ url_for('set_default_address', address_id=address.id) }}" method="POST" class="mt-2">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Set as Default</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info text-center" role="alert">
+                            You haven't added any addresses yet. Click "Add New Address" to get started!
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Delete Confirmation Modal #}
+<div class="modal fade" id="deleteAddressModal" tabindex="-1" aria-labelledby="deleteAddressModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteAddressModalLabel">Confirm Delete Address</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete the address "<strong id="addressLabelToDelete"></strong>"? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteAddressForm" method="POST" action="">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">Delete Address</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteAddressModalElement = document.getElementById('deleteAddressModal');
+        const deleteAddressModal = new bootstrap.Modal(deleteAddressModalElement);
+        const addressLabelToDelete = document.getElementById('addressLabelToDelete');
+        const deleteAddressForm = document.getElementById('deleteAddressForm');
+
+        document.querySelectorAll('.delete-address-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const addressId = this.dataset.addressId;
+                const addressLabel = this.dataset.addressLabel;
+                
+                addressLabelToDelete.textContent = addressLabel;
+                // Correctly building the URL for delete_address
+                deleteAddressForm.action = `/delete-address/${addressId}`; // Direct URL construction
+                deleteAddressModal.show();
+            });
+        });
+    });
+</script>
+{% endblock %}

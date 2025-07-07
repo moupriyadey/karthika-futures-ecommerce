@@ -2,157 +2,108 @@
 
 {% block title %}{{ artwork.name }} - Karthika Futures{% endblock %}
 
-{% block extra_css %}
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    body {
-        font-family: 'Inter', sans-serif;
-        background-color: #f3f4f6; /* Tailwind bg-gray-100 */
-        color: #333; /* Tailwind text-gray-800 or similar */
-        line-height: 1.6;
-    }
-    .container.main-content-area {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 2rem;
-        background-color: #ffffff; /* bg-white */
-        border-radius: 0.75rem; /* rounded-lg */
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* shadow-md */
-        margin-top: 2rem; /* Adjusted to fit below navbar if _base has fixed nav */
-        margin-bottom: 2rem;
-    }
-
-    /* Adjustments for Tailwind CSS elements (these should ideally be Tailwind classes) */
-    .btn-primary {
-        background-color: #4f46e5; /* indigo-600 */
-        color: white;
-        padding: 0.75rem 1.5rem;
-        border-radius: 0.5rem;
-        font-weight: 600;
-        transition: background-color 0.2s ease-in-out;
-    }
-    .btn-primary:hover {
-        background-color: #4338ca; /* indigo-700 */
-    }
-
-    /* Carousel image height for responsiveness */
-    .carousel-item img {
-        width: 100%;
-        height: 400px; /* Adjust height as needed */
-        object-fit: cover;
-        border-radius: 0.75rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-
-    /* Custom styles for select dropdowns for better appearance */
-    select {
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'%3E%3C/path%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 0.75rem center;
-        background-size: 1.5em 1.5em;
-        padding-right: 2.5rem;
-    }
-
-    /* Responsive adjustments for image height */
-    @media (max-width: 768px) {
-        .carousel-item img {
-            height: 300px; /* Shorter height on smaller screens */
-        }
-    }
-    @media (max-width: 576px) {
-        .carousel-item img {
-            height: 250px; /* Even shorter on very small screens */
-        }
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="container main-content-area">
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div class="lg:col-span-1">
-            {# Bootstrap Carousel for images #}
-            {% if artwork.images and artwork.images|length > 0 %}
-                <div id="artworkCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="false">
-                    <div class="carousel-inner rounded-lg shadow-md">
-                        {% for image_url in artwork.images %}
-                        <div class="carousel-item {% if loop.first %}active{% endif %}">
-                            <img src="{{ url_for('static', filename=image_url) }}" class="d-block w-100" alt="{{ artwork.name }} - Image {{ loop.index }}">
-                        </div>
+<div class="container mx-auto p-4 md:p-8 main-content-area">
+    <div class="flex flex-col lg:flex-row gap-8">
+        <!-- Product Image Gallery -->
+        <div class="lg:w-1/2">
+            <div class="relative mb-4">
+                <img id="mainProductImage" src="{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}" 
+                     alt="{{ artwork.name }}" 
+                     class="w-full h-auto rounded-lg shadow-lg object-cover max-h-[600px]">
+                {% if artwork.get_images_list()|length > 1 %}
+                <button id="prevImage" class="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 focus:outline-none">
+                    <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                </button>
+                <button id="nextImage" class="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 focus:outline-none">
+                    <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </button>
+                {% endif %}
+            </div>
+            <div class="flex space-x-2 overflow-x-auto pb-2">
+                {% for image_url in artwork.get_images_list() %}
+                <img src="{{ url_for('static', filename=image_url) }}" 
+                     alt="{{ artwork.name }} thumbnail" 
+                     class="w-24 h-24 object-cover rounded-md cursor-pointer border-2 border-transparent hover:border-primary transition-all duration-200 thumbnail-image"
+                     data-index="{{ loop.index0 }}">
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Product Details -->
+        <div class="lg:w-1/2 bg-white p-6 rounded-lg shadow-md">
+            <h1 class="text-4xl font-extrabold text-gray-900 mb-4">{{ artwork.name }}</h1>
+            <p class="text-xl text-gray-600 mb-6">SKU: {{ artwork.sku }}</p>
+            
+            <div class="flex items-baseline mb-4">
+                <span class="text-4xl font-extrabold text-primary mr-2">{{ artwork.selling_price_incl_gst | currency }}</span>
+                <span class="text-lg text-gray-500 line-through">{{ artwork.original_price | currency }}</span>
+            </div>
+
+            <p class="text-gray-700 leading-relaxed mb-6">{{ artwork.description }}</p>
+
+            <!-- Custom Options -->
+            {% if artwork.get_custom_options_dict() %}
+            <div class="mb-6 space-y-4" id="customOptionsContainer">
+                {% for group_name, options in artwork.get_custom_options_dict().items() %}
+                <div>
+                    <label class="block text-gray-800 text-lg font-semibold mb-2">{{ group_name }}:</label>
+                    <div class="flex flex-wrap gap-3">
+                        {% for option_label, price_impact in options.items() %}
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="radio" name="option-{{ group_name | slugify }}" value="{{ option_label }}" 
+                                   data-price-impact="{{ price_impact }}" 
+                                   class="form-radio h-5 w-5 text-primary option-radio"
+                                   {% if loop.first %}checked{% endif %}>
+                            <span class="ml-2 text-gray-700 text-base">{{ option_label }} 
+                                {% if price_impact != 0 %}
+                                    ({{ price_impact | currency(signed=True) }})
+                                {% endif %}
+                            </span>
+                        </label>
                         {% endfor %}
                     </div>
-                    {% if artwork.images|length > 1 %}
-                    <button class="carousel-control-prev" type="button" data-bs-target="#artworkCarousel" data-bs-slide="prev">
-                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                        <span class="visually-hidden">Previous</span>
-                    </button>
-                    <button class="carousel-control-next" type="button" data-bs-target="#artworkCarousel" data-bs-slide="next">
-                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                        <span class="visually-hidden">Next</span>
-                    </button>
-                    {% endif %}
                 </div>
-            {% else %}
-                {# Placeholder if no images #}
-                <img src="https://placehold.co/800x400/cccccc/333333?text=No+Image" alt="No Image" class="w-full h-auto object-cover rounded-lg shadow-md">
-            {% endif %}
-        </div>
-        <div class="lg:col-span-1 flex flex-col justify-between">
-            <div>
-                <h1 class="text-4xl font-bold text-gray-800 mb-4">{{ artwork.name | default('N/A') }}</h1>
-                <p class="text-gray-600 text-lg mb-4">{{ artwork.description | default('N/A') }}</p>
-                <p class="text-xl font-semibold text-gray-700 mb-2">Category: {{ artwork.category | default('N/A') }}</p>
-                <p class="text-xl font-semibold text-gray-700 mb-2">SKU: {{ artwork.sku | default('N/A') }}</p>
-                <p class="text-xl font-semibold text-gray-700 mb-4">Stock: <span id="artwork-stock">{{ artwork.stock | default(0) }}</span></p>
-
-                <div class="mb-6 space-y-4">
-                    <div>
-                        <label for="size-select" class="block text-lg font-medium text-gray-700 mb-2">Select Size:</label>
-                        <select id="size-select" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
-                            <option value="Original" data-price="0">Original (No additional cost)</option>
-                            {% if artwork.size_a4 | default(0.0) > 0 %}<option value="A4" data-price="{{ artwork.size_a4 | default(0.0) }}">A4 (₹{{ artwork.size_a4 | default(0.0) | round(2) }})</option>{% endif %}
-                            {% if artwork.size_a5 | default(0.0) > 0 %}<option value="A5" data-price="{{ artwork.size_a5 | default(0.0) }}">A5 (₹{{ artwork.size_a5 | default(0.0) | round(2) }})</option>{% endif %}
-                            {% if artwork.size_letter | default(0.0) > 0 %}<option value="Letter" data-price="{{ artwork.size_letter | default(0.0) }}">Letter (₹{{ artwork.size_letter | default(0.0) | round(2) }})</option>{% endif %}
-                            {% if artwork.size_legal | default(0.0) > 0 %}<option value="Legal" data-price="{{ artwork.size_legal | default(0.0) }}">Legal (₹{{ artwork.size_legal | default(0.0) | round(2) }})</option>{% endif %}
-                        </select>
-                    </div>
-                    <div>
-                        <label for="frame-select" class="block text-lg font-medium text-gray-700 mb-2">Select Frame:</label>
-                        <select id="frame-select" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
-                            <option value="None" data-price="0">No Frame (No additional cost)</option>
-                            {% if artwork.frame_wooden | default(0.0) > 0 %}<option value="Wooden" data-price="{{ artwork.frame_wooden | default(0.0) }}">Wooden (₹{{ artwork.frame_wooden | default(0.0) | round(2) }})</option>{% endif %}
-                            {% if artwork.frame_metal | default(0.0) > 0 %}<option value="Metal" data-price="{{ artwork.frame_metal | default(0.0) }}">Metal (₹{{ artwork.frame_metal | default(0.0) | round(2) }})</option>{% endif %}
-                            {% if artwork.frame_pvc | default(0.0) > 0 %}<option value="PVC" data-price="{{ artwork.frame_pvc | default(0.0) }}">PVC (₹{{ artwork.frame_pvc | default(0.0) | round(2) }})</option>{% endif %}
-                        </select>
-                    </div>
-                    <div>
-                        <label for="glass-select" class="block text-lg font-medium text-gray-700 mb-2">Select Glass:</label>
-                        <select id="glass-select" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
-                            <option value="None" data-price="0">No Glass (No additional cost)</option>
-                            {% if artwork.glass_price | default(0.0) > 0 %}<option value="Standard" data-price="{{ artwork.glass_price | default(0.0) }}">Standard (₹{{ artwork.glass_price | default(0.0) | round(2) }})</option>{% endif %}
-                        </select>
-                    </div>
-                </div>
-
-                <div class="flex items-center justify-between mb-6">
-                    <span class="text-3xl font-bold text-gray-900">Total Price: ₹<span id="display-price">{{ artwork.original_price | default(0.0) | round(2) }}</span></span>
-                    <input type="number" id="quantity" value="1" min="1" max="{{ artwork.stock | default(0) }}" class="w-24 p-2 border border-gray-300 rounded-md text-center" onchange="updatePrice()">
-                </div>
+                {% endfor %}
             </div>
-            
-            <div class="mt-auto">
-                <button id="add-to-cart-btn" class="w-full btn-primary py-3 px-6 text-xl rounded-lg shadow-lg hover:shadow-xl transition duration-300">
-                    <i class="fas fa-cart-plus mr-2"></i> Add to Cart
+            {% endif %}
+
+            <div class="flex items-center mb-6">
+                <label for="quantity" class="text-gray-800 text-lg font-semibold mr-4">Quantity:</label>
+                <input type="number" id="quantity" name="quantity" value="1" min="1" max="{{ artwork.stock }}" 
+                       class="w-24 px-4 py-2 border border-gray-300 rounded-md text-center text-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                <span class="ml-4 text-gray-600 text-sm">({{ artwork.stock }} in stock)</span>
+            </div>
+
+            <div class="flex gap-4">
+                <button id="addToCartBtn" 
+                        class="flex-1 btn btn-primary py-3 text-xl rounded-md flex items-center justify-center space-x-2"
+                        data-sku="{{ artwork.sku }}"
+                        data-name="{{ artwork.name }}"
+                        data-image-url="{{ artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png' }}"
+                        data-original-price="{{ artwork.original_price }}"
+                        data-cgst-percentage="{{ artwork.cgst_percentage }}"
+                        data-sgst-percentage="{{ artwork.sgst_percentage }}"
+                        data-igst-percentage="{{ artwork.igst_percentage }}"
+                        data-ugst-percentage="{{ artwork.ugst_percentage }}"
+                        >
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                    <span>Add to Cart</span>
                 </button>
-                <button id="buy-now-btn" class="w-full bg-green-500 text-white py-3 px-6 text-xl rounded-lg shadow-lg hover:shadow-xl transition duration-300 mt-2">
-                    <i class="fas fa-money-bill-wave mr-2"></i> Buy Now
+                <button id="buyNowBtn" 
+                        class="flex-1 btn btn-success py-3 text-xl rounded-md flex items-center justify-center space-x-2"
+                        data-sku="{{ artwork.sku }}"
+                        data-name="{{ artwork.name }}"
+                        data-image-url="{{ artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png' }}"
+                        data-original-price="{{ artwork.original_price }}"
+                        data-cgst-percentage="{{ artwork.cgst_percentage }}"
+                        data-sgst-percentage="{{ artwork.sgst_percentage }}"
+                        data-igst-percentage="{{ artwork.igst_percentage }}"
+                        data-ugst-percentage="{{ artwork.ugst_percentage }}"
+                        >
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.001 12.001 0 002.92 12c0 3.072 1.47 5.862 3.813 7.747A12.004 12.004 0 0012 21c3.072 0 5.862-1.47 7.747-3.813A12.002 12.002 0 0021.08 12c0-3.072-1.47-5.862-3.813-7.747z"></path></svg>
+                    <span>Buy Now</span>
                 </button>
-                {% if artwork.stock | default(0) == 0 %}
-                    <p class="text-red-600 text-center font-bold mt-2">Out of Stock</p>
-                {% endif %}
             </div>
         </div>
     </div>
@@ -161,194 +112,217 @@
 
 {% block extra_js %}
 <script>
-    // Custom alert function (assuming this is defined elsewhere or will be defined)
-    function showCustomAlert(message, type) {
-        // Implement your custom alert logic here (e.g., using a modal or toast)
-        // For demonstration, we'll just use console.log
-        console.log(`ALERT (${type}): ${message}`);
-        // You might have a div like: <div id="custom-alert-container"></div> in _base.html
-        // const alertContainer = document.getElementById('custom-alert-container');
-        // if (alertContainer) {
-        //     alertContainer.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">${message}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>`;
-        //     setTimeout(() => alertContainer.innerHTML = '', 5000); // Hide after 5 seconds
-        // }
-    }
+    document.addEventListener('DOMContentLoaded', function() {
+        const mainProductImage = document.getElementById('mainProductImage');
+        const thumbnailImages = document.querySelectorAll('.thumbnail-image');
+        const prevImageBtn = document.getElementById('prevImage');
+        const nextImageBtn = document.getElementById('nextImage');
+        let currentImageIndex = 0;
+        const imageUrls = Array.from(thumbnailImages).map(img => img.src);
 
-
-    // Artwork data from Flask, converted to JSON in template
-    const artworkData = {{ artwork | tojson }}; 
-    const originalPrice = artworkData.original_price || 0; 
-    const gstPercentage = artworkData.gst_percentage || 0; 
-
-    const sizeSelect = document.getElementById('size-select');
-    const frameSelect = document.getElementById('frame-select');
-    const glassSelect = document.getElementById('glass-select');
-    const quantityInput = document.getElementById('quantity');
-    const displayPriceSpan = document.getElementById('display-price');
-    const addToCartBtn = document.getElementById('add-to-cart-btn');
-    const buyNowBtn = document.getElementById('buy-now-btn'); // Get Buy Now button
-    const artworkStock = artworkData.stock || 0; 
-
-    // Disable add to cart and buy now if out of stock
-    if (artworkStock === 0) {
-        addToCartBtn.disabled = true;
-        addToCartBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        buyNowBtn.disabled = true; // Disable Buy Now as well
-        buyNowBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        quantityInput.max = 0; 
-        quantityInput.value = 0;
-    } else {
-        quantityInput.max = artworkStock;
-        if (quantityInput.value < 1) {
-            quantityInput.value = 1;
-        }
-    }
-
-    // Function to update the displayed price based on selections
-    function updatePrice() {
-        let currentBasePrice = originalPrice;
-        
-        const selectedSizeOption = sizeSelect.options[sizeSelect.selectedIndex];
-        currentBasePrice += parseFloat(selectedSizeOption.dataset.price || 0);
-
-        const selectedFrameOption = frameSelect.options[frameSelect.selectedIndex];
-        currentBasePrice += parseFloat(selectedFrameOption.dataset.price || 0);
-
-        const selectedGlassOption = glassSelect.options[glassSelect.selectedIndex];
-        currentBasePrice += parseFloat(selectedGlassOption.dataset.price || 0);
-
-        let quantity = parseInt(quantityInput.value);
-        if (isNaN(quantity) || quantity < 1) {
-            quantityInput.value = 1;
-            quantity = 1;
-        }
-        if (quantity > artworkStock) {
-            quantityInput.value = artworkStock;
-            quantity = artworkStock;
-            // Changed from alert to showCustomAlert
-            showCustomAlert(`You can only add a maximum of ${artworkStock} items to your cart. Quantity adjusted.`, 'warning');
-        }
-
-        let priceBeforeGst = currentBasePrice * quantity;
-        let gstAmount = priceBeforeGst * (gstPercentage / 100);
-        let finalPrice = priceBeforeGst + gstAmount;
-
-        displayPriceSpan.textContent = finalPrice.toFixed(2);
-    }
-
-    // Attach event listeners for price calculation
-    sizeSelect.addEventListener('change', updatePrice);
-    frameSelect.addEventListener('change', updatePrice);
-    glassSelect.addEventListener('change', updatePrice);
-    quantityInput.addEventListener('input', updatePrice);
-    quantityInput.addEventListener('change', updatePrice);
-
-    // Initial price update on page load
-    updatePrice();
-
-    // Add to Cart functionality
-    addToCartBtn.addEventListener('click', async () => {
-        const quantity = parseInt(quantityInput.value);
-        if (isNaN(quantity) || quantity < 1 || quantity > artworkStock) {
-            // Changed from alert to showCustomAlert
-            showCustomAlert(`Please enter a valid quantity between 1 and ${artworkStock}.`, 'warning');
-            return;
-        }
-
-        const selectedSize = sizeSelect.value;
-        const selectedFrame = frameSelect.value;
-        const selectedGlass = glassSelect.value;
-        
-        // Recalculate unit price and GST precisely for the item being added
-        let unitPriceBeforeGst = artworkData.original_price || 0; 
-        unitPriceBeforeGst += parseFloat(sizeSelect.options[sizeSelect.selectedIndex].dataset.price || 0);
-        unitPriceBeforeGst += parseFloat(frameSelect.options[frameSelect.selectedIndex].dataset.price || 0);
-        unitPriceBeforeGst += parseFloat(glassSelect.options[glassSelect.selectedIndex].dataset.price || 0);
-
-        const gstPercent = artworkData.gst_percentage || 0; 
-        const itemPriceBeforeGstTotal = unitPriceBeforeGst * quantity;
-        const itemGstAmount = itemPriceBeforeGstTotal * (gstPercent / 100);
-        const finalItemTotalPrice = itemPriceBeforeGstTotal + itemGstAmount;
-
-        const itemId = `${artworkData.sku}-${selectedSize}-${selectedFrame}-${selectedGlass}`;
-
-        // Ensure the global 'cart' object is used and updated
-        // Note: The global `addToCart` function from `_base.html` is designed to handle this.
-        // We should call that global function instead of re-implementing logic here.
-
-        // Get the image for the cart item (always the first image for the product)
-        const cartItemImage = artworkData.images && artworkData.images.length > 0 ? 
-                               '{{ url_for("static", filename=artwork.images[0]) }}' : 
-                               '{{ url_for("static", filename="images/placeholder.png") }}'; 
-
-        const options = {
-            size: selectedSize,
-            frame: selectedFrame,
-            glass: selectedGlass,
-            sizePrice: parseFloat(sizeSelect.options[sizeSelect.selectedIndex].dataset.price || 0),
-            framePrice: parseFloat(frameSelect.options[frameSelect.selectedIndex].dataset.price || 0),
-            glassPrice: parseFloat(glassSelect.options[glassSelect.selectedIndex].dataset.price || 0)
-        };
-
-        // Call the global addToCart function (defined in _base.html)
-        if (typeof addToCart === 'function') {
-            await addToCart(artworkData.sku, artworkData.name, cartItemImage, artworkData.original_price, options, quantity); // Pass original_price and explicit quantity
-        } else {
-            console.error("Global addToCart function not found in _base.html. Cannot add to cart.");
-            // Changed from alert to showCustomAlert
-            showCustomAlert("Cart functionality is not available. Please contact support.", 'danger');
-        }
-    });
-
-    // Buy Now functionality - CORRECTED PAYLOAD
-    buyNowBtn.addEventListener('click', async () => {
-        const quantity = parseInt(quantityInput.value);
-        if (isNaN(quantity) || quantity < 1 || quantity > artworkStock) {
-            // Changed from alert to showCustomAlert
-            showCustomAlert(`Please enter a valid quantity between 1 and ${artworkStock}.`, 'warning');
-            return;
-        }
-
-        const selectedSize = sizeSelect.value;
-        const selectedFrame = frameSelect.value;
-        const selectedGlass = glassSelect.value;
-        
-        // No need to calculate unitPriceBeforeGst, gstPercent, etc. here for the payload,
-        // as the server-side `create_direct_order` will do it based on the SKU and options.
-        // We just need to send the raw choices and quantity.
-
-        // Send data directly as expected by the /create_direct_order endpoint
-        try {
-            const response = await fetch('{{ url_for("create_direct_order") }}', { // Use url_for for robustness
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    sku: artworkData.sku,
-                    quantity: quantity,
-                    size: selectedSize,
-                    frame: selectedFrame,
-                    glass: selectedGlass
-                })
-            });
-            const data = await response.json();
-            if (data.success) {
-                // If successful, redirect to checkout/order confirmation page
-                // Changed from alert to showCustomAlert
-                showCustomAlert(data.message || 'Direct order placed successfully! Redirecting to payment...', 'success');
-                window.location.href = data.redirect_url; // Flask will provide redirect URL
-            } else {
-                // Changed from alert to showCustomAlert
-                showCustomAlert(`Failed to place order: ${data.message}`, 'danger');
-                console.error("ERROR: Failed to create direct order:", data.message);
+        function updateMainImage(index) {
+            if (mainProductImage) {
+                mainProductImage.src = imageUrls[index];
+                currentImageIndex = index;
+                // Update active thumbnail border
+                thumbnailImages.forEach((img, idx) => {
+                    if (idx === index) {
+                        img.classList.add('border-primary');
+                        img.classList.remove('border-transparent');
+                    } else {
+                        img.classList.remove('border-primary');
+                        img.classList.add('border-transparent');
+                    }
+                });
             }
-        } catch (error) {
-            console.error("ERROR: Network error placing direct order:", error);
-            // Changed from alert to showCustomAlert
-            showCustomAlert("Network error. Please check your connection or try again later.", 'danger');
         }
-    });
 
+        thumbnailImages.forEach(img => {
+            img.addEventListener('click', function() {
+                updateMainImage(parseInt(this.dataset.index));
+            });
+        });
+
+        if (prevImageBtn) {
+            prevImageBtn.addEventListener('click', function() {
+                let newIndex = currentImageIndex - 1;
+                if (newIndex < 0) {
+                    newIndex = imageUrls.length - 1;
+                }
+                updateMainImage(newIndex);
+            });
+        }
+
+        if (nextImageBtn) {
+            nextImageBtn.addEventListener('click', function() {
+                let newIndex = currentImageIndex + 1;
+                if (newIndex >= imageUrls.length) {
+                    newIndex = 0;
+                }
+                updateMainImage(newIndex);
+            });
+        }
+
+        // Initialize first image as active
+        if (thumbnailImages.length > 0) {
+            updateMainImage(0);
+        }
+
+
+        // Custom Options and Price Calculation
+        const quantityInput = document.getElementById('quantity');
+        const addToCartBtn = document.getElementById('addToCartBtn');
+        const buyNowBtn = document.getElementById('buyNowBtn');
+        const optionRadios = document.querySelectorAll('.option-radio');
+
+        // Function to get selected options
+        function getSelectedOptions() {
+            const selectedOptions = {};
+            document.querySelectorAll('#customOptionsContainer input[type="radio"]:checked').forEach(radio => {
+                const groupName = radio.name.replace('option-', '');
+                selectedOptions[groupName] = radio.value;
+            });
+            return selectedOptions;
+        }
+
+        // Function to calculate unit price before GST based on selected options
+        function calculateUnitPriceBeforeGst() {
+            let basePrice = parseFloat(addToCartBtn.dataset.originalPrice);
+            const selectedOptions = getSelectedOptions();
+
+            optionRadios.forEach(radio => {
+                if (radio.checked) {
+                    const priceImpact = parseFloat(radio.dataset.priceImpact);
+                    basePrice += priceImpact;
+                }
+            });
+            return basePrice;
+        }
+
+        // Function to update the "data-unit-price-before-gst" on buttons
+        function updateButtonPrices() {
+            const unitPriceBeforeGst = calculateUnitPriceBeforeGst();
+            addToCartBtn.dataset.unitPriceBeforeGst = unitPriceBeforeGst.toFixed(2);
+            buyNowBtn.dataset.unitPriceBeforeGst = unitPriceBeforeGst.toFixed(2);
+        }
+
+        // Add event listeners for option changes
+        optionRadios.forEach(radio => {
+            radio.addEventListener('change', updateButtonPrices);
+        });
+
+        // Initial price calculation on load
+        updateButtonPrices();
+
+
+        // Add to Cart functionality
+        addToCartBtn.addEventListener('click', async function() {
+            const sku = this.dataset.sku;
+            const name = this.dataset.name;
+            const imageUrl = this.dataset.imageUrl;
+            const quantity = parseInt(quantityInput.value);
+            const unitPriceBeforeGst = parseFloat(this.dataset.unitPriceBeforeGst);
+            const cgstPercentage = parseFloat(this.dataset.cgstPercentage);
+            const sgstPercentage = parseFloat(this.dataset.sgstPercentage);
+            const igstPercentage = parseFloat(this.dataset.igstPercentage);
+            const ugstPercentage = parseFloat(this.dataset.ugstPercentage);
+            const selectedOptions = getSelectedOptions();
+
+            if (quantity <= 0 || quantity > parseInt(quantityInput.max)) {
+                showCustomAlert(`Please enter a valid quantity between 1 and ${quantityInput.max}.`, 'danger');
+                return;
+            }
+
+            try {
+                const response = await fetch('/add-to-cart', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': window.csrfToken // Use the global CSRF token
+                    },
+                    body: JSON.stringify({ 
+                        sku: sku, 
+                        quantity: quantity, 
+                        options: selectedOptions,
+                        unitPriceBeforeGst: unitPriceBeforeGst, // Pass calculated price
+                        cgstPercentage: cgstPercentage,
+                        sgstPercentage: sgstPercentage,
+                        igstPercentage: igstPercentage,
+                        ugstPercentage: ugstPercentage
+                    })
+                });
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showCustomAlert(data.message, 'success');
+                    // Update cart count in navbar
+                    const cartCountElement = document.getElementById('cart-total-quantity');
+                    if (cartCountElement) {
+                        cartCountElement.textContent = data.cart_count;
+                        cartCountElement.style.display = data.cart_count > 0 ? 'inline-block' : 'none';
+                    }
+                } else {
+                    showCustomAlert(data.message || 'Failed to add item to cart.', 'danger');
+                }
+            } catch (error) {
+                console.error('Error adding to cart:', error);
+                showCustomAlert('An error occurred. Please try again.', 'danger');
+            }
+        });
+
+        // Buy Now functionality
+        buyNowBtn.addEventListener('click', async function() {
+            const sku = this.dataset.sku;
+            const name = this.dataset.name;
+            const imageUrl = this.dataset.imageUrl;
+            const quantity = parseInt(quantityInput.value);
+            const unitPriceBeforeGst = parseFloat(this.dataset.unitPriceBeforeGst);
+            const cgstPercentage = parseFloat(this.dataset.cgstPercentage);
+            const sgstPercentage = parseFloat(this.dataset.sgstPercentage);
+            const igstPercentage = parseFloat(this.dataset.igstPercentage);
+            const ugstPercentage = parseFloat(this.dataset.ugstPercentage);
+            const selectedOptions = getSelectedOptions();
+
+            if (quantity <= 0 || quantity > parseInt(quantityInput.max)) {
+                showCustomAlert(`Please enter a valid quantity between 1 and ${quantityInput.max}.`, 'danger');
+                return;
+            }
+
+            const itemToBuyNow = {
+                sku: sku,
+                name: name,
+                imageUrl: imageUrl,
+                quantity: quantity,
+                unitPriceBeforeGst: unitPriceBeforeGst, // Pass calculated price
+                cgstPercentage: cgstPercentage,
+                sgstPercentage: sgstPercentage,
+                igstPercentage: igstPercentage,
+                ugstPercentage: ugstPercentage,
+                selectedOptions: selectedOptions
+            };
+
+            try {
+                const response = await fetch('/create_direct_order', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': window.csrfToken // Use the global CSRF token
+                    },
+                    body: JSON.stringify(itemToBuyNow)
+                });
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showCustomAlert(data.message, 'info');
+                    window.location.href = data.redirect_url; // Redirect to login or purchase form
+                } else {
+                    showCustomAlert(data.message || 'Failed to initiate direct purchase.', 'danger');
+                }
+            } catch (error) {
+                console.error('Error initiating direct purchase:', error);
+                showCustomAlert('An error occurred. Please try again.', 'danger');
+            }
+        });
+    });
 </script>
 {% endblock %}

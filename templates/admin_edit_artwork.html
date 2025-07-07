@@ -1,226 +1,293 @@
 {% extends '_base.html' %}
 
-{% block title %}Edit Artwork - Karthika Futures{% endblock %}
+{% block title %}Edit Artwork: {{ artwork.name }} - Admin{% endblock %}
 
 {% block content %}
-<div class="container main-content-area py-4">
-    <h2 class="text-center mb-4">Edit Artwork: {{ artwork.name }} (SKU: {{ artwork.sku }})</h2>
+<div class="container mx-auto p-4 md:p-8 main-content-area">
+    <h1 class="text-4xl font-extrabold text-center text-gray-800 mb-8">Edit Artwork: {{ artwork.name }}</h1>
 
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow-sm border-0 rounded-lg p-4">
-                <div class="card-body">
-                    <form method="POST" action="{{ url_for('edit_artwork', sku=artwork.sku) }}" enctype="multipart/form-data" id="artworkEditForm">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="bg-white p-6 rounded-lg shadow-md max-w-3xl mx-auto">
+        <form method="POST" action="{{ url_for('admin_edit_artwork', artwork_id=artwork.id) }}" enctype="multipart/form-data" class="space-y-6">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                        <div class="mb-3">
-                            <label for="sku" class="form-label">SKU</label>
-                            <input type="text" class="form-control" id="sku" name="sku" value="{{ artwork.sku }}" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Artwork Name</label>
-                            <input type="text" class="form-control" id="name" name="name" value="{{ form_data.name or '' }}" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="category_id" class="form-label">Category</label>
-                            <select class="form-select" id="category_id" name="category_id" required>
-                                <option value="">Select a Category</option>
-                                {% for category in categories %}
-                                    <option value="{{ category.id }}" {% if form_data.category_id == category.id %}selected{% endif %}>{{ category.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="mb-3 form-check">
-                            <input type="checkbox" class="form-check-input" id="is_featured" name="is_featured" {% if form_data.is_featured %}checked{% endif %}>
-                            <label class="form-check-label" for="is_featured">Featured Artwork</label>
-                        </div>
-                        <div class="mb-3">
-                            <label for="original_price" class="form-label">Original Price (₹)</label>
-                            <input type="number" step="0.01" class="form-control" id="original_price" name="original_price" value="{{ form_data.original_price | floatformat(2) }}" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="gst_percentage" class="form-label">GST Percentage (%)</label>
-                            <input type="number" step="0.01" class="form-control" id="gst_percentage" name="gst_percentage" value="{{ form_data.gst_percentage | floatformat(2) }}" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="stock" class="form-label">Stock Quantity</label>
-                            <input type="number" class="form-control" id="stock" name="stock" value="{{ form_data.stock }}" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="description" class="form-label">Description</label>
-                            <textarea class="form-control" id="description" name="description" rows="4">{{ form_data.description or '' }}</textarea>
-                        </div>
+            <div>
+                <label for="sku" class="block text-gray-700 text-sm font-semibold mb-2">SKU</label>
+                <input type="text" id="sku" name="sku" class="form-control bg-gray-100 cursor-not-allowed" value="{{ artwork.sku }}" readonly disabled>
+            </div>
 
-                        <hr class="my-4">
-                        <h4>Custom Options</h4>
-                        <p class="text-muted">Define groups of options (e.g., "Material") and their labels with additional prices (e.g., "Wood: +500").</p>
-                        
-                        <div id="customOptionsContainer">
-                            {# Existing/repopulated custom option groups will be rendered here by JS #}
-                            {% if form_data.custom_option_groups %}
-                                {% for group in form_data.custom_option_groups %}
-                                    <div class="custom-option-group border p-3 mb-3 rounded" data-group-index="{{ loop.index0 }}">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <input type="text" class="form-control me-2" name="option_group_name_{{ loop.index0 }}" placeholder="Option Group Name (e.g., Material)" value="{{ group.group_name }}" required>
-                                            <button type="button" class="btn btn-danger btn-sm remove-group-btn">&times;</button>
-                                        </div>
-                                        <div class="custom-options-list">
-                                            {% for option in group.options %}
-                                                <div class="input-group mb-2" data-option-index="{{ loop.index0 }}">
-                                                    <input type="text" class="form-control" name="option_label_{{ loop.parent.loop.index0 }}_{{ loop.index0 }}" placeholder="Option Label (e.g., Canvas)" value="{{ option.label || '' }}" required>
-                                                    <input type="number" step="0.01" class="form-control" name="option_price_{{ loop.parent.loop.index0 }}_{{ loop.index0 }}" placeholder="Price (e.g., 500)" value="{{ option.price | floatformat(2) }}" required>
-                                                    <button type="button" class="btn btn-outline-danger remove-option-btn">&times;</button>
-                                                </div>
-                                            {% endfor %}
-                                        </div>
-                                        <button type="button" class="btn btn-sm btn-outline-primary add-option-btn mt-2" data-group-index="{{ loop.index0 }}">Add Option</button>
-                                    </div>
-                                {% endfor %}
-                            {% endif %}
-                        </div>
-                        <button type="button" class="btn btn-secondary mt-3" id="addOptionGroupBtn">Add Option Group</button>
+            <div>
+                <label for="name" class="block text-gray-700 text-sm font-semibold mb-2">Artwork Name</label>
+                <input type="text" id="name" name="name" class="form-control" value="{{ form_data.name }}" placeholder="Enter artwork name" required>
+            </div>
 
-                        <hr class="my-4">
-                        <h4>Artwork Images</h4>
-                        <div class="mb-3">
-                            <label for="new_images" class="form-label">Upload New Images (multiple allowed)</label>
-                            <input type="file" class="form-control" id="new_images" name="new_images" accept="image/*" multiple>
-                        </div>
-                        <div class="mb-3">
-                            <p class="form-label">Current Images:</p>
-                            <div id="currentImagesPreview" class="d-flex flex-wrap gap-2">
-                                {% for image_path in artwork.get_images_list() %}
-                                <div class="position-relative border rounded p-1" style="width: 100px; height: 100px;">
-                                    <img src="{{ url_for('static', filename=image_path) }}" class="img-fluid rounded" style="object-fit: cover; width: 100%; height: 100%;" alt="Artwork Image">
-                                    <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 rounded-circle p-0" style="width: 20px; height: 20px; font-size: 0.7rem; line-height: 1; z-index: 10;" data-image-path="{{ image_path }}" onclick="removeImage(this)">
-                                        &times;
-                                    </button>
-                                    <input type="hidden" name="images_to_keep" value="{{ image_path }}">
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        
-                        <div class="d-grid gap-2 mt-4">
-                            <button type="submit" class="btn btn-primary btn-lg">Update Artwork</button>
-                            <a href="{{ url_for('admin_artworks_view') }}" class="btn btn-outline-secondary btn-lg">Cancel</a>
-                        </div>
-                    </form>
+            <div>
+                <label for="description" class="block text-gray-700 text-sm font-semibold mb-2">Description</label>
+                <textarea id="description" name="description" class="form-control" rows="4" placeholder="Enter detailed description">{{ form_data.description }}</textarea>
+            </div>
+
+            <div>
+                <label for="original_price" class="block text-gray-700 text-sm font-semibold mb-2">Original Price (Excl. GST)</label>
+                <input type="number" id="original_price" name="original_price" class="form-control" step="0.01" min="0" value="{{ '%.2f' | format(form_data.original_price) }}" required>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="gst_type" class="block text-gray-700 text-sm font-semibold mb-2">GST Type</label>
+                    <select id="gst_type" name="gst_type" class="form-select" required>
+                        <option value="intra_state" {% if form_data.gst_type == 'intra_state' %}selected{% endif %}>Intra-State (CGST + SGST)</option>
+                        <option value="inter_state" {% if form_data.gst_type == 'inter_state' %}selected{% endif %}>Inter-State (IGST)</option>
+                        <option value="union_territory" {% if form_data.gst_type == 'union_territory' %}selected{% endif %}>Union Territory (CGST + UGST)</option>
+                    </select>
                 </div>
             </div>
-        </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="gst_percentages_fields">
+                <div id="cgst_field">
+                    <label for="cgst_percentage" class="block text-gray-700 text-sm font-semibold mb-2">CGST (%)</label>
+                    <input type="number" id="cgst_percentage" name="cgst_percentage" class="form-control" step="0.01" min="0" max="100" value="{{ '%.2f' | format(form_data.cgst_percentage) }}" required>
+                </div>
+                <div id="sgst_field">
+                    <label for="sgst_percentage" class="block text-gray-700 text-sm font-semibold mb-2">SGST (%)</label>
+                    <input type="number" id="sgst_percentage" name="sgst_percentage" class="form-control" step="0.01" min="0" max="100" value="{{ '%.2f' | format(form_data.sgst_percentage) }}" required>
+                </div>
+                <div id="igst_field" class="hidden">
+                    <label for="igst_percentage" class="block text-gray-700 text-sm font-semibold mb-2">IGST (%)</label>
+                    <input type="number" id="igst_percentage" name="igst_percentage" class="form-control" step="0.01" min="0" max="100" value="{{ '%.2f' | format(form_data.igst_percentage) }}" required>
+                </div>
+                <div id="ugst_field" class="hidden">
+                    <label for="ugst_percentage" class="block text-gray-700 text-sm font-semibold mb-2">UGST (%)</label>
+                    <input type="number" id="ugst_percentage" name="ugst_percentage" class="form-control" step="0.01" min="0" max="100" value="{{ '%.2f' | format(form_data.ugst_percentage) }}" required>
+                </div>
+            </div>
+
+            <div>
+                <label for="stock" class="block text-gray-700 text-sm font-semibold mb-2">Stock Quantity</label>
+                <input type="number" id="stock" name="stock" class="form-control" min="0" value="{{ form_data.stock }}" required>
+            </div>
+
+            <div>
+                <label for="category_id" class="block text-gray-700 text-sm font-semibold mb-2">Category</label>
+                <select id="category_id" name="category_id" class="form-select" required>
+                    <option value="">Select Category</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if category.id == form_data.category_id %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-semibold mb-2">Current Images</label>
+                <div class="flex flex-wrap gap-2 mb-4">
+                    {% for image_url in artwork.get_images_list() %}
+                    <div class="relative w-32 h-32 border border-gray-300 rounded-md overflow-hidden flex items-center justify-center">
+                        <img src="{{ url_for('static', filename=image_url) }}" alt="Artwork Image" class="max-w-full max-h-full object-contain">
+                        <button type="button" class="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 text-xs remove-current-image" data-image-url="{{ image_url }}">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                        <input type="hidden" name="images_to_keep" value="{{ image_url }}" class="image-to-keep-input">
+                    </div>
+                    {% endfor %}
+                </div>
+                <label for="new_images" class="block text-gray-700 text-sm font-semibold mb-2">Upload New Images</label>
+                <input type="file" id="new_images" name="new_images" class="form-control-file" multiple accept="image/*">
+                <p class="text-sm text-gray-500 mt-1">Add more images (PNG, JPG, JPEG, GIF)</p>
+            </div>
+
+            <div class="flex items-center">
+                <input type="checkbox" id="is_featured" name="is_featured" class="form-checkbox h-5 w-5 text-primary rounded" {% if form_data.is_featured %}checked{% endif %}>
+                <label for="is_featured" class="ml-2 text-gray-700 text-sm">Mark as Featured</label>
+            </div>
+
+            <!-- Custom Options Section -->
+            <div class="border border-gray-200 p-6 rounded-lg bg-gray-50">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">Custom Options</h3>
+                <div id="custom-option-groups" class="space-y-4">
+                    <!-- Option groups will be added here by JavaScript -->
+                </div>
+                <button type="button" id="add-option-group-btn" class="btn btn-secondary mt-4">Add Option Group</button>
+                <input type="hidden" id="custom_options_json" name="custom_options_json">
+            </div>
+
+            <button type="submit" class="w-full btn btn-primary py-3 text-xl rounded-md">Update Artwork</button>
+        </form>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    function removeImage(button) {
-        const imageDiv = button.closest('div');
-        imageDiv.remove();
-    }
-
     document.addEventListener('DOMContentLoaded', function() {
-        const customOptionsContainer = document.getElementById('customOptionsContainer');
-        const addOptionGroupBtn = document.getElementById('addOptionGroupBtn');
-        let groupIndexCounter = customOptionsContainer.children.length; // Start counter from existing groups
+        const customOptionGroupsContainer = document.getElementById('custom-option-groups');
+        const addOptionGroupBtn = document.getElementById('add-option-group-btn');
+        const customOptionsInput = document.getElementById('custom_options_json'); // Changed ID
 
-        function addOptionGroup(groupName = '', options = []) {
-            const newGroupDiv = document.createElement('div');
-            newGroupDiv.className = 'custom-option-group border p-3 mb-3 rounded';
-            newGroupDiv.dataset.groupIndex = groupIndexCounter;
+        let optionGroupCounter = 0;
+
+        function addOptionGroup(groupName = '', options = {}) {
+            const groupId = `group-${optionGroupCounter++}`;
+            const groupDiv = document.createElement('div');
+            groupDiv.classList.add('p-4', 'border', 'border-gray-300', 'rounded-md', 'bg-white', 'space-y-3', 'relative');
+            groupDiv.innerHTML = `
+                <button type="button" class="absolute top-2 right-2 text-red-500 hover:text-red-700 remove-group-btn">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+                <div>
+                    <label for="group-name-${groupId}" class="block text-gray-700 text-sm font-semibold mb-2">Option Group Name (e.g., Size, Frame)</label>
+                    <input type="text" id="group-name-${groupId}" class="form-control option-group-name" value="${groupName}" placeholder="Enter group name" required>
+                </div>
+                <div id="options-for-${groupId}" class="space-y-2">
+                    <h4 class="text-md font-semibold text-gray-700">Options:</h4>
+                    <!-- Individual options will go here -->
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm add-option-btn" data-group-id="${groupId}">Add Option</button>
+            `;
+            customOptionGroupsContainer.appendChild(groupDiv);
+
+            const optionsContainer = groupDiv.querySelector(`#options-for-${groupId}`);
+            const addOptionBtn = groupDiv.querySelector(`.add-option-btn`);
             
-            let optionsHtml = '';
-            if (options.length > 0) {
-                options.forEach((option, optionIdx) => {
-                    optionsHtml += `
-                        <div class="input-group mb-2" data-option-index="${optionIdx}">
-                            <input type="text" class="form-control" name="option_label_${groupIndexCounter}_${optionIdx}" placeholder="Option Label (e.g., Canvas)" value="${option.label || ''}" required>
-                            <input type="number" step="0.01" class="form-control" name="option_price_${groupIndexCounter}_${optionIdx}" placeholder="Price (e.g., 500)" value="${option.price || '0.00'}" required>
-                            <button type="button" class="btn btn-outline-danger remove-option-btn">&times;</button>
-                        </div>
-                    `;
-                });
-            } else {
-                // Add one empty option by default if no options are passed
-                optionsHtml = `
-                    <div class="input-group mb-2" data-option-index="0">
-                        <input type="text" class="form-control" name="option_label_${groupIndexCounter}_0" placeholder="Option Label (e.g., Canvas)" required>
-                        <input type="number" step="0.01" class="form-control" name="option_price_${groupIndexCounter}_0" placeholder="Price (e.g., 500)" value="0.00" required>
-                        <button type="button" class="btn btn-outline-danger remove-option-btn">&times;</button>
-                    </div>
+            let optionCounter = 0;
+
+            function addOption(optionLabel = '', priceImpact = '0.00') {
+                const optionId = `option-${groupId}-${optionCounter++}`;
+                const optionDiv = document.createElement('div');
+                optionDiv.classList.add('flex', 'items-center', 'space-x-2');
+                optionDiv.innerHTML = `
+                    <input type="text" id="option-label-${optionId}" class="form-control flex-1 option-label" value="${optionLabel}" placeholder="Option Label (e.g., A4, Wooden)" required>
+                    <input type="number" id="option-price-${optionId}" class="form-control w-32 option-price" step="0.01" value="${priceImpact}" placeholder="Price Impact" required>
+                    <button type="button" class="text-red-500 hover:text-red-700 remove-option-btn">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
                 `;
+                optionsContainer.appendChild(optionDiv);
+
+                optionDiv.querySelector('.remove-option-btn').addEventListener('click', function() {
+                    optionDiv.remove();
+                    updateCustomOptionsJson();
+                });
+
+                // Add event listeners for input changes to trigger JSON update
+                optionDiv.querySelector('.option-label').addEventListener('input', updateCustomOptionsJson);
+                optionDiv.querySelector('.option-price').addEventListener('input', updateCustomOptionsJson);
             }
 
-            newGroupDiv.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <input type="text" class="form-control me-2" name="option_group_name_${groupIndexCounter}" placeholder="Option Group Name (e.g., Material)" value="${groupName}" required>
-                    <button type="button" class="btn btn-danger btn-sm remove-group-btn">&times;</button>
-                </div>
-                <div class="custom-options-list">
-                    ${optionsHtml}
-                </div>
-                <button type="button" class="btn btn-sm btn-outline-primary add-option-btn mt-2" data-group-index="${groupIndexCounter}">Add Option</button>
-            `;
-            customOptionsContainer.appendChild(newGroupDiv);
-            groupIndexCounter++;
-            attachEventListeners(); // Re-attach listeners for new elements
+            addOptionBtn.addEventListener('click', () => addOption());
+            groupDiv.querySelector('.remove-group-btn').addEventListener('click', function() {
+                groupDiv.remove();
+                updateCustomOptionsJson();
+            });
+            groupDiv.querySelector('.option-group-name').addEventListener('input', updateCustomOptionsJson);
+
+            // Populate existing options
+            for (const label in options) {
+                addOption(label, options[label]);
+            }
+            if (Object.keys(options).length === 0) {
+                addOption(); // Add one default option if no existing options
+            }
         }
 
-        function addOption(groupDiv, optionLabel = '', optionPrice = '0.00') {
-            const groupIndex = groupDiv.dataset.groupIndex;
-            const optionsList = groupDiv.querySelector('.custom-options-list');
-            let optionIndex = optionsList.children.length; // Get next option index for this group
+        function updateCustomOptionsJson() {
+            const allOptionGroups = {};
+            document.querySelectorAll('#custom-option-groups > div').forEach(groupDiv => {
+                const groupNameInput = groupDiv.querySelector('.option-group-name');
+                const groupName = groupNameInput ? groupNameInput.value.trim() : '';
 
-            const newOptionDiv = document.createElement('div');
-            newOptionDiv.className = 'input-group mb-2';
-            newOptionDiv.dataset.optionIndex = optionIndex;
-            newOptionDiv.innerHTML = `
-                <input type="text" class="form-control" name="option_label_${groupIndex}_${optionIndex}" placeholder="Option Label (e.g., Canvas)" value="${optionLabel}" required>
-                <input type="number" step="0.01" class="form-control" name="option_price_${groupIndex}_${optionIndex}" placeholder="Price (e.g., 500)" value="${optionPrice}" required>
-                <button type="button" class="btn btn-outline-danger remove-option-btn">&times;</button>
-            `;
-            optionsList.appendChild(newOptionDiv);
-            attachEventListeners(); // Re-attach listeners for new elements
-        }
+                if (groupName) {
+                    const options = {};
+                    groupDiv.querySelectorAll('.flex.items-center.space-x-2').forEach(optionDiv => {
+                        const labelInput = optionDiv.querySelector('.option-label');
+                        const priceInput = optionDiv.querySelector('.option-price');
+                        
+                        const label = labelInput ? labelInput.value.trim() : '';
+                        const price = priceInput ? parseFloat(priceInput.value) : 0;
 
-        function attachEventListeners() {
-            document.querySelectorAll('.remove-group-btn').forEach(button => {
-                button.onclick = (e) => {
-                    e.target.closest('.custom-option-group').remove();
-                };
+                        if (label) {
+                            options[label] = price;
+                        }
+                    });
+                    allOptionGroups[groupName] = options;
+                }
             });
-
-            document.querySelectorAll('.add-option-btn').forEach(button => {
-                button.onclick = (e) => {
-                    const groupDiv = e.target.closest('.custom-option-group');
-                    addOption(groupDiv);
-                };
-            });
-
-            document.querySelectorAll('.remove-option-btn').forEach(button => {
-                button.onclick = (e) => {
-                    e.target.closest('.input-group').remove();
-                };
-            });
+            customOptionsInput.value = JSON.stringify(allOptionGroups);
         }
 
         addOptionGroupBtn.addEventListener('click', () => addOptionGroup());
-        attachEventListeners(); // Attach for initially loaded elements
 
-        // Repopulate existing options on page load if form_data is available
-        {% if form_data.custom_option_groups %}
-            // Clear any default empty group added by Jinja if repopulating
-            customOptionsContainer.innerHTML = ''; 
-            groupIndexCounter = 0; // Reset counter for repopulation
-            {% for group in form_data.custom_option_groups %}
-                addOptionGroup('{{ group.group_name | js_string }}', [
-                    {% for option in group.options %}
-                        { label: '{{ option.label | js_string }}', price: '{{ option.price | floatformat(2) }}' },
-                    {% endfor %}
-                ]);
-            {% endfor %}
-        {% endif %}
+        // Load existing custom options from form_data on page load
+        const existingCustomOptions = {{ form_data.custom_option_groups | tojson }};
+        for (const groupName in existingCustomOptions) {
+            addOptionGroup(groupName, existingCustomOptions[groupName]);
+        }
+        if (Object.keys(existingCustomOptions).length === 0) {
+            // If no existing groups, add one empty group by default for easier editing
+            addOptionGroup();
+        }
+
+        // Initial call to update JSON when page loads (useful for pre-filled forms)
+        updateCustomOptionsJson();
+
+        // Image removal logic
+        document.querySelectorAll('.remove-current-image').forEach(button => {
+            button.addEventListener('click', function() {
+                const imageUrlToRemove = this.dataset.imageUrl;
+                const parentDiv = this.closest('.relative');
+                if (parentDiv) {
+                    parentDiv.remove();
+                    // Remove the corresponding hidden input field as well
+                    document.querySelectorAll('.image-to-keep-input').forEach(input => {
+                        if (input.value === imageUrlToRemove) {
+                            input.remove();
+                        }
+                    });
+                }
+            });
+        });
+
+
+        // GST Type Logic
+        const gstTypeSelect = document.getElementById('gst_type');
+        const cgstField = document.getElementById('cgst_field');
+        const sgstField = document.getElementById('sgst_field');
+        const igstField = document.getElementById('igst_field');
+        const ugstField = document.getElementById('ugst_field');
+
+        function toggleGstFields() {
+            const selectedGstType = gstTypeSelect.value;
+
+            // Hide all first
+            cgstField.classList.add('hidden');
+            sgstField.classList.add('hidden');
+            igstField.classList.add('hidden');
+            ugstField.classList.add('hidden');
+
+            // Set all to 0.00 when hidden, but only if they were hidden by this function
+            // We need to preserve the actual values if they are being shown
+            const cgstInput = document.getElementById('cgst_percentage');
+            const sgstInput = document.getElementById('sgst_percentage');
+            const igstInput = document.getElementById('igst_percentage');
+            const ugstInput = document.getElementById('ugst_percentage');
+
+            if (selectedGstType === 'intra_state') {
+                cgstField.classList.remove('hidden');
+                sgstField.classList.remove('hidden');
+            } else if (selectedGstType === 'inter_state') {
+                igstField.classList.remove('hidden');
+            } else if (selectedGstType === 'union_territory') {
+                cgstField.classList.remove('hidden');
+                ugstField.classList.remove('hidden');
+            }
+            // For fields that become hidden, set their values to 0.00 to avoid sending old data
+            if (cgstField.classList.contains('hidden')) cgstInput.value = '0.00';
+            if (sgstField.classList.contains('hidden')) sgstInput.value = '0.00';
+            if (igstField.classList.contains('hidden')) igstInput.value = '0.00';
+            if (ugstField.classList.contains('hidden')) ugstInput.value = '0.00';
+        }
+
+        gstTypeSelect.addEventListener('change', toggleGstFields);
+
+        // Initial call to set correct fields on page load
+        toggleGstFields();
     });
 </script>
 {% endblock %}

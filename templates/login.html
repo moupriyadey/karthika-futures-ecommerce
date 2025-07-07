@@ -21,7 +21,7 @@
                        placeholder="Enter your password">
             </div>
             <button type="submit"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-md transition duration-300 transform hover:scale-105 shadow-md">
+                    class="w-full bg-primary hover:bg-orange-700 text-white font-bold py-2.5 px-4 rounded-md transition duration-300 transform hover:scale-105 shadow-md">
                 Login
             </button>
         </form>
@@ -29,7 +29,7 @@
             Don't have an account? <a href="{{ url_for('signup') }}" class="text-blue-600 hover:underline font-semibold">Sign Up</a>
         </p>
         <p class="text-center text-gray-600 mt-3">
-            <a href="{{ url_for('forgot_password') }}" class="text-blue-600 hover:underline text-sm">Forgot Password?</a>
+            <a href="{{ url_for('forgot_password') }}" class="text-blue-600 hover:underline font-semibold">Forgot Password?</a>
         </p>
     </div>
 </div>

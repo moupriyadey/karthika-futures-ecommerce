@@ -1,0 +1,125 @@
+{% extends '_base.html' %}
+
+{% block title %}Manage Users - Karthika Futures{% endblock %}
+
+{% block content %}
+<div class="container main-content-area py-5">
+    <h2 class="text-center mb-4">Manage Users</h2>
+
+    {# Updated admin_navbar.html content directly here to fix the URL #}
+    <nav class="nav nav-pills flex-column flex-sm-row bg-light p-3 rounded-lg shadow-sm mb-4">
+        <a class="flex-sm-fill text-sm-center nav-link {% if request.endpoint == 'admin_dashboard' and not request.args.get('filter_status') and not request.args.get('search') %}active{% endif %}" href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+        <a class="flex-sm-fill text-sm-center nav-link {% if request.endpoint == 'admin_dashboard' and (request.args.get('filter_status') or request.args.get('search')) %}active{% endif %}" href="{{ url_for('admin_dashboard') }}">Orders</a> {# Changed endpoint to admin_dashboard #}
+        <a class="flex-sm-fill text-sm-center nav-link {% if request.endpoint == 'admin_artworks' %}active{% endif %}" href="{{ url_for('admin_artworks') }}">Artworks</a>
+        <a class="flex-sm-fill text-sm-center nav-link {% if request.endpoint == 'admin_categories' %}active{% endif %}" href="{{ url_for('admin_categories') }}">Categories</a>
+        <a class="flex-sm-fill text-sm-center nav-link {% if request.endpoint == 'admin_users' %}active{% endif %}" href="{{ url_for('admin_users') }}">Users</a>
+        <a class="flex-sm-fill text-sm-center nav-link" href="{{ url_for('user_logout') }}">Logout</a> {# Changed admin_logout to user_logout #}
+    </nav>
+    {# End of admin_navbar.html content #}
+
+    <div class="card shadow-sm border-0 rounded-lg">
+        <div class="card-header bg-light">
+            <h4 class="mb-0">All Users</h4>
+        </div>
+        <div class="card-body">
+            {% if users %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Email</th>
+                            <th>Full Name</th>
+                            <th>Phone</th>
+                            <th>Role</th>
+                            <th>Email Verified</th> {# Added Email Verified column #}
+                            <th>Registered On</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>{{ user.id[:8] }}...</td>
+                            <td>{{ user.email }}</td>
+                            <td>{{ user.full_name or 'N/A' }}</td>
+                            <td>{{ user.phone or 'N/A' }}</td>
+                            <td><span class="badge bg-{{ 'success' if user.role == 'admin' else 'info' }}">{{ user.role }}</span></td>
+                            <td>
+                                {% if user.email_verified %}
+                                    <span class="badge bg-success">Yes</span>
+                                {% else %}
+                                    <span class="badge bg-danger">No</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ user.registration_date.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                {% if user.role != 'admin' %}
+                                <button type="button" class="btn btn-danger btn-sm delete-user-btn"
+                                        data-bs-toggle="modal" data-bs-target="#deleteUserModal"
+                                        data-user-id="{{ user.id }}"
+                                        data-user-email="{{ user.email }}">
+                                    <i class="fas fa-trash-alt"></i> Delete
+                                </button>
+                                {% else %}
+                                <span class="text-muted">Admin User</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info text-center" role="alert">
+                No users registered yet.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{# Delete User Confirmation Modal #}
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteUserModalLabel">Confirm User Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete the user "<strong id="userEmailToDelete"></strong>"? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteUserForm" method="POST" action="">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">Delete User</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteUserModalElement = document.getElementById('deleteUserModal');
+        const deleteUserModal = new bootstrap.Modal(deleteUserModalElement);
+        const userEmailToDelete = document.getElementById('userEmailToDelete');
+        const deleteUserForm = document.getElementById('deleteUserForm');
+
+        document.querySelectorAll('.delete-user-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const userId = this.dataset.userId;
+                const userEmail = this.dataset.userEmail;
+                
+                userEmailToDelete.textContent = userEmail;
+                deleteUserForm.action = `/admin/delete-user/${userId}`;
+                deleteUserModal.show();
+            });
+        });
+    });
+</script>
+{% endblock %}

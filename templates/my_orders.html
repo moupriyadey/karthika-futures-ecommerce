@@ -3,27 +3,23 @@
 {% block title %}My Orders - Karthika Futures{% endblock %}
 
 {% block content %}
-<div class="container main-content-area py-4">
+<div class="container main-content-area py-5">
     <h2 class="text-center mb-4">My Orders</h2>
 
     <div class="row justify-content-center">
-        <div class="col-lg-10 col-md-12"> {# Use col-lg-10 for large screens, col-md-12 for medium and smaller #}
-            <div class="card shadow-sm border-0 rounded-lg p-4">
-                <div class="card-header bg-light py-3 rounded-top-lg">
-                    <h5 class="mb-0">Your Order History</h5>
-                </div>
+        <div class="col-md-10">
+            <div class="card shadow-sm border-0 rounded-lg p-4 mb-4">
                 <div class="card-body">
                     {% if orders %}
-                    <div class="table-responsive"> {# Makes table scroll horizontally on small screens #}
+                    <div class="table-responsive">
                         <table class="table table-hover table-striped align-middle">
-                            <thead>
+                            <thead class="table-dark">
                                 <tr>
-                                    <th>Order ID</th>
-                                    <th>Date</th>
-                                    <th>Items</th>
-                                    <th>Total Amount</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
+                                    <th scope="col">Order ID</th>
+                                    <th scope="col">Date</th>
+                                    <th scope="col">Total Amount</th>
+                                    <th scope="col">Status</th>
+                                    <th scope="col">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -31,35 +27,23 @@
                                 <tr>
                                     <td>{{ order.id }}</td>
                                     <td>{{ order.order_date.strftime('%Y-%m-%d %H:%M') }}</td>
-                                    <td>
-                                        <ul class="list-unstyled mb-0">
-                                            {% for item in order.order_items %}
-                                            <li>{{ item.name }} (x{{ item.quantity }})</li>
-                                            {% endfor %}
-                                        </ul>
-                                    </td>
                                     <td>₹{{ order.total_amount | floatformat(2) }}</td>
                                     <td>
-                                        <span class="badge {% if order.status == 'Delivered' %}bg-success{% elif order.status == 'Shipped' %}bg-primary{% elif 'Pending' in order.status or 'Awaiting' in order.status %}bg-warning text-dark{% elif 'Cancelled' in order.status %}bg-danger{% else %}bg-secondary{% endif %}">
+                                        <span class="badge bg-{{ 'success' if 'Delivered' in order.status else ('warning' if 'Pending' in order.status or 'Awaiting' in order.status else 'primary') }}">
                                             {{ order.status }}
                                         </span>
-                                        {% if 'Cancelled' in order.status %}
-                                            <div class="text-muted small mt-1">
-                                                Cancelled on: {{ order.cancellation_timestamp.strftime('%Y-%m-%d %H:%M') if order.cancellation_timestamp else 'N/A' }}<br>
-                                                Reason: {{ order.cancellation_reason or 'No reason provided.' }}
-                                            </div>
-                                        {% endif %}
                                     </td>
                                     <td>
-                                        <div class="d-flex flex-column gap-2"> {# Stack buttons vertically on small screens #}
-                                            <a href="{{ url_for('payment_initiate', order_id=order.id, amount=order.total_amount) }}" class="btn btn-sm btn-info {% if order.status != 'Pending Payment' %}disabled{% endif %}">Pay Now</a>
-                                            <button type="button" class="btn btn-sm btn-danger cancel-order-btn" data-order-id="{{ order.id }}"
-                                                    {% if order.status not in ["Pending Payment", "Payment Submitted - Awaiting Verification"] %}disabled{% endif %}>
-                                                Cancel
-                                            </button>
-                                            <a href="{{ url_for('thank_you_page', order_id=order.id) }}" class="btn btn-sm btn-outline-primary">View Details</a>
-                                            <a href="{{ url_for('download_invoice', order_id=order.id) }}" class="btn btn-sm btn-outline-secondary {% if not order.get_invoice_details().get('invoice_pdf_path') %}disabled{% endif %}">Download Invoice</a>
-                                        </div>
+                                        <a href="{{ url_for('order_summary', order_id=order.id) }}" class="btn btn-info btn-sm me-2">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                        {% if order.status in ['Pending Payment', 'Payment Failed', 'Cancelled by User', 'Cancelled by Admin'] %}
+                                        <button type="button" class="btn btn-danger btn-sm delete-order-btn"
+                                                data-bs-toggle="modal" data-bs-target="#deleteOrderModal"
+                                                data-order-id="{{ order.id }}">
+                                            <i class="fas fa-trash-alt"></i> Delete
+                                        </button>
+                                        {% endif %}
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -67,9 +51,34 @@
                         </table>
                     </div>
                     {% else %}
-                    <p class="text-center">You haven't placed any orders yet.</p>
+                    <div class="alert alert-info text-center" role="alert">
+                        You have not placed any orders yet.
+                    </div>
                     {% endif %}
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Delete Order Confirmation Modal #}
+<div class="modal fade" id="deleteOrderModal" tabindex="-1" aria-labelledby="deleteOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteOrderModalLabel">Confirm Order Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete Order ID: "<strong id="orderIdToDelete"></strong>"? This action cannot be undone.
+                <p class="text-danger mt-2">Note: Deleting an order will restore the stock of items in it.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteOrderForm" method="POST" action="">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">Delete Order</button>
+                </form>
             </div>
         </div>
     </div>
@@ -79,53 +88,18 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Helper function to get CSRF token
-        function getHeaders() {
-            return {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': window.csrfToken
-            };
-        }
+        const deleteOrderModalElement = document.getElementById('deleteOrderModal');
+        const deleteOrderModal = new bootstrap.Modal(deleteOrderModalElement);
+        const orderIdToDelete = document.getElementById('orderIdToDelete');
+        const deleteOrderForm = document.getElementById('deleteOrderForm');
 
-        // Helper function to show custom alerts
-        function showCustomAlert(message, type = 'info') {
-            const container = document.getElementById('flash-messages-container');
-            if (!container) {
-                console.error("Flash messages container not found!");
-                alert(message); // Fallback to browser alert if container is missing
-                return;
-            }
-
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type} flash-message position-fixed top-0 end-0 m-3 shadow`;
-            alertDiv.style.zIndex = 9999;
-            alertDiv.textContent = message;
-            container.appendChild(alertDiv);
-            setTimeout(() => alertDiv.remove(), 5000);
-        }
-
-        document.querySelectorAll('.cancel-order-btn').forEach(button => {
-            button.addEventListener('click', async function() {
+        document.querySelectorAll('.delete-order-btn').forEach(button => {
+            button.addEventListener('click', function() {
                 const orderId = this.dataset.orderId;
-                if (confirm('Are you sure you want to cancel this order? This action cannot be undone.')) {
-                    try {
-                        const response = await fetch(`/cancel_order/${orderId}`, {
-                            method: 'POST', // Ensure POST method
-                            headers: getHeaders()
-                        });
-                        const data = await response.json(); // Expect JSON response
-
-                        if (response.ok && data.success) {
-                            showCustomAlert(data.message || 'Order cancelled successfully!', 'success');
-                            location.reload(); // Reload page to reflect changes
-                        } else {
-                            showCustomAlert(data.message || 'Failed to cancel order.', 'danger');
-                        }
-                    } catch (error) {
-                        console.error('Error cancelling order:', error);
-                        showCustomAlert('An error occurred while cancelling the order.', 'danger');
-                    }
-                }
+                
+                orderIdToDelete.textContent = orderId;
+                deleteOrderForm.action = `/delete-order/${orderId}`;
+                deleteOrderModal.show();
             });
         });
     });

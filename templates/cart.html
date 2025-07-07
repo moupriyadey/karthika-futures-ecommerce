@@ -3,117 +3,127 @@
 {% block title %}Your Cart - Karthika Futures{% endblock %}
 
 {% block content %}
-<div class="container main-content-area py-5">
-    <h2 class="text-center mb-4">Your Shopping Cart</h2>
+<div class="container mx-auto p-4 md:p-8 main-content-area">
+    <h1 class="text-4xl font-extrabold text-center text-gray-800 mb-8">Your Shopping Cart</h1>
 
-    {% if cart_summary and cart_summary.cart_items %}
-    <div class="row">
-        <div class="col-lg-8">
-            <div class="card shadow-sm mb-4 border-0 rounded-lg">
-                <div class="card-header bg-light py-3 rounded-top-lg">
-                    <h5 class="mb-0">Items in Your Cart</h5>
-                </div>
-                <div class="card-body p-4">
-                    <div class="table-responsive">
-                        <table class="table table-hover table-striped align-middle">
-                            <thead>
-                                <tr>
-                                    <th scope="col">Product</th>
-                                    <th scope="col">SKU</th>
-                                    <th scope="col">Options</th> {# Changed from "Options" to "Custom Options" or just "Options" #}
-                                    <th scope="col">Unit Price</th>
-                                    <th scope="col">Quantity</th>
-                                    <th scope="col">Item Total</th>
-                                    <th scope="col"></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for item in cart_summary.cart_items %}
-                                <tr id="cart-item-{{ item.id }}">
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <img src="{{ url_for('static', filename=item.imageUrl) }}" alt="{{ item.name }}" class="img-thumbnail me-3" style="width: 80px; height: 80px; object-fit: cover;">
-                                            <div>
-                                                <h6 class="mb-0">{{ item.name }}</h6>
-                                                <small class="text-muted">Original: ₹{{ item.unit_price_before_options | floatformat(2) }}</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>{{ item.sku }}</td>
-                                    <td>
-                                        {% if item.options %}
-                                            <ul class="list-unstyled small mb-0">
-                                                {% for group, label in item.options.items() %}
-                                                    <li><strong>{{ group }}:</strong> {{ label }}</li>
-                                                {% endfor %}
-                                            </ul>
-                                        {% else %}
-                                            N/A
-                                        {% endif %}
-                                    </td>
-                                    <td>₹{{ item.unit_price_before_gst | floatformat(2) }}</td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <input type="number" class="form-control form-control-sm quantity-input"
-                                                   value="{{ item.quantity }}" min="1"
-                                                   data-item-id="{{ item.id }}"
-                                                   data-sku="{{ item.sku }}"
-                                                   data-original-price="{{ item.unit_price_before_options }}"
-                                                   data-unit-price-before-gst="{{ item.unit_price_before_gst }}"
-                                                   data-gst-percentage="{{ item.gst_percentage }}"
-                                                   style="width: 70px;">
-                                        </div>
-                                    </td>
-                                    <td>₹{{ item.total_price | floatformat(2) }}</td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline-danger remove-from-cart-btn" data-item-id="{{ item.id }}">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+    {% if cart_items %}
+    <div class="overflow-x-auto bg-white rounded-lg shadow-md mb-8">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Options</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price (Excl. GST)</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CGST</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SGST</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IGST</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UGST</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total (Incl. GST)</th>
+                    <th scope="col" class="relative px-6 py-3"><span class="sr-only">Actions</span></th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for item in cart_items %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-20 w-20">
+                                <img class="h-20 w-20 rounded-lg object-cover" src="{{ url_for('static', filename=item.image_url) }}" alt="{{ item.artwork.name }}">
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-lg font-medium text-gray-900">{{ item.artwork.name }}</div>
+                                <div class="text-sm text-gray-500">SKU: {{ item.artwork.sku }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {% if item.selected_options %}
+                            {% for group, option in item.selected_options.items() %}
+                                <div>{{ group }}: {{ option }}</div>
+                            {% endfor %}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-lg text-gray-900 font-semibold">
+                        {{ item.unit_price_before_gst | currency }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center text-lg text-gray-900">
+                        {{ item.quantity }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {{ item.cgst_amount | currency }} ({{ item.cgst_percentage | percent }})
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {{ item.sgst_amount | currency }} ({{ item.sgst_percentage | percent }})
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {{ item.igst_amount | currency }} ({{ item.igst_percentage | percent }})
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {{ item.ugst_amount | currency }} ({{ item.ugst_percentage | percent }})
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-lg text-gray-900 font-bold">
+                        {{ item.total_price_incl_gst | currency }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button class="text-red-600 hover:text-red-900 remove-from-cart-btn" data-item-key="{{ item.item_key }}">
+                            Remove
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="flex flex-col md:flex-row justify-end space-y-6 md:space-y-0 md:space-x-8">
+        <div class="w-full md:w-1/2 lg:w-1/3 bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Cart Summary</h3>
+            <div class="flex justify-between items-center py-2 border-b border-gray-200">
+                <span class="text-gray-700">Subtotal (Excl. GST):</span>
+                <span class="font-semibold text-gray-900">{{ subtotal_before_gst | currency }}</span>
             </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="card shadow-sm border-0 rounded-lg">
-                <div class="card-header bg-light py-3 rounded-top-lg">
-                    <h5 class="mb-0">Order Summary</h5>
-                </div>
-                <div class="card-body p-4">
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            Subtotal (before GST):
-                            <span id="cart-subtotal-before-gst">₹{{ cart_summary.subtotal_before_gst | floatformat(2) }}</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            Total GST:
-                            <span id="cart-total-gst">₹{{ cart_summary.total_gst_amount | floatformat(2) }}</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            Shipping Charge:
-                            <span id="cart-shipping-charge">₹{{ cart_summary.shipping_charge | floatformat(2) }}</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center fw-bold">
-                            Grand Total:
-                            <span id="cart-grand-total">₹{{ cart_summary.grand_total | floatformat(2) }}</span>
-                        </li>
-                    </ul>
-                    <div class="d-grid gap-2 mt-4">
-                        <a href="{{ url_for('checkout') }}" class="btn btn-primary btn-lg">Proceed to Checkout</a>
-                        <a href="{{ url_for('all_products') }}" class="btn btn-outline-secondary btn-lg">Continue Shopping</a>
-                    </div>
-                </div>
+            <div class="flex justify-between items-center py-2 border-b border-gray-200">
+                <span class="text-gray-700">CGST:</span>
+                <span class="font-semibold text-gray-900">{{ total_cgst_amount | currency }}</span>
             </div>
+            <div class="flex justify-between items-center py-2 border-b border-gray-200">
+                <span class="text-gray-700">SGST:</span>
+                <span class="font-semibold text-gray-900">{{ total_sgst_amount | currency }}</span>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-gray-200">
+                <span class="text-gray-700">IGST:</span>
+                <span class="font-semibold text-gray-900">{{ total_igst_amount | currency }}</span>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-gray-200">
+                <span class="text-gray-700">UGST:</span>
+                <span class="font-semibold text-gray-900">{{ total_ugst_amount | currency }}</span>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-gray-200">
+                <span class="text-gray-700">Total GST:</span>
+                <span class="font-semibold text-gray-900">{{ total_gst_amount | currency }}</span>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-gray-200">
+                <span class="text-gray-700">Shipping Charge:</span>
+                <span class="font-semibold text-gray-900">{{ shipping_charge | currency }}</span>
+            </div>
+            <div class="flex justify-between items-center py-3 mt-2">
+                <span class="text-xl font-bold text-gray-800">Grand Total:</span>
+                <span class="text-2xl font-extrabold text-primary">{{ grand_total | currency }}</span>
+            </div>
+            <a href="{{ url_for('purchase_form') }}" class="w-full btn btn-primary mt-4 py-3 text-xl block text-center rounded-md">
+                Proceed to Checkout
+            </a>
         </div>
     </div>
     {% else %}
-    <div class="text-center py-5">
-        <p class="lead">Your cart is empty!</p>
-        <a href="{{ url_for('all_products') }}" class="btn btn-primary btn-lg mt-3">Start Shopping</a>
+    <div class="text-center py-12 bg-white rounded-lg shadow-md">
+        <p class="text-xl text-gray-600 mb-4">Your cart is empty.</p>
+        <a href="{{ url_for('all_products') }}" class="btn btn-primary px-6 py-3 text-lg">
+            Start Shopping
+        </a>
     </div>
     {% endif %}
 </div>
@@ -121,290 +131,38 @@
 
 {% block extra_js %}
 <script>
-<<<<<<< HEAD
-// Assuming getHeaders() is defined in main.js and available globally
-// If not, it needs to be defined here or main.js must be loaded before this script block.
-// Example getHeaders definition if it's not guaranteed to be global from main.js:
-// function getHeaders() {
-//     const headers = { 'Content-Type': 'application/json' };
-//     if (window.csrfToken) {
-//         headers['X-CSRFToken'] = window.csrfToken;
-//     }
-//     return headers;
-// }
+    document.addEventListener('DOMContentLoaded', function() {
+        // Global CSRF token from _base.html
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-function updateCartItem(itemId, quantity, sku, size, frame, glass) {
-    fetch("{{ url_for('update_cart_item_quantity') }}", {
-        method: "POST",
-        headers: getHeaders(), // Use the getHeaders function
-        body: JSON.stringify({
-            item_id: itemId,
-            quantity: quantity,
-            sku: sku,
-            size: size,
-            frame: frame,
-            glass: glass
-        })
-    })
-    .then(async (res) => {
-        if (!res.ok) {
-            const text = await res.text();
-            console.error("Update failed:", text);
-            alert("Something went wrong while updating the cart.");
-            return;
-=======
-document.addEventListener('DOMContentLoaded', () => {
-    // Helper function to get headers including CSRF token
-    function getHeaders() {
-        const headers = { 'Content-Type': 'application/json' };
-        if (window.csrfToken) {
-            headers['X-CSRFToken'] = window.csrfToken;
->>>>>>> a3989ae (SQL v2)
-        }
-        return headers;
-    }
-
-<<<<<<< HEAD
-        if (data.success) {
-            if (data.item_removed) {
-                document.getElementById("cart-item-" + itemId)?.remove();
-                // Check if the cart is now empty and update the display accordingly
-                if (document.querySelectorAll('[id^="cart-item-"]').length === 0) {
-                    location.reload(); // Reload to show the empty cart message
-                }
-            } else {
-                document.getElementById("item-total-" + itemId).textContent =
-                    parseFloat(data.updated_item.total_price).toFixed(2);
-=======
-    // Helper function to show custom alerts
-    function showCustomAlert(message, type = 'info') {
-        const container = document.getElementById('flash-messages-container') || document.body;
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} flash-message position-fixed top-0 end-0 m-3 shadow`;
-        alertDiv.style.zIndex = 9999;
-        alertDiv.textContent = message;
-        container.appendChild(alertDiv);
-        setTimeout(() => alertDiv.remove(), 5000);
-    }
-
-    // Update quantity logic
-    document.querySelectorAll('.quantity-input').forEach(input => {
-        input.addEventListener('change', async function() {
-            const itemId = this.dataset.itemId;
-            const newQuantity = parseInt(this.value);
-
-            if (isNaN(newQuantity) || newQuantity < 1) {
-                showCustomAlert('Quantity must be a positive number.', 'danger');
-                this.value = this.dataset.previousQuantity || 1; // Revert to previous valid quantity
-                return;
->>>>>>> a3989ae (SQL v2)
-            }
-            this.dataset.previousQuantity = newQuantity; // Store current valid quantity
-
-            try {
-                const response = await fetch('/update_cart_quantity', {
-                    method: 'POST',
-                    headers: getHeaders(),
-                    body: JSON.stringify({ item_id: itemId, quantity: newQuantity })
-                });
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                    showCustomAlert(data.message, 'success');
-                    // Update summary display
-                    document.getElementById("cart-subtotal-before-gst").textContent = `₹${parseFloat(data.cart_summary.subtotal_before_gst).toFixed(2)}`;
-                    document.getElementById("cart-total-gst").textContent = `₹${parseFloat(data.cart_summary.total_gst_amount).toFixed(2)}`;
-                    document.getElementById("cart-shipping-charge").textContent = `₹${parseFloat(data.cart_summary.shipping_charge).toFixed(2)}`;
-                    document.getElementById("cart-grand-total").textContent = `₹${parseFloat(data.cart_summary.grand_total).toFixed(2)}`;
-                    
-                    // Update individual item total
-                    this.closest('tr').querySelector('td:nth-child(6)').textContent = `₹${parseFloat(data.updated_item_total).toFixed(2)}`;
-
-                    // Update global cart count
-                    if (window.updateCartCountDisplay) {
-                        localStorage.setItem('cartCount', data.cart_summary.total_items_in_cart);
-                        window.updateCartCountDisplay();
-                    }
-
-<<<<<<< HEAD
-document.addEventListener("DOMContentLoaded", function () {
-    document.querySelectorAll(".btn-increase-quantity, .btn-decrease-quantity").forEach(button => {
-        button.addEventListener("click", function () {
-            const input = this.closest(".input-group").querySelector(".cart-item-quantity");
-            let qty = parseInt(input.value);
-            qty += this.classList.contains("btn-increase-quantity") ? 1 : -1;
-            if (qty < 1) qty = 1; // Ensure quantity doesn't go below 1, unless removing
-            
-            // If quantity becomes 0 due to decrease, consider it a remove action if not 1
-            if (qty === 0 && this.classList.contains("btn-decrease-quantity")) {
-                const data = getItemData(input);
-                if (confirm("Remove this item from your cart?")) {
-                    // Call remove function directly if quantity becomes 0
-                    fetch("{{ url_for('remove_from_cart') }}", {
-                        method: "POST",
-                        headers: getHeaders(), // Use the getHeaders function
-                        body: JSON.stringify(data)
-                    })
-                    .then(async (res) => {
-                        if (!res.ok) {
-                            const text = await res.text();
-                            console.error("Remove failed:", text);
-                            alert("Something went wrong while removing the item.");
-                            return;
-                        }
-                        return res.json();
-                    })
-                    .then(removeData => {
-                        if (!removeData) return;
-                        if (removeData.success) {
-                            document.getElementById("cart-item-" + removeData.id)?.remove();
-                            // Update summary
-                            document.getElementById("cart-subtotal-before-gst").textContent = parseFloat(removeData.cart_summary.subtotal_before_gst).toFixed(2);
-                            document.getElementById("cart-total-gst").textContent = parseFloat(removeData.cart_summary.total_gst_amount).toFixed(2);
-                            document.getElementById("cart-shipping-charge").textContent = parseFloat(removeData.cart_summary.shipping_charge).toFixed(2);
-                            document.getElementById("cart-grand-total").textContent = parseFloat(removeData.cart_summary.grand_total).toFixed(2);
-                            if (window.updateCartCount) updateCartCount();
-                            // If no more items, reload to show empty cart message
-                            if (document.querySelectorAll('[id^="cart-item-"]').length === 0) {
-                                location.reload();
-                            }
-                        } else {
-                            alert(removeData.message || "Remove failed.");
-                        }
-                    })
-                    .catch(err => {
-                        console.error("Remove error:", err);
-                        alert("Error removing item.");
-                    });
-                } else {
-                    // If user cancels remove, revert quantity to 1
-                    input.value = 1;
-                    const data = getItemData(input);
-                    updateCartItem(data.id, 1, data.sku, data.size, data.frame, data.glass);
-                }
-            } else {
-                input.value = qty;
-                const data = getItemData(input);
-                updateCartItem(data.id, qty, data.sku, data.size, data.frame, data.glass);
-            }
-        });
-    });
-
-    document.querySelectorAll(".cart-item-quantity").forEach(input => {
-        input.addEventListener("change", function () {
-            let qty = parseInt(this.value);
-            if (qty < 1 || isNaN(qty)) { // Handle non-numeric or less than 1 input
-                qty = 1; // Default to 1 if invalid
-            }
-            this.value = qty;
-            const data = getItemData(this);
-            updateCartItem(data.id, qty, data.sku, data.size, data.frame, data.glass);
-        });
-    });
-
-    document.querySelectorAll(".btn-remove-item").forEach(button => {
-        button.addEventListener("click", function () {
-            const data = getItemData(this);
-            if (!confirm("Remove this item?")) return;
-            fetch("{{ url_for('remove_from_cart') }}", {
-                method: "POST",
-                headers: getHeaders(), // Use the getHeaders function
-                body: JSON.stringify(data)
-            })
-            .then(async (res) => {
-                if (!res.ok) {
-                    const text = await res.text();
-                    console.error("Remove failed:", text);
-                    alert("Something went wrong while removing the item.");
-                    return;
-                }
-                return res.json();
-            })
-            .then(data => {
-                if (!data) return;
-
-                if (data.success) {
-                    document.getElementById("cart-item-" + data.id)?.remove();
-                    document.getElementById("cart-subtotal-before-gst").textContent =
-                        parseFloat(data.cart_summary.subtotal_before_gst).toFixed(2);
-                    document.getElementById("cart-total-gst").textContent =
-                        parseFloat(data.cart_summary.total_gst_amount).toFixed(2);
-                    document.getElementById("cart-shipping-charge").textContent =
-                        parseFloat(data.cart_summary.shipping_charge).toFixed(2);
-                    document.getElementById("cart-grand-total").textContent =
-                        parseFloat(data.cart_summary.grand_total).toFixed(2);
-
-                    // Optionally update cart count
-                    if (window.updateCartCount) updateCartCount();
-
-                    // If no more items in the cart, display the empty cart message
-                    if (document.querySelectorAll('[id^="cart-item-"]').length === 0) {
-                        location.reload(); // Reload the page to show the empty cart state
-                    }
-=======
->>>>>>> a3989ae (SQL v2)
-                } else {
-                    showCustomAlert(data.message || 'Failed to update quantity.', 'danger');
-                    this.value = this.dataset.previousQuantity || 1; // Revert on error
-                }
-            } catch (err) {
-                console.error("Update quantity error:", err);
-                showCustomAlert('Error updating quantity.', 'danger');
-                this.value = this.dataset.previousQuantity || 1; // Revert on error
-            }
-        });
-    });
-
-    // Remove from cart logic
-    document.querySelectorAll('.remove-from-cart-btn').forEach(button => {
-        button.addEventListener('click', async function() {
-            const itemId = this.dataset.itemId;
-            if (confirm('Are you sure you want to remove this item from your cart?')) {
+        document.querySelectorAll('.remove-from-cart-btn').forEach(button => {
+            button.addEventListener('click', async function() {
+                const itemKey = this.dataset.itemKey;
+                
                 try {
-                    const response = await fetch('/remove_from_cart', {
+                    const response = await fetch('/remove-from-cart', {
                         method: 'POST',
-                        headers: getHeaders(),
-                        body: JSON.stringify({ item_id: itemId })
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken // Use the global CSRF token
+                        },
+                        body: JSON.stringify({ item_key: itemKey })
                     });
                     const data = await response.json();
 
                     if (response.ok && data.success) {
-                        showCustomAlert(data.message, 'success');
-                        document.getElementById("cart-item-" + itemId)?.remove();
-
-                        // Update summary display
-                        document.getElementById("cart-subtotal-before-gst").textContent = `₹${parseFloat(data.cart_summary.subtotal_before_gst).toFixed(2)}`;
-                        document.getElementById("cart-total-gst").textContent = `₹${parseFloat(data.cart_summary.total_gst_amount).toFixed(2)}`;
-                        document.getElementById("cart-shipping-charge").textContent = `₹${parseFloat(data.cart_summary.shipping_charge).toFixed(2)}`;
-                        document.getElementById("cart-grand-total").textContent = `₹${parseFloat(data.cart_summary.grand_total).toFixed(2)}`;
-
-                        // Update global cart count
-                        if (window.updateCartCountDisplay) {
-                            localStorage.setItem('cartCount', data.cart_summary.total_items_in_cart);
-                            window.updateCartCountDisplay();
-                        }
-
-                        // If cart is empty, show empty cart message
-                        if (data.cart_summary.total_items_in_cart === 0) {
-                            document.querySelector('.container.main-content-area.py-5').innerHTML = `
-                                <h2 class="text-center mb-4">Your Shopping Cart</h2>
-                                <div class="text-center py-5">
-                                    <p class="lead">Your cart is empty!</p>
-                                    <a href="{{ url_for('all_products') }}" class="btn btn-primary btn-lg mt-3">Start Shopping</a>
-                                </div>
-                            `;
-                        }
-
+                        showCustomAlert(data.message, 'info');
+                        // Reload the page to reflect cart changes
+                        window.location.reload(); 
                     } else {
-                        showCustomAlert(data.message || 'Failed to remove item.', 'danger');
+                        showCustomAlert(data.message || 'Failed to remove item from cart.', 'danger');
                     }
-                } catch (err) {
-                    console.error("Remove error:", err);
-                    showCustomAlert('Error removing item.', 'danger');
+                } catch (error) {
+                    console.error('Error removing item from cart:', error);
+                    showCustomAlert('An error occurred. Please try again.', 'danger');
                 }
-            }
+            });
         });
     });
-});
 </script>
 {% endblock %}

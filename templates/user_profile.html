@@ -1,0 +1,261 @@
+{% extends '_base.html' %}
+
+{% block title %}My Profile - Karthika Futures{% endblock %}
+
+{% block content %}
+<div class="container main-content-area py-5">
+    <h2 class="text-center mb-4">My Profile</h2>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0 rounded-lg p-4 mb-4">
+                <div class="card-body">
+                    <h4 class="mb-3">Personal Information</h4>
+                    <p><strong>Email:</strong> {{ current_user.email }}</p>
+                    <p><strong>Full Name:</strong> {{ current_user.full_name or 'N/A' }}</p>
+                    <p><strong>Phone:</strong> {{ current_user.phone or 'N/A' }}</p>
+                    <p><strong>Member Since:</strong> {{ current_user.registration_date.strftime('%Y-%m-%d') }}</p>
+                    
+                    <hr class="my-4">
+
+                    <h4 class="mb-3">My Addresses</h4>
+                    {% if user_addresses %}
+                    <div class="list-group mb-3">
+                        {% for address in user_addresses %}
+                        <div class="list-group-item d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>{{ address.full_name }}</strong> {% if address.label %}({{ address.label }}){% endif %}<br>
+                                {{ address.address_line1 }}{% if address.address_line2 %}, {{ address.address_line2 }}{% endif %}<br>
+                                {{ address.city }}, {{ address.state }} - {{ address.pincode }}<br>
+                                Phone: {{ address.phone }}
+                                {% if address.is_default %}
+                                    <span class="badge bg-success ms-2">Default</span>
+                                {% endif %}
+                            </div>
+                            <div class="ms-auto">
+                                <button type="button" class="btn btn-sm btn-outline-primary edit-address-btn me-2"
+                                        data-bs-toggle="modal" data-bs-target="#editAddressModal"
+                                        data-address-id="{{ address.id }}"
+                                        data-full-name="{{ address.full_name }}"
+                                        data-phone="{{ address.phone }}"
+                                        data-address-line1="{{ address.address_line1 }}"
+                                        data-address-line2="{{ address.address_line2 }}"
+                                        data-city="{{ address.city }}"
+                                        data-state="{{ address.state }}"
+                                        data-pincode="{{ address.pincode }}"
+                                        data-is-default="{{ 'true' if address.is_default else 'false' }}"
+                                        data-label="{{ address.label or '' }}">
+                                    Edit
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger delete-address-btn"
+                                        data-bs-toggle="modal" data-bs-target="#deleteAddressModal"
+                                        data-address-id="{{ address.id }}"
+                                        data-address-name="{{ address.full_name }}">
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">You have no saved addresses yet.</p>
+                    {% endif %}
+
+                    <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#addAddressFormCollapse" aria-expanded="false" aria-controls="addAddressFormCollapse">
+                        <i class="fas fa-plus me-2"></i>Add New Address
+                    </button>
+
+                    <div class="collapse mt-3" id="addAddressFormCollapse">
+                        <div class="card card-body bg-light">
+                            <h5 class="mb-3">Add New Address Details</h5>
+                            <form method="POST" action="{{ url_for('add_address') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="new_full_name" class="form-label">Full Name</label>
+                                        <input type="text" class="form-control" id="new_full_name" name="full_name" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="new_phone" class="form-label">Phone Number</label>
+                                        <input type="tel" class="form-control" id="new_phone" name="phone" required>
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="new_address_line1" class="form-label">Address Line 1</label>
+                                        <input type="text" class="form-control" id="new_address_line1" name="address_line1" placeholder="House No., Building, Street" required>
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="new_address_line2" class="form-label">Address Line 2 (Optional)</label>
+                                        <input type="text" class="form-control" id="new_address_line2" name="address_line2" placeholder="Area, Landmark">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="new_city" class="form-label">City</label>
+                                        <input type="text" class="form-control" id="new_city" name="city" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="new_state" class="form-label">State</label>
+                                        <input type="text" class="form-control" id="new_state" name="state" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="new_pincode" class="form-label">Pincode</label>
+                                        <input type="text" class="form-control" id="new_pincode" name="pincode" required>
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="new_label" class="form-label">Address Label (e.g., Home, Work)</label>
+                                        <input type="text" class="form-control" id="new_label" name="label">
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="new_set_as_default" name="is_default">
+                                            <label class="form-check-label" for="new_set_as_default">Set as default address</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <button type="submit" class="btn btn-success">Save Address</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Edit Address Modal #}
+<div class="modal fade" id="editAddressModal" tabindex="-1" aria-labelledby="editAddressModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editAddressModalLabel">Edit Address</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editAddressForm" method="POST" action="">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="edit_full_name" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="edit_full_name" name="full_name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_phone" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="edit_phone" name="phone" required>
+                        </div>
+                        <div class="col-12">
+                            <label for="edit_address_line1" class="form-label">Address Line 1</label>
+                            <input type="text" class="form-control" id="edit_address_line1" name="address_line1" required>
+                        </div>
+                        <div class="col-12">
+                            <label for="edit_address_line2" class="form-label">Address Line 2 (Optional)</label>
+                            <input type="text" class="form-control" id="edit_address_line2" name="address_line2">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="edit_city" class="form-label">City</label>
+                            <input type="text" class="form-control" id="edit_city" name="city" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="edit_state" class="form-label">State</label>
+                            <input type="text" class="form-control" id="edit_state" name="state" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="edit_pincode" class="form-label">Pincode</label>
+                            <input type="text" class="form-control" id="edit_pincode" name="pincode" required>
+                        </div>
+                        <div class="col-12">
+                            <label for="edit_label" class="form-label">Address Label (e.g., Home, Work)</label>
+                            <input type="text" class="form-control" id="edit_label" name="label">
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="edit_is_default" name="is_default">
+                                <label class="form-check-label" for="edit_is_default">Set as default address</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{# Delete Address Confirmation Modal #}
+<div class="modal fade" id="deleteAddressModal" tabindex="-1" aria-labelledby="deleteAddressModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteAddressModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete the address for "<strong id="addressNameToDelete"></strong>"? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteAddressForm" method="POST" action="">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">Delete Address</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- Edit Address Modal Logic ---
+        const editAddressModalElement = document.getElementById('editAddressModal');
+        const editAddressModal = new bootstrap.Modal(editAddressModalElement);
+        const editAddressForm = document.getElementById('editAddressForm');
+
+        editAddressModalElement.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget; // Button that triggered the modal
+            const addressId = button.getAttribute('data-address-id');
+            const fullName = button.getAttribute('data-full-name');
+            const phone = button.getAttribute('data-phone');
+            const addressLine1 = button.getAttribute('data-address-line1');
+            const addressLine2 = button.getAttribute('data-address-line2');
+            const city = button.getAttribute('data-city');
+            const state = button.getAttribute('data-state');
+            const pincode = button.getAttribute('data-pincode');
+            const isDefault = button.getAttribute('data-is-default') === 'true';
+            const label = button.getAttribute('data-label');
+
+            // Populate the form fields
+            editAddressForm.action = `/edit-address/${addressId}`;
+            document.getElementById('edit_full_name').value = fullName;
+            document.getElementById('edit_phone').value = phone;
+            document.getElementById('edit_address_line1').value = addressLine1;
+            document.getElementById('edit_address_line2').value = addressLine2;
+            document.getElementById('edit_city').value = city;
+            document.getElementById('edit_state').value = state;
+            document.getElementById('edit_pincode').value = pincode;
+            document.getElementById('edit_label').value = label;
+            document.getElementById('edit_is_default').checked = isDefault;
+        });
+
+        // --- Delete Address Modal Logic ---
+        const deleteAddressModalElement = document.getElementById('deleteAddressModal');
+        const deleteAddressModal = new bootstrap.Modal(deleteAddressModalElement);
+        const addressNameToDelete = document.getElementById('addressNameToDelete');
+        const deleteAddressForm = document.getElementById('deleteAddressForm');
+
+        document.querySelectorAll('.delete-address-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const addressId = this.dataset.addressId;
+                const addressName = this.dataset.addressName;
+                
+                addressNameToDelete.textContent = addressName;
+                deleteAddressForm.action = `/delete-address/${addressId}`;
+                deleteAddressModal.show();
+            });
+        });
+    });
+</script>
+{% endblock %}

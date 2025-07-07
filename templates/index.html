@@ -26,6 +26,190 @@
     scroll-snap-align: start;
     width: 300px;
   }
+
+  /* Hero Section */
+  .hero-section {
+    background: linear-gradient(rgba(255, 140, 0, 0.1), rgba(255, 165, 0, 0.1)); /* Subtle saffron overlay */
+    padding: 4rem 2rem;
+    border-radius: 1.5rem;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+    margin-bottom: 3rem;
+    color: #333;
+  }
+  .hero-section h1 {
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: #FF8C00; /* Saffron */
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+  }
+  .hero-section p.lead {
+    font-size: 1.25rem;
+    color: #555;
+    max-width: 800px;
+    margin: 1rem auto 2rem;
+  }
+  .hero-section .btn {
+    font-size: 1.1rem;
+    padding: 0.8rem 2rem;
+    border-radius: 2rem;
+    font-weight: 600;
+  }
+
+  /* Featured Artworks Section */
+  .featured-artworks-section h2 {
+    color: #FF8C00;
+    font-weight: 600;
+    margin-bottom: 2rem;
+  }
+  .featured-artwork-card {
+    border: 1px solid #f3e5ab;
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .featured-artwork-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+  }
+  .featured-artwork-card img {
+    height: 220px;
+    object-fit: cover;
+    width: 100%;
+    border-bottom: 1px solid #eee;
+  }
+  .featured-artwork-card .card-body {
+    padding: 1.25rem;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .featured-artwork-card .card-title {
+    font-weight: 600;
+    color: #4a4a4a;
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+  }
+  .featured-artwork-card .card-text {
+    font-size: 0.95rem;
+    color: #666;
+    flex-grow: 1;
+  }
+  .featured-artwork-card .price {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #FF4500; /* Orange-red */
+    margin-top: 1rem;
+  }
+
+  /* Testimonials Section */
+  .testimonials-section {
+    background-color: #FDFDFD; /* Slightly off-white */
+    padding: 4rem 0;
+    border-radius: 1.5rem;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+    margin-top: 3rem;
+  }
+  .testimonials-section h2 {
+    color: #2E8B57; /* Bright Green */
+    font-weight: 600;
+    margin-bottom: 2.5rem;
+  }
+  .testimonial-card {
+    background-color: #ffffff;
+    border-radius: 1rem;
+    padding: 2rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .testimonial-image {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 1rem;
+    border: 3px solid #FF8C00; /* Saffron border */
+  }
+  .testimonial-card .rating {
+    color: #FFBF00; /* Golden saffron stars */
+    margin-bottom: 0.75rem;
+  }
+  .testimonial-card .feedback {
+    font-style: italic;
+    color: #444;
+    margin-bottom: 1rem;
+    flex-grow: 1;
+  }
+  .testimonial-card .author {
+    font-weight: 600;
+    color: #333;
+    margin-top: auto;
+  }
+  .testimonial-card .product-sku {
+    font-size: 0.85rem;
+    color: #777;
+    margin-top: 0.5rem;
+  }
+
+  /* QR Code Donation Section */
+  .qr-code-section {
+    background-color: #fff;
+    padding: 3rem;
+    border-radius: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    margin-top: 3rem;
+    text-align: center;
+  }
+  .qr-code-section h3 {
+    color: #FF8C00;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+  .qr-code-section p {
+    color: #555;
+    margin-bottom: 1.5rem;
+  }
+  .qr-code-section img {
+    max-width: 200px;
+    height: auto;
+    border: 5px solid #2E8B57; /* Bright green border */
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Responsive adjustments for carousel */
+  @media (max-width: 767.98px) {
+    .artwork-carousel .carousel-inner {
+      flex-wrap: nowrap; /* Keep items in a row for horizontal scroll */
+      overflow-x: scroll;
+      -webkit-overflow-scrolling: touch;
+    }
+    .artwork-carousel .carousel-item {
+      width: 250px; /* Adjust width for mobile cards */
+    }
+    .hero-section h1 {
+      font-size: 2.5rem;
+    }
+    .hero-section p.lead {
+      font-size: 1rem;
+    }
+    .featured-artwork-card img {
+      height: 180px;
+    }
+    .testimonial-card {
+      padding: 1.5rem;
+    }
+    .qr-code-section {
+      padding: 2rem;
+    }
+  }
 </style>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 {% endblock %}
@@ -36,55 +220,38 @@
   <!-- Hero -->
   <section class="hero-section text-center mb-5">
     <h1>Welcome to Karthika Futures</h1>
-    <p class="lead">Immerse yourself in a world of spiritual and divine art. Each piece is a journey into timeless wisdom, crafted to inspire and uplift your spirit.</p>
-    <a href="{{ url_for('all_products') }}" class="btn btn-lg btn-light rounded-pill px-5 py-3 shadow-lg">
-      Explore Our Collection <i class="fas fa-arrow-right ms-2"></i>
-    </a>
+    <p class="lead">Discover divine artworks that inspire peace, devotion, and spiritual growth. Each piece is crafted with reverence and care.</p>
+    <a href="{{ url_for('all_products') }}" class="btn btn-primary btn-lg">Explore Artworks</a>
   </section>
 
-  <!-- Artworks by Category -->
-  {% macro render_carousel(title, artworks) %}
-    <section class="mb-5">
-      <h2 class="section-header">{{ title }}</h2>
-      <div class="artwork-carousel">
-        <div class="carousel-inner">
-          {% for artwork in artworks %}
-          <div class="carousel-item">
-            <div class="card artwork-card h-100">
-              <a href="{{ url_for('all_products') }}">
-                <img src="{{ url_for('static', filename=artwork.images[0].replace('static/', '')) if artwork.images else url_for('static', filename='images/placeholder.png') }}"
-                     class="card-img-top clickable-image" alt="{{ artwork.name }}" loading="lazy">
-              </a>
-              <div class="card-body">
-                <h5 class="card-title">{{ artwork.name }}</h5>
-                <h6 class="card-subtitle text-muted mb-2">Category: {{ artwork.category }}</h6>
-                <p class="card-text-description small">{{ artwork.description | default('No description available.') }}</p>
-                <p class="final-price">₹{{ artwork.original_price | round(2) }}</p>
-                <a href="{{ url_for('all_products') }}" class="btn btn-outline-secondary w-100 mt-2">View Details</a>
-              </div>
-            </div>
+  <!-- Featured Artworks Carousel (or Grid for smaller numbers) -->
+  {% if featured_artworks %}
+  <section class="featured-artworks-section text-center mb-5">
+    <h2>Featured Artworks</h2>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+      {% for artwork in featured_artworks %}
+      <div class="col">
+        <div class="card featured-artwork-card">
+          {% set images_list = artwork.get_images_list() %}
+          <img src="{{ url_for('static', filename=images_list[0] if images_list else 'images/placeholder.png') }}"
+               class="card-img-top" alt="{{ artwork.name }}">
+          <div class="card-body">
+            <h5 class="card-title">{{ artwork.name }}</h5>
+            <p class="card-text">{{ artwork.description[:100] }}{% if artwork.description|length > 100 %}...{% endif %}</p>
+            <div class="price">{{ artwork.original_price | currency }}</div> {# Changed from floatformat to currency #}
+            <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-outline-primary btn-sm mt-3">View Details</a>
           </div>
-          {% endfor %}
         </div>
       </div>
-    </section>
-  {% endmacro %}
-
-  {% if featured_artworks %}{{ render_carousel('🌟 Featured Artworks', featured_artworks) }}{% endif %}
-  {% if artworks_by_category %}
-    {% for category_name, artworks_in_category in artworks_by_category.items() %}
-      {{ render_carousel(category_name + ' Collection', artworks_in_category) }}
-    {% endfor %}
+      {% endfor %}
+    </div>
+  </section>
   {% endif %}
 
-  {% if not featured_artworks and not artworks_by_category %}
-    <p class="text-center text-muted fs-5 py-4">No artworks available yet. Please check back later!</p>
-  {% endif %}
-
-  <!-- Testimonials -->
+  <!-- Testimonials Section -->
   {% if testimonials %}
-  <section class="testimonials-section">
-    <h3 class="section-header">What Our Customers Say</h3>
+  <section class="testimonials-section text-center mb-5">
+    <h2>What Our Patrons Say</h2>
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
       {% for testimonial in testimonials %}
       <div class="col">
@@ -116,13 +283,10 @@
         <h3>Support Our Divine Mission</h3>
         <p>Your contributions help us share sacred art and wisdom.</p>
         <img src="{{ url_for('static', filename='uploads/qr_code.png') }}" alt="Donation QR Code">
-        <p class="lead">Scan to Donate via UPI</p>
+        <p class="lead mt-3">Scan to Donate</p>
       </div>
     </div>
   </div>
-</div>
-{% endblock %}
 
-{% block extra_js %}
-<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</div>
 {% endblock %}

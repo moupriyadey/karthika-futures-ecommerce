@@ -1,28 +1,7 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-secondary mb-4 shadow-sm"> {# Changed bg-dark to bg-secondary #}
-    <div class="container-fluid">
-        <a class="navbar-brand text-white" href="{{ url_for('admin_dashboard') }}">Admin Panel</a> {# Explicitly set text-white #}
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNavbarContent">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="adminNavbarContent">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <li class="nav-item">
-                    <a class="nav-link text-white {% if request.endpoint == 'admin_dashboard' %}active{% endif %}" href="{{ url_for('admin_dashboard') }}">Dashboard</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white {% if request.endpoint == 'admin_artworks_view' %}active{% endif %}" href="{{ url_for('admin_artworks_view') }}">Artworks</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white {% if request.endpoint == 'admin_categories_view' %}active{% endif %}" href="{{ url_for('admin_categories_view') }}">Categories</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white {% if request.endpoint == 'admin_orders_view' %}active{% endif %}" href="{{ url_for('admin_orders_view') }}">Orders</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link text-white {% if request.endpoint == 'admin_users_view' %}active{% endif %}" href="{{ url_for('admin_users_view') }}">Users</a>
-                </li>
-            </ul>
-            {# No admin-specific logout link here. The global _navbar.html will handle it. #}
-        </div>
-    </div>
+<nav class="nav nav-pills flex-column flex-sm-row mb-4">
+    <a class="flex-sm-fill text-sm-center nav-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}" href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+    <a class="flex-sm-fill text-sm-center nav-link {% if request.endpoint == 'admin_artworks' %}active{% endif %}" href="{{ url_for('admin_artworks') }}">Artworks</a> {# FIXED: admin_artworks_view to admin_artworks #}
+    <a class="flex-sm-fill text-sm-center nav-link {% if request.endpoint == 'admin_categories' %}active{% endif %}" href="{{ url_for('admin_categories') }}">Categories</a>
+    <a class="flex-sm-fill text-sm-center nav-link {% if request.endpoint == 'admin_users' %}active{% endif %}" href="{{ url_for('admin_users') }}">Users</a>
+    <a class="flex-sm-fill text-sm-center nav-link {% if request.endpoint == 'admin_orders' %}active{% endif %}" href="{{ url_for('admin_orders') }}">Orders</a>
 </nav>

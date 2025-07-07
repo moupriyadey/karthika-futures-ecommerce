@@ -3,73 +3,77 @@
 {% block title %}Search Results - Karthika Futures{% endblock %}
 
 {% block content %}
-<div class="container mx-auto p-4 my-8">
-    <h1 class="text-4xl font-bold text-gray-800 mb-8 text-center">
+<div class="container main-content-area py-5">
+    <h1 class="text-center mb-4">
         Search Results {% if query %}for "{{ query }}"{% endif %}
         {% if category_filter %} in Category: "{{ category_filter }}"{% endif %}
     </h1>
 
     {% if artworks %}
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
         {% for artwork in artworks %}
-        <div class="bg-white rounded-lg shadow-lg overflow-hidden transition-transform transform hover:scale-105 hover:shadow-xl relative flex flex-col">
-            {% if artwork.images %}
-            <img src="{{ url_for('static', filename=artwork.images[0]) }}" 
-                 alt="{{ artwork.name }}" 
-                 class="w-full h-48 object-cover cursor-zoom-in clickable-image"
-                 onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/placeholder.png') }}';"
-                 loading="lazy">
-            {% else %}
-            <img src="{{ url_for('static', filename='images/placeholder.png') }}" 
-                 alt="Placeholder Image" 
-                 class="w-full h-48 object-cover cursor-zoom-in clickable-image">
-            {% endif %}
+        <div class="col">
+            <div class="card h-100 shadow-sm border-0 rounded-lg overflow-hidden d-flex flex-column">
+                {% if artwork.images %}
+                <img src="{{ url_for('static', filename=artwork.images[0]) }}" 
+                     alt="{{ artwork.name }}" 
+                     class="card-img-top object-fit-cover w-100" style="height: 180px;"
+                     onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/placeholder.png') }}';"
+                     loading="lazy">
+                {% else %}
+                <img src="{{ url_for('static', filename='images/placeholder.png') }}" 
+                     alt="Placeholder Image" 
+                     class="card-img-top object-fit-cover w-100" style="height: 180px;">
+                {% endif %}
 
-            <div class="p-4 flex-grow flex flex-col">
-                <h2 class="text-xl font-semibold text-gray-900 mb-2 truncate" title="{{ artwork.name }}">{{ artwork.name }}</h2>
-                <p class="text-gray-600 text-sm mb-2">Category: {{ artwork.category }}</p>
-                
-                {# New Description Section #}
-                <div class="text-gray-700 text-sm mb-3 flex-grow overflow-hidden">
-                    <p class="line-clamp-3">{{ artwork.description | default("No description available.") }}</p>
-                </div>
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title text-truncate" title="{{ artwork.name }}">{{ artwork.name }}</h5>
+                    <p class="card-text text-muted small mb-2">Category: {{ artwork.category }}</p>
+                    
+                    {# Description Section #}
+                    <div class="card-text small text-secondary mb-3 flex-grow-1 overflow-hidden">
+                        <p class="line-clamp-3">{{ artwork.description | default("No description available.") }}</p>
+                    </div>
 
-                <div class="flex justify-between items-baseline mb-3">
-                    <p class="text-2xl font-bold text-blue-700">₹{{ artwork.original_price | float | int }}</p>
-                    <p class="text-sm text-gray-500">Stock: {{ artwork.stock }}</p>
-                </div>
+                    <div class="d-flex justify-content-between align-items-baseline mb-3 mt-auto">
+                        <p class="h4 fw-bold text-primary mb-0">₹{{ artwork.original_price | format("%.2f") }}</p>
+                        <p class="text-muted small mb-0">Stock: {{ artwork.stock }}</p>
+                    </div>
 
-                {# Buttons Section #}
-                <div class="mt-auto space-y-2">
-                    <a href="{{ url_for('product_detail', sku=artwork.sku) }}" 
-                       class="block w-full text-center bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition duration-300 transform hover:scale-105 text-sm font-medium">
-                        View Details
-                    </a>
-                    <button class="add-to-cart-btn-listing block w-full text-center bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition duration-300 transform hover:scale-105 text-sm font-medium
-                                    {% if artwork.stock == 0 %} opacity-50 cursor-not-allowed{% endif %}"
-                            data-sku="{{ artwork.sku }}" 
-                            data-name="{{ artwork.name }}" 
-                            data-original-price="{{ artwork.original_price }}"
-                            data-image="{{ url_for('static', filename=artwork.images[0]) if artwork.images else url_for('static', filename='images/placeholder.png') }}"
-                            {% if artwork.stock == 0 %} disabled {% endif %}>
-                        Add to Cart
-                    </button>
-                    <button class="buy-now-btn-listing block w-full text-center bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 transition duration-300 transform hover:scale-105 text-sm font-medium
-                                    {% if artwork.stock == 0 %} opacity-50 cursor-not-allowed{% endif %}"
-                            data-sku="{{ artwork.sku }}" 
-                            data-name="{{ artwork.name }}" 
-                            data-original-price="{{ artwork.original_price }}"
-                            data-image="{{ url_for('static', filename=artwork.images[0]) if artwork.images else url_for('static', filename='images/placeholder.png') }}"
-                            {% if artwork.stock == 0 %} disabled {% endif %}>
-                        Buy Now
-                    </button>
+                    {# Buttons Section #}
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('product_detail', sku=artwork.sku) }}" 
+                           class="btn btn-outline-info btn-sm">
+                            View Details
+                        </a>
+                        <button class="add-to-cart-btn-listing btn btn-success btn-sm
+                                     {% if artwork.stock == 0 %} disabled {% endif %}"
+                                data-sku="{{ artwork.sku }}" 
+                                data-name="{{ artwork.name }}" 
+                                data-original-price="{{ artwork.original_price }}"
+                                data-image="{{ url_for('static', filename=artwork.images[0]) if artwork.images else url_for('static', filename='images/placeholder.png') }}"
+                                {% if artwork.stock == 0 %} disabled {% endif %}>
+                            Add to Cart
+                        </button>
+                        <button class="buy-now-btn-listing btn btn-warning btn-sm
+                                     {% if artwork.stock == 0 %} disabled {% endif %}"
+                                data-sku="{{ artwork.sku }}" 
+                                data-name="{{ artwork.name }}" 
+                                data-original-price="{{ artwork.original_price }}"
+                                data-image="{{ url_for('static', filename=artwork.images[0]) if artwork.images else url_for('static', filename='images/placeholder.png') }}"
+                                {% if artwork.stock == 0 %} disabled {% endif %}>
+                            Buy Now
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
         {% endfor %}
     </div>
     {% else %}
-    <p class="text-center text-gray-600 text-lg">No artworks found matching your criteria.</p>
+    <div class="alert alert-info text-center" role="alert">
+        No artworks found matching your criteria.
+    </div>
     {% endif %}
 </div>
 {% endblock %}
@@ -144,7 +148,8 @@
                     const response = await fetch('{{ url_for("create_direct_order") }}', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': window.csrfToken // Include CSRF token
                         },
                         body: JSON.stringify({ cart: buyNowCart })
                     });

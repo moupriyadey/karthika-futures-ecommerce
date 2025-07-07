@@ -2,111 +2,39 @@
 
 {% block title %}My Profile - Karthika Futures{% endblock %}
 
-{% block extra_css %}
-<style>
-    .profile-container {
-        padding: 3rem;
-        background-color: #ffffff;
-        border-radius: 0.75rem;
-        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
-        margin-top: 2rem;
-        margin-bottom: 2rem;
-    }
-    .profile-header {
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-    .profile-header h2 {
-        color: #333;
-        font-size: 2.5rem;
-    }
-    .profile-info {
-        background-color: #f8f9fa; /* Light background for the info block */
-        border-radius: 0.5rem;
-        padding: 1.5rem;
-        box-shadow: inset 0 0 5px rgba(0,0,0,0.05); /* Subtle inner shadow for an embossed feel */
-    }
-    .profile-info .form-label { /* Styling for labels within the profile-info block */
-        font-weight: bold;
-        color: #555;
-        margin-bottom: 0.5rem;
-        display: block; /* Ensures label is on its own line */
-    }
-    .profile-info .form-control { /* Styling for form inputs within the profile-info block */
-        margin-bottom: 1rem; /* Space between fields */
-        border-radius: 0.35rem; /* Slightly rounded inputs */
-        border: 1px solid #ced4da; /* Default Bootstrap border */
-        padding: 0.75rem 1rem; /* Comfortable padding */
-        font-size: 1rem;
-        color: #495057;
-        background-color: #fff; /* White background for inputs */
-    }
-    .profile-info .form-control[readonly] {
-        background-color: #e9ecef; /* Lighter background for readonly fields */
-        cursor: not-allowed;
-    }
-    .profile-info textarea.form-control {
-        min-height: 80px; /* Give textarea a minimum height */
-        resize: vertical; /* Allow vertical resizing */
-    }
-    .profile-actions {
-        text-align: center;
-        margin-top: 2rem;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="container profile-container">
-    <div class="profile-header">
-        <h2>My Profile</h2>
-        <p class="text-muted">View and update your personal and contact details.</p>
-    </div>
+<div class="container main-content-area py-5">
+    <h2 class="text-center mb-4">My Profile</h2>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <div class="mb-4">
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0 rounded-lg p-4">
+                <div class="card-body">
+                    <form action="{{ url_for('update_profile') }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address (Cannot be changed)</label>
+                            <input type="email" class="form-control" id="email" value="{{ current_user.email }}" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="full_name" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="full_name" name="full_name" value="{{ current_user.full_name or '' }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" value="{{ current_user.phone or '' }}" pattern="[0-9]{10}" maxlength="10">
+                        </div>
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">Update Profile</button>
+                        </div>
+                    </form>
+                    <hr class="my-4">
+                    <div class="text-center">
+                        <a href="{{ url_for('change_password') }}" class="btn btn-secondary">Change Password</a>
                     </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% endwith %}
-
-    <form method="POST" action="{{ url_for('profile') }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="profile-info">
-            <div class="mb-3">
-                <label for="email" class="form-label">Email (Cannot be changed)</label>
-                <input type="email" id="email" name="email" value="{{ user_info.email | default('') }}" readonly class="form-control">
-            </div>
-            <div class="mb-3">
-                <label for="name" class="form-label">Name</label>
-                <input type="text" id="name" name="name" value="{{ user_info.name | default('') }}" class="form-control">
-            </div>
-            <div class="mb-3">
-                <label for="phone" class="form-label">Phone</label>
-                <input type="tel" id="phone" name="phone" value="{{ user_info.phone | default('') }}" class="form-control">
-            </div>
-            <div class="mb-3">
-                <label for="address" class="form-label">Address</label>
-                <textarea id="address" name="address" class="form-control">{{ user_info.address | default('') }}</textarea>
-            </div>
-            <div class="mb-3">
-                <label for="pincode" class="form-label">Pincode</label>
-                <input type="text" id="pincode" name="pincode" value="{{ user_info.pincode | default('') }}" class="form-control">
+                </div>
             </div>
         </div>
-        <div class="profile-actions">
-            <button type="submit" class="btn btn-primary btn-lg px-4">
-                Update Profile
-            </button>
-        </div>
-    </form>
+    </div>
 </div>
 {% endblock %}
-
-{% block extra_js %}{% endblock %}

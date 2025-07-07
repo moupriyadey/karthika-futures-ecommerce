@@ -1,0 +1,73 @@
+{% extends '_base.html' %}
+
+{% block title %}Verify Reset OTP - Karthika Futures{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-center min-h-screen -mt-16">
+    <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md bg-opacity-95 border border-gray-200">
+        <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">Verify Password Reset OTP</h2>
+        <p class="text-center text-gray-600 mb-6">A One-Time Password (OTP) has been sent to <strong class="text-primary">{{ user_email }}</strong> to reset your password. Please enter it below.</p>
+        
+        <form method="POST" action="{{ url_for('verify_reset_otp') }}" class="space-y-5">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div>
+                <label for="otp" class="block text-gray-700 text-sm font-semibold mb-2">OTP</label>
+                <input type="text" id="otp" name="otp" required maxlength="6" pattern="[0-9]{6}"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 text-center text-lg font-bold"
+                       placeholder="Enter 6-digit OTP">
+            </div>
+            <button type="submit"
+                    class="w-full bg-primary hover:bg-orange-700 text-white font-bold py-2.5 px-4 rounded-md transition duration-300 transform hover:scale-105 shadow-md">
+                Verify OTP
+            </button>
+        </form>
+        <p class="text-center text-gray-600 mt-6">
+            Didn't receive the OTP? 
+            <button type="button" id="resendOtpBtn" class="text-blue-600 hover:underline font-semibold bg-transparent border-0 p-0">Resend OTP</button>
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const resendOtpBtn = document.getElementById('resendOtpBtn');
+        if (resendOtpBtn) {
+            resendOtpBtn.addEventListener('click', async function() {
+                // Disable button and show loading indicator
+                resendOtpBtn.disabled = true;
+                resendOtpBtn.textContent = 'Sending...';
+
+                try {
+                    const response = await fetch('/resend_otp', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': window.csrfToken // Use the global CSRF token
+                        },
+                        // No body needed for resend, as user_id is in session
+                    });
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        showCustomAlert(data.message, 'success');
+                    } else {
+                        showCustomAlert(data.message || 'Failed to resend OTP.', 'danger');
+                    }
+                } catch (error) {
+                    console.error('Error resending OTP:', error);
+                    showCustomAlert('An error occurred while resending OTP. Please try again.', 'danger');
+                } finally {
+                    // Re-enable button and reset text after a short delay
+                    setTimeout(() => {
+                        resendOtpBtn.disabled = false;
+                        resendOtpBtn.textContent = 'Resend OTP';
+                    }, 3000); // Wait 3 seconds before allowing resend again
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
