@@ -5,7 +5,8 @@ import uuid
 from datetime import datetime, timedelta
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.utils import secure_filename
+from slugify import slugify
+
 from flask import Flask, render_template, redirect, url_for, flash, request, session, jsonify, make_response, send_file
 from flask import current_app
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -45,6 +46,8 @@ except ImportError:
 
 app = Flask(__name__)
 
+from slugify import slugify
+app.jinja_env.filters['slugify'] = slugify
 # --- Configuration ---
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_very_secret_key_that_should_be_in_env')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///site.db')
@@ -381,6 +384,11 @@ def percent_filter(value):
     except (InvalidOperation, TypeError):
         return "0.00%"
 
+@app.template_filter('slugify')
+def slugify_filter(s):
+    """Converts a string to a URL-friendly slug."""
+    return slugify(s)
+
 # --- Decorators ---
 def admin_required(f):
     @wraps(f)
@@ -457,8 +465,9 @@ def get_cart_items_details():
     grand_total = Decimal('0.00')
     shipping_charge = app.config['DEFAULT_SHIPPING_CHARGE'] # Get default shipping charge
 
-    cart = session.get('cart', {})
-    for item_key, item_data in cart.items():
+    # Iterate over a copy of the cart to allow modification during iteration
+    cart_copy = session.get('cart', {}).copy() 
+    for item_key, item_data in cart_copy.items():
         sku = item_data['sku']
         quantity = item_data['quantity']
         selected_options = item_data.get('options', {})
@@ -498,9 +507,11 @@ def get_cart_items_details():
         else:
             # If artwork not found, remove from cart and flash message
             flash(f"Artwork with SKU {sku} not found and removed from your cart.", "warning")
-            del session['cart'][item_key]
+            # Remove from the original session cart, not the copy
+            if item_key in session['cart']:
+                del session['cart'][item_key]
             session.modified = True # Mark session as modified
-    
+            
     # Add shipping charge to grand total
     grand_total += shipping_charge
 
@@ -1243,7 +1254,7 @@ def admin_dashboard():
     if search_query:
         orders_query = orders_query.join(User).filter(
             (Order.id.ilike(f'%{search_query}%')) |
-            (User.full_name.ilike(f'%{search_name}%')) | # Changed to full_name
+            (User.full_name.ilike(f'%{search_query}%')) | # Changed to full_name
             (User.email.ilike(f'%{search_query}%'))
         )
     if filter_status:
