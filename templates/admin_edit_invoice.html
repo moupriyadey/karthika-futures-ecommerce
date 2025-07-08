@@ -13,94 +13,92 @@
             <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Business Details</h2>
             <div>
                 <label for="business_name" class="block text-gray-700 text-sm font-semibold mb-2">Business Name</label>
-                <input type="text" id="business_name" name="business_name" class="form-control" value="{{ order.get_invoice_details().business_name or our_business_name }}" required>
+                <input type="text" id="business_name" name="business_name" class="form-control" value="{{ invoice_data.get('business_name') or our_business_name }}" required>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label for="gst_number" class="block text-gray-700 text-sm font-semibold mb-2">GSTIN</label>
-                    <input type="text" id="gst_number" name="gst_number" class="form-control" value="{{ order.get_invoice_details().gst_number or our_gstin }}" required>
+                    <label for="gst_number" class="block text-gray-700 text-sm font-semibold mb-2">GST Number</label>
+                    <input type="text" id="gst_number" name="gst_number" class="form-control" value="{{ invoice_data.get('gst_number') or our_gstin }}" required>
                 </div>
                 <div>
-                    <label for="pan_number" class="block text-gray-700 text-sm font-semibold mb-2">PAN</label>
-                    <input type="text" id="pan_number" name="pan_number" class="form-control" value="{{ order.get_invoice_details().pan_number or our_pan }}" required>
+                    <label for="pan_number" class="block text-gray-700 text-sm font-semibold mb-2">PAN Number</label>
+                    <input type="text" id="pan_number" name="pan_number" class="form-control" value="{{ invoice_data.get('pan_number') or our_pan }}" required>
                 </div>
             </div>
             <div>
                 <label for="business_address" class="block text-gray-700 text-sm font-semibold mb-2">Business Address</label>
-                <textarea id="business_address" name="business_address" class="form-control" rows="3" required>{{ order.get_invoice_details().business_address or our_business_address }}</textarea>
+                <textarea id="business_address" name="business_address" class="form-control" rows="3" required>{{ invoice_data.get('business_address') or our_business_address }}</textarea>
             </div>
 
-            <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2 mt-8">Invoice Details</h2>
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Invoice Details</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label for="invoice_number" class="block text-gray-700 text-sm font-semibold mb-2">Invoice Number</label>
-                    <input type="text" id="invoice_number" name="invoice_number" class="form-control" value="{{ order.get_invoice_details().invoice_number or order.id }}" required>
+                    <input type="text" id="invoice_number" name="invoice_number" class="form-control" value="{{ invoice_data.get('invoice_number') or order.id }}" required>
                 </div>
                 <div>
                     <label for="invoice_date" class="block text-gray-700 text-sm font-semibold mb-2">Invoice Date</label>
-                    <input type="date" id="invoice_date" name="invoice_date" class="form-control" value="{{ (order.get_invoice_details().invoice_date or now).strftime('%Y-%m-%d') }}" required>
+                    <input type="date" id="invoice_date" name="invoice_date" class="form-control" value="{{ (invoice_data.get('invoice_date') if invoice_data.get('invoice_date') is not none else now()).strftime('%Y-%m-%d') }}" required>
                 </div>
             </div>
             <div>
-                <label for="billing_address" class="block text-gray-700 text-sm font-semibold mb-2">Billing Address (Customer)</label>
-                <textarea id="billing_address" name="billing_address" class="form-control" rows="3" required>{{ order.get_shipping_address().full_name }}
-{{ order.get_shipping_address().address_line1 }}{% if order.get_shipping_address().address_line2 %}, {{ order.get_shipping_address().address_line2 }}{% endif %}
-{{ order.get_shipping_address().city }}, {{ order.get_shipping_address().state }} - {{ order.get_shipping_address().pincode }}
-Phone: {{ order.get_shipping_address().phone }}</textarea>
+                <label for="billing_address" class="block text-gray-700 text-sm font-semibold mb-2">Billing Address</label>
+                <textarea id="billing_address" name="billing_address" class="form-control" rows="3" required>{{ invoice_data.get('billing_address') or order.get_shipping_address().values() | join(', ') }}</textarea>
             </div>
-
-            <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2 mt-8">Amounts & Status</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label for="gst_rate" class="block text-gray-700 text-sm font-semibold mb-2">Overall GST Rate Applied (%)</label>
-                    <input type="number" id="gst_rate" name="gst_rate" class="form-control" step="0.01" min="0" value="{{ '%.2f' | format(order.get_invoice_details().gst_rate_applied or default_gst_rate) }}" required>
+                    <label for="gst_rate" class="block text-gray-700 text-sm font-semibold mb-2">GST Rate Applied (%)</label>
+                    <input type="number" step="0.01" id="gst_rate" name="gst_rate" class="form-control" value="{{ invoice_data.get('gst_rate_applied') or default_gst_rate }}" required>
                 </div>
                 <div>
                     <label for="shipping_charge" class="block text-gray-700 text-sm font-semibold mb-2">Shipping Charge</label>
-                    <input type="number" id="shipping_charge" name="shipping_charge" class="form-control" step="0.01" min="0" value="{{ '%.2f' | format(order.get_invoice_details().shipping_charge or order.shipping_charge) }}" required>
+                    <input type="number" step="0.01" id="shipping_charge" name="shipping_charge" class="form-control" value="{{ invoice_data.get('shipping_charge') or order.shipping_charge }}" required>
                 </div>
             </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label for="cgst_amount" class="block text-gray-700 text-sm font-semibold mb-2">CGST Amount</label>
-                    <input type="number" id="cgst_amount" name="cgst_amount" class="form-control" step="0.01" value="{{ '%.2f' | format(order.get_invoice_details().cgst_amount or 0) }}" required>
+                    <input type="number" step="0.01" id="cgst_amount" name="cgst_amount" class="form-control" value="{{ invoice_data.get('cgst_amount') or (order.items[0].cgst_amount if order.items else '0.00') }}" required>
                 </div>
                 <div>
                     <label for="sgst_amount" class="block text-gray-700 text-sm font-semibold mb-2">SGST Amount</label>
-                    <input type="number" id="sgst_amount" name="sgst_amount" class="form-control" step="0.01" value="{{ '%.2f' | format(order.get_invoice_details().sgst_amount or 0) }}" required>
+                    <input type="number" step="0.01" id="sgst_amount" name="sgst_amount" class="form-control" value="{{ invoice_data.get('sgst_amount') or (order.items[0].sgst_amount if order.items else '0.00') }}" required>
                 </div>
                 <div>
                     <label for="igst_amount" class="block text-gray-700 text-sm font-semibold mb-2">IGST Amount</label>
-                    <input type="number" id="igst_amount" name="igst_amount" class="form-control" step="0.01" value="{{ '%.2f' | format(order.get_invoice_details().igst_amount or 0) }}" required>
+                    <input type="number" step="0.01" id="igst_amount" name="igst_amount" class="form-control" value="{{ invoice_data.get('igst_amount') or (order.items[0].igst_amount if order.items else '0.00') }}" required>
                 </div>
                 <div>
                     <label for="ugst_amount" class="block text-gray-700 text-sm font-semibold mb-2">UGST Amount</label>
-                    <input type="number" id="ugst_amount" name="ugst_amount" class="form-control" step="0.01" value="{{ '%.2f' | format(order.get_invoice_details().ugst_amount or 0) }}" required>
+                    <input type="number" step="0.01" id="ugst_amount" name="ugst_amount" class="form-control" value="{{ invoice_data.get('ugst_amount') or (order.items[0].ugst_amount if order.items else '0.00') }}" required>
                 </div>
             </div>
-            
             <div>
-                <label for="final_invoice_amount" class="block text-gray-700 text-sm font-semibold mb-2">Final Invoice Amount</label>
-                <input type="number" id="final_invoice_amount" name="final_invoice_amount" class="form-control" step="0.01" min="0" value="{{ '%.2f' | format(order.get_invoice_details().final_invoice_amount or order.total_amount) }}" required>
+                <label for="total_amount" class="block text-gray-700 text-sm font-semibold mb-2">Final Invoice Amount</label>
+                <input type="number" step="0.01" id="total_amount" name="total_amount" class="form-control" value="{{ invoice_data.get('final_invoice_amount') or order.total_amount }}" required>
             </div>
             
             <div>
                 <label for="invoice_status" class="block text-gray-700 text-sm font-semibold mb-2">Invoice Status</label>
                 <select id="invoice_status" name="invoice_status" class="form-select" required>
-                    <option value="Generated" {% if order.get_invoice_details().invoice_status == 'Generated' %}selected{% endif %}>Generated</option>
-                    <option value="Sent" {% if order.get_invoice_details().invoice_status == 'Sent' %}selected{% endif %}>Sent</option>
-                    <option value="Paid" {% if order.get_invoice_details().invoice_status == 'Paid' %}selected{% endif %}>Paid</option>
-                    <option value="Cancelled" {% if order.get_invoice_details().invoice_status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                    <option value="Generated" {% if invoice_data.get('invoice_status') == 'Generated' %}selected{% endif %}>Generated</option>
+                    <option value="Sent" {% if invoice_data.get('invoice_status') == 'Sent' %}selected{% endif %}>Sent</option>
+                    <option value="Paid" {% if invoice_data.get('invoice_status') == 'Paid' %}selected{% endif %}>Paid</option>
+                    <option value="Cancelled" {% if invoice_data.get('invoice_status') == 'Cancelled' %}selected{% endif %}>Cancelled</option>
                 </select>
             </div>
             <div class="flex items-center">
-                <input type="checkbox" id="is_held_by_admin" name="is_held_by_admin" class="form-checkbox h-5 w-5 text-primary rounded" {% if order.get_invoice_details().is_held_by_admin %}checked{% endif %}>
+                <input type="checkbox" id="is_held_by_admin" name="is_held_by_admin" class="form-checkbox h-5 w-5 text-primary rounded" {% if invoice_data.get('is_held_by_admin') %}checked{% endif %}>
                 <label for="is_held_by_admin" class="ml-2 text-gray-700 text-sm">Hold Invoice (Admin Review)</label>
             </div>
 
-            <button type="submit" class="w-full btn btn-primary py-3 text-xl rounded-md">Update Invoice</button>
+            <button type="submit" class="w-full btn btn-primary py-3">Update Invoice Details</button>
         </form>
+        <div class="mt-6 text-center">
+            <a href="{{ url_for('generate_invoice_pdf', order_id=order.id) }}" class="btn btn-success py-3 px-6" target="_blank">
+                <i class="fas fa-print me-2"></i> Print Invoice
+            </a>
+        </div>
     </div>
 </div>
 {% endblock %}

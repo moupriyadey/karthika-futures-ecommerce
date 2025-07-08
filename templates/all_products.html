@@ -17,39 +17,93 @@
         </form>
     </div>
 
-    {% if artworks %}
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 product-grid">
-        {% for artwork in artworks %}
-        <div class="product-card bg-white rounded-lg shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
-            <a href="{{ url_for('product_detail', sku=artwork.sku) }}">
-                <img src="{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}" 
-                     alt="{{ artwork.name }}" 
-                     class="w-full h-48 object-cover object-center">
-            </a>
-            <div class="p-4">
-                <h3 class="text-xl font-semibold text-gray-900 mb-2 truncate">{{ artwork.name }}</h3>
-                <p class="text-gray-600 text-sm mb-3">{{ artwork.category.name }}</p>
-                <div class="flex items-baseline justify-between mb-4">
-                    <span class="text-2xl font-bold text-primary final-price">{{ artwork.selling_price_incl_gst | currency }}</span>
-                    {% if artwork.selling_price_incl_gst != artwork.original_price %}
-                        <span class="text-lg text-gray-500 line-through">{{ artwork.original_price | currency }}</span>
-                    {% endif %}
+    {% if categorized_artworks %}
+        {% for category_name, artworks in categorized_artworks.items() %}
+            <section class="py-8 mb-8 bg-white rounded-lg shadow-md">
+                <div class="container mx-auto">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6 px-4">{{ category_name }}</h2>
+                    <div class="relative">
+                        <div id="category-carousel-{{ category_name | slugify }}" class="flex overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-hide">
+                            {% for artwork in artworks %}
+                            <div class="flex-shrink-0 w-80 snap-center mx-3 product-card bg-white rounded-lg shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
+                                <a href="{{ url_for('product_detail', sku=artwork.sku) }}">
+                                    <img src="{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}" 
+                                         alt="{{ artwork.name }}" 
+                                         class="w-full h-64 object-cover object-center">
+                                </a>
+                                <div class="p-4">
+                                    <h3 class="text-xl font-semibold text-gray-900 mb-2 truncate">{{ artwork.name }}</h3>
+                                    <p class="text-gray-600 text-sm mb-3">{{ artwork.description[:100] }}{% if artwork.description|length > 100 %}...{% endif %}</p>
+                                    <div class="flex items-baseline justify-between mb-4">
+                                        <span class="text-2xl font-bold text-primary final-price">{{ artwork.selling_price_incl_gst | currency }}</span>
+                                        {# Removed the original price display to avoid confusion #}
+                                    </div>
+                                    <div class="flex items-center mb-3">
+                                        <!-- Placeholder for Ratings - Integrate actual rating system if available -->
+                                        <div class="text-yellow-500">
+                                            <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
+                                        </div>
+                                        <span class="text-sm text-gray-600 ml-2">(4.5/5)</span>
+                                    </div>
+                                    {# Display shipping charge based on artwork.shipping_charge #}
+                                    {% if artwork.shipping_charge == 0 %}
+                                    <p class="text-green-600 font-semibold text-sm mb-3"><i class="fas fa-truck mr-1"></i> Free Delivery</p>
+                                    {% else %}
+                                    <p class="text-gray-500 text-sm mb-3"><i class="fas fa-truck mr-1"></i> Shipping: {{ artwork.shipping_charge | currency }}</p>
+                                    {% endif %}
+                                    <div class="flex justify-center">
+                                        <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary px-6 py-2">View Details</a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button class="absolute left-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 z-30 opacity-75 hover:opacity-100 transition-opacity" onclick="scrollCarousel('category-carousel-{{ category_name | slugify }}', -1)">
+                            <i class="fas fa-chevron-left text-gray-700"></i>
+                        </button>
+                        <button class="absolute right-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 z-30 opacity-75 hover:opacity-100 transition-opacity" onclick="scrollCarousel('category-carousel-{{ category_name | slugify }}', 1)">
+                            <i class="fas fa-chevron-right text-gray-700"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-500">Stock: {{ artwork.stock }}</span>
-                    <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary btn-sm">View Details</a>
-                </div>
-            </div>
-        </div>
+            </section>
         {% endfor %}
-    </div>
     {% else %}
     <div class="text-center py-12 bg-white rounded-lg shadow-md">
         <p class="text-xl text-gray-600 mb-4">No artworks found matching your search criteria.</p>
-        <a href="{{ url_for('all_products') }}" class="btn btn-primary px-6 py-3 text-lg">
-            Browse All Artworks
-        </a>
+        <a href="{{ url_for('all_products') }}" class="btn btn-primary">Browse All Artworks</a>
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Function to scroll carousels horizontally
+    function scrollCarousel(carouselId, direction) {
+        const carousel = document.getElementById(carouselId);
+        if (carousel) {
+            const scrollAmount = carousel.offsetWidth / 2; // Scroll half the visible width
+            carousel.scrollBy({
+                left: direction * scrollAmount,
+                behavior: 'smooth'
+            });
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Hide scrollbar but allow scrolling (CSS handles most of this)
+        // Add any other specific JS for all_products here if needed
+    });
+</script>
+<style>
+    /* Hide scrollbar but allow scrolling */
+    .scrollbar-hide {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
+    }
+</style>
 {% endblock %}

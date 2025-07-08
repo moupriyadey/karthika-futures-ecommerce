@@ -32,11 +32,11 @@
           </ul>
         </li>
         <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'my_orders' %}active{% endif %} shimmer-link" href="{{ url_for('my_orders') }}">My Orders</a>
+          <a class="nav-link {% if request.endpoint == 'user_orders' %}active{% endif %} shimmer-link" href="{{ url_for('user_orders') }}">My Orders</a>
         </li>
         {% if current_user.is_authenticated and current_user.is_admin() %}
         <li class="nav-item">
-          <a class="nav-link {% if 'admin' in request.endpoint %}active{% endif %} shimmer-link" href="{{ url_for('admin_panel') }}">Admin Panel</a>
+          <a class="nav-link {% if 'admin' in request.endpoint %}active{% endif %} shimmer-link" href="{{ url_for('admin_dashboard') }}">Admin Panel</a>
         </li>
         {% endif %}
       </ul>
@@ -62,10 +62,10 @@
             <i class="fas fa-user-circle fa-lg"></i> {{ current_user.name if current_user.name else current_user.email }}
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownUser">
-            <li><a class="dropdown-item" href="{{ url_for('profile') }}">Profile</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('my_orders') }}">My Orders</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('user_profile') }}">Profile</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('user_orders') }}">My Orders</a></li>
             <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}">Logout</a></li>
+            <li><a class="dropdown-item text-danger" href="{{ url_for('user_logout') }}">Logout</a></li>
           </ul>
         </li>
         {% else %}

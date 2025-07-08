@@ -1,7 +1,6 @@
 <nav class="nav nav-pills flex-column flex-sm-row mb-4">
     <a class="flex-sm-fill text-sm-center nav-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}" href="{{ url_for('admin_dashboard') }}">Dashboard</a>
-    <a class="flex-sm-fill text-sm-center nav-link {% if request.endpoint == 'admin_artworks' %}active{% endif %}" href="{{ url_for('admin_artworks') }}">Artworks</a> {# FIXED: admin_artworks_view to admin_artworks #}
+    <a class="flex-sm-fill text-sm-center nav-link {% if request.endpoint == 'admin_artworks' %}active{% endif %}" href="{{ url_for('admin_artworks') }}">Artworks</a>
     <a class="flex-sm-fill text-sm-center nav-link {% if request.endpoint == 'admin_categories' %}active{% endif %}" href="{{ url_for('admin_categories') }}">Categories</a>
     <a class="flex-sm-fill text-sm-center nav-link {% if request.endpoint == 'admin_users' %}active{% endif %}" href="{{ url_for('admin_users') }}">Users</a>
-    <a class="flex-sm-fill text-sm-center nav-link {% if request.endpoint == 'admin_orders' %}active{% endif %}" href="{{ url_for('admin_orders') }}">Orders</a>
 </nav>

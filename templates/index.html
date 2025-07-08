@@ -1,292 +1,219 @@
 {% extends '_base.html' %}
 
-{% block title %}Karthika Futures - Divine Art Marketplace{% endblock %}
-
-{% block extra_css_from_page %}
-<style>
-  body::before {
-    content: "";
-    background: url('{{ url_for('static', filename='images/background_krishna_motif.png') }}') no-repeat center center fixed;
-    background-size: cover;
-    opacity: 0.08;
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    z-index: -1;
-  }
-  .artwork-carousel .carousel-inner {
-    display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    gap: 1rem;
-    padding: 1rem;
-  }
-  .artwork-carousel .carousel-item {
-    flex: 0 0 auto;
-    scroll-snap-align: start;
-    width: 300px;
-  }
-
-  /* Hero Section */
-  .hero-section {
-    background: linear-gradient(rgba(255, 140, 0, 0.1), rgba(255, 165, 0, 0.1)); /* Subtle saffron overlay */
-    padding: 4rem 2rem;
-    border-radius: 1.5rem;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-    margin-bottom: 3rem;
-    color: #333;
-  }
-  .hero-section h1 {
-    font-size: 3.5rem;
-    font-weight: 700;
-    color: #FF8C00; /* Saffron */
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-  }
-  .hero-section p.lead {
-    font-size: 1.25rem;
-    color: #555;
-    max-width: 800px;
-    margin: 1rem auto 2rem;
-  }
-  .hero-section .btn {
-    font-size: 1.1rem;
-    padding: 0.8rem 2rem;
-    border-radius: 2rem;
-    font-weight: 600;
-  }
-
-  /* Featured Artworks Section */
-  .featured-artworks-section h2 {
-    color: #FF8C00;
-    font-weight: 600;
-    margin-bottom: 2rem;
-  }
-  .featured-artwork-card {
-    border: 1px solid #f3e5ab;
-    border-radius: 1rem;
-    overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-  .featured-artwork-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
-  }
-  .featured-artwork-card img {
-    height: 220px;
-    object-fit: cover;
-    width: 100%;
-    border-bottom: 1px solid #eee;
-  }
-  .featured-artwork-card .card-body {
-    padding: 1.25rem;
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-  }
-  .featured-artwork-card .card-title {
-    font-weight: 600;
-    color: #4a4a4a;
-    font-size: 1.2rem;
-    margin-bottom: 0.5rem;
-  }
-  .featured-artwork-card .card-text {
-    font-size: 0.95rem;
-    color: #666;
-    flex-grow: 1;
-  }
-  .featured-artwork-card .price {
-    font-size: 1.4rem;
-    font-weight: bold;
-    color: #FF4500; /* Orange-red */
-    margin-top: 1rem;
-  }
-
-  /* Testimonials Section */
-  .testimonials-section {
-    background-color: #FDFDFD; /* Slightly off-white */
-    padding: 4rem 0;
-    border-radius: 1.5rem;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
-    margin-top: 3rem;
-  }
-  .testimonials-section h2 {
-    color: #2E8B57; /* Bright Green */
-    font-weight: 600;
-    margin-bottom: 2.5rem;
-  }
-  .testimonial-card {
-    background-color: #ffffff;
-    border-radius: 1rem;
-    padding: 2rem;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-  }
-  .testimonial-image {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    object-fit: cover;
-    margin-bottom: 1rem;
-    border: 3px solid #FF8C00; /* Saffron border */
-  }
-  .testimonial-card .rating {
-    color: #FFBF00; /* Golden saffron stars */
-    margin-bottom: 0.75rem;
-  }
-  .testimonial-card .feedback {
-    font-style: italic;
-    color: #444;
-    margin-bottom: 1rem;
-    flex-grow: 1;
-  }
-  .testimonial-card .author {
-    font-weight: 600;
-    color: #333;
-    margin-top: auto;
-  }
-  .testimonial-card .product-sku {
-    font-size: 0.85rem;
-    color: #777;
-    margin-top: 0.5rem;
-  }
-
-  /* QR Code Donation Section */
-  .qr-code-section {
-    background-color: #fff;
-    padding: 3rem;
-    border-radius: 1.5rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    margin-top: 3rem;
-    text-align: center;
-  }
-  .qr-code-section h3 {
-    color: #FF8C00;
-    font-weight: 600;
-    margin-bottom: 1rem;
-  }
-  .qr-code-section p {
-    color: #555;
-    margin-bottom: 1.5rem;
-  }
-  .qr-code-section img {
-    max-width: 200px;
-    height: auto;
-    border: 5px solid #2E8B57; /* Bright green border */
-    border-radius: 0.75rem;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  }
-
-  /* Responsive adjustments for carousel */
-  @media (max-width: 767.98px) {
-    .artwork-carousel .carousel-inner {
-      flex-wrap: nowrap; /* Keep items in a row for horizontal scroll */
-      overflow-x: scroll;
-      -webkit-overflow-scrolling: touch;
-    }
-    .artwork-carousel .carousel-item {
-      width: 250px; /* Adjust width for mobile cards */
-    }
-    .hero-section h1 {
-      font-size: 2.5rem;
-    }
-    .hero-section p.lead {
-      font-size: 1rem;
-    }
-    .featured-artwork-card img {
-      height: 180px;
-    }
-    .testimonial-card {
-      padding: 1.5rem;
-    }
-    .qr-code-section {
-      padding: 2rem;
-    }
-  }
-</style>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-{% endblock %}
+{% block title %}Karthika Futures - Your Gateway to Divine Art{% endblock %}
 
 {% block content %}
-<div class="container main-content-area position-relative pt-5">
-
-  <!-- Hero -->
-  <section class="hero-section text-center mb-5">
-    <h1>Welcome to Karthika Futures</h1>
-    <p class="lead">Discover divine artworks that inspire peace, devotion, and spiritual growth. Each piece is crafted with reverence and care.</p>
-    <a href="{{ url_for('all_products') }}" class="btn btn-primary btn-lg">Explore Artworks</a>
-  </section>
-
-  <!-- Featured Artworks Carousel (or Grid for smaller numbers) -->
-  {% if featured_artworks %}
-  <section class="featured-artworks-section text-center mb-5">
-    <h2>Featured Artworks</h2>
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-      {% for artwork in featured_artworks %}
-      <div class="col">
-        <div class="card featured-artwork-card">
-          {% set images_list = artwork.get_images_list() %}
-          <img src="{{ url_for('static', filename=images_list[0] if images_list else 'images/placeholder.png') }}"
-               class="card-img-top" alt="{{ artwork.name }}">
-          <div class="card-body">
-            <h5 class="card-title">{{ artwork.name }}</h5>
-            <p class="card-text">{{ artwork.description[:100] }}{% if artwork.description|length > 100 %}...{% endif %}</p>
-            <div class="price">{{ artwork.original_price | currency }}</div> {# Changed from floatformat to currency #}
-            <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-outline-primary btn-sm mt-3">View Details</a>
-          </div>
+<main>
+    <!-- Hero Section: Mahabharata Theme -->
+    <section class="relative h-screen flex items-center justify-center text-white overflow-hidden">
+        <video autoplay muted loop class="absolute inset-0 w-full h-full object-cover z-0">
+            <!-- Replace with a suitable background video for divine/Mahabharata theme -->
+            <!-- For now, using a placeholder video. You can find free stock videos or create your own. -->
+            <source src="https://assets.mixkit.co/videos/preview/mixkit-sun-rays-in-the-forest-1296-large.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black opacity-75 z-10"></div>
+        <div class="relative z-20 text-center p-4 max-w-4xl mx-auto">
+            <h1 class="text-5xl md:text-7xl font-extrabold mb-4 animate-fade-in-up">
+                Karthika Futures: Where Art Meets Divinity
+            </h1>
+            <p class="text-lg md:text-2xl mb-8 font-light animate-fade-in-up animation-delay-300">
+                Embark on a spiritual journey through timeless artworks inspired by the Mahabharata and Hindu mythology.
+            </p>
+            <a href="{{ url_for('all_products') }}" class="btn btn-primary text-xl px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 animate-fade-in-up animation-delay-600">
+                Explore Divine Artworks <i class="fas fa-arrow-right ml-2"></i>
+            </a>
         </div>
-      </div>
-      {% endfor %}
-    </div>
-  </section>
-  {% endif %}
+    </section>
 
-  <!-- Testimonials Section -->
-  {% if testimonials %}
-  <section class="testimonials-section text-center mb-5">
-    <h2>What Our Patrons Say</h2>
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-      {% for testimonial in testimonials %}
-      <div class="col">
-        <div class="testimonial-card">
-          <img src="{{ url_for('static', filename=testimonial.image.replace('static/', '')) }}"
-               class="testimonial-image"
-               alt="{{ testimonial.name }}"
-               onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/user-placeholder.png') }}';">
-          <div class="rating mb-2">
-            {% for _ in range(testimonial.rating) %}<i class="fas fa-star"></i>{% endfor %}
-            {% for _ in range(5 - testimonial.rating) %}<i class="far fa-star"></i>{% endfor %}
-          </div>
-          <p class="feedback">"{{ testimonial.feedback }}"</p>
-          <p class="author">- {{ testimonial.name }}</p>
-          {% if testimonial.product_sku %}
-          <p class="product-sku">Purchased: SKU: {{ testimonial.product_sku }}</p>
-          {% endif %}
+    <!-- Dharma Prachar & Donation Section -->
+    <section class="py-16 bg-gradient-to-br from-orange-50 to-yellow-100 text-gray-800">
+        <div class="container mx-auto text-center">
+            <h2 class="text-4xl font-extrabold mb-6 text-primary">Support Dharma Prachar</h2>
+            <p class="text-lg md:text-xl max-w-3xl mx-auto mb-8 leading-relaxed">
+                Every purchase from Karthika Futures contributes to the propagation of Dharma and ancient spiritual wisdom. Your support helps us spread the teachings of the Mahabharata and other sacred texts globally.
+            </p>
+            <a href="{{ url_for('contact') }}" class="btn btn-success text-xl px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+                Learn More & Donate <i class="fas fa-heart ml-2"></i>
+            </a>
         </div>
-      </div>
-      {% endfor %}
-    </div>
-  </section>
-  {% endif %}
+    </section>
 
-  <!-- QR Donation Section -->
-  <div class="row mt-5">
-    <div class="col-md-6 offset-md-3">
-      <div class="qr-code-section text-center">
-        <h3>Support Our Divine Mission</h3>
-        <p>Your contributions help us share sacred art and wisdom.</p>
-        <img src="{{ url_for('static', filename='uploads/qr_code.png') }}" alt="Donation QR Code">
-        <p class="lead mt-3">Scan to Donate</p>
-      </div>
-    </div>
-  </div>
+    <!-- Featured Artworks Section (Horizontal Scroll) -->
+    <section class="py-16 bg-white">
+        <div class="container mx-auto">
+            <h2 class="text-4xl font-extrabold text-center text-gray-800 mb-10">Featured Divine Masterpieces</h2>
+            <div class="relative">
+                <div id="featured-artworks-carousel" class="flex overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-hide">
+                    {% for artwork in featured_artworks %}
+                    <div class="flex-shrink-0 w-80 snap-center mx-3 product-card bg-white rounded-lg shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
+                        <a href="{{ url_for('product_detail', sku=artwork.sku) }}">
+                            <img src="{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}" 
+                                 alt="{{ artwork.name }}" 
+                                 class="w-full h-64 object-cover object-center">
+                        </a>
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold text-gray-900 mb-2 truncate">{{ artwork.name }}</h3>
+                            <p class="text-gray-600 text-sm mb-3">{{ artwork.description[:100] }}{% if artwork.description|length > 100 %}...{% endif %}</p>
+                            <div class="flex items-baseline justify-between mb-4">
+                                <span class="text-2xl font-bold text-primary final-price">{{ artwork.selling_price_incl_gst | currency }}</span>
+                                {% if artwork.selling_price_incl_gst != artwork.original_price %}
+                                    <span class="text-lg text-gray-500 line-through">{{ artwork.original_price | currency }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="flex items-center mb-3">
+                                <!-- Placeholder for Ratings - Integrate actual rating system if available -->
+                                <div class="text-yellow-500">
+                                    <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
+                                </div>
+                                <span class="text-sm text-gray-600 ml-2">(4.5/5)</span>
+                            </div>
+                            {% if artwork.shipping_charge is defined and artwork.shipping_charge == 0 %}
+                            <p class="text-green-600 font-semibold text-sm mb-3"><i class="fas fa-truck mr-1"></i> Free Delivery</p>
+                            {% else %}
+                            <p class="text-gray-500 text-sm mb-3"><i class="fas fa-truck mr-1"></i> Shipping charges apply</p>
+                            {% endif %}
+                            <div class="flex justify-center">
+                                <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary px-6 py-2">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-gray-600 w-full">No featured artworks available at the moment.</p>
+                    {% endfor %}
+                </div>
+                <button class="absolute left-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 z-30" id="scroll-left-featured">
+                    <i class="fas fa-chevron-left text-gray-700"></i>
+                </button>
+                <button class="absolute right-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 z-30" id="scroll-right-featured">
+                    <i class="fas fa-chevron-right text-gray-700"></i>
+                </button>
+            </div>
+        </div>
+    </section>
 
-</div>
+    <!-- QR Code Donation Section -->
+    <section class="py-16 bg-gradient-to-br from-orange-50 to-yellow-100 text-gray-800">
+        <div class="container mx-auto text-center">
+            <h2 class="text-4xl font-extrabold mb-6 text-primary">Support Our Divine Mission</h2>
+            <p class="text-lg md:text-xl max-w-3xl mx-auto mb-8 leading-relaxed">
+                Your generous contributions help us propagate Dharma and preserve ancient spiritual wisdom through art. Every donation makes a difference.
+            </p>
+            <div class="inline-block p-4 bg-white rounded-xl shadow-2xl border-4 border-white transform rotate-1 transition-transform duration-300 hover:rotate-0">
+                <img src="{{ url_for('static', filename='uploads/qr_code.png') }}" alt="Donation QR Code" 
+                     class="w-48 h-48 object-contain rounded-lg border-8 border-gray-100 shadow-inner-lg embossed-qr-shadow">
+            </div>
+            <p class="text-2xl font-bold text-gray-800 mt-6 mb-4">Scan to Donate via UPI</p>
+            <div class="flex justify-center space-x-6 mb-8">
+                <img src="{{ url_for('static', filename='images/upi_logos/bhim.png') }}" alt="BHIM UPI" class="h-10 w-auto">
+                <img src="{{ url_for('static', filename='images/upi_logos/gpay.png') }}" alt="Google Pay" class="h-10 w-auto">
+                <img src="{{ url_for('static', filename='images/upi_logos/phonepe.png') }}" alt="PhonePe" class="h-10 w-auto">
+                <img src="{{ url_for('static', filename='images/upi_logos/paytm.png') }}" alt="Paytm" class="h-10 w-auto">
+            </div>
+            <a href="{{ url_for('contact') }}" class="btn btn-primary text-xl px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+                Contact for Other Donation Methods <i class="fas fa-hand-holding-heart ml-2"></i>
+            </a>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="py-16 bg-gradient-to-br from-yellow-50 to-orange-100 text-gray-800">
+        <div class="container mx-auto text-center">
+            <h2 class="text-4xl font-extrabold mb-10 text-primary">Voices of Devotion</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {% for testimonial in testimonials %}
+                <div class="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center text-center">
+                    <img src="{{ url_for('static', filename=testimonial.image) }}" alt="{{ testimonial.name }}" class="w-24 h-24 rounded-full object-cover mb-4 border-4 border-primary shadow-md">
+                    <p class="text-lg font-medium mb-3">"{{ testimonial.feedback }}"</p>
+                    <div class="text-yellow-500 mb-2">
+                        {% for i in range(testimonial.rating) %}<i class="fas fa-star"></i>{% endfor %}
+                        {% if testimonial.rating % 1 != 0 %}<i class="fas fa-star-half-alt"></i>{% endif %}
+                    </div>
+                    <p class="font-semibold text-gray-700">- {{ testimonial.name }}</p>
+                    {% if testimonial.product_sku %}
+                    <a href="{{ url_for('product_detail', sku=testimonial.product_sku) }}" class="text-sm text-blue-600 hover:underline mt-2">View Artwork</a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- Call to Action / Explore More -->
+    <section class="py-16 bg-primary text-white text-center">
+        <div class="container mx-auto">
+            <h2 class="text-4xl font-extrabold mb-6">Discover Your Spiritual Connection</h2>
+            <p class="text-lg md:text-xl max-w-3xl mx-auto mb-8">
+                Each artwork at Karthika Futures is a gateway to ancient wisdom and inner peace. Find the piece that resonates with your soul.
+            </p>
+            <a href="{{ url_for('all_products') }}" class="btn bg-white text-primary text-xl px-8 py-4 rounded-full shadow-lg hover:bg-gray-100 transform hover:scale-105 transition-all duration-300">
+                Begin Your Journey <i class="fas fa-leaf ml-2"></i>
+            </a>
+        </div>
+    </section>
+</main>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Horizontal scroll for featured artworks
+        const carousel = document.getElementById('featured-artworks-carousel');
+        const scrollLeftBtn = document.getElementById('scroll-left-featured');
+        const scrollRightBtn = document.getElementById('scroll-right-featured');
+
+        if (carousel) {
+            scrollLeftBtn.addEventListener('click', () => {
+                carousel.scrollBy({
+                    left: -carousel.offsetWidth / 2, // Scroll half the visible width
+                    behavior: 'smooth'
+                });
+            });
+
+            scrollRightBtn.addEventListener('click', () => {
+                carousel.scrollBy({
+                    left: carousel.offsetWidth / 2, // Scroll half the visible width
+                    behavior: 'smooth'
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}
+
+<style>
+    /* Custom styles for animations */
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-fade-in-up {
+        animation: fadeInUp 1s ease-out forwards;
+        opacity: 0; /* Hidden by default */
+    }
+
+    .animation-delay-300 { animation-delay: 0.3s; }
+    .animation-delay-600 { animation-delay: 0.6s; }
+
+    /* Hide scrollbar but allow scrolling */
+    .scrollbar-hide {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
+    }
+
+    /* Custom styles for the embossed QR code */
+    .embossed-qr-shadow {
+        box-shadow: 
+            inset 0 2px 4px rgba(0,0,0,0.06), /* Inner shadow for embossed effect */
+            0 4px 8px rgba(0,0,0,0.1); /* Soft outer shadow */
+    }
+</style>

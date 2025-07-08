@@ -1,103 +1,108 @@
 {% extends '_base.html' %}
 
-{% block title %}Add New Artwork - Admin{% endblock %}
+{% block title %}Add New Artwork - Karthika Futures{% endblock %}
 
 {% block content %}
-<div class="container mx-auto p-4 md:p-8 main-content-area">
-    <h1 class="text-4xl font-extrabold text-center text-gray-800 mb-8">Add New Artwork</h1>
+<div class="container main-content-area py-5">
+    <h2 class="text-center mb-4">Add New Artwork</h2>
 
-    <div class="bg-white p-6 rounded-lg shadow-md max-w-3xl mx-auto">
-        <form method="POST" action="{{ url_for('admin_add_artwork') }}" enctype="multipart/form-data" class="space-y-6">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="card shadow-sm border-0 rounded-lg">
+        <div class="card-header bg-light">
+            <h4 class="mb-0">Artwork Details</h4>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('admin_add_artwork') }}" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                
+                <div class="mb-3">
+                    <label for="sku" class="form-label">SKU (Unique Identifier)</label>
+                    <input type="text" class="form-control" id="sku" name="sku" required value="{{ form_data.sku if form_data.sku is defined else '' }}">
+                </div>
+                <div class="mb-3">
+                    <label for="name" class="form-label">Artwork Name</label>
+                    <input type="text" class="form-control" id="name" name="name" required value="{{ form_data.name if form_data.name is defined else '' }}">
+                </div>
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea class="form-control" id="description" name="description" rows="5">{{ form_data.description if form_data.description is defined else '' }}</textarea>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="original_price" class="form-label">Original Price (Before GST)</label>
+                        <input type="number" class="form-control" id="original_price" name="original_price" step="0.01" min="0" required value="{{ form_data.original_price if form_data.original_price is defined else '' }}">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="stock" class="form-label">Stock Quantity</label>
+                        <input type="number" class="form-control" id="stock" name="stock" min="0" required value="{{ form_data.stock if form_data.stock is defined else '' }}">
+                    </div>
+                </div>
 
-            <div>
-                <label for="sku" class="block text-gray-700 text-sm font-semibold mb-2">SKU</label>
-                <input type="text" id="sku" name="sku" class="form-control" placeholder="Enter unique SKU" required>
-            </div>
-
-            <div>
-                <label for="name" class="block text-gray-700 text-sm font-semibold mb-2">Artwork Name</label>
-                <input type="text" id="name" name="name" class="form-control" placeholder="Enter artwork name" required>
-            </div>
-
-            <div>
-                <label for="description" class="block text-gray-700 text-sm font-semibold mb-2">Description</label>
-                <textarea id="description" name="description" class="form-control" rows="4" placeholder="Enter detailed description"></textarea>
-            </div>
-
-            <div>
-                <label for="original_price" class="block text-gray-700 text-sm font-semibold mb-2">Original Price (Excl. GST)</label>
-                <input type="number" id="original_price" name="original_price" class="form-control" step="0.01" min="0" placeholder="e.g., 1500.00" required>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label for="gst_type" class="block text-gray-700 text-sm font-semibold mb-2">GST Type</label>
-                    <select id="gst_type" name="gst_type" class="form-select" required>
-                        <option value="intra_state">Intra-State (CGST + SGST)</option>
-                        <option value="inter_state">Inter-State (IGST)</option>
-                        <option value="union_territory">Union Territory (CGST + UGST)</option>
+                <div class="mb-3">
+                    <label for="category_id" class="form-label">Category</label>
+                    <select class="form-select" id="category_id" name="category_id" required>
+                        <option value="">Select a Category</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}" {% if form_data.category_id is defined and form_data.category_id == category.id %}selected{% endif %}>{{ category.name }}</option>
+                        {% endfor %}
                     </select>
                 </div>
-            </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="gst_percentages_fields">
-                <div id="cgst_field">
-                    <label for="cgst_percentage" class="block text-gray-700 text-sm font-semibold mb-2">CGST (%)</label>
-                    <input type="number" id="cgst_percentage" name="cgst_percentage" class="form-control" step="0.01" min="0" max="100" value="0.00" required>
+                <div class="mb-3">
+                    <label for="shipping_charge" class="form-label">Shipping Charge (₹)</label>
+                    <input type="number" class="form-control" id="shipping_charge" name="shipping_charge" step="0.01" min="0" value="{{ form_data.shipping_charge if form_data.shipping_charge is defined else '0.00' }}" required>
+                    <small class="form-text text-muted">Enter 0 for free shipping.</small>
                 </div>
-                <div id="sgst_field">
-                    <label for="sgst_percentage" class="block text-gray-700 text-sm font-semibold mb-2">SGST (%)</label>
-                    <input type="number" id="sgst_percentage" name="sgst_percentage" class="form-control" step="0.01" min="0" max="100" value="0.00" required>
+                
+                <h5 class="mt-4 mb-3">GST Details</h5>
+                <div class="mb-3">
+                    <label for="gst_type" class="form-label">GST Type</label>
+                    <select class="form-select" id="gst_type" name="gst_type" required>
+                        <option value="intra_state" {% if form_data.gst_type is defined and form_data.gst_type == 'intra_state' %}selected{% endif %}>Intra-State (CGST + SGST)</option>
+                        <option value="inter_state" {% if form_data.gst_type is defined and form_data.gst_type == 'inter_state' %}selected{% endif %}>Inter-State (IGST)</option>
+                        <option value="union_territory" {% if form_data.gst_type is defined and form_data.gst_type == 'union_territory' %}selected{% endif %}>Union Territory (CGST + UGST)</option>
+                    </select>
                 </div>
-                <div id="igst_field" class="hidden">
-                    <label for="igst_percentage" class="block text-gray-700 text-sm font-semibold mb-2">IGST (%)</label>
-                    <input type="number" id="igst_percentage" name="igst_percentage" class="form-control" step="0.01" min="0" max="100" value="0.00" required>
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label for="cgst_percentage" class="form-label">CGST (%)</label>
+                        <input type="number" class="form-control" id="cgst_percentage" name="cgst_percentage" step="0.01" min="0" max="100" value="{{ form_data.cgst_percentage if form_data.cgst_percentage is defined else '0.00' }}" required>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="sgst_percentage" class="form-label">SGST (%)</label>
+                        <input type="number" class="form-control" id="sgst_percentage" name="sgst_percentage" step="0.01" min="0" max="100" value="{{ form_data.sgst_percentage if form_data.sgst_percentage is defined else '0.00' }}" required>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="igst_percentage" class="form-label">IGST (%)</label>
+                        <input type="number" class="form-control" id="igst_percentage" name="igst_percentage" step="0.01" min="0" max="100" value="{{ form_data.igst_percentage if form_data.igst_percentage is defined else '0.00' }}" required>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="ugst_percentage" class="form-label">UGST (%)</label>
+                        <input type="number" class="form-control" id="ugst_percentage" name="ugst_percentage" step="0.01" min="0" max="100" value="{{ form_data.ugst_percentage if form_data.ugst_percentage is defined else '0.00' }}" required>
+                    </div>
                 </div>
-                <div id="ugst_field" class="hidden">
-                    <label for="ugst_percentage" class="block text-gray-700 text-sm font-semibold mb-2">UGST (%)</label>
-                    <input type="number" id="ugst_percentage" name="ugst_percentage" class="form-control" step="0.01" min="0" max="100" value="0.00" required>
+
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="is_featured" name="is_featured" {% if form_data.is_featured is defined and form_data.is_featured %}checked{% endif %}>
+                    <label class="form-check-label" for="is_featured">Mark as Featured Artwork</label>
                 </div>
-            </div>
 
-            <div>
-                <label for="stock" class="block text-gray-700 text-sm font-semibold mb-2">Stock Quantity</label>
-                <input type="number" id="stock" name="stock" class="form-control" min="0" placeholder="Enter stock quantity" required>
-            </div>
-
-            <div>
-                <label for="category_id" class="block text-gray-700 text-sm font-semibold mb-2">Category</label>
-                <select id="category_id" name="category_id" class="form-select" required>
-                    <option value="">Select Category</option>
-                    {% for category in categories %}
-                    <option value="{{ category.id }}">{{ category.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div>
-                <label for="images" class="block text-gray-700 text-sm font-semibold mb-2">Artwork Images</label>
-                <input type="file" id="images" name="images" class="form-control-file" multiple accept="image/*">
-                <p class="text-sm text-gray-500 mt-1">Upload multiple images (PNG, JPG, JPEG, GIF)</p>
-            </div>
-
-            <div class="flex items-center">
-                <input type="checkbox" id="is_featured" name="is_featured" class="form-checkbox h-5 w-5 text-primary rounded">
-                <label for="is_featured" class="ml-2 text-gray-700 text-sm">Mark as Featured</label>
-            </div>
-
-            <!-- Custom Options Section -->
-            <div class="border border-gray-200 p-6 rounded-lg bg-gray-50">
-                <h3 class="text-2xl font-bold text-gray-800 mb-4">Custom Options</h3>
-                <div id="custom-option-groups" class="space-y-4">
-                    <!-- Option groups will be added here by JavaScript -->
+                <h5 class="mt-4 mb-3">Artwork Images</h5>
+                <div class="mb-3">
+                    <label for="images" class="form-label">Upload Images (Multiple allowed)</label>
+                    <input type="file" class="form-control" id="images" name="images" accept="image/*" multiple required>
                 </div>
-                <button type="button" id="add-option-group-btn" class="btn btn-secondary mt-4">Add Option Group</button>
-                <input type="hidden" id="custom_options" name="custom_options">
-            </div>
 
-            <button type="submit" class="w-full btn btn-primary py-3 text-xl rounded-md">Add Artwork</button>
-        </form>
+                <h5 class="mt-4 mb-3">Custom Options (e.g., Size, Frame)</h5>
+                <div id="custom-options-builder" class="mb-3 p-3 border rounded bg-light">
+                    <!-- Custom options will be added here dynamically -->
+                    <button type="button" class="btn btn-secondary btn-sm" id="add-option-group-btn"><i class="fas fa-plus me-2"></i>Add Option Group</button>
+                    <input type="hidden" name="custom_options" id="custom_options_json">
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg mt-4"><i class="fas fa-save me-2"></i>Add Artwork</button>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -105,145 +110,197 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const customOptionGroupsContainer = document.getElementById('custom-option-groups');
         const addOptionGroupBtn = document.getElementById('add-option-group-btn');
-        const customOptionsInput = document.getElementById('custom_options');
+        const customOptionsBuilder = document.getElementById('custom-options-builder');
+        const customOptionsJsonInput = document.getElementById('custom_options_json');
 
-        let optionGroupCounter = 0;
+        let optionGroups = {}; // Stores the structure: { "Size": {"Small": 0, "Medium": 100}, "Frame": {"None": 0, "Wood": 500} }
 
-        function addOptionGroup(groupData = {}) {
-            const groupId = `group-${optionGroupCounter++}`;
-            const groupDiv = document.createElement('div');
-            groupDiv.classList.add('p-4', 'border', 'border-gray-300', 'rounded-md', 'bg-white', 'space-y-3', 'relative');
-            groupDiv.innerHTML = `
-                <button type="button" class="absolute top-2 right-2 text-red-500 hover:text-red-700 remove-group-btn">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-                <div>
-                    <label for="group-name-${groupId}" class="block text-gray-700 text-sm font-semibold mb-2">Option Group Name (e.g., Size, Frame)</label>
-                    <input type="text" id="group-name-${groupId}" class="form-control option-group-name" value="${groupData.name || ''}" placeholder="Enter group name" required>
+        // Function to render/re-render the custom options UI
+        function renderOptionGroups() {
+            // Clear existing UI elements, but keep the "Add Option Group" button
+            const existingGroups = customOptionsBuilder.querySelectorAll('.option-group-card');
+            existingGroups.forEach(group => group.remove());
+
+            for (const groupName in optionGroups) {
+                if (optionGroups.hasOwnProperty(groupName)) {
+                    addOptionGroupUI(groupName, optionGroups[groupName]);
+                }
+            }
+            updateCustomOptionsJson(); // Update hidden input after rendering
+        }
+
+        // Function to add a single option group UI
+        function addOptionGroupUI(groupName = '', options = {}) {
+            const groupId = `group-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`; // Unique ID for this group
+
+            const groupCard = document.createElement('div');
+            groupCard.className = 'option-group-card border rounded p-3 mb-3 bg-white shadow-sm';
+            groupCard.id = groupId;
+            groupCard.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <input type="text" class="form-control form-control-sm w-50" placeholder="Option Group Name (e.g., Size)" value="${groupName}" data-group-id="${groupId}" onchange="updateOptionGroupName(this)">
+                    <button type="button" class="btn btn-danger btn-sm" onclick="removeOptionGroup('${groupId}')"><i class="fas fa-times me-2"></i>Remove Group</button>
                 </div>
-                <div id="options-for-${groupId}" class="space-y-2">
-                    <h4 class="text-md font-semibold text-gray-700">Options:</h4>
-                    <!-- Individual options will go here -->
+                <div class="options-list space-y-2">
+                    <!-- Options for this group will go here -->
                 </div>
-                <button type="button" class="btn btn-secondary btn-sm add-option-btn" data-group-id="${groupId}">Add Option</button>
+                <button type="button" class="btn btn-success btn-sm mt-3" onclick="addOptionToGroup('${groupId}')"><i class="fas fa-plus me-2"></i>Add Option</button>
             `;
-            customOptionGroupsContainer.appendChild(groupDiv);
-
-            const optionsContainer = groupDiv.querySelector(`#options-for-${groupId}`);
-            const addOptionBtn = groupDiv.querySelector(`.add-option-btn`);
             
-            let optionCounter = 0;
+            // Insert before the "Add Option Group" button
+            customOptionsBuilder.insertBefore(groupCard, addOptionGroupBtn);
 
-            function addOption(optionData = {}) {
-                const optionId = `option-${groupId}-${optionCounter++}`;
-                const optionDiv = document.createElement('div');
-                optionDiv.classList.add('flex', 'items-center', 'space-x-2');
-                optionDiv.innerHTML = `
-                    <input type="text" id="option-label-${optionId}" class="form-control flex-1 option-label" value="${optionData.label || ''}" placeholder="Option Label (e.g., A4, Wooden)" required>
-                    <input type="number" id="option-price-${optionId}" class="form-control w-32 option-price" step="0.01" value="${optionData.price_impact || '0.00'}" placeholder="Price Impact" required>
-                    <button type="button" class="text-red-500 hover:text-red-700 remove-option-btn">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                `;
-                optionsContainer.appendChild(optionDiv);
-
-                optionDiv.querySelector('.remove-option-btn').addEventListener('click', function() {
-                    optionDiv.remove();
-                    updateCustomOptionsJson();
-                });
-
-                // Add event listeners for input changes to trigger JSON update
-                optionDiv.querySelector('.option-label').addEventListener('input', updateCustomOptionsJson);
-                optionDiv.querySelector('.option-price').addEventListener('input', updateCustomOptionsJson);
+            // Populate options within this group
+            const optionsListDiv = groupCard.querySelector('.options-list');
+            for (const optionLabel in options) {
+                if (options.hasOwnProperty(optionLabel)) {
+                    addOptionUI(groupId, optionsListDiv, optionLabel, options[optionLabel]);
+                }
             }
 
-            addOptionBtn.addEventListener('click', () => addOption());
-            groupDiv.querySelector('.remove-group-btn').addEventListener('click', function() {
-                groupDiv.remove();
-                updateCustomOptionsJson();
-            });
-            groupDiv.querySelector('.option-group-name').addEventListener('input', updateCustomOptionsJson);
-
-            // Populate existing options if groupData has them
-            if (groupData.options) {
-                for (const label in groupData.options) {
-                    addOption({ label: label, price_impact: groupData.options[label] });
-                }
-            } else {
-                addOption(); // Add one default option if no existing options
+            // If it's a new group, add a default option
+            if (Object.keys(options).length === 0) {
+                addOptionUI(groupId, optionsListDiv);
             }
         }
+
+        // Function to add a single option UI to a group
+        function addOptionUI(groupId, optionsListDiv, optionLabel = '', optionPrice = '0') {
+            const optionId = `option-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+
+            const optionRow = document.createElement('div');
+            optionRow.className = 'input-group input-group-sm';
+            optionRow.id = optionId;
+            optionRow.innerHTML = `
+                <input type="text" class="form-control" placeholder="Option Label (e.g., Small)" value="${optionLabel}" onchange="updateOptionData('${groupId}', '${optionId}', 'label', this.value)">
+                <input type="number" class="form-control" placeholder="Price Add (e.g., 100)" step="0.01" min="0" value="${optionPrice}" onchange="updateOptionData('${groupId}', '${optionId}', 'price', this.value)">
+                <button type="button" class="btn btn-outline-danger" onclick="removeOption('${groupId}', '${optionId}')"><i class="fas fa-minus"></i></button>
+            `;
+            optionsListDiv.appendChild(optionRow);
+
+            // Add to internal data structure if it's a new option
+            if (optionLabel && optionPrice) {
+                 // Ensure the group exists in optionGroups before adding the option
+                const groupNameInput = document.querySelector(`.option-group-card[id="${groupId}"] input[data-group-id="${groupId}"]`);
+                const currentGroupName = groupNameInput ? groupNameInput.value : '';
+                if (currentGroupName && !optionGroups[currentGroupName]) {
+                    optionGroups[currentGroupName] = {};
+                }
+                if (currentGroupName) {
+                    optionGroups[currentGroupName][optionLabel] = parseFloat(optionPrice);
+                }
+            }
+            updateCustomOptionsJson();
+        }
+
+        // Event listener for "Add Option Group" button
+        addOptionGroupBtn.addEventListener('click', function() {
+            const newGroupName = `New Group ${Object.keys(optionGroups).length + 1}`;
+            optionGroups[newGroupName] = {}; // Add to data structure
+            addOptionGroupUI(newGroupName, {}); // Render UI
+            updateCustomOptionsJson();
+        });
+
+        // Functions to manage data structure and UI removal
+        window.updateOptionGroupName = function(inputElement) {
+            const oldGroupName = inputElement.dataset.oldGroupName || inputElement.value; // Use old name if set, else current value for initial
+            const newGroupName = inputElement.value;
+            const groupId = inputElement.dataset.groupId;
+
+            // Ensure new group name is unique
+            if (newGroupName && newGroupName !== oldGroupName && optionGroups.hasOwnProperty(newGroupName)) {
+                showCustomAlert('Option group name must be unique.', 'danger');
+                inputElement.value = oldGroupName; // Revert to old name
+                return;
+            }
+
+            if (oldGroupName in optionGroups) {
+                const options = optionGroups[oldGroupName];
+                delete optionGroups[oldGroupName];
+                optionGroups[newGroupName] = options;
+            } else {
+                optionGroups[newGroupName] = {}; // For newly added groups
+            }
+            inputElement.dataset.oldGroupName = newGroupName; // Store new name as old for next change
+            updateCustomOptionsJson();
+        };
+
+        window.removeOptionGroup = function(groupId) {
+            const groupCard = document.getElementById(groupId);
+            const groupNameInput = groupCard.querySelector('input[type="text"]');
+            const groupName = groupNameInput.value;
+
+            if (groupName in optionGroups) {
+                delete optionGroups[groupName];
+            }
+            groupCard.remove();
+            updateCustomOptionsJson();
+        };
+
+        window.addOptionToGroup = function(groupId) {
+            const groupCard = document.getElementById(groupId);
+            const optionsListDiv = groupCard.querySelector('.options-list');
+            addOptionUI(groupId, optionsListDiv);
+        };
+
+        window.updateOptionData = function(groupId, optionId, type, value) {
+            const groupCard = document.getElementById(groupId);
+            const groupNameInput = groupCard.querySelector('input[data-group-id]');
+            const groupName = groupNameInput.value;
+
+            const optionRow = document.getElementById(optionId);
+            const labelInput = optionRow.querySelector('input[type="text"]');
+            const priceInput = optionRow.querySelector('input[type="number"]');
+
+            const currentLabel = labelInput.value;
+            const currentPrice = parseFloat(priceInput.value) || 0;
+
+            if (!optionGroups[groupName]) {
+                optionGroups[groupName] = {};
+            }
+
+            // Remove old entry if label changed
+            if (type === 'label' && optionGroups[groupName].hasOwnProperty(labelInput.dataset.oldLabel || currentLabel)) {
+                delete optionGroups[groupName][labelInput.dataset.oldLabel || currentLabel];
+            }
+
+            // Update the data structure
+            if (type === 'label') {
+                optionGroups[groupName][value] = currentPrice;
+                labelInput.dataset.oldLabel = value; // Store new label as old for next change
+            } else if (type === 'price') {
+                optionGroups[groupName][currentLabel] = parseFloat(value) || 0;
+            }
+            updateCustomOptionsJson();
+        };
+
+        window.removeOption = function(groupId, optionId) {
+            const groupCard = document.getElementById(groupId);
+            const groupNameInput = groupCard.querySelector('input[data-group-id]');
+            const groupName = groupNameInput.value;
+
+            const optionRow = document.getElementById(optionId);
+            const labelInput = optionRow.querySelector('input[type="text"]');
+            const optionLabel = labelInput.value;
+
+            if (optionGroups[groupName] && optionGroups[groupName].hasOwnProperty(optionLabel)) {
+                delete optionGroups[groupName][optionLabel];
+            }
+            optionRow.remove();
+            updateCustomOptionsJson();
+        };
 
         function updateCustomOptionsJson() {
-            const allOptionGroups = {};
-            document.querySelectorAll('#custom-option-groups > div').forEach(groupDiv => {
-                const groupNameInput = groupDiv.querySelector('.option-group-name');
-                const groupName = groupNameInput ? groupNameInput.value.trim() : '';
-
-                if (groupName) {
-                    const options = {};
-                    groupDiv.querySelectorAll('.flex.items-center.space-x-2').forEach(optionDiv => {
-                        const labelInput = optionDiv.querySelector('.option-label');
-                        const priceInput = optionDiv.querySelector('.option-price');
-                        
-                        const label = labelInput ? labelInput.value.trim() : '';
-                        const price = priceInput ? parseFloat(priceInput.value) : 0;
-
-                        if (label) {
-                            options[label] = price;
-                        }
-                    });
-                    allOptionGroups[groupName] = options;
-                }
-            });
-            customOptionsInput.value = JSON.stringify(allOptionGroups);
+            customOptionsJsonInput.value = JSON.stringify(optionGroups);
         }
 
-        addOptionGroupBtn.addEventListener('click', () => addOptionGroup());
-
-        // Initial call to update JSON when page loads (useful for pre-filled forms)
-        updateCustomOptionsJson();
-
-
-        // GST Type Logic
-        const gstTypeSelect = document.getElementById('gst_type');
-        const cgstField = document.getElementById('cgst_field');
-        const sgstField = document.getElementById('sgst_field');
-        const igstField = document.getElementById('igst_field');
-        const ugstField = document.getElementById('ugst_field');
-
-        function toggleGstFields() {
-            const selectedGstType = gstTypeSelect.value;
-
-            // Hide all first
-            cgstField.classList.add('hidden');
-            sgstField.classList.add('hidden');
-            igstField.classList.add('hidden');
-            ugstField.classList.add('hidden');
-
-            // Set all to 0.00 when hidden
-            document.getElementById('cgst_percentage').value = '0.00';
-            document.getElementById('sgst_percentage').value = '0.00';
-            document.getElementById('igst_percentage').value = '0.00';
-            document.getElementById('ugst_percentage').value = '0.00';
-
-            if (selectedGstType === 'intra_state') {
-                cgstField.classList.remove('hidden');
-                sgstField.classList.remove('hidden');
-            } else if (selectedGstType === 'inter_state') {
-                igstField.classList.remove('hidden');
-            } else if (selectedGstType === 'union_territory') {
-                cgstField.classList.remove('hidden');
-                ugstField.classList.remove('hidden');
-            }
+        // Initialize with any existing custom options from form_data if available (for re-rendering on error)
+        const initialCustomOptions = {{ form_data.custom_option_groups | default({}) | tojson | safe }};
+        if (Object.keys(initialCustomOptions).length > 0) {
+            optionGroups = initialCustomOptions;
+            renderOptionGroups();
         }
-
-        gstTypeSelect.addEventListener('change', toggleGstFields);
-
-        // Initial call to set correct fields on page load
-        toggleGstFields();
     });
 </script>
 {% endblock %}

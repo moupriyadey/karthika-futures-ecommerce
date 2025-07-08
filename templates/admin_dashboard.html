@@ -2,184 +2,571 @@
 
 {% block title %}Admin Dashboard - Karthika Futures{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Custom styles for the theme - Ensure these match your _base.html :root variables */
+    :root {
+        --primary-color: #FF8C00; /* Saffron */
+        --secondary-color: #2E8B57; /* Bright Green */
+        --accent-color: #FFBF00; /* Golden Saffron */
+        --text-color: #333333;
+        --light-bg: #FAF9F6;
+        --border-color: #E5E7EB;
+    }
+
+    /* Bootstrap tab styling */
+    .nav-tabs .nav-link {
+        color: #6B7280;
+        border-color: var(--border-color);
+        transition: all 0.3s ease;
+        padding: 1rem 1.5rem;
+        font-size: 1rem;
+        border-radius: 0.5rem 0.5rem 0 0;
+        margin-right: 0.25rem;
+    }
+
+    .nav-tabs .nav-link.active {
+        color: var(--primary-color);
+        background-color: #fff;
+        border-color: var(--primary-color);
+        border-bottom-color: #fff;
+        font-weight: 600;
+        box-shadow: 0 -2px 8px rgba(0,0,0,0.05);
+    }
+
+    .nav-tabs .nav-link:hover {
+        color: var(--primary-color);
+        border-color: #FEEBC8;
+    }
+
+    .tab-content {
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+        background-color: #fff;
+        border-radius: 0 0 0.5rem 0.5rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    /* Custom Alert Styling (already in _base.html, but keeping for reference if specific overrides are needed) */
+    .custom-alert {
+        position: relative;
+        padding: 15px 25px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-width: unset;
+    }
+
+    .custom-alert-message {
+        margin-right: 15px;
+        font-weight: 500;
+    }
+
+    .custom-alert.alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 2px solid;
+        border-image: linear-gradient(to right, #28a745, #218838) 1;
+    }
+
+    .custom-alert.alert-danger {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 2px solid;
+        border-image: linear-gradient(to right, #dc3545, #c82333) 1;
+    }
+
+    .custom-alert.alert-warning {
+        background-color: #fff3cd;
+        color: #856404;
+        border: 2px solid;
+        border-image: linear-gradient(to right, #ffc107, #e0a800) 1;
+    }
+
+    .custom-alert.alert-info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        border: 2px solid;
+        border-image: linear-gradient(to right, #17a2b8, #138496) 1;
+    }
+
+    /* Chart container styling */
+    #monthlyRevenueChartContainer {
+        position: relative;
+        height: 400px; /* Fixed height for chart */
+        width: 100%;
+        margin-top: 2rem;
+    }
+    canvas {
+        max-width: 100%;
+        height: 100%;
+    }
+
+    /* Card styling for dashboard overview */
+    .dashboard-card {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+
+    /* Table styling */
+    .table-responsive {
+        border-radius: 0.5rem;
+        overflow-x: auto;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .table {
+        min-width: 800px; /* Ensure table doesn't shrink too much on smaller screens */
+    }
+    .table thead th {
+        background-color: var(--light-bg);
+        color: var(--text-color);
+        font-weight: 600;
+        border-bottom: 2px solid var(--border-color);
+        padding: 0.75rem 1rem;
+    }
+    .table tbody td {
+        padding: 0.75rem 1rem;
+        vertical-align: middle;
+        border-top: 1px solid var(--border-color);
+    }
+    .table-striped tbody tr:nth-of-type(odd) {
+        background-color: rgba(0,0,0,.02);
+    }
+    .table-hover tbody tr:hover {
+        background-color: rgba(0,0,0,.05);
+    }
+
+    /* Badge styling */
+    .badge {
+        padding: 0.4em 0.8em;
+        border-radius: 0.375rem;
+        font-weight: 600;
+        font-size: 0.75em;
+        text-transform: uppercase;
+    }
+
+    /* Button styling */
+    .btn {
+        border-radius: 0.5rem;
+        padding: 0.6rem 1.2rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: white;
+    }
+    .btn-primary:hover {
+        background-color: #e67e00; /* Darker saffron */
+        border-color: #e67e00;
+    }
+    .btn-success {
+        background-color: var(--secondary-color);
+        border-color: var(--secondary-color);
+        color: white;
+    }
+    .btn-success:hover {
+        background-color: #26734d; /* Darker green */
+        border-color: #26734d;
+    }
+    .btn-info {
+        background-color: #17a2b8;
+        border-color: #17a2b8;
+        color: white;
+    }
+    .btn-info:hover {
+        background-color: #138496;
+        border-color: #138496;
+    }
+    .btn-danger {
+        background-color: #dc3545;
+        border-color: #dc3545;
+        color: white;
+    }
+    .btn-danger:hover {
+        background-color: #c82333;
+        border-color: #c82333;
+    }
+    .btn-secondary {
+        background-color: #6c757d;
+        border-color: #6c757d;
+        color: white;
+    }
+    .btn-secondary:hover {
+        background-color: #5a6268;
+        border-color: #5a6268;
+    }
+
+    /* Form control styling */
+    .form-control, .form-select {
+        border-radius: 0.5rem;
+        border: 1px solid var(--border-color);
+        padding: 0.75rem 1rem;
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.25rem rgba(255, 140, 0, 0.25);
+    }
+
+    /* Modal styling */
+    .modal-content {
+        border-radius: 1rem;
+        overflow: hidden;
+    }
+    .modal-header {
+        border-bottom: none;
+        padding: 1.5rem;
+    }
+    .modal-body {
+        padding: 1.5rem;
+    }
+    .modal-footer {
+        border-top: none;
+        padding: 1rem 1.5rem;
+    }
+    .btn-close {
+        filter: invert(1) grayscale(100%) brightness(200%); /* Makes it white */
+    }
+
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid py-4 main-content-area">
-    <h2 class="mb-4 text-center">Admin Dashboard</h2>
+<div class="container main-content-area py-5">
+    {% include 'admin_navbar.html' %}
 
-    {# Updated admin_navbar.html content directly here to fix the URL #}
-    <nav class="nav nav-pills flex-column flex-sm-row bg-light p-3 rounded-lg shadow-sm mb-4">
-        <a class="flex-sm-fill text-sm-center nav-link {% if request.endpoint == 'admin_dashboard' and not request.args.get('filter_status') and not request.args.get('search') %}active{% endif %}" href="{{ url_for('admin_dashboard') }}">Dashboard</a>
-        <a class="flex-sm-fill text-sm-center nav-link {% if request.endpoint == 'admin_dashboard' and (request.args.get('filter_status') or request.args.get('search')) %}active{% endif %}" href="{{ url_for('admin_dashboard') }}">Orders</a> {# Changed endpoint to admin_dashboard #}
-        <a class="flex-sm-fill text-sm-center nav-link {% if request.endpoint == 'admin_artworks' %}active{% endif %}" href="{{ url_for('admin_artworks') }}">Artworks</a>
-        <a class="flex-sm-fill text-sm-center nav-link {% if request.endpoint == 'admin_categories' %}active{% endif %}" href="{{ url_for('admin_categories') }}">Categories</a>
-        <a class="flex-sm-fill text-sm-center nav-link {% if request.endpoint == 'admin_users' %}active{% endif %}" href="{{ url_for('admin_users') }}">Users</a>
-        <a class="flex-sm-fill text-sm-center nav-link" href="{{ url_for('user_logout') }}">Logout</a> {# Changed admin_logout to user_logout #}
-    </nav>
-    {# End of admin_navbar.html content #}
+    <h2 class="text-center mb-6 text-3xl font-bold text-gray-800">Admin Panel</h2>
 
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card text-white bg-primary mb-3 shadow-sm rounded-lg">
-                <div class="card-body">
-                    <h5 class="card-title">Total Users</h5>
-                    <p class="card-text fs-3">{{ total_users }}</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-white bg-success mb-3 shadow-sm rounded-lg">
-                <div class="card-body">
-                    <h5 class="card-title">Total Revenue</h5>
-                    <p class="card-text fs-3">{{ total_revenue | currency }}</p> {# Changed from floatformat to currency #}
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-white bg-info mb-3 shadow-sm rounded-lg">
-                <div class="card-body">
-                    <h5 class="card-title">Total Artworks</h5>
-                    <p class="card-text fs-3">{{ total_artworks }}</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-white bg-warning mb-3 shadow-sm rounded-lg">
-                <div class="card-body">
-                    <h5 class="card-title">Orders Pending Review</h5>
-                    <p class="card-text fs-3">{{ pending_orders }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
+    <div class="bg-white p-6 rounded-lg shadow-xl border border-gray-200">
+        <!-- Tabs -->
+        <ul class="nav nav-tabs flex flex-col md:flex-row flex-wrap list-none border-b-0 pl-0 mb-4" id="adminTabs" role="tablist">
+            <li class="nav-item flex-auto text-center" role="presentation">
+                <a href="#dashboard-overview" class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" role="tab" aria-controls="dashboard-overview" aria-selected="true">Dashboard Overview</a>
+            </li>
+            <li class="nav-item flex-auto text-center" role="presentation">
+                <a href="#orders" class="nav-link" id="orders-tab" data-bs-toggle="tab" role="tab" aria-controls="orders" aria-selected="false">Orders</a>
+            </li>
+            <li class="nav-item flex-auto text-center" role="presentation">
+                <a href="#artworks" class="nav-link" id="artworks-tab" data-bs-toggle="tab" role="tab" aria-controls="artworks" aria-selected="false">Artworks</a>
+            </li>
+            <li class="nav-item flex-auto text-center" role="presentation">
+                <a href="#users" class="nav-link" id="users-tab" data-bs-toggle="tab" role="tab" aria-controls="users" aria-selected="false">Users</a>
+            </li>
+            <li class="nav-item flex-auto text-center" role="presentation">
+                <a href="#categories" class="nav-link" id="categories-tab" data-bs-toggle="tab" role="tab" aria-controls="categories" aria-selected="false">Categories</a>
+            </li>
+        </ul>
 
-    <div class="row mb-4">
-        <div class="col-md-8 mb-4">
-            <div class="card shadow-sm border-0 rounded-lg">
-                <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                    <h4 class="mb-0">Orders Pending Action</h4>
-                    <a href="{{ url_for('admin_dashboard', filter_status='Payment Submitted - Awaiting Verification') }}" class="btn btn-sm btn-outline-primary">View All Pending</a>
-                </div>
-                <div class="card-body">
-                    {% if orders_pending_review %}
-                    <div class="table-responsive">
-                        <table class="table table-hover table-striped align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Order ID</th>
-                                    <th>Customer</th>
-                                    <th>Amount</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for order in orders_pending_review %}
-                                <tr>
-                                    <td>{{ order.id[:8] }}...</td>
-                                    <td>{{ order.customer.full_name or order.customer.email }}</td>
-                                    <td>{{ order.total_amount | currency }}</td> {# Changed from floatformat to currency #}
-                                    <td>
-                                        <span class="badge bg-warning">{{ order.status }}</span>
-                                    </td>
-                                    <td>
-                                        <a href="{{ url_for('order_summary', order_id=order.id) }}" class="btn btn-info btn-sm me-2">View</a>
-                                        {% if order.status == 'Payment Submitted - Awaiting Verification' %}
-                                        <button type="button" class="btn btn-success btn-sm verify-payment-btn" data-order-id="{{ order.id }}">Verify Payment</button>
-                                        {% elif order.get_invoice_details().get('is_held_by_admin') %}
-                                        <a href="{{ url_for('admin_edit_invoice', order_id=order.id) }}" class="btn btn-primary btn-sm">Review Invoice</a>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+        <!-- Tab Content -->
+        <div class="tab-content" id="adminTabsContent">
+            <!-- Dashboard Overview -->
+            <div class="tab-pane fade show active" id="dashboard-overview" role="tabpanel" aria-labelledby="dashboard-tab">
+                <h3 class="text-2xl font-semibold text-gray-700 mb-4">Dashboard Overview</h3>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    <div class="mb-4">
+                      {% for category, message in messages %}
+                        <div class="custom-alert alert-{{ category }} mb-2">
+                            <span class="custom-alert-message">{{ message }}</span>
+                        </div>
+                      {% endfor %}
                     </div>
+                  {% endif %}
+                {% endwith %}
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-blue-100 p-4 rounded-lg text-center shadow dashboard-card">
+                        <i class="fas fa-users text-blue-600 text-3xl mb-2"></i>
+                        <h5 class="text-blue-800">Total Users</h5>
+                        <p class="text-2xl font-bold">{{ total_users }}</p>
+                    </div>
+                    <div class="bg-green-100 p-4 rounded-lg text-center shadow dashboard-card">
+                        <i class="fas fa-paint-brush text-green-600 text-3xl mb-2"></i>
+                        <h5 class="text-green-800">Total Artworks</h5>
+                        <p class="text-2xl font-bold">{{ total_artworks }}</p>
+                    </div>
+                    <div class="bg-yellow-100 p-4 rounded-lg text-center shadow dashboard-card">
+                        <i class="fas fa-box-open text-yellow-600 text-3xl mb-2"></i>
+                        <h5 class="text-yellow-800">Total Orders</h5>
+                        <p class="text-2xl font-bold">{{ total_orders }}</p>
+                    </div>
+                    <div class="bg-red-100 p-4 rounded-lg text-center shadow dashboard-card">
+                        <i class="fas fa-hourglass-half text-red-600 text-3xl mb-2"></i>
+                        <h5 class="text-red-800">Pending Orders</h5>
+                        <p class="text-2xl font-bold">{{ pending_orders }}</p>
+                    </div>
+                </div>
+
+                <!-- Monthly Revenue Chart -->
+                <div class="bg-white p-4 rounded-lg border border-gray-200 shadow mb-6">
+                    <h4 class="font-semibold text-lg text-gray-700 mb-3">Monthly Revenue (Last 6 Months)</h4>
+                    <div id="monthlyRevenueChartContainer">
+                        <canvas id="monthlyRevenueChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Low Stock Alerts -->
+                <div class="bg-white p-4 rounded-lg border border-gray-200 shadow mb-6">
+                    <h4 class="font-semibold text-lg text-gray-700 mb-3">Stock Alerts</h4>
+                    {% if low_stock_artworks or out_of_stock_artworks %}
+                        {% if out_of_stock_artworks %}
+                            <div class="alert alert-danger mb-3">
+                                <strong>Out of Stock:</strong>
+                                <ul>
+                                    {% for a in out_of_stock_artworks %}
+                                        <li><a href="{{ url_for('admin_edit_artwork', artwork_id=a.id) }}" class="text-blue-600 hover:underline">{{ a.name }} (SKU: {{ a.sku }})</a></li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+                        {% if low_stock_artworks %}
+                            <div class="alert alert-warning">
+                                <strong>Low Stock (≤ 10 units):</strong>
+                                <ul>
+                                    {% for a in low_stock_artworks %}
+                                        <li><a href="{{ url_for('admin_edit_artwork', artwork_id=a.id) }}" class="text-blue-600 hover:underline">{{ a.name }} (SKU: {{ a.sku }}, Stock: {{ a.stock }})</a></li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
                     {% else %}
-                    <p class="text-center text-muted">No orders currently pending action.</p>
+                        <div class="alert alert-info text-center">
+                            All stock levels are healthy.
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Orders Pending Review -->
+                <div class="bg-white p-4 rounded-lg border border-gray-200 shadow mb-6">
+                    <h4 class="font-semibold text-lg text-gray-700 mb-3">Orders Pending Admin Review</h4>
+                    {% if orders_pending_review %}
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Order ID</th>
+                                        <th>Customer</th>
+                                        <th>Date</th>
+                                        <th>Total</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for order in orders_pending_review %}
+                                    <tr>
+                                        <td>{{ order.id[:8] }}...</td>
+                                        <td>{{ order.customer_name }} ({{ order.customer_email }})</td>
+                                        <td>{{ order.order_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                        <td>{{ order.total_amount | currency }}</td>
+                                        <td>
+                                            <span class="badge {% if order.status == 'Pending Payment' %}bg-secondary{% elif order.status == 'Payment Submitted - Awaiting Verification' %}bg-warning{% elif order.status == 'Payment Verified – Preparing Order' %}bg-info{% elif order.status == 'Shipped' %}bg-primary{% elif order.status == 'Delivered' %}bg-success{% elif 'Cancelled' in order.status %}bg-danger{% else %}bg-light text-dark{% endif %}">{{ order.status }}</span>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('order_summary', order_id=order.id) }}" class="btn btn-info btn-sm me-2"><i class="fas fa-eye"></i> View</a>
+                                            {% if order.status == 'Payment Submitted - Awaiting Verification' %}
+                                                <button class="btn btn-success btn-sm verify-payment-btn" data-order-id="{{ order.id }}">
+                                                    <i class="fas fa-check-circle"></i> Verify Payment
+                                                </button>
+                                            {% endif %}
+                                            <button class="btn btn-primary btn-sm update-order-status-btn"
+                                                    data-order-id="{{ order.id }}"
+                                                    data-current-status="{{ order.status }}"
+                                                    data-current-remark="{{ order.remark | default('') }}"
+                                                    data-current-courier="{{ order.courier | default('') }}"
+                                                    data-current-tracking="{{ order.tracking_number | default('') }}"
+                                                    data-current-cancellation-reason="{{ order.cancellation_reason | default('') }}">
+                                                <i class="fas fa-edit"></i> Update Status
+                                            </button>
+                                            <button class="btn btn-danger btn-sm delete-order-btn" data-order-id="{{ order.id }}">
+                                                <i class="fas fa-trash-alt"></i> Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info text-center">No orders pending review.</div>
                     {% endif %}
                 </div>
             </div>
-        </div>
 
-        <div class="col-md-4 mb-4">
-            <div class="card shadow-sm border-0 rounded-lg">
-                <div class="card-header bg-light">
-                    <h4 class="mb-0">Monthly Revenue</h4>
+            <!-- Orders Tab -->
+            <div class="tab-pane fade" id="orders" role="tabpanel" aria-labelledby="orders-tab">
+                <h3 class="text-2xl font-semibold text-gray-700 mb-4">Manage All Orders</h3>
+
+                <!-- Search and Filter Form -->
+                <form class="mb-4" method="GET" action="{{ url_for('admin_dashboard') }}">
+                    <input type="hidden" name="tab" value="#orders"> {# Keep tab active after filter #}
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-5">
+                            <label for="orderSearch" class="form-label">Search Orders</label>
+                            <input type="text" class="form-control" id="orderSearch" name="search" placeholder="Search by Order ID, Customer Name, Email..." value="{{ search_query }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="orderStatusFilter" class="form-label">Filter by Status</label>
+                            <select class="form-select" id="orderStatusFilter" name="filter_status">
+                                <option value="">All Statuses</option>
+                                <option value="Pending Payment" {% if filter_status == 'Pending Payment' %}selected{% endif %}>Pending Payment</option>
+                                <option value="Payment Submitted - Awaiting Verification" {% if filter_status == 'Payment Submitted - Awaiting Verification' %}selected{% endif %}>Payment Submitted - Awaiting Verification</option>
+                                <option value="Payment Verified – Preparing Order" {% if filter_status == 'Payment Verified – Preparing Order' %}selected{% endif %}>Payment Verified – Preparing Order</option>
+                                <option value="Shipped" {% if filter_status == 'Shipped' %}selected{% endif %}>Shipped</option>
+                                <option value="Delivered" {% if filter_status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                                <option value="Cancelled by User" {% if filter_status == 'Cancelled by User' %}selected{% endif %}>Cancelled by User</option>
+                                <option value="Cancelled by Admin" {% if filter_status == 'Cancelled by Admin' %}selected{% endif %}>Cancelled by Admin</option>
+                                <option value="Payment Failed">Payment Failed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-primary w-full"><i class="fas fa-filter me-2"></i>Apply Filter</button>
+                        </div>
+                    </div>
+                </form>
+
+                {% if orders %} {# 'orders' from app.py is the filtered/searched list #}
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Customer</th>
+                                <th>Date</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr>
+                                <td>{{ order.id[:8] }}...</td>
+                                <td>{{ order.customer_name }} ({{ order.customer_email }})</td>
+                                <td>{{ order.order_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ order.total_amount | currency }}</td>
+                                <td>
+                                    <span class="badge {% if order.status == 'Pending Payment' %}bg-secondary{% elif order.status == 'Payment Submitted - Awaiting Verification' %}bg-warning{% elif order.status == 'Payment Verified – Preparing Order' %}bg-info{% elif order.status == 'Shipped' %}bg-primary{% elif order.status == 'Delivered' %}bg-success{% elif 'Cancelled' in order.status %}bg-danger{% else %}bg-light text-dark{% endif %}">{{ order.status }}</span>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('order_summary', order_id=order.id) }}" class="btn btn-info btn-sm me-2"><i class="fas fa-eye"></i> View</a>
+                                    <a href="{{ url_for('admin_edit_invoice', order_id=order.id) }}" class="btn btn-secondary btn-sm me-2"><i class="fas fa-file-invoice"></i> Invoice</a>
+                                    <button class="btn btn-primary btn-sm update-order-status-btn"
+                                            data-order-id="{{ order.id }}"
+                                            data-current-status="{{ order.status }}"
+                                            data-current-remark="{{ order.remark | default('') }}"
+                                            data-current-courier="{{ order.courier | default('') }}"
+                                            data-current-tracking="{{ order.tracking_number | default('') }}"
+                                            data-current-cancellation-reason="{{ order.cancellation_reason | default('') }}">
+                                        <i class="fas fa-edit"></i> Update Status
+                                    </button>
+                                    <button class="btn btn-danger btn-sm delete-order-btn" data-order-id="{{ order.id }}">
+                                        <i class="fas fa-trash-alt"></i> Delete
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-                <div class="card-body">
-                    <canvas id="monthlyRevenueChart"></canvas>
+                {% else %}
+                <div class="alert alert-info text-center">No orders found matching your criteria.</div>
+                {% endif %}
+            </div>
+
+            <!-- Artworks Tab -->
+            <div class="tab-pane fade" id="artworks" role="tabpanel" aria-labelledby="artworks-tab">
+                <h3 class="text-2xl font-semibold text-gray-700 mb-4">Manage Artworks</h3>
+                <div class="flex flex-wrap gap-4">
+                    <a href="{{ url_for('admin_artworks') }}" class="btn btn-primary btn-lg flex-grow-1"><i class="fas fa-paint-brush me-2"></i>View All Artworks</a>
+                    <a href="{{ url_for('admin_add_artwork') }}" class="btn btn-success btn-lg flex-grow-1"><i class="fas fa-plus me-2"></i>Add New Artwork</a>
                 </div>
+            </div>
+
+            <!-- Users Tab -->
+            <div class="tab-pane fade" id="users" role="tabpanel" aria-labelledby="users-tab">
+                <h3 class="text-2xl font-semibold text-gray-700 mb-4">Manage Users</h3>
+                <a href="{{ url_for('admin_users') }}" class="btn btn-primary btn-lg"><i class="fas fa-users me-2"></i>View All Users</a>
+            </div>
+
+            <!-- Categories Tab -->
+            <div class="tab-pane fade" id="categories" role="tabpanel" aria-labelledby="categories-tab">
+                <h3 class="text-2xl font-semibold text-gray-700 mb-4">Manage Categories</h3>
+                <a href="{{ url_for('admin_categories') }}" class="btn btn-primary btn-lg"><i class="fas fa-tags me-2"></i>View All Categories</a>
             </div>
         </div>
     </div>
+</div>
 
-    <div class="row mb-4">
-        <div class="col-md-6 mb-4">
-            <div class="card shadow-sm border-0 rounded-lg">
-                <div class="card-header bg-light">
-                    <h4 class="mb-0">Low Stock Artworks (< 10 units)</h4>
-                </div>
-                <div class="card-body">
-                    {% if low_stock_artworks %}
-                    <ul class="list-group list-group-flush">
-                        {% for artwork in low_stock_artworks %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            {{ artwork.name }} (SKU: {{ artwork.sku }})
-                            <span class="badge bg-warning rounded-pill">{{ artwork.stock }} units</span>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    {% else %}
-                    <p class="text-center text-muted">No artworks with low stock.</p>
-                    {% endif %}
-                </div>
+<!-- Custom Confirmation Modal -->
+<div class="modal fade" id="customConfirmModal" tabindex="-1" aria-labelledby="customConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-lg shadow-xl">
+            <div class="modal-header bg-warning text-white rounded-t-lg">
+                <h5 class="modal-title" id="customConfirmModalLabel">Confirm Action</h5>
+                <button type="button" class="btn-close text-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-        </div>
-        <div class="col-md-6 mb-4">
-            <div class="card shadow-sm border-0 rounded-lg">
-                <div class="card-header bg-light">
-                    <h4 class="mb-0">Out of Stock Artworks</h4>
-                </div>
-                <div class="card-body">
-                    {% if out_of_stock_artworks %}
-                    <ul class="list-group list-group-flush">
-                        {% for artwork in out_of_stock_artworks %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            {{ artwork.name }} (SKU: {{ artwork.sku }})
-                            <span class="badge bg-danger rounded-pill">Out of Stock</span>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    {% else %}
-                    <p class="text-center text-muted">No artworks currently out of stock.</p>
-                    {% endif %}
-                </div>
+            <div class="modal-body p-4">
+                <p id="confirmMessage" class="text-gray-700"></p>
+            </div>
+            <div class="modal-footer justify-content-end p-3">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmActionButton">Confirm</button>
             </div>
         </div>
     </div>
+</div>
 
-    <div class="row">
-        <div class="col-md-6 mb-4">
-            <div class="card shadow-sm border-0 rounded-lg">
-                <div class="card-header bg-light">
-                    <h4 class="mb-0">Manage Products</h4>
-                </div>
-                <div class="card-body">
-                    <p>Add, edit, or delete artworks and manage categories.</p>
-                    <a href="{{ url_for('admin_artworks') }}" class="btn btn-primary me-2">Manage Artworks</a>
-                    <a href="{{ url_for('admin_categories') }}" class="btn btn-secondary">Manage Categories</a>
-                </div>
+<!-- Order Status Update Modal -->
+<div class="modal fade" id="orderStatusModal" tabindex="-1" aria-labelledby="orderStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-lg shadow-xl">
+            <div class="modal-header bg-primary text-white rounded-t-lg">
+                <h5 class="modal-title" id="orderStatusModalLabel">Update Order Status</h5>
+                <button type="button" class="btn-close text-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-        </div>
-        <div class="col-md-6 mb-4">
-            <div class="card shadow-sm border-0 rounded-lg">
-                <div class="card-header bg-light">
-                    <h4 class="mb-0">Manage Users</h4>
-                </div>
-                <div class="card-body">
-                    <p>View and manage user accounts.</p>
-                    <a href="{{ url_for('admin_users') }}" class="btn btn-primary">View Users</a>
-                </div>
+            <div class="modal-body p-4">
+                <form id="orderStatusForm">
+                    <input type="hidden" id="modalOrderId" name="order_id">
+                    <div class="mb-3">
+                        <label for="orderStatusSelect" class="form-label">Status</label>
+                        <select class="form-select" id="orderStatusSelect" name="status" required>
+                            <option value="Pending Payment">Pending Payment</option>
+                            <option value="Payment Submitted - Awaiting Verification">Payment Submitted - Awaiting Verification</option>
+                            <option value="Payment Verified – Preparing Order">Payment Verified – Preparing Order</option>
+                            <option value="Shipped">Shipped</option>
+                            <option value="Delivered">Delivered</option>
+                            <option value="Cancelled by User">Cancelled by User</option>
+                            <option value="Cancelled by Admin">Cancelled by Admin</option>
+                            <option value="Payment Failed">Payment Failed</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modalCourier" class="form-label">Courier</label>
+                        <input type="text" class="form-control" id="modalCourier" name="courier" placeholder="e.g., Delhivery, BlueDart">
+                    </div>
+                    <div class="mb-3">
+                        <label for="modalTrackingNumber" class="form-label">Tracking Number</label>
+                        <input type="text" class="form-control" id="modalTrackingNumber" name="tracking_number" placeholder="e.g., TRK123456789">
+                    </div>
+                    <div class="mb-3">
+                        <label for="modalRemark" class="form-label">Admin Remark</label>
+                        <textarea class="form-control" id="modalRemark" name="remark" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3" id="cancellationReasonGroup" style="display: none;">
+                        <label for="modalCancellationReason" class="form-label">Cancellation Reason</label>
+                        <textarea class="form-control" id="modalCancellationReason" name="cancellation_reason" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-full">Save Changes</button>
+                </form>
             </div>
         </div>
     </div>
@@ -189,16 +576,52 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // --- Verify Payment Button Logic ---
-        document.querySelectorAll('.verify-payment-btn').forEach(button => {
-            button.addEventListener('click', async function() {
-                const orderId = this.dataset.orderId;
-                // Using a custom alert for confirmation instead of browser's confirm()
-                showCustomAlert('Are you sure you want to mark this payment as verified? This action cannot be undone.', 'info', false); // No cart link needed
+document.addEventListener('DOMContentLoaded', function () {
+    // Bootstrap Tab Initialization
+    document.querySelectorAll('#adminTabs a').forEach(function (triggerEl) {
+        let tabTrigger = new bootstrap.Tab(triggerEl);
+        triggerEl.addEventListener('click', function (e) {
+            e.preventDefault();
+            tabTrigger.show();
+            // Update URL hash without reloading page
+            history.pushState(null, '', e.target.getAttribute('href'));
+        });
+    });
 
-                // For simplicity, we'll proceed with AJAX call directly after showing alert.
-                // In a real app, you might want a separate confirmation modal here.
+    // Handle tab activation based on URL hash on page load
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTabHash = urlParams.get('tab') || window.location.hash;
+    if (activeTabHash) {
+        const tabElement = document.querySelector(`a[href="${activeTabHash}"]`);
+        if (tabElement) {
+            new bootstrap.Tab(tabElement).show();
+        }
+    }
+
+    // --- Custom Confirmation Modal Logic ---
+    let confirmCallback = null;
+    const customConfirmModal = new bootstrap.Modal(document.getElementById('customConfirmModal'));
+    const confirmMessageElement = document.getElementById('confirmMessage');
+    const confirmActionButton = document.getElementById('confirmActionButton');
+
+    window.showConfirmModal = function(message, callback) {
+        confirmMessageElement.textContent = message;
+        confirmCallback = callback;
+        customConfirmModal.show();
+    };
+
+    confirmActionButton.addEventListener('click', function() {
+        if (confirmCallback) {
+            confirmCallback();
+        }
+        customConfirmModal.hide();
+    });
+
+    // --- Verify Payment Button (using custom modal) ---
+    document.querySelectorAll('.verify-payment-btn').forEach(button => {
+        button.addEventListener('click', function () {
+            const orderId = this.dataset.orderId;
+            window.showConfirmModal(`Are you sure you want to verify payment for Order ID: ${orderId}? This action cannot be undone.`, async () => {
                 try {
                     const response = await fetch('/admin/verify-payment', {
                         method: 'POST',
@@ -206,107 +629,205 @@
                             'Content-Type': 'application/x-www-form-urlencoded',
                             'X-CSRFToken': window.csrfToken
                         },
-                        body: new URLSearchParams({ order_id: orderId }).toString()
+                        body: new URLSearchParams({
+                            'order_id': orderId,
+                            'csrf_token': window.csrfToken
+                        })
                     });
                     const data = await response.json();
-                    if (response.ok && data.success) {
+                    if (data.success) {
                         showCustomAlert(data.message, 'success');
-                        location.reload(); // Reload to update dashboard
+                        setTimeout(() => location.reload(), 1000);
                     } else {
-                        showCustomAlert(data.message || 'Failed to verify payment.', 'danger');
+                        showCustomAlert(data.message, 'danger');
                     }
-                } catch (error) {
-                    console.error('Error verifying payment:', error);
-                    showCustomAlert('An error occurred while verifying payment.', 'danger');
+                } catch (err) {
+                    console.error(err);
+                    showCustomAlert('An error occurred during verification.', 'danger');
                 }
             });
         });
+    });
 
-        // --- Monthly Revenue Chart ---
-        const ctx = document.getElementById('monthlyRevenueChart');
-        if (ctx) {
-            const revenueLabels = {{ revenue_labels | tojson }};
-            const revenueValues = {{ revenue_values | tojson }};
+    // --- Delete Order Button (using custom modal) ---
+    document.querySelectorAll('.delete-order-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const orderId = this.dataset.orderId;
+            window.showConfirmModal(`Are you sure you want to delete Order ID: ${orderId}? This will permanently remove the order and restore stock. This action cannot be undone.`, async () => {
+                try {
+                    const response = await fetch(`/delete-order/${orderId}`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': window.csrfToken // Flask-WTF handles CSRF via header for POST requests
+                        },
+                        body: new URLSearchParams({
+                            'csrf_token': window.csrfToken // Also send in body for Flask to pick up
+                        })
+                    });
+                    const data = await response.json(); // Assuming Flask returns JSON
+                    if (data.success) {
+                        showCustomAlert(data.message, 'success');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showCustomAlert(data.message, 'danger');
+                    }
+                } catch (err) {
+                    console.error('Error deleting order:', err);
+                    showCustomAlert('An error occurred while deleting the order.', 'danger');
+                }
+            });
+        });
+    });
 
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: revenueLabels,
-                    datasets: [{
-                        label: 'Revenue (₹)',
-                        data: revenueValues,
-                        backgroundColor: [
-                            'rgba(255, 140, 0, 0.8)', // Saffron
-                            'rgba(46, 139, 87, 0.8)', // Bright Green
-                            'rgba(255, 165, 0, 0.8)', // Lighter Saffron
-                            'rgba(60, 179, 113, 0.8)', // Lighter Green
-                            'rgba(255, 191, 0, 0.8)', // Golden Saffron
-                            'rgba(34, 139, 34, 0.8)'  // Forest Green
-                        ],
-                        borderColor: [
-                            'rgba(255, 140, 0, 1)',
-                            'rgba(46, 139, 87, 1)',
-                            'rgba(255, 165, 0, 1)',
-                            'rgba(60, 179, 113, 1)',
-                            'rgba(255, 191, 0, 1)',
-                            'rgba(34, 139, 34, 1)'
-                        ],
-                        borderWidth: 1,
-                        borderRadius: 5 // Rounded bars
-                    }]
+
+    // --- Order Status Update Modal Logic ---
+    const orderStatusModal = new bootstrap.Modal(document.getElementById('orderStatusModal'));
+    const orderStatusForm = document.getElementById('orderStatusForm');
+    const modalOrderId = document.getElementById('modalOrderId');
+    const orderStatusSelect = document.getElementById('orderStatusSelect');
+    const modalRemark = document.getElementById('modalRemark');
+    const modalCourier = document.getElementById('modalCourier');
+    const modalTrackingNumber = document.getElementById('modalTrackingNumber');
+    const cancellationReasonGroup = document.getElementById('cancellationReasonGroup');
+    const modalCancellationReason = document.getElementById('modalCancellationReason');
+
+    document.querySelectorAll('.update-order-status-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            modalOrderId.value = this.dataset.orderId;
+            orderStatusSelect.value = this.dataset.currentStatus;
+            modalRemark.value = this.dataset.currentRemark;
+            modalCourier.value = this.dataset.currentCourier;
+            modalTrackingNumber.value = this.dataset.currentTracking;
+            modalCancellationReason.value = this.dataset.currentCancellationReason;
+
+            // Show/hide cancellation reason field based on initial status
+            if (this.dataset.currentStatus.includes('Cancelled')) {
+                cancellationReasonGroup.style.display = 'block';
+            } else {
+                cancellationReasonGroup.style.display = 'none';
+                modalCancellationReason.value = ''; // Clear reason if not cancelled
+            }
+            orderStatusModal.show();
+        });
+    });
+
+    // Event listener for status change within the modal to show/hide cancellation reason
+    orderStatusSelect.addEventListener('change', function() {
+        if (this.value.includes('Cancelled')) {
+            cancellationReasonGroup.style.display = 'block';
+        } else {
+            cancellationReasonGroup.style.display = 'none';
+            modalCancellationReason.value = ''; // Clear reason if not cancelled
+        }
+    });
+
+    orderStatusForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const orderId = modalOrderId.value;
+        const newStatus = orderStatusSelect.value;
+        const remark = modalRemark.value;
+        const courier = modalCourier.value;
+        const trackingNumber = modalTrackingNumber.value;
+        const cancellationReason = modalCancellationReason.value;
+
+        try {
+            const response = await fetch(`/admin/order/update_status/${orderId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': window.csrfToken
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        title: {
-                            display: true,
-                            text: 'Monthly Revenue',
-                            font: {
-                                size: 16,
-                                weight: 'bold'
-                            },
-                            color: '#333'
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Revenue (₹)',
-                                color: '#555'
-                            },
-                            ticks: {
-                                callback: function(value, index, ticks) {
-                                    return '₹' + value.toLocaleString();
-                                },
-                                color: '#555'
-                            },
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)'
-                            }
-                        },
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Month',
-                                color: '#555'
-                            },
-                            ticks: {
-                                color: '#555'
-                            },
-                            grid: {
-                                display: false
-                            }
+                body: JSON.stringify({
+                    order_id: orderId, // Send order_id in JSON body
+                    status: newStatus,
+                    remark: remark,
+                    courier: courier,
+                    tracking_number: trackingNumber,
+                    cancellation_reason: cancellationReason,
+                    csrf_token: window.csrfToken // Include CSRF token in body for Flask-WTF
+                })
+            });
+            const data = await response.json();
+            if (data.success) {
+                showCustomAlert(data.message, 'success');
+                orderStatusModal.hide();
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showCustomAlert(data.message, 'danger');
+            }
+        } catch (err) {
+            console.error(err);
+            showCustomAlert('An error occurred while updating order status.', 'danger');
+        }
+    });
+
+    // --- Monthly Revenue Chart ---
+    const ctx = document.getElementById('monthlyRevenueChart').getContext('2d');
+    const monthlyRevenueChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {{ revenue_labels | tojson | safe }},
+            datasets: [{
+                label: 'Revenue (₹)',
+                data: {{ revenue_values | tojson | safe }},
+                backgroundColor: 'rgba(255, 140, 0, 0.7)', // Saffron color
+                borderColor: 'rgba(255, 140, 0, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        color: '#333'
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return '₹' + context.parsed.y.toFixed(2);
                         }
                     }
                 }
-            });
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Revenue (₹)',
+                        color: '#333'
+                    },
+                    ticks: {
+                        callback: function(value, index, ticks) {
+                            return '₹' + value.toFixed(0);
+                        },
+                        color: '#555'
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Month',
+                        color: '#333'
+                    },
+                    ticks: {
+                        color: '#555'
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            }
         }
     });
+});
 </script>
 {% endblock %}

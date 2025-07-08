@@ -2,9 +2,10 @@ import os
 import json
 import csv
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta # Ensure timedelta is imported here
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename # Added this import
 from slugify import slugify
 
 from flask import Flask, render_template, redirect, url_for, flash, request, session, jsonify, make_response, send_file
@@ -35,14 +36,28 @@ from flask_wtf.csrf import CSRFProtect, generate_csrf
 
 # PDF generation
 try:
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.enums import TA_RIGHT, TA_CENTER
+    from reportlab.lib.enums import TA_RIGHT, TA_CENTER, TA_LEFT
     from reportlab.lib.units import inch
     from reportlab.lib.pagesizes import letter
+    from reportlab.lib.colors import HexColor
 except ImportError:
     print("ReportLab not installed. PDF generation features will be disabled.")
     SimpleDocTemplate = None
+    Paragraph = None
+    Spacer = None
+    Table = None
+    TableStyle = None
+    getSampleStyleSheet = None
+    ParagraphStyle = None
+    TA_RIGHT = None
+    TA_CENTER = None
+    TA_LEFT = None
+    inch = None
+    letter = None
+    HexColor = None
+
 
 app = Flask(__name__)
 
@@ -69,7 +84,7 @@ app.config['OUR_BUSINESS_ADDRESS'] = "123 Divine Path, Spiritual City, Karnataka
 app.config['OUR_GSTIN'] = "29ABCDE1234F1Z5" # Example GSTIN
 app.config['OUR_PAN'] = "ABCDE1234F" # Example PAN
 app.config['DEFAULT_GST_RATE'] = Decimal('18.00') # Default GST rate for products
-app.config['DEFAULT_SHIPPING_CHARGE'] = Decimal('100.00') # Default shipping charge
+# app.config['DEFAULT_SHIPPING_CHARGE'] = Decimal('100.00') # This is now deprecated for per-artwork shipping
 
 # Ensure upload folder exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -88,6 +103,16 @@ def allowed_file(filename):
 def generate_otp(length=6):
     """Generates a random numeric OTP."""
     return ''.join(random.choices(string.digits, k=length))
+
+def generate_seven_digit_id():
+    """Generates a unique 7-character alphanumeric ID for orders."""
+    characters = string.ascii_uppercase + string.digits # A-Z and 0-9
+    while True:
+        # Generate a 7-character alphanumeric string
+        new_id = ''.join(random.choices(characters, k=7))
+        # Check if it already exists in the database
+        if not Order.query.get(new_id):
+            return new_id
 
 def send_email(to_email, subject, body, attachment_path=None, attachment_name=None):
     """Sends an email with optional attachment."""
@@ -183,6 +208,7 @@ class Artwork(db.Model):
     images = Column(Text, nullable=True) # Stored as JSON string of image paths
     is_featured = Column(Boolean, default=False, nullable=False)
     custom_options = Column(Text, nullable=True) # Stored as JSON string { "Size": {"A4": 0, "A3": 500}, "Frame": {"None": 0, "Wooden": 1000} }
+    shipping_charge = Column(Numeric(10, 2), default=Decimal('0.00'), nullable=False) # NEW: Per-artwork shipping charge
 
     def get_images_list(self):
         try:
@@ -233,7 +259,8 @@ class Address(db.Model):
         return f"Address('{self.full_name}', '{self.city}', '{self.pincode}')"
 
 class Order(db.Model):
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    # Changed primary key to use a 7-character alphanumeric ID
+    id = Column(String(7), primary_key=True, default=generate_seven_digit_id)
     user_id = Column(String(36), ForeignKey('user.id'), nullable=False)
     order_date = Column(DateTime, default=datetime.utcnow)
     total_amount = Column(Numeric(10, 2), nullable=False)
@@ -292,7 +319,7 @@ class Order(db.Model):
 
 class OrderItem(db.Model):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    order_id = Column(String(36), ForeignKey('order.id'), nullable=False)
+    order_id = Column(String(7), ForeignKey('order.id'), nullable=False) # Changed to String(7) to match Order ID
     artwork_id = Column(String(36), ForeignKey('artwork.id'), nullable=False)
     quantity = Column(Integer, nullable=False)
     
@@ -364,7 +391,8 @@ def inject_global_data():
         'our_pan': app.config['OUR_PAN'],
         'default_gst_rate': app.config['DEFAULT_GST_RATE'],
         'cart_count': cart_count,
-        'now': datetime.utcnow # For use in templates (e.g., invoice date)
+        'now': datetime.utcnow, # For use in templates (e.g., invoice date)
+        'timedelta': timedelta # Make timedelta available in Jinja2 context
     }
 
 # --- Custom Jinja2 Filters ---
@@ -453,7 +481,7 @@ def get_cart_items_details():
     Retrieves detailed information for items in the session cart.
     Returns (detailed_cart_items, subtotal_before_gst, total_cgst_amount, 
              total_sgst_amount, total_igst_amount, total_ugst_amount,
-             total_gst_amount, grand_total, shipping_charge)
+             total_gst_amount, grand_total, total_shipping_charge)
     """
     detailed_cart_items = []
     subtotal_before_gst = Decimal('0.00')
@@ -463,7 +491,7 @@ def get_cart_items_details():
     total_ugst_amount = Decimal('0.00')
     total_gst_amount = Decimal('0.00')
     grand_total = Decimal('0.00')
-    shipping_charge = app.config['DEFAULT_SHIPPING_CHARGE'] # Get default shipping charge
+    total_shipping_charge = Decimal('0.00') # Initialize total shipping charge
 
     # Iterate over a copy of the cart to allow modification during iteration
     cart_copy = session.get('cart', {}).copy() 
@@ -504,6 +532,9 @@ def get_cart_items_details():
             total_ugst_amount += ugst_amount
             total_gst_amount += (cgst_amount + sgst_amount + igst_amount + ugst_amount)
             grand_total += total_price_incl_gst
+            
+            # Add artwork's specific shipping charge to the total shipping charge
+            total_shipping_charge += artwork.shipping_charge
         else:
             # If artwork not found, remove from cart and flash message
             flash(f"Artwork with SKU {sku} not found and removed from your cart.", "warning")
@@ -512,12 +543,12 @@ def get_cart_items_details():
                 del session['cart'][item_key]
             session.modified = True # Mark session as modified
             
-    # Add shipping charge to grand total
-    grand_total += shipping_charge
+    # Add calculated total shipping charge to grand total
+    grand_total += total_shipping_charge
 
     return (detailed_cart_items, subtotal_before_gst, total_cgst_amount, 
             total_sgst_amount, total_igst_amount, total_ugst_amount,
-            total_gst_amount, grand_total, shipping_charge)
+            total_gst_amount, grand_total, total_shipping_charge)
 
 
 # NEW: Route to add item to cart (AJAX endpoint)
@@ -598,7 +629,7 @@ def remove_from_cart():
 def cart():
     detailed_cart_items, subtotal_before_gst, total_cgst_amount, \
     total_sgst_amount, total_igst_amount, total_ugst_amount, \
-    total_gst_amount, grand_total, shipping_charge = get_cart_items_details()
+    total_gst_amount, grand_total, total_shipping_charge = get_cart_items_details() # Changed variable name
     
     return render_template('cart.html', 
                            cart_items=detailed_cart_items,
@@ -609,7 +640,7 @@ def cart():
                            total_ugst_amount=total_ugst_amount,
                            total_gst_amount=total_gst_amount,
                            grand_total=grand_total,
-                           shipping_charge=shipping_charge)
+                           shipping_charge=total_shipping_charge) # Pass the calculated total_shipping_charge
 
 # NEW: Route to create a direct order from "Buy Now"
 @app.route('/create_direct_order', methods=['POST'])
@@ -635,6 +666,9 @@ def create_direct_order():
         item_to_buy_now['igstPercentage'] = str(item_to_buy_now['igstPercentage'])
     if 'ugstPercentage' in item_to_buy_now:
         item_to_buy_now['ugstPercentage'] = str(item_to_buy_now['ugstPercentage'])
+    # NEW: Store shipping_charge in item_to_buy_now if present
+    if 'shippingCharge' in item_to_buy_now:
+        item_to_buy_now['shippingCharge'] = str(item_to_buy_now['shippingCharge'])
 
     # Store the direct purchase item in session for later retrieval after login/signup
     # Store as a list of one item to mimic cart structure for purchase_form
@@ -671,7 +705,7 @@ def purchase_form():
 
     detailed_cart_items, subtotal_before_gst, total_cgst_amount, \
     total_sgst_amount, total_igst_amount, total_ugst_amount, \
-    total_gst_amount, grand_total, shipping_charge = get_cart_items_details()
+    total_gst_amount, grand_total, total_shipping_charge = get_cart_items_details() # Changed variable name
 
     user_addresses = current_user.addresses
     default_address = next((addr for addr in user_addresses if addr.is_default), None)
@@ -730,7 +764,7 @@ def purchase_form():
                                        total_ugst_amount=total_ugst_amount,
                                        total_gst_amount=total_gst_amount,
                                        grand_total=grand_total,
-                                       shipping_charge=shipping_charge,
+                                       shipping_charge=total_shipping_charge, # Changed variable name
                                        user_addresses=user_addresses,
                                        selected_address_id='new',
                                        form_data=new_address_data, # Pass new_address_data as form_data
@@ -772,7 +806,7 @@ def purchase_form():
                 status='Pending Payment',
                 payment_status='pending',
                 shipping_address_id=shipping_address_obj.id,
-                shipping_charge=shipping_charge # Use the calculated shipping charge
+                shipping_charge=total_shipping_charge # Use the calculated total_shipping_charge
             )
             db.session.add(new_order)
             db.session.flush() # To get new_order.id before commit
@@ -804,7 +838,7 @@ def purchase_form():
             session.pop('cart', None)
             session.modified = True
             flash('Order placed successfully! Please proceed to payment.', 'success')
-            return redirect(url_for('order_summary', order_id=new_order.id))
+            return redirect(url_for('payment_initiate', order_id=new_order.id, amount=new_order.total_amount)) # Redirect to payment_initiate
 
         except IntegrityError:
             db.session.rollback()
@@ -822,7 +856,7 @@ def purchase_form():
                            total_ugst_amount=total_ugst_amount,
                            total_gst_amount=total_gst_amount,
                            grand_total=grand_total,
-                           shipping_charge=shipping_charge,
+                           shipping_charge=total_shipping_charge, # Changed variable name
                            user_addresses=user_addresses,
                            default_address=default_address,
                            selected_address_id=default_address.id if default_address else None,
@@ -1135,24 +1169,64 @@ def index():
 
     return render_template('index.html', featured_artworks=featured_artworks, testimonials=testimonials)
 
-# MODIFIED: all_products route to pass custom_options data
+# MODIFIED: all_products route to pass categorized artworks
 @app.route('/all-products')
 def all_products():
     search_query = request.args.get('search', '')
-    if search_query:
-        artworks = Artwork.query.filter(
-            (Artwork.name.ilike(f'%{search_query}%')) |
-            (Artwork.description.ilike(f'%{search_query}%')) |
-            (Artwork.sku.ilike(f'%{search_query}%'))
-        ).all()
-    else:
-        artworks = Artwork.query.all()
-    return render_template('all_products.html', artworks=artworks, search_query=search_query)
+    
+    # Fetch all categories
+    categories = Category.query.all()
+    
+    # Dictionary to hold artworks grouped by category
+    categorized_artworks = {}
+
+    for category in categories:
+        if search_query:
+            # Filter artworks within each category by search query
+            artworks_in_category = Artwork.query.filter(
+                Artwork.category_id == category.id,
+                (Artwork.name.ilike(f'%{search_query}%')) |
+                (Artwork.description.ilike(f'%{search_query}%')) |
+                (Artwork.sku.ilike(f'%{search_query}%'))
+            ).all()
+        else:
+            # Get all artworks for the category
+            artworks_in_category = Artwork.query.filter_by(category_id=category.id).all()
+        
+        if artworks_in_category: # Only add category if it has artworks
+            categorized_artworks[category.name] = artworks_in_category
+
+    return render_template('all_products.html', 
+                           categorized_artworks=categorized_artworks, 
+                           search_query=search_query)
 
 @app.route('/product/<string:sku>')
 def product_detail(sku):
     artwork = Artwork.query.filter_by(sku=sku).first_or_404()
-    return render_template('product_detail.html', artwork=artwork)
+    
+    # Convert Artwork object to a JSON-serializable dictionary
+    artwork_data = {
+        'id': artwork.id,
+        'sku': artwork.sku,
+        'name': artwork.name,
+        'description': artwork.description,
+        'original_price': float(artwork.original_price), # Convert Decimal to float
+        'cgst_percentage': float(artwork.cgst_percentage),
+        'sgst_percentage': float(artwork.sgst_percentage),
+        'igst_percentage': float(artwork.igst_percentage),
+        'ugst_percentage': float(artwork.ugst_percentage),
+        'gst_type': artwork.gst_type,
+        'stock': artwork.stock,
+        'is_featured': artwork.is_featured,
+        'shipping_charge': float(artwork.shipping_charge), # Convert Decimal to float
+        'image_url': artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png',
+        'custom_options': artwork.get_custom_options_dict()
+    }
+    # Ensure Decimal values are converted to float or string for JSON serialization
+    # For custom_options, ensure any Decimal values within are also converted if present
+    # (though get_custom_options_dict should ideally handle this by storing floats/ints)
+    
+    return render_template('product_detail.html', artwork=artwork, artwork_data=artwork_data)
 
 @app.route('/contact')
 def contact():
@@ -1183,31 +1257,63 @@ def payment_initiate(order_id, amount):
         flash('This order is not pending payment or has already been processed.', 'warning')
         return redirect(url_for('order_summary', order_id=order.id))
 
-    # In a real application, you would integrate with a payment gateway here (e.g., Razorpay, Stripe)
-    # For now, we'll simulate a successful payment.
-    flash(f"Initiating payment for Order ID: {order_id} with amount ₹{amount}. (Simulated)", 'info')
-    # Redirect to a simulated payment success/failure page or directly to a backend route that updates payment status
-    return redirect(url_for('payment_callback', order_id=order_id, status='success'))
+    # Dummy UPI details for demonstration
+    upi_id = "smarasada@okaxis" # Replace with your actual UPI ID
+    banking_name = "Subhash S" # Replace with your banking name
+    
 
-@app.route('/payment_callback/<order_id>/<status>')
-def payment_callback(order_id, status):
+    return render_template('payment_initiate.html', 
+                       order=order, # <--- Pass the 'order' object here
+                       amount=Decimal(amount), 
+                       our_upi_id=upi_id, # Changed variable name to match template
+                       our_banking_name=banking_name) # Changed variable name to match template
+                       # Removed bank_name as it's not displayed in the template
+
+@app.route('/payment_submit/<order_id>', methods=['POST'])
+@login_required
+def payment_submit(order_id):
     order = Order.query.get_or_404(order_id)
-    if status == 'success':
-        order.payment_status = 'completed'
-        order.status = 'Payment Submitted - Awaiting Verification' # Admin needs to verify
-        flash('Payment successful! Your order is awaiting admin verification.', 'success')
-    else:
-        order.payment_status = 'failed'
-        order.status = 'Payment Failed'
-        flash('Payment failed. Please try again.', 'danger')
+    if order.user_id != current_user.id:
+        flash('You are not authorized to submit payment for this order.', 'danger')
+        return redirect(url_for('user_orders'))
+
+    if order.status != 'Pending Payment':
+        flash('This order is not pending payment or has already been processed.', 'warning')
+        return redirect(url_for('order_summary', order_id=order.id))
+
+    transaction_id = request.form.get('transaction_id')
+    payment_screenshot = request.files.get('payment_screenshot')
+
+    if not transaction_id:
+        flash('Transaction ID is required to confirm payment.', 'danger')
+        return redirect(url_for('payment_initiate', order_id=order.id, amount=order.total_amount))
+
+    # Update order status to awaiting verification
+    order.status = 'Payment Submitted - Awaiting Verification'
+    order.payment_status = 'submitted' # New payment status to indicate submission
+    order.remark = f"Transaction ID: {transaction_id}"
+
+    # Handle screenshot upload
+    if payment_screenshot and allowed_file(payment_screenshot.filename):
+        filename = secure_filename(payment_screenshot.filename)
+        unique_filename = str(uuid.uuid4()) + '_' + filename
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+        payment_screenshot.save(file_path)
+        order.remark += f" | Screenshot: uploads/{unique_filename}"
+    elif payment_screenshot and not allowed_file(payment_screenshot.filename):
+        flash('Invalid file type for screenshot. Please upload an image.', 'warning')
+        # Do not return, allow the order status to update even without screenshot
+    
     db.session.commit()
+    flash('Payment details submitted! Your order is now awaiting admin verification.', 'success')
     return redirect(url_for('order_summary', order_id=order.id))
 
 
 # --- Admin Routes ---
 @app.route('/admin-login', methods=['GET', 'POST'])
+@csrf.exempt # Exempt CSRF for this route as it's a simple login form
 def admin_login():
-    if current_user.is_authenticated and current_user.is_admin(): # Changed to call is_admin()
+    if current_user.is_authenticated and current_user.is_admin():
         return redirect(url_for('admin_dashboard'))
 
     form_data = {}
@@ -1316,37 +1422,44 @@ def admin_verify_payment():
 @login_required
 @admin_required
 @csrf.exempt # Handled by X-CSRFToken header
-def admin_update_order_status(order_id):
-    order = Order.query.get(order_id)
-    if not order:
-        return jsonify(success=False, message='Order not found.'), 404
+def admin_update_order_status(order_id): # Added order_id to arguments
+    try:
+        data = request.get_json()
+        # order_id is now correctly passed as a path parameter, no need to get from data
+        order = Order.query.get(order_id)
+        if not order:
+            return jsonify(success=False, message='Order not found.'), 404
 
-    data = request.get_json()
-    new_status = data.get('status')
-    remark = data.get('remark')
-    courier = data.get('courier')
-    tracking_number = data.get('tracking_number')
-    cancellation_reason = data.get('cancellation_reason') # New: capture cancellation reason
+        new_status = data.get('status')
+        remark = data.get('remark')
+        courier = data.get('courier')
+        tracking_number = data.get('tracking_number')
+        cancellation_reason = data.get('cancellation_reason') # New: capture cancellation reason
 
-    if new_status:
-        order.status = new_status
-        order.remark = remark
-        order.courier = courier
-        order.tracking_number = tracking_number
-        order.cancellation_reason = cancellation_reason # Save cancellation reason
+        if new_status:
+            order.status = new_status
+            order.remark = remark
+            order.courier = courier
+            order.tracking_number = tracking_number
+            order.cancellation_reason = cancellation_reason # Save cancellation reason
 
-        # Update payment status based on order status for consistency
-        if 'Cancelled' in new_status:
-            order.payment_status = 'cancelled'
-        elif new_status == 'Delivered':
-            order.payment_status = 'completed' # Assuming payment was completed before delivery
-        # Other statuses like 'Shipped', 'Preparing Order' can keep payment_status as 'completed'
-        # if it was already marked as such after initial verification.
+            # Update payment status based on order status for consistency
+            if 'Cancelled' in new_status:
+                order.payment_status = 'cancelled'
+            elif new_status == 'Delivered':
+                order.payment_status = 'completed' # Assuming payment was completed before delivery
+            # Other statuses like 'Shipped', 'Preparing Order' can keep payment_status as 'completed'
+            # if it was already marked as such after initial verification.
 
-        db.session.commit()
-        flash(f'Order {order_id} status updated to {new_status}.', 'success')
-        return jsonify(success=True, message='Order status updated.')
-    return jsonify(success=False, message='Invalid status provided.'), 400
+            db.session.commit()
+            flash(f'Order {order_id} status updated to {new_status}.', 'success')
+            return jsonify(success=True, message='Order status updated.')
+        return jsonify(success=False, message='Invalid status provided.'), 400
+    except Exception as e:
+        db.session.rollback() # Rollback in case of error
+        print(f"Error updating order status for {order_id}: {e}")
+        return jsonify(success=False, message='An internal server error occurred.'), 500
+
 
 @app.route('/admin/users')
 @login_required
@@ -1469,6 +1582,7 @@ def admin_artworks():
 @admin_required
 def admin_add_artwork():
     categories = Category.query.all()
+    form_data = {} # Initialize form_data for GET requests
     if request.method == 'POST':
         sku = request.form.get('sku')
         name = request.form.get('name')
@@ -1486,10 +1600,26 @@ def admin_add_artwork():
         category_id = request.form.get('category_id')
         is_featured = 'is_featured' in request.form # Checkbox
         custom_options_json = request.form.get('custom_options') # JSON string from JS
+        shipping_charge = request.form.get('shipping_charge') # NEW: Get shipping charge from form
+
+        # Populate form_data for re-rendering on error
+        form_data = {
+            'sku': sku, 'name': name, 'description': description,
+            'original_price': original_price, 'cgst_percentage': cgst_percentage,
+            'sgst_percentage': sgst_percentage, 'igst_percentage': igst_percentage,
+            'ugst_percentage': ugst_percentage, 'gst_type': gst_type,
+            'stock': stock, 'category_id': category_id, 'is_featured': is_featured,
+            'shipping_charge': shipping_charge
+        }
+        if custom_options_json:
+            try:
+                form_data['custom_option_groups'] = json.loads(custom_options_json)
+            except json.JSONDecodeError:
+                form_data['custom_option_groups'] = {} # Invalid JSON, treat as empty
 
         if not all([sku, name, original_price, stock, category_id, gst_type]):
             flash('Please fill in all required fields.', 'danger')
-            return render_template('admin_add_artwork.html', categories=categories)
+            return render_template('admin_add_artwork.html', categories=categories, form_data=form_data)
 
         try:
             original_price = Decimal(original_price)
@@ -1498,14 +1628,15 @@ def admin_add_artwork():
             igst_percentage = Decimal(igst_percentage)
             ugst_percentage = Decimal(ugst_percentage)
             stock = int(stock)
+            shipping_charge = Decimal(shipping_charge) # NEW: Convert to Decimal
         except (ValueError, InvalidOperation):
-            flash('Invalid price, GST percentage, or stock quantity.', 'danger')
-            return render_template('admin_add_artwork.html', categories=categories)
+            flash('Invalid price, GST percentage, stock quantity, or shipping charge.', 'danger')
+            return render_template('admin_add_artwork.html', categories=categories, form_data=form_data)
 
         existing_artwork = Artwork.query.filter_by(sku=sku).first()
         if existing_artwork:
             flash(f'Artwork with SKU "{sku}" already exists.', 'danger')
-            return render_template('admin_add_artwork.html', categories=categories)
+            return render_template('admin_add_artwork.html', categories=categories, form_data=form_data)
 
         image_paths = []
         if 'images' in request.files:
@@ -1518,7 +1649,7 @@ def admin_add_artwork():
                     image_paths.append('uploads/' + unique_filename)
                 elif file.filename != '': # If file is present but not allowed
                     flash(f'Invalid file type for image: {file.filename}.', 'danger')
-                    return render_template('admin_add_artwork.html', categories=categories)
+                    return render_template('admin_add_artwork.html', categories=categories, form_data=form_data)
 
         new_artwork = Artwork(
             sku=sku,
@@ -1532,7 +1663,8 @@ def admin_add_artwork():
             gst_type=gst_type,
             stock=stock,
             category_id=category_id,
-            is_featured=is_featured
+            is_featured=is_featured,
+            shipping_charge=shipping_charge # NEW: Assign shipping charge
         )
         new_artwork.set_images_list(image_paths) # Store image paths as JSON
         
@@ -1544,14 +1676,14 @@ def admin_add_artwork():
                 new_artwork.custom_options = custom_options_json
             except json.JSONDecodeError:
                 flash('Invalid format for custom options JSON.', 'danger')
-                return render_template('admin_add_artwork.html', categories=categories)
+                return render_template('admin_add_artwork.html', categories=categories, form_data=form_data)
 
         db.session.add(new_artwork)
         db.session.commit()
         flash('Artwork added successfully!', 'success')
         return redirect(url_for('admin_artworks'))
 
-    return render_template('admin_add_artwork.html', categories=categories)
+    return render_template('admin_add_artwork.html', categories=categories, form_data=form_data) # Always pass form_data
 
 @app.route('/admin/edit-artwork/<artwork_id>', methods=['GET', 'POST'])
 @login_required
@@ -1576,6 +1708,7 @@ def admin_edit_artwork(artwork_id):
 
         stock = request.form.get('stock')
         description = request.form.get('description')
+        shipping_charge = request.form.get('shipping_charge') # NEW: Get shipping charge from form
         
         # Get images to keep (hidden inputs from frontend)
         images_to_keep = request.form.getlist('images_to_keep')
@@ -1597,11 +1730,12 @@ def admin_edit_artwork(artwork_id):
             artwork.igst_percentage = Decimal(igst_percentage)
             artwork.ugst_percentage = Decimal(ugst_percentage)
             artwork.stock = int(stock)
+            artwork.shipping_charge = Decimal(shipping_charge) # NEW: Assign shipping charge
         except (ValueError, InvalidOperation):
-            flash('Invalid price, GST percentage, or stock quantity.', 'danger')
+            flash('Invalid price, GST percentage, stock quantity, or shipping charge.', 'danger')
             # Pass form data back to template to re-populate
             form_data = request.form.to_dict()
-            form_data['custom_option_groups'] = json.loads(custom_options_json_str) if custom_options_json_str else []
+            form_data['custom_option_groups'] = json.loads(custom_options_json_str) if custom_options_json_str else {} # Ensure it's a dict
             return render_template('admin_edit_artwork.html', artwork=artwork, categories=categories, form_data=form_data)
 
         # Handle new image uploads
@@ -1617,7 +1751,7 @@ def admin_edit_artwork(artwork_id):
                 elif file.filename != '': # If file is present but not allowed
                     flash(f'Invalid file type for new image: {file.filename}.', 'danger')
                     form_data = request.form.to_dict()
-                    form_data['custom_option_groups'] = json.loads(custom_options_json_str) if custom_options_json_str else []
+                    form_data['custom_option_groups'] = json.loads(custom_options_json_str) if custom_options_json_str else {} # Ensure it's a dict
                     return render_template('admin_edit_artwork.html', artwork=artwork, categories=categories, form_data=form_data)
 
         # Combine old images to keep and new images
@@ -1633,7 +1767,7 @@ def admin_edit_artwork(artwork_id):
             except json.JSONDecodeError:
                 flash('Invalid format for custom options JSON.', 'danger')
                 form_data = request.form.to_dict()
-                form_data['custom_option_groups'] = json.loads(custom_options_json_str) if custom_options_json_str else []
+                form_data['custom_option_groups'] = json.loads(custom_options_json_str) if custom_options_json_str else {} # Ensure it's a dict
                 return render_template('admin_edit_artwork.html', artwork=artwork, categories=categories, form_data=form_data)
         else:
             artwork.custom_options = None # Clear if no options are submitted
@@ -1655,6 +1789,7 @@ def admin_edit_artwork(artwork_id):
         'gst_type': artwork.gst_type,
         'stock': artwork.stock,
         'description': artwork.description,
+        'shipping_charge': artwork.shipping_charge, # NEW: Pass shipping charge
         # Pass the dictionary directly, it will be converted to JSON string by tojson in template
         'custom_option_groups': artwork.get_custom_options_dict() 
     }
@@ -1698,27 +1833,243 @@ def admin_edit_invoice(order_id):
             'business_address': request.form.get('business_address'),
             'invoice_number': request.form.get('invoice_number'),
             'invoice_date': request.form.get('invoice_date'),
-            'billing_address': request.form.get('billing_address'),
-            'gst_rate_applied': Decimal(request.form.get('gst_rate')),
-            'shipping_charge': Decimal(request.form.get('shipping_charge')),
-            'final_invoice_amount': Decimal(request.form.get('final_invoice_amount')),
+            'billing_address': request.form.get('billing_address'), # This field is not in the HTML, but kept for completeness if you add it
+            # Convert Decimal types to string before storing in JSON
+            'gst_rate_applied': str(Decimal(request.form.get('gst_rate', '0.00'))), 
+            'shipping_charge': str(Decimal(request.form.get('shipping_charge', '0.00'))), 
+            'final_invoice_amount': str(Decimal(request.form.get('total_amount', '0.00'))), 
             'invoice_status': request.form.get('invoice_status', 'Generated'), # Default if not explicitly set
             'is_held_by_admin': 'is_held_by_admin' in request.form, # Checkbox
-            'cgst_amount': Decimal(request.form.get('cgst_amount', '0.00')),
-            'sgst_amount': Decimal(request.form.get('sgst_amount', '0.00')),
-            'igst_amount': Decimal(request.form.get('igst_amount', '0.00')),
-            'ugst_amount': Decimal(request.form.get('ugst_amount', '0.00'))
+            'cgst_amount': str(Decimal(request.form.get('cgst_amount', '0.00'))), 
+            'sgst_amount': str(Decimal(request.form.get('sgst_amount', '0.00'))),
+            'igst_amount': str(Decimal(request.form.get('igst_amount', '0.00'))),
+            'ugst_amount': str(Decimal(request.form.get('ugst_amount', '0.00')))
         }
         
         order.set_invoice_details(invoice_details)
-        order.shipping_charge = invoice_details['shipping_charge'] # Update order's shipping charge too
-        order.total_amount = invoice_details['final_invoice_amount'] # Update order's total amount
+        # Ensure that when updating order.shipping_charge and order.total_amount,
+        # they are converted back to Decimal from the string in invoice_details
+        order.shipping_charge = Decimal(invoice_details['shipping_charge']) 
+        order.total_amount = Decimal(invoice_details['final_invoice_amount']) 
         db.session.commit()
         flash('Invoice details updated successfully!', 'success')
         return redirect(url_for('admin_dashboard')) # Or admin_orders_view if you create one
     
-    # For GET request, pass current invoice details to the template
-    return render_template('admin_edit_invoice.html', order=order)
+    # For GET request, parse invoice_details and convert date strings back to datetime objects
+    invoice_data = order.get_invoice_details()
+    if 'invoice_date' in invoice_data and invoice_data['invoice_date']:
+        try:
+            invoice_data['invoice_date'] = datetime.strptime(invoice_data['invoice_date'], '%Y-%m-%d')
+        except ValueError:
+            invoice_data['invoice_date'] = None # Handle potential format issues
+    if 'due_date' in invoice_data and invoice_data['due_date']:
+        try:
+            invoice_data['due_date'] = datetime.strptime(invoice_data['due_date'], '%Y-%m-%d')
+        except ValueError:
+            invoice_data['due_date'] = None # Handle potential format issues
+
+    return render_template('admin_edit_invoice.html', order=order, invoice_data=invoice_data)
+
+@app.route('/generate_invoice_pdf/<order_id>')
+@login_required
+@admin_required
+def generate_invoice_pdf(order_id):
+    if SimpleDocTemplate is None:
+        flash('PDF generation library (ReportLab) is not installed.', 'danger')
+        return redirect(url_for('admin_edit_invoice', order_id=order_id))
+
+    order = Order.query.get_or_404(order_id)
+    invoice_data = order.get_invoice_details()
+
+    # Ensure all necessary invoice_data fields are present, provide defaults if not
+    invoice_data_safe = {
+        'business_name': invoice_data.get('business_name') or app.config['OUR_BUSINESS_NAME'],
+        'gst_number': invoice_data.get('gst_number') or app.config['OUR_GSTIN'],
+        'pan_number': invoice_data.get('pan_number') or app.config['OUR_PAN'],
+        'business_address': invoice_data.get('business_address') or app.config['OUR_BUSINESS_ADDRESS'],
+        'invoice_number': invoice_data.get('invoice_number') or order.id,
+        'invoice_date': invoice_data.get('invoice_date') or datetime.utcnow().strftime('%Y-%m-%d'),
+        'billing_address': invoice_data.get('billing_address') or ', '.join(order.get_shipping_address().values()),
+        'gst_rate_applied': Decimal(invoice_data.get('gst_rate_applied', '0.00')),
+        'shipping_charge': Decimal(invoice_data.get('shipping_charge', '0.00')),
+        'final_invoice_amount': Decimal(invoice_data.get('final_invoice_amount', '0.00')),
+        'invoice_status': invoice_data.get('invoice_status', 'Generated'),
+        'cgst_amount': Decimal(invoice_data.get('cgst_amount', '0.00')),
+        'sgst_amount': Decimal(invoice_data.get('sgst_amount', '0.00')),
+        'igst_amount': Decimal(invoice_data.get('igst_amount', '0.00')),
+        'ugst_amount': Decimal(invoice_data.get('ugst_amount', '0.00')),
+    }
+
+    # Convert date string to datetime object for formatting in PDF
+    if isinstance(invoice_data_safe['invoice_date'], str):
+        try:
+            invoice_data_safe['invoice_date_dt'] = datetime.strptime(invoice_data_safe['invoice_date'], '%Y-%m-%d')
+        except ValueError:
+            invoice_data_safe['invoice_date_dt'] = datetime.utcnow() # Fallback
+    else:
+        invoice_data_safe['invoice_date_dt'] = invoice_data_safe['invoice_date']
+
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    
+    # Custom styles - Modify existing or add with unique names
+    # Modify existing 'h1', 'h2', 'Normal' styles
+    styles['h1'].fontSize = 24
+    styles['h1'].leading = 28
+    styles['h1'].alignment = TA_CENTER
+    styles['h1'].fontName = 'Helvetica-Bold'
+
+    styles['h2'].fontSize = 18
+    styles['h2'].leading = 22
+    styles['h2'].alignment = TA_LEFT
+    styles['h2'].fontName = 'Helvetica-Bold'
+    styles['h2'].spaceAfter = 10
+
+    styles['Normal'].fontSize = 10
+    styles['Normal'].leading = 12
+    styles['Normal'].alignment = TA_LEFT
+    styles['Normal'].spaceAfter = 5
+
+    # Add new styles with unique names
+    styles.add(ParagraphStyle(name='RightAlign', parent=styles['Normal'], alignment=TA_RIGHT))
+    styles.add(ParagraphStyle(name='BoldBodyText', parent=styles['Normal'], fontName='Helvetica-Bold'))
+    styles.add(ParagraphStyle(name='Footer', parent=styles['Normal'], fontSize=8, leading=10, alignment=TA_CENTER, spaceBefore=20))
+    styles.add(ParagraphStyle(name='TableCell', parent=styles['Normal'], alignment=TA_CENTER))
+    styles.add(ParagraphStyle(name='TableCellLeft', parent=styles['Normal'], alignment=TA_LEFT))
+    styles.add(ParagraphStyle(name='TableCellRight', parent=styles['Normal'], alignment=TA_RIGHT))
+
+
+    story = []
+
+    # Header
+    story.append(Paragraph(invoice_data_safe['business_name'], styles['h1']))
+    story.append(Paragraph(invoice_data_safe['business_address'], styles['Normal']))
+    story.append(Paragraph(f"GSTIN: {invoice_data_safe['gst_number']} | PAN: {invoice_data_safe['pan_number']}", styles['Normal']))
+    story.append(Spacer(1, 0.2 * inch))
+
+    # Invoice Title and Details
+    story.append(Paragraph("TAX INVOICE", styles['h2']))
+    story.append(Paragraph(f"<b>Invoice No:</b> {invoice_data_safe['invoice_number']}", styles['BoldBodyText']))
+    story.append(Paragraph(f"<b>Invoice Date:</b> {invoice_data_safe['invoice_date_dt'].strftime('%d-%m-%Y')}", styles['BoldBodyText']))
+    story.append(Spacer(1, 0.2 * inch))
+
+    # Billing Address
+    # Ensure billing_address is split into lines for proper Paragraph rendering
+    billing_address_lines = invoice_data_safe['billing_address'].split(', ')
+    story.append(Paragraph("<b>Bill To:</b>", styles['BoldBodyText']))
+    for line in billing_address_lines:
+        story.append(Paragraph(line, styles['Normal']))
+    story.append(Spacer(1, 0.2 * inch))
+
+    # Order Items Table
+    # Wrap header text in Paragraphs for better control
+    data = [
+        [
+            Paragraph('SKU', styles['BoldBodyText']),
+            Paragraph('Artwork Name', styles['BoldBodyText']),
+            Paragraph('Options', styles['BoldBodyText']),
+            Paragraph('Unit Price (Excl. GST)', styles['BoldBodyText']),
+            Paragraph('Qty', styles['BoldBodyText']),
+            Paragraph('CGST', styles['BoldBodyText']),
+            Paragraph('SGST', styles['BoldBodyText']),
+            Paragraph('IGST', styles['BoldBodyText']),
+            Paragraph('UGST', styles['BoldBodyText']),
+            Paragraph('Total (Incl. GST)', styles['BoldBodyText'])
+        ]
+    ]
+    
+    total_cgst_items = Decimal('0.00')
+    total_sgst_items = Decimal('0.00')
+    total_igst_items = Decimal('0.00')
+    total_ugst_items = Decimal('0.00')
+
+    for item in order.items:
+        options_str = ", ".join([f"{k}: {v}" for k, v in item.get_selected_options_dict().items()])
+        
+        # Ensure Decimal values are converted to string for display in PDF
+        unit_price_excl_gst_display = f"₹{item.unit_price_before_gst:,.2f}"
+        cgst_display = f"₹{item.cgst_amount:,.2f} ({item.cgst_percentage_applied}%)"
+        sgst_display = f"₹{item.sgst_amount:,.2f} ({item.sgst_percentage_applied}%)"
+        igst_display = f"₹{item.igst_amount:,.2f} ({item.igst_percentage_applied}%)"
+        ugst_display = f"₹{item.ugst_amount:,.2f} ({item.ugst_percentage_applied}%)"
+        total_incl_gst_display = f"₹{item.total_price_incl_gst:,.2f}"
+
+        data.append([
+            Paragraph(item.artwork.sku, styles['TableCell']),
+            Paragraph(item.artwork.name, styles['TableCellLeft']),
+            Paragraph(options_str, styles['TableCellLeft']),
+            Paragraph(unit_price_excl_gst_display, styles['TableCellRight']),
+            Paragraph(str(item.quantity), styles['TableCell']),
+            Paragraph(cgst_display, styles['TableCellRight']),
+            Paragraph(sgst_display, styles['TableCellRight']),
+            Paragraph(igst_display, styles['TableCellRight']),
+            Paragraph(ugst_display, styles['TableCellRight']),
+            Paragraph(total_incl_gst_display, styles['TableCellRight'])
+        ])
+        total_cgst_items += item.cgst_amount
+        total_sgst_items += item.sgst_amount
+        total_igst_items += item.igst_amount
+        total_ugst_items += item.ugst_amount
+
+    # Adjusted colWidths to better fit content and distribute space
+    table = Table(data, colWidths=[0.8*inch, 1.5*inch, 1.5*inch, 1.2*inch, 0.5*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 1.2*inch])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), HexColor('#FFBF00')), # Golden Saffron header
+        ('TEXTCOLOR', (0, 0), (-1, 0), HexColor('#FFFFFF')),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('ALIGN', (1, 0), (1, -1), 'LEFT'), # Align artwork name left
+        ('ALIGN', (3, 0), (3, -1), 'RIGHT'), # Align unit price right
+        ('ALIGN', (4, 0), (4, -1), 'CENTER'), # Align quantity center
+        ('ALIGN', (5, 0), (-1, -1), 'RIGHT'), # Align GST and total amounts right
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), HexColor('#FAF9F6')), # Light background for rows
+        ('GRID', (0, 0), (-1, -1), 1, HexColor('#E5E7EB')), # Light grid lines
+        ('BOX', (0, 0), (-1, -1), 1, HexColor('#E5E7EB')),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('LEFTPADDING', (0,0), (-1,-1), 6),
+        ('RIGHTPADDING', (0,0), (-1,-1), 6),
+        ('TOPPADDING', (0,0), (-1,-1), 6),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+    ]))
+    story.append(table)
+    story.append(Spacer(1, 0.2 * inch))
+
+    # Summary Table
+    summary_data = [
+        [Paragraph('Subtotal (Excl. GST):', styles['RightAlign']), Paragraph(f"₹{order.total_amount - order.shipping_charge - total_cgst_items - total_sgst_items - total_igst_items - total_ugst_items:,.2f}", styles['RightAlign'])],
+        [Paragraph('CGST:', styles['RightAlign']), Paragraph(f"₹{total_cgst_items:,.2f}", styles['RightAlign'])],
+        [Paragraph('SGST:', styles['RightAlign']), Paragraph(f"₹{total_sgst_items:,.2f}", styles['RightAlign'])],
+        [Paragraph('IGST:', styles['RightAlign']), Paragraph(f"₹{total_igst_items:,.2f}", styles['RightAlign'])],
+        [Paragraph('UGST:', styles['RightAlign']), Paragraph(f"₹{total_ugst_items:,.2f}", styles['RightAlign'])],
+        [Paragraph('Shipping Charge:', styles['RightAlign']), Paragraph(f"₹{order.shipping_charge:,.2f}", styles['RightAlign'])],
+        [Paragraph('<b>Grand Total (Incl. GST):</b>', styles['BoldBodyText']), Paragraph(f"<b>₹{order.total_amount:,.2f}</b>", styles['BoldBodyText'])]
+    ]
+    summary_table = Table(summary_data, colWidths=[4.5*inch, 2.5*inch])
+    summary_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+        ('FONTNAME', (0, 6), (-1, 6), 'Helvetica-Bold'), # Bold for Grand Total
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('GRID', (0, 0), (-1, -1), 0.5, HexColor('#E5E7EB')),
+        ('BOX', (0, 0), (-1, -1), 0.5, HexColor('#E5E7EB')),
+    ]))
+    story.append(summary_table)
+    story.append(Spacer(1, 0.5 * inch))
+
+    # Footer
+    story.append(Paragraph("Thank you for your business!", styles['Normal']))
+    story.append(Paragraph(f"Invoice Status: <b>{invoice_data_safe['invoice_status']}</b>", styles['BoldBodyText']))
+    story.append(Spacer(1, 0.2 * inch))
+    story.append(Paragraph(f"Contact: {order.customer_phone} | {order.customer_email}", styles['Footer']))
+
+
+    doc.build(story)
+    buffer.seek(0)
+    
+    return send_file(buffer, as_attachment=True, download_name=f"invoice_{order.id}.pdf", mimetype='application/pdf')
+
 
 # --- User Profile & Orders ---
 @app.route('/user-profile')

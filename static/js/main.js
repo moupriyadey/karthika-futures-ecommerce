@@ -1,4 +1,4 @@
-console.log("✅ main.js loaded and running");
+console.log("✅ main.js script started execution.");
 
 /**
  * Displays a custom animated alert message with a gradient border and a "Go To Cart" button.
@@ -35,161 +35,350 @@ function getHeaders() {
     return headers;
 }
 
-// Function to update the cart count display in the navbar
-window.updateCartCountDisplay = function() {
-    const cartBadge = document.getElementById('cart-total-quantity');
-    if (cartBadge) {
-        const cartCount = localStorage.getItem('cartCount') || '0';
-        cartBadge.textContent = cartCount;
-        cartBadge.style.display = parseInt(cartCount) > 0 ? 'inline-block' : 'none';
-    }
-};
-
-// Function to fetch cart count from the server (used on page load)
-async function fetchCartCount() {
-    console.log("Fetching cart count from server...");
-    try {
-        const response = await fetch('/get_cart_count');
-        // Check if the response is JSON before parsing
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-            const data = await response.json();
-            if (data.success) {
-                console.log("Fetched cart count from server:", data.cart_count);
-                localStorage.setItem('cartCount', data.cart_count); // Use data.cart_count as per backend
-                window.updateCartCountDisplay();
-            } else {
-                console.error("Failed to fetch cart count from server:", data.message);
-            }
-        } else {
-            const text = await response.text();
-            console.error("Server response was not JSON:", text);
-            showCustomAlert("Error: Server did not return expected data for cart count. Please ensure /get_cart_count returns JSON.", "danger");
-        }
-    } catch (error) {
-        console.error("Error fetching cart count from server:", error);
-    }
-}
-
 /**
- * Handles the "Buy Now" action, directly preparing an order.
- * This function is now primarily called from the product modal in all_products.html
- * @param {string} sku - The SKU of the product.
- * @param {string} name - The name of the product.
- * @param {string} imageUrl - The URL of the product image.
- * @param {Object} options - Object containing selected options (e.g., { "Size": "A4", "Frame": "Wooden" }).
- * @param {number} quantity - The selected quantity.
- * @param {number} unitPriceBeforeGst - The unit price of the product including options, before GST.
- * @param {number} gstPercentage - The GST percentage applicable.
+ * Adds an item to the cart via AJAX.
+ * @param {string} sku - The SKU of the artwork.
+ * @param {string} name - The name of the artwork.
+ * @param {string} imageUrl - The URL of the artwork image.
+ * @param {number} unitPriceBeforeGst - The unit price before GST.
+ * @param {number} cgstPercentage - The CGST percentage.
+ * @param {number} sgstPercentage - The SGST percentage.
+ * @param {number} igstPercentage - The IGST percentage.
+ * @param {number} ugstPercentage - The UGST percentage.
+ * @param {number} quantity - The quantity to add.
+ * @param {object} selectedOptions - Object of selected options (e.g., { "Size": "A4", "Frame": "Wooden" }).
  */
-async function buyNow(sku, name, imageUrl, options, quantity, unitPriceBeforeGst, gstPercentage) {
-    const itemToBuyNow = {
-        sku: sku,
-        name: name,
-        imageUrl: imageUrl,
-        quantity: quantity,
-        unitPriceBeforeGst: unitPriceBeforeGst, // This is the price with options, before GST
-        gstPercentage: gstPercentage,
-        options: options // Pass all collected options
-    };
-
-    if (!window.isUserLoggedIn) {
-        sessionStorage.setItem('itemToBuyNow', JSON.stringify(itemToBuyNow));
-        sessionStorage.setItem('redirect_after_login_endpoint', 'purchase_form');
-        window.location.href = '/user-login'; // Redirect to user_login, it will handle 'next' param
-        return;
-    }
-
-    try {
-        // The backend /create_direct_order expects a 'cart' object containing the item
-        const response = await fetch('/create_direct_order', {
-            method: 'POST',
-            headers: getHeaders(),
-            body: JSON.stringify({ cart: { 'temp_item': itemToBuyNow } }) // Wrap in 'cart' object
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-            showCustomAlert(data.message || 'Direct purchase initiated. Redirecting...', 'success');
-            window.location.href = data.redirect_url;
-        } else {
-            showCustomAlert(data.message || 'Failed to initiate direct purchase.', 'danger');
-        }
-    } catch (error) {
-        console.error('Error in buyNow fetch:', error);
-        showCustomAlert('An error occurred during purchase. Please try again.', 'danger');
-    }
-}
-
-/**
- * Handles adding an item to the cart.
- * This function is now primarily called from the product modal in all_products.html
- * @param {string} sku - The SKU of the product.
- * @param {string} name - The name of the product.
- * @param {string} imageUrl - The URL of the product image.
- * @param {number} basePrice - The original_price of the artwork (before any options).
- * @param {number} gstPercentage - The GST percentage applicable.
- * @param {number} quantity - The selected quantity.
- * @param {Object} options - Object containing selected options (e.g., { "Size": "A4", "Frame": "Wooden" }).
- */
-async function addToCart(sku, name, imageUrl, basePrice, gstPercentage, quantity, options) {
-    const itemData = {
-        sku: sku,
-        name: name, // Pass name
-        imageUrl: imageUrl, // Pass imageUrl
-        basePrice: basePrice, // Pass original_price
-        gstPercentage: gstPercentage, // Pass gst_percentage
-        quantity: quantity,
-        options: options // Pass all collected options
-    };
-    console.log("Attempting to add to cart:", itemData);
+async function addToCart(sku, name, imageUrl, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, quantity, selectedOptions) {
+    console.log("addToCart called from main.js:", { sku, name, quantity, selectedOptions, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage });
     try {
         const response = await fetch('/add-to-cart', {
             method: 'POST',
             headers: getHeaders(),
-            body: JSON.stringify(itemData)
+            body: JSON.stringify({
+                sku: sku,
+                name: name,
+                imageUrl: imageUrl,
+                unit_price_before_gst: unitPriceBeforeGst,
+                cgst_percentage: cgstPercentage,
+                sgst_percentage: sgstPercentage,
+                igst_percentage: igstPercentage,
+                ugst_percentage: ugstPercentage,
+                quantity: quantity,
+                selected_options: selectedOptions
+            })
         });
         const data = await response.json();
-        console.log("Add to cart response:", data);
 
         if (response.ok && data.success) {
-            showCustomAlert(data.message || "Item added to cart!", "success", true); // Show "Go To Cart" link
+            console.log("Item added to cart successfully:", data);
             if (data.cart_count !== undefined) {
-                console.log("Updating cart count from response:", data.cart_count);
                 localStorage.setItem('cartCount', data.cart_count);
-                window.updateCartCountDisplay(); // Update the badge immediately
-            } else {
-                console.warn("total_quantity not found in response, attempting to fetch cart count as fallback.");
-                fetchCartCount(); // Fallback: fetch the cart count if not provided in the response
+                updateCartCountDisplay();
             }
+            window.location.href = '/cart'; // Redirect to cart to show success message there
         } else {
             console.error("Failed to add item to cart:", data.message);
-            showCustomAlert(data.message || "Failed to add item to cart.", "danger");
+            showCustomAlert(data.message || 'Failed to add item to cart.', 'danger');
         }
     } catch (error) {
-        console.error("Error adding to cart (fetch failed):", error);
-        showCustomAlert("An error occurred. Please try again.", "danger");
+        console.error('Error adding to cart (fetch failed):', error);
+        showCustomAlert('An error occurred. Please try again.', 'danger');
     }
 }
 
+/**
+ * Handles direct "Buy Now" purchase via AJAX.
+ * @param {string} sku - The SKU of the artwork.
+ * @param {string} name - The name of the artwork.
+ * @param {string} imageUrl - The URL of the artwork image.
+ * @param {object} selectedOptions - Object of selected options.
+ * @param {number} quantity - The quantity.
+ * @param {number} unitPriceBeforeGst - The unit price before GST.
+ * @param {number} cgstPercentage - The CGST percentage.
+ * @param {number} sgstPercentage - The SGST percentage.
+ * @param {number} igstPercentage - The IGST percentage.
+ * @param {number} ugstPercentage - The UGST percentage.
+ * @param {number} shippingCharge - The shipping charge for the item.
+ */
+async function buyNow(sku, name, imageUrl, selectedOptions, quantity, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, shippingCharge) {
+    console.log("buyNow called from main.js:", { sku, name, quantity, selectedOptions, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, shippingCharge });
+    const itemToBuyNow = {
+        sku: sku,
+        name: name,
+        imageUrl: imageUrl,
+        selected_options: selectedOptions,
+        quantity: quantity,
+        unit_price_before_gst: unitPriceBeforeGst,
+        cgst_percentage: cgstPercentage,
+        sgst_percentage: sgstPercentage,
+        igst_percentage: igstPercentage,
+        ugst_percentage: ugstPercentage,
+        shipping_charge: shippingCharge
+    };
 
-// All DOM-related interactions should be inside DOMContentLoaded
+    if (!window.isUserLoggedIn) {
+        console.log("User not logged in in main.js, storing item for redirection.");
+        sessionStorage.setItem('itemToBuyNow', JSON.stringify(itemToBuyNow));
+        sessionStorage.setItem('redirect_after_login_endpoint', 'purchase_form');
+        window.location.href = window.userLoginUrl; // Use global login URL
+        return;
+    }
+
+    try {
+        const response = await fetch('/create_direct_order', {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(itemToBuyNow)
+        });
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            console.log("Direct order initiated successfully:", data);
+            window.location.href = data.redirect_url; // Redirect to payment/confirmation
+        } else {
+            console.error('Direct order initiation failed:', data.message);
+            showCustomAlert(data.message || 'Failed to initiate direct purchase.', 'danger');
+        }
+    } catch (error) {
+        console.error('Error initiating direct purchase:', error);
+        showCustomAlert('An error occurred during direct purchase setup. Please try again.', 'danger');
+    }
+}
+
+// Function to update cart count display in the navbar
+function updateCartCountDisplay() {
+    const cartCount = localStorage.getItem('cartCount') || '0';
+    const cartCountBadge = document.getElementById('cart-count'); // Corrected ID to 'cart-count'
+    if (cartCountBadge) {
+        cartCountBadge.textContent = cartCount;
+        cartCountBadge.style.display = cartCount > 0 ? 'inline-block' : 'none'; // Ensure visibility
+    }
+    console.log("main.js: Cart count updated to:", cartCount);
+}
+
+// Attach functions to the window object immediately as they are defined
+window.showCustomAlert = showCustomAlert;
+window.addToCart = addToCart;
+window.buyNow = buyNow;
+window.updateCartCountDisplay = updateCartCountDisplay;
+console.log("main.js: Global functions (addToCart, buyNow, showCustomAlert, updateCartCountDisplay) exposed to window.");
+
+
 document.addEventListener('DOMContentLoaded', () => {
-    // --- CSRF Token Initialization ---
-    console.log("CSRF Token initialized from window:", window.csrfToken);
+    console.log("main.js: DOMContentLoaded fired.");
+    // Initial update of cart count when DOM is ready
+    updateCartCountDisplay();
 
-    // Initial fetch of cart count when the page loads
-    fetchCartCount();
+    // Event listeners for modal interactions (if modals are used on the page)
+    const productModalElement = document.getElementById('productModal');
 
-    // Ensure window.isUserLoggedIn is set if the user is logged in
-    window.isUserLoggedIn = typeof window.isUserLoggedIn !== 'undefined' ? window.isUserLoggedIn : false;
+    if (productModalElement) {
+        console.log("main.js: Product modal element found. Attaching modal listeners.");
+        // Function to update modal price and options dynamically
+        function updateModalPrice() {
+            const modalOriginalPrice = parseFloat(document.getElementById('modalOriginalPrice').value);
+            const modalCgstPercentage = parseFloat(document.getElementById('modalCgstPercentage').value);
+            const modalSgstPercentage = parseFloat(document.getElementById('modalSgstPercentage').value);
+            const modalIgstPercentage = parseFloat(document.getElementById('modalIgstPercentage').value);
+            const modalUgstPercentage = parseFloat(document.getElementById('modalUgstPercentage').value);
+            const modalGstType = document.getElementById('modalGstType').value;
+            const modalShippingCharge = parseFloat(document.getElementById('modalShippingCharge').value);
+            
+            const modalQuantityInput = document.getElementById('modalQuantity');
+            const modalCalculatedPriceSpan = document.getElementById('modalCalculatedPrice');
+            const modalStockSpan = document.getElementById('modalStock');
 
-    // --- Global functions for cart/buy now actions ---
-    // Make these functions globally accessible if they are called from other scripts (like all_products.html)
-    window.buyNow = buyNow;
-    window.addToCart = addToCart;
+            let currentBasePrice = modalOriginalPrice;
+            const quantity = parseInt(modalQuantityInput.value);
+            const selectedOptions = {};
 
-    // No longer need to attach listeners to product cards here, as all_products.html handles them directly
-    // within its extra_js block for the modal interactions.
+            productModalElement.querySelectorAll('.modal-option-select').forEach(selectElement => {
+                const groupName = selectElement.dataset.groupName;
+                const selectedValue = selectElement.value;
+
+                if (selectedValue && selectedValue !== 'default') {
+                    const parts = selectedValue.split('|');
+                    const optionLabel = parts[0];
+                    const optionPrice = parseFloat(parts[1]);
+                    currentBasePrice += optionPrice;
+                    selectedOptions[groupName] = optionLabel;
+                }
+            });
+
+            const totalBeforeGst = currentBasePrice * quantity;
+            
+            let totalGstRate = 0;
+            if (modalGstType === 'intra_state') {
+                totalGstRate = modalCgstPercentage + modalSgstPercentage;
+            } else if (modalGstType === 'inter_state') {
+                totalGstRate = modalIgstPercentage;
+            } else if (modalGstType === 'union_territory') {
+                totalGstRate = modalCgstPercentage + modalUgstPercentage;
+            }
+
+            const gstAmount = (totalBeforeGst * totalGstRate) / 100;
+            let finalPrice = totalBeforeGst + gstAmount;
+
+            finalPrice += modalShippingCharge;
+
+            modalCalculatedPriceSpan.textContent = finalPrice.toFixed(2);
+
+            const currentStock = parseInt(modalStockSpan.dataset.initialStock);
+            if (currentStock === 0 || quantity > currentStock) {
+                document.getElementById('modalAddToCartBtn').disabled = true;
+                document.getElementById('modalBuyNowBtn').disabled = true;
+                if (currentStock === 0) {
+                    modalStockSpan.textContent = "Out of Stock";
+                } else {
+                    modalStockSpan.textContent = `Only ${currentStock} units available`;
+                }
+            } else {
+                document.getElementById('modalAddToCartBtn').disabled = false;
+                document.getElementById('modalBuyNowBtn').disabled = false;
+                modalStockSpan.textContent = `${currentStock}`;
+            }
+
+            return {
+                name: document.getElementById('modalArtworkName').value,
+                imageUrl: document.getElementById('modalArtworkImageUrl').value,
+                selectedOptions: selectedOptions,
+                quantity: quantity,
+                unitPriceBeforeGst: currentBasePrice,
+                cgstPercentage: modalCgstPercentage,
+                sgstPercentage: modalSgstPercentage,
+                igstPercentage: modalIgstPercentage,
+                ugstPercentage: modalUgstPercentage,
+                shippingCharge: modalShippingCharge
+            };
+        }
+
+        document.getElementById('modalQuantity')?.addEventListener('input', updateModalPrice);
+        productModalElement.querySelectorAll('.modal-option-select').forEach(select => {
+            select.addEventListener('change', updateModalPrice);
+        });
+
+        productModalElement.addEventListener('show.bs.modal', function (event) {
+            console.log("main.js: Product modal show event triggered.");
+            const button = event.relatedTarget;
+            const artworkData = JSON.parse(button.dataset.artwork);
+
+            document.getElementById('modalArtworkName').value = artworkData.name;
+            document.getElementById('modalSku').value = artworkData.sku;
+            document.getElementById('modalOriginalPrice').value = artworkData.original_price;
+            document.getElementById('modalCgstPercentage').value = artworkData.cgst_percentage;
+            document.getElementById('modalSgstPercentage').value = artworkData.sgst_percentage;
+            document.getElementById('modalIgstPercentage').value = artworkData.igst_percentage;
+            document.getElementById('modalUgstPercentage').value = artworkData.ugst_percentage;
+            document.getElementById('modalGstType').value = artworkData.gst_type;
+            document.getElementById('modalShippingCharge').value = artworkData.shipping_charge;
+            
+            document.getElementById('modalArtworkImageUrl').value = artworkData.image_url;
+            document.getElementById('modalProductImage').src = artworkData.image_url;
+            document.getElementById('modalStock').textContent = artworkData.stock;
+            document.getElementById('modalStock').dataset.initialStock = artworkData.stock;
+
+            document.getElementById('modalQuantity').value = 1;
+
+            const modalCustomOptionsContainer = document.getElementById('modalCustomOptionsContainer');
+            modalCustomOptionsContainer.innerHTML = '';
+
+            if (artworkData.custom_options) {
+                for (const groupName in artworkData.custom_options) {
+                    if (artworkData.custom_options.hasOwnProperty(groupName)) {
+                        const options = artworkData.custom_options[groupName];
+                        const div = document.createElement('div');
+                        div.className = 'mb-3';
+                        div.innerHTML = `
+                            <label for="modal-option-${groupName}" class="form-label fw-bold">${groupName}:</label>
+                            <select class="form-select modal-option-select" id="modal-option-${groupName}" data-group-name="${groupName}">
+                                <option value="default" disabled selected>Select ${groupName}</option>
+                                ${Object.entries(options).map(([label, price]) => `<option value="${label}|${price}">${label} (+₹${price.toFixed(2)})</option>`).join('')}
+                            </select>
+                        `;
+                        modalCustomOptionsContainer.appendChild(div);
+                    }
+                }
+                modalCustomOptionsContainer.querySelectorAll('.modal-option-select').forEach(select => {
+                    select.addEventListener('change', updateModalPrice);
+                });
+            }
+
+            updateModalPrice();
+        });
+
+        document.getElementById('modalAddToCartBtn')?.addEventListener('click', async function() {
+            const sku = document.getElementById('modalSku').value;
+            const { name, imageUrl, selectedOptions, quantity, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage } = updateModalPrice(); 
+
+            if (!sku || !name || !imageUrl || isNaN(quantity) || quantity < 1) {
+                showCustomAlert('Please select a valid product and quantity from the modal.', 'danger');
+                return;
+            }
+
+            try {
+                await window.addToCart(sku, name, imageUrl, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, quantity, selectedOptions);
+                const modalElement = this.closest('.modal');
+                if (modalElement) {
+                    const bootstrapModal = bootstrap.Modal.getInstance(modalElement);
+                    if (bootstrapModal) bootstrapModal.hide();
+                }
+            } catch (error) {
+                console.error("Error adding from modal to cart:", error);
+                showCustomAlert("Failed to add item from modal to cart. Please try again.", 'danger');
+            }
+        });
+
+        document.getElementById('modalBuyNowBtn')?.addEventListener('click', async function() {
+            const sku = document.getElementById('modalSku').value;
+            const { name, imageUrl, selectedOptions, quantity, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, shippingCharge } = updateModalPrice(); 
+
+            if (!sku || !name || !imageUrl || isNaN(quantity) || quantity < 1) {
+                showCustomAlert('Please select a valid product and quantity for direct purchase from the modal.', 'danger');
+                return;
+            }
+
+            try {
+                await window.buyNow(sku, name, imageUrl, selectedOptions, quantity, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, shippingCharge);
+                const modalElement = this.closest('.modal');
+                if (modalElement) {
+                    const bootstrapModal = bootstrap.Modal.getInstance(modalElement);
+                    if (bootstrapModal) bootstrapModal.hide();
+                }
+            } catch (error) {
+                console.error("Error processing Buy Now from modal:", error);
+                showCustomAlert("Failed to process direct purchase from modal. Please try again.", 'danger');
+            }
+        });
+    }
+
+    // Logic to handle redirection after login for "Buy Now"
+    const itemToBuyNow = sessionStorage.getItem('itemToBuyNow');
+    const redirectEndpoint = sessionStorage.getItem('redirect_after_login_endpoint');
+
+    if (itemToBuyNow && redirectEndpoint === 'purchase_form' && window.isUserLoggedIn) {
+        console.log("main.js: Resuming Buy Now flow after login.");
+        sessionStorage.removeItem('itemToBuyNow');
+        sessionStorage.removeItem('redirect_after_login_endpoint');
+
+        try {
+            const parsedItem = JSON.parse(itemToBuyNow);
+            // Re-initiate the buyNow AJAX call with the stored item data
+            window.buyNow(
+                parsedItem.sku, 
+                parsedItem.name, 
+                parsedItem.imageUrl, 
+                parsedItem.selected_options, 
+                parsedItem.quantity, 
+                parsedItem.unit_price_before_gst, 
+                parsedItem.cgst_percentage, 
+                parsedItem.sgst_percentage, 
+                parsedItem.igst_percentage, 
+                parsedItem.ugst_percentage, 
+                parsedItem.shipping_charge
+            );
+        } catch (e) {
+            console.error("Failed to parse itemToBuyNow from session storage:", e);
+            showCustomAlert("There was an issue resuming your purchase. Please try again.", 'danger');
+        }
+    }
 });
