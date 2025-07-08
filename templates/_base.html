@@ -23,7 +23,7 @@
             --dark-bg: #1a1a1a;
             --dark-text: #e0e0e0;
 
-            /* New Navbar Colors */
+            /* New Navbar Colors - Hindu devotional theme */
             --navbar-bg-start: #4A0E4E; /* Deep Plum */
             --navbar-bg-end: #7B1FA2;   /* Amethyst */
             --navbar-text-color: #F8F8F8; /* Near white */
@@ -118,7 +118,9 @@
             background: linear-gradient(to right, var(--navbar-bg-start), var(--navbar-bg-end));
             border-bottom: 2px solid var(--navbar-border-color);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.25); /* Stronger shadow for depth */
-            transition: background 0.3s ease;
+            transition: top 0.4s ease-in-out, background 0.3s ease; /* Added top for floating effect */
+            padding-top: 0.5rem; /* Compact padding for ~1.5cm height */
+            padding-bottom: 0.5rem; /* Compact padding for ~1.5cm height */
         }
 
         .navbar-brand {
@@ -133,13 +135,15 @@
         .navbar-brand:hover {
             color: var(--navbar-hover-color) !important; /* Gold on hover */
         }
-
+        
         .navbar-nav .nav-link {
             color: var(--navbar-text-color) !important;
             font-weight: 600; /* Slightly bolder links */
             transition: color 0.3s ease, transform 0.2s ease, text-shadow 0.3s ease;
-            padding: 0.75rem 1rem;
+            padding: 0.4rem 0.8rem; /* Further compact padding for nav links */
             position: relative; /* For underline effect */
+            /* Embossed text effect */
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3), -1px -1px 2px rgba(255,255,255,0.1);
         }
 
         .navbar-nav .nav-link:hover {
@@ -171,6 +175,8 @@
             color: white !important;
             transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            padding: 0.4rem 0.8rem; /* Compact button padding */
+            font-weight: 600;
         }
 
         .navbar-nav .nav-item .btn-primary:hover {
@@ -199,43 +205,77 @@
         }
 
         /* Cart Badge */
-        #cart-count { /* Changed from #cart-total-quantity to #cart-count */
+        #cart-count { 
             background-color: #FF4500; /* Orange-red for attention */
             font-size: 0.75em;
             padding: 0.3em 0.6em;
             border-radius: 50%;
-            position: absolute; /* Position relative to its parent nav-link */
-            top: 0px; /* Adjust as needed */
-            right: 0px; /* Adjust as needed */
-            transform: translate(50%, -50%); /* Center it relative to corner */
-            display: none; /* Hidden by default, shown by JS if count > 0 */
+            position: absolute; 
+            top: 0px; 
+            right: 0px; 
+            transform: translate(50%, -50%); 
+            display: none; 
             color: white;
             font-weight: bold;
-            min-width: 20px; /* Ensure it's a circle even with single digit */
+            min-width: 20px; 
             text-align: center;
         }
         .nav-link.cart-icon-container {
-            position: relative; /* Make parent relative for absolute positioning of badge */
+            position: relative; 
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
+        /* Search input styling */
+        .navbar .form-control {
+            border-radius: 9999px; /* Pill shape */
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--navbar-text-color);
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .navbar .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .navbar .form-control:focus {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-color: var(--navbar-hover-color);
+            box-shadow: 0 0 0 0.25rem rgba(255, 215, 0, 0.25);
+        }
+
+        .navbar .btn-outline-light {
+            border-color: var(--navbar-text-color);
+            color: var(--navbar-text-color);
+            border-radius: 9999px; /* Pill shape */
+            transition: all 0.3s ease;
+        }
+
+        .navbar .btn-outline-light:hover {
+            background-color: var(--navbar-hover-color);
+            color: var(--navbar-bg-start);
+            border-color: var(--navbar-hover-color);
+        }
+
 
         /* Main Content Area */
         .main-content-area {
-            background-color: rgba(255, 255, 255, 0.98); /* Slightly more opaque white */
+            background-color: rgba(255, 255, 255, 0.98); 
             border-radius: 1.5rem;
             padding: 2rem;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); /* Deeper shadow */
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); 
             margin-top: 2rem;
             margin-bottom: 2rem;
         }
 
         /* Footer Styling */
         .footer {
-            background: linear-gradient(to left, #FF8C00, #FFA500); /* Saffron gradient */
-            color: #FAF9F6; /* Off-white text */
+            background: linear-gradient(to left, #FF8C00, #FFA500); 
+            color: #FAF9F6; 
             padding: 3rem 0;
             border-top: 2px solid #FFBF00;
         }
@@ -258,7 +298,7 @@
         }
 
         .footer a:hover {
-            color: #2E8B57; /* Bright green on hover */
+            color: #2E8B57; 
         }
 
         .social-icons a {
@@ -269,41 +309,41 @@
         }
 
         .social-icons a:hover {
-            color: #2E8B57; /* Bright green on hover */
+            color: #2E8B57; 
             transform: scale(1.1);
         }
 
         /* General Button Styling (overriding Bootstrap for theme) */
         .btn-primary {
-            background-color: #FF8C00; /* Saffron */
+            background-color: #FF8C00; 
             border-color: #FF8C00;
             transition: all 0.3s ease;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
         .btn-primary:hover {
-            background-color: #FFA500; /* Lighter saffron */
+            background-color: #FFA500; 
             border-color: #FFA500;
             transform: translateY(-2px);
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
         }
 
         .btn-success {
-            background-color: #2E8B57; /* Bright green */
+            background-color: #2E8B57; 
             border-color: #2E8B57;
             transition: all 0.3s ease;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
         .btn-success:hover {
-            background-color: #3CB371; /* Lighter green */
+            background-color: #3CB371; 
             border-color: #3CB371;
             transform: translateY(-2px);
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
         }
 
         .btn-info {
-            background-color: #17a2b8; /* Bootstrap info blue */
+            background-color: #17a2b8; 
             border-color: #17a2b8;
             transition: all 0.3s ease;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -317,7 +357,7 @@
         }
 
         .btn-secondary {
-            background-color: #6c757d; /* Bootstrap secondary grey */
+            background-color: #6c757d; 
             border-color: #6c757d;
             transition: all 0.3s ease;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -332,14 +372,14 @@
 
         /* Card Styling */
         .card {
-            border: none; /* Remove default border */
-            border-radius: 1rem; /* Rounded corners */
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); /* Soft shadow */
-            overflow: hidden; /* Ensure content respects border-radius */
+            border: none; 
+            border-radius: 1rem; 
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); 
+            overflow: hidden; 
         }
 
         .card-header {
-            background-color: #F0F0F0; /* Light grey header */
+            background-color: #F0F0F0; 
             border-bottom: 1px solid #e0e0e0;
             font-weight: 600;
             color: #333333;
@@ -353,7 +393,7 @@
         }
 
         .form-control:focus, .form-select:focus {
-            border-color: #FF8C00; /* Saffron focus */
+            border-color: #FF8C00; 
             box-shadow: 0 0 0 0.25rem rgba(255, 140, 0, 0.25);
         }
 
@@ -367,18 +407,18 @@
         }
 
         .product-card .rating {
-            color: #FFBF00; /* Golden saffron stars */
+            color: #FFBF00; 
         }
 
         .product-card .final-price {
-            color: #FF4500; /* Orange-red for prominent price */
+            color: #FF4500; 
         }
 
         /* Admin Dashboard Cards */
-        .card.bg-primary { background-color: #FF8C00 !important; } /* Saffron */
-        .card.bg-success { background-color: #2E8B57 !important; } /* Bright Green */
+        .card.bg-primary { background-color: #FF8C00 !important; } 
+        .card.bg-success { background-color: #2E8B57 !important; } 
         .card.bg-info { background-color: #17a2b8 !important; }
-        .card.bg-warning { background-color: #FFBF00 !important; color: #333 !important; } /* Golden saffron with dark text */
+        .card.bg-warning { background-color: #FFBF00 !important; color: #333 !important; } 
 
         /* Responsive Adjustments */
         @media (max-width: 991.98px) {
@@ -399,14 +439,17 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body class="flex flex-col min-h-screen">
-    <nav class="navbar navbar-expand-lg navbar-dark fixed-top py-3">
+    <nav id="mainNavbar" class="navbar navbar-expand-lg navbar-dark fixed-top">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">Karthika Futures</a>
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Karthika Futures Logo" style="height: 40px; margin-right: 10px;">
+                <span>Karthika Futures</span>
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('index') }}">Home</a>
                     </li>
@@ -422,7 +465,7 @@
                     <li class="nav-item">
                         <a class="nav-link cart-icon-container" href="{{ url_for('cart') }}">
                             <i class="fas fa-shopping-cart"></i> Cart
-                            <span class="badge rounded-pill bg-danger" id="cart-count">0</span>
+                            <span class="badge rounded-pill" id="cart-count">0</span>
                         </a>
                     </li>
                     {% if current_user.is_authenticated %}
@@ -443,10 +486,10 @@
                         </li>
                     {% else %}
                         <li class="nav-item">
-                            <a class="nav-link btn btn-primary px-4 py-2 rounded-md" href="{{ url_for('user_login') }}">Login</a>
+                            <a class="nav-link btn btn-primary ms-2 px-4 py-2 rounded-md" href="{{ url_for('user_login') }}">Login</a>
                         </li>
-                        <li class="nav-item ms-2">
-                            <a class="nav-link btn btn-primary px-4 py-2 rounded-md" href="{{ url_for('signup') }}">Sign Up</a>
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-primary ms-2 px-4 py-2 rounded-md" href="{{ url_for('signup') }}">Sign Up</a>
                         </li>
                     {% endif %}
                 </ul>
@@ -509,6 +552,16 @@
         window.csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         window.isUserLoggedIn = {{ 'true' if current_user.is_authenticated else 'false' }};
         window.userLoginUrl = "{{ url_for('user_login') }}"; // Expose login URL for redirection
+
+        // Scroll navbar hide/show
+        let lastScrollTop = 0;
+        const navbar = document.getElementById('mainNavbar');
+        window.addEventListener('scroll', () => {
+            const currentScroll = window.scrollY;
+            // Hide navbar when scrolling down, show when scrolling up or at top
+            navbar.style.top = (currentScroll > lastScrollTop && currentScroll > 100) ? '-80px' : '0';
+            lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
+        });
     </script>
 
     <!-- Global JS functions and event listeners -->
