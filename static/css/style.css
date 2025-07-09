@@ -1,15 +1,30 @@
+/* CSS Variables */
+:root {
+    --saffron: #FF8C00;
+    --saffron-light: #FFA500;
+    --saffron-gold: #FFBF00;
+    --green: #2E8B57;
+    --green-light: #3CB371;
+    --off-white: #FAF9F6;
+    --dark-grey: #333333;
+    --red: #FF4500;
+    --alert-success: #d4edda;
+    --alert-danger: #f8d7da;
+    --alert-info: #d1ecf1;
+}
+
 /* General Body and Typography */
 body {
     font-family: 'Inter', sans-serif;
-    background-color: #FAF9F6; /* Off-white base */
-    color: #333333; /* Dark grey for readability */
+    background-color: var(--off-white);
+    color: var(--dark-grey);
     line-height: 1.6;
     margin: 0;
     padding: 0;
-    overflow-x: hidden; /* Prevent horizontal scroll */
+    overflow-x: hidden;
 }
 
-/* Custom Alert Styling (from main.js) */
+/* Custom Alert Styling */
 .custom-alert {
     position: fixed;
     top: 20px;
@@ -31,210 +46,202 @@ body {
 }
 
 .custom-alert.alert-success {
-    background-color: #d4edda;
+    background-color: var(--alert-success);
     color: #155724;
     border: 2px solid;
     border-image: linear-gradient(to right, #28a745, #218838) 1;
 }
 
 .custom-alert.alert-danger {
-    background-color: #f8d7da;
+    background-color: var(--alert-danger);
     color: #721c24;
     border: 2px solid;
     border-image: linear-gradient(to right, #dc3545, #c82333) 1;
 }
 
 .custom-alert.alert-info {
-    background-color: #d1ecf1;
+    background-color: var(--alert-info);
     color: #0c5460;
     border: 2px solid;
     border-image: linear-gradient(to right, #17a2b8, #138496) 1;
 }
 
 @keyframes slideInRight {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
 }
 
 @keyframes fadeOut {
-    from {
-        opacity: 1;
-    }
-    to {
-        opacity: 0;
-    }
+    from { opacity: 1; }
+    to { opacity: 0; }
 }
 
 /* Navbar Styling */
 .navbar {
-    background: linear-gradient(to right, #FF8C00, #FFA500); /* Saffron gradient */
-    border-bottom: 2px solid #FFBF00; /* Golden saffron border */
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.25); /* Stronger shadow for depth */
-    transition: top 0.4s ease-in-out, background 0.3s ease; /* Added top for floating effect */
-
-    /* === ADJUSTED FOR EVEN MORE COMPACT HEIGHT === */
-    padding-top: 0;    /* Reduced further from 0.6rem */
-    padding-bottom: 0; /* Keep symmetry. Total vertical padding around content is 0.7rem (~11.2px) */
-    display: flex;         /* Ensure the navbar itself is a flex container */
-    align-items: center;   /* Vertically align all items within the navbar */
-    height: 80px;          /* Let content and padding define height */
-
-
+    background: linear-gradient(to right, var(--saffron), var(--saffron-light));
+    border-bottom: 2px solid var(--saffron-gold);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.25);
+    transition: top 0.4s ease-in-out, background 0.3s ease;
+    padding-top: 0;
+    padding-bottom: 0;
+    display: flex;
+    align-items: center;
+    height: 80px;
 }
 
 .navbar-brand {
-    color: #FAF9F6 !important; /* Off-white for brand text */
-    font-size: 1.5rem; /* Kept at 1.5rem */
-    font-weight: 800; /* Bolder */
-    letter-spacing: 0.04em; /* Slightly reduced letter spacing for compactness */
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.4); /* More pronounced shadow */
+    color: var(--off-white) !important;
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.4);
     transition: color 0.3s ease;
 }
 
 .navbar-nav .nav-link {
-    color: #FAF9F6 !important; /* Off-white for links */
-    font-weight: 600; /* Slightly bolder links */
-    font-size: 0.95rem; /* Kept at 0.95rem */
+    color: var(--off-white) !important;
+    font-weight: 600;
+    font-size: 0.95rem;
     transition: color 0.3s ease, transform 0.2s ease, text-shadow 0.3s ease;
-    padding: 0.35rem 0.75rem; /* Kept at 0.35rem vertical padding */
-    position: relative; /* For underline effect */
-    /* Embossed text effect */
+    padding: 0.35rem 0.75rem;
+    position: relative;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.3), -1px -1px 2px rgba(255,255,255,0.1);
 }
 
 .navbar-nav .nav-link:hover {
-    color: #2E8B57 !important; /* Bright green on hover */
+    color: var(--green) !important;
     transform: translateY(-2px);
 }
 
 .navbar-nav .nav-item .btn-primary {
-    background-color: #2E8B57 !important; /* Bright green for Sign Up button */
-    border-color: #2E8B57 !important;
+    background-color: var(--green) !important;
+    border-color: var(--green) !important;
     transition: background-color 0.3s ease, transform 0.2s ease;
-    /* Consistent with nav-link for uniform appearance */
-    padding: 0.35rem 0.75rem; /* Consistent with nav-link padding */
-    font-size: 0.95rem; /* Consistent with nav-link font size */
-    margin-left: 0.75rem; /* Added margin for separation from previous links/buttons */
+    padding: 0.35rem 0.75rem;
+    font-size: 0.95rem;
+    margin-left: 0.75rem;
 }
 
 .navbar-nav .nav-item .btn-primary:hover {
-    background-color: #3CB371 !important; /* Lighter green on hover */
+    background-color: var(--green-light) !important;
     transform: translateY(-2px);
 }
 
 .navbar-nav .dropdown-menu {
-    background-color: #FAF9F6; /* Off-white dropdown background */
+    background-color: var(--off-white);
     border: 1px solid rgba(0, 0, 0, 0.1);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .navbar-nav .dropdown-item {
-    color: #333333;
+    color: var(--dark-grey);
 }
 
 .navbar-nav .dropdown-item:hover {
-    background-color: #e0e0e0; /* Light grey hover for dropdown items */
-    color: #FF8C00; /* Saffron on hover */
+    background-color: #e0e0e0;
+    color: var(--saffron);
+}
+
+.navbar-nav .dropdown-item.active {
+    background-color: #ffe8cc;
+    color: var(--saffron);
 }
 
 /* Cart Badge */
 #cart-total-quantity {
-    background-color: #FF4500; /* Orange-red for attention */
+    background-color: var(--red);
     font-size: 0.75em;
     padding: 0.3em 0.6em;
     border-radius: 50%;
     transform: translate(-50%, -50%);
-    display: none; /* Hidden by default, shown by JS if count > 0 */
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: -8px;
 }
 
 /* Main Content Area */
 .main-content-area {
-    background-color: rgba(255, 255, 255, 0.98); /* Slightly more opaque white */
+    background-color: rgba(255, 255, 255, 0.98);
     border-radius: 1.5rem;
     padding: 2rem;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); /* Deeper shadow */
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
     margin-top: 2rem;
     margin-bottom: 2rem;
 }
 
 /* Footer Styling */
 .footer {
-    background: linear-gradient(to left, #FF8C00, #FFA500); /* Saffron gradient */
-    color: #FAF9F6; /* Off-white text */
+    background: linear-gradient(to left, var(--saffron), var(--saffron-light));
+    color: var(--off-white);
     padding: 3rem 0;
-    border-top: 2px solid #FFBF00;
+    border-top: 2px solid var(--saffron-gold);
 }
 
 .footer h5 {
-    color: #FAF9F6;
+    color: var(--off-white);
     margin-bottom: 1rem;
     font-weight: 600;
 }
 
 .footer p, .footer li {
-    color: #FAF9F6;
+    color: var(--off-white);
     font-size: 0.95rem;
 }
 
 .footer a {
-    color: #FAF9F6;
+    color: var(--off-white);
     text-decoration: none;
     transition: color 0.3s ease;
 }
 
 .footer a:hover {
-    color: #2E8B57; /* Bright green on hover */
+    color: var(--green);
 }
 
 .social-icons a {
-    color: #FAF9F6;
+    color: var(--off-white);
     font-size: 1.5rem;
     margin-right: 15px;
     transition: color 0.3s ease, transform 0.2s ease;
 }
 
 .social-icons a:hover {
-    color: #2E8B57; /* Bright green on hover */
+    color: var(--green);
     transform: scale(1.1);
 }
 
-/* General Button Styling (overriding Bootstrap for theme) */
+/* General Button Styling */
 .btn-primary {
-    background-color: #FF8C00; /* Saffron */
-    border-color: #FF8C00;
+    background-color: var(--saffron);
+    border-color: var(--saffron);
     transition: all 0.3s ease;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .btn-primary:hover {
-    background-color: #FFA500; /* Lighter saffron */
-    border-color: #FFA500;
+    background-color: var(--saffron-light);
+    border-color: var(--saffron-light);
     transform: translateY(-2px);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
 .btn-success {
-    background-color: #2E8B57; /* Bright green */
-    border-color: #2E8B57;
+    background-color: var(--green);
+    border-color: var(--green);
     transition: all 0.3s ease;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .btn-success:hover {
-    background-color: #3CB371; /* Lighter green */
-    border-color: #3CB371;
+    background-color: var(--green-light);
+    border-color: var(--green-light);
     transform: translateY(-2px);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
 .btn-info {
-    background-color: #17a2b8; /* Bootstrap info blue */
+    background-color: #17a2b8;
     border-color: #17a2b8;
     transition: all 0.3s ease;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -248,7 +255,7 @@ body {
 }
 
 .btn-secondary {
-    background-color: #6c757d; /* Bootstrap secondary grey */
+    background-color: #6c757d;
     border-color: #6c757d;
     transition: all 0.3s ease;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -263,17 +270,22 @@ body {
 
 /* Card Styling */
 .card {
-    border: none; /* Remove default border */
-    border-radius: 1rem; /* Rounded corners */
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08); /* Soft shadow */
-    overflow: hidden; /* Ensure content respects border-radius */
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
 }
 
 .card-header {
-    background-color: #F0F0F0; /* Light grey header */
+    background-color: #F0F0F0;
     border-bottom: 1px solid #e0e0e0;
     font-weight: 600;
-    color: #333333;
+    color: var(--dark-grey);
 }
 
 /* Form Controls */
@@ -284,51 +296,47 @@ body {
 }
 
 .form-control:focus, .form-select:focus {
-    border-color: #FF8C00; /* Saffron focus */
+    border-color: var(--saffron);
     box-shadow: 0 0 0 0.25rem rgba(255, 140, 0, 0.25);
 }
 
-/* Specific elements from all_products.html that might need styling */
-.product-grid {
-    /* Styles already defined in all_products.html extra_css_from_page block */
+.form-control:disabled, .form-control[readonly] {
+    background-color: #f5f5f5;
+    opacity: 0.7;
 }
 
-.product-card {
-    /* Styles already defined in all_products.html extra_css_from_page block */
-}
-
+/* Product Ratings */
 .product-card .rating {
-    color: #FFBF00; /* Golden saffron stars */
+    color: var(--saffron-gold);
 }
-
 .product-card .final-price {
-    color: #FF4500; /* Orange-red for prominent price */
+    color: var(--red);
 }
 
 /* Admin Dashboard Cards */
-.card.bg-primary { background-color: #FF8C00 !important; } /* Saffron */
-.card.bg-success { background-color: #2E8B57 !important; } /* Bright Green */
+.card.bg-primary { background-color: var(--saffron) !important; }
+.card.bg-success { background-color: var(--green) !important; }
 .card.bg-info { background-color: #17a2b8 !important; }
-.card.bg-warning { background-color: #FFBF00 !important; color: #333 !important; } /* Golden saffron with dark text */
+.card.bg-warning { background-color: var(--saffron-gold) !important; color: var(--dark-grey) !important; }
 
 /* Search input styling */
 .navbar .form-control {
-    border-radius: 9999px; /* Pill shape */
+    border-radius: 9999px;
     border: 1px solid rgba(255, 255, 255, 0.3);
     background-color: rgba(255, 255, 255, 0.1);
-    color: #FAF9F6; /* Use explicit color as var is not defined in this snippet */
-    padding: 0.35rem 1.25rem; /* Adjusted vertical padding for compactness */
+    color: var(--off-white);
+    padding: 0.35rem 1.25rem;
     transition: all 0.3s ease;
-    height: auto; /* Let padding define height */
+    height: auto;
 }
 
 .navbar .btn-outline-light {
-    border-color: #FAF9F6; /* Use off-white color for consistency */
-    color: #FAF9F6; /* Use off-white color for consistency */
-    border-radius: 9999px; /* Pill shape */
+    border-color: var(--off-white);
+    color: var(--off-white);
+    border-radius: 9999px;
     transition: all 0.3s ease;
-    padding: 0.35rem 1rem; /* Adjusted vertical padding for compactness */
-    height: auto; /* Let padding define height */
+    padding: 0.35rem 1rem;
+    height: auto;
 }
 
 /* Responsive Adjustments */
@@ -343,5 +351,11 @@ body {
     .navbar-nav .nav-item .btn-primary {
         width: 80%;
         margin: 0.5rem auto;
+    }
+}
+
+@media (max-width: 576px) {
+    .footer .row > div {
+        margin-bottom: 1.5rem;
     }
 }
