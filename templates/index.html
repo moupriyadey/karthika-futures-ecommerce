@@ -5,7 +5,7 @@
 {% block content %}
 <main>
     <!-- Hero Section: Mahabharata Theme -->
-    <section class="relative h-screen flex items-center justify-center text-white overflow-hidden">
+    <section class="relative min-h-[100vh] sm:min-h-[90vh] flex items-center justify-center text-white overflow-hidden px-4"></section>
         <video autoplay muted loop class="absolute inset-0 w-full h-full object-cover z-0">
             <!-- Replace with a suitable background video for divine/Mahabharata theme -->
             <!-- For now, using a placeholder video. You can find free stock videos or create your own. -->
@@ -14,13 +14,13 @@
         </video>
         <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black opacity-75 z-10"></div>
         <div class="relative z-20 text-center p-4 max-w-4xl mx-auto">
-            <h1 class="text-5xl md:text-7xl font-extrabold mb-4 animate-fade-in-up">
+            <h1 class="text-3xl sm:text-5xl md:text-7xl font-extrabold mb-4 animate-fade-in-up leading-tight"></h1>
                 Karthika Futures: Where Art Meets Divinity
             </h1>
-            <p class="text-lg md:text-2xl mb-8 font-light animate-fade-in-up animation-delay-300">
+            <p class="text-base sm:text-lg md:text-2xl mb-6 font-light animate-fade-in-up animation-delay-300"></p>
                 Embark on a spiritual journey through timeless artworks inspired by the Mahabharata and Hindu mythology.
             </p>
-            <a href="{{ url_for('all_products') }}" class="btn btn-primary text-xl px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 animate-fade-in-up animation-delay-600">
+            <a href="{{ url_for('all_products') }}" class="btn btn-primary text-base sm:text-xl px-6 sm:px-8 py-3 sm:py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 animate-fade-in-up animation-delay-600"></a>
                 Explore Divine Artworks <i class="fas fa-arrow-right ml-2"></i>
             </a>
         </div>
@@ -216,4 +216,15 @@
             inset 0 2px 4px rgba(0,0,0,0.06), /* Inner shadow for embossed effect */
             0 4px 8px rgba(0,0,0,0.1); /* Soft outer shadow */
     }
+
+    @media (max-width: 375px) {
+  h1 {
+    font-size: 1.75rem !important;
+    line-height: 2.2rem !important;
+  }
+  p {
+    font-size: 1rem !important;
+  }
+}
+
 </style>
