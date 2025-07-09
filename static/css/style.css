@@ -75,19 +75,37 @@ body {
 .navbar {
     background: linear-gradient(to right, #FF8C00, #FFA500); /* Saffron gradient */
     border-bottom: 2px solid #FFBF00; /* Golden saffron border */
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.25); /* Stronger shadow for depth */
+    transition: top 0.4s ease-in-out, background 0.3s ease; /* Added top for floating effect */
+
+    /* === ADJUSTED FOR EVEN MORE COMPACT HEIGHT === */
+    padding-top: 0;    /* Reduced further from 0.6rem */
+    padding-bottom: 0; /* Keep symmetry. Total vertical padding around content is 0.7rem (~11.2px) */
+    display: flex;         /* Ensure the navbar itself is a flex container */
+    align-items: center;   /* Vertically align all items within the navbar */
+    height: 80px;          /* Let content and padding define height */
+
+
 }
 
 .navbar-brand {
     color: #FAF9F6 !important; /* Off-white for brand text */
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+    font-size: 1.5rem; /* Kept at 1.5rem */
+    font-weight: 800; /* Bolder */
+    letter-spacing: 0.04em; /* Slightly reduced letter spacing for compactness */
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.4); /* More pronounced shadow */
+    transition: color 0.3s ease;
 }
 
 .navbar-nav .nav-link {
     color: #FAF9F6 !important; /* Off-white for links */
-    font-weight: 500;
-    transition: color 0.3s ease, transform 0.2s ease;
-    padding: 0.75rem 1rem;
+    font-weight: 600; /* Slightly bolder links */
+    font-size: 0.95rem; /* Kept at 0.95rem */
+    transition: color 0.3s ease, transform 0.2s ease, text-shadow 0.3s ease;
+    padding: 0.35rem 0.75rem; /* Kept at 0.35rem vertical padding */
+    position: relative; /* For underline effect */
+    /* Embossed text effect */
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3), -1px -1px 2px rgba(255,255,255,0.1);
 }
 
 .navbar-nav .nav-link:hover {
@@ -99,6 +117,10 @@ body {
     background-color: #2E8B57 !important; /* Bright green for Sign Up button */
     border-color: #2E8B57 !important;
     transition: background-color 0.3s ease, transform 0.2s ease;
+    /* Consistent with nav-link for uniform appearance */
+    padding: 0.35rem 0.75rem; /* Consistent with nav-link padding */
+    font-size: 0.95rem; /* Consistent with nav-link font size */
+    margin-left: 0.75rem; /* Added margin for separation from previous links/buttons */
 }
 
 .navbar-nav .nav-item .btn-primary:hover {
@@ -288,6 +310,26 @@ body {
 .card.bg-success { background-color: #2E8B57 !important; } /* Bright Green */
 .card.bg-info { background-color: #17a2b8 !important; }
 .card.bg-warning { background-color: #FFBF00 !important; color: #333 !important; } /* Golden saffron with dark text */
+
+/* Search input styling */
+.navbar .form-control {
+    border-radius: 9999px; /* Pill shape */
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #FAF9F6; /* Use explicit color as var is not defined in this snippet */
+    padding: 0.35rem 1.25rem; /* Adjusted vertical padding for compactness */
+    transition: all 0.3s ease;
+    height: auto; /* Let padding define height */
+}
+
+.navbar .btn-outline-light {
+    border-color: #FAF9F6; /* Use off-white color for consistency */
+    color: #FAF9F6; /* Use off-white color for consistency */
+    border-radius: 9999px; /* Pill shape */
+    transition: all 0.3s ease;
+    padding: 0.35rem 1rem; /* Adjusted vertical padding for compactness */
+    height: auto; /* Let padding define height */
+}
 
 /* Responsive Adjustments */
 @media (max-width: 991.98px) {
