@@ -1156,18 +1156,33 @@ def reset_password():
 @app.route('/')
 def index():
     featured_artworks = Artwork.query.filter_by(is_featured=True).limit(6).all()
-    # Placeholder for testimonials, replace with actual data from DB if available
+
     testimonials = [
-        {'name': 'Radha Devi', 'feedback': 'The artwork is truly divine and brings immense peace to my home. Highly recommend Karthika Futures!', 'rating': 5, 'image': 'images/testimonial1.jpg', 'product_sku': 'ART001'},
-        {'name': 'Krishna Murthy', 'feedback': 'Exceptional quality and prompt delivery. Each piece tells a story. A blessed experience!', 'rating': 5, 'image': 'images/testimonial2.jpg', 'product_sku': 'ART003'},
-        {'name': 'Priya Sharma', 'feedback': 'Beautiful collection! The details are intricate and the colors vibrant. My meditation space feels complete.', 'rating': 4, 'image': 'images/testimonial3.jpg', 'product_sku': 'ART002'},
+        {
+            'name': 'Radha Devi',
+            'feedback': 'The artwork is truly divine and brings immense peace to my home. Highly recommend Karthika Futures!',
+            'rating': 5,
+            'image': 'images/testimonial1.jpg',  # Just path under /static/
+            'product_sku': '89898'
+        },
+        {
+            'name': 'Krishna Murthy',
+            'feedback': 'Exceptional quality and prompt delivery. Each piece tells a story. A blessed experience!',
+            'rating': 5,
+            'image': 'images/testimonial2.jpg',
+            'product_sku': '232323'
+        },
+        {
+            'name': 'Priya Sharma',
+            'feedback': 'Beautiful collection! The details are intricate and the colors vibrant. My meditation space feels complete.',
+            'rating': 4,
+            'image': 'images/testimonial3.jpg',
+            'product_sku': '656565'
+        },
     ]
-    # Ensure image paths are correct for static folder
-    for t in testimonials:
-        if not t['image'].startswith('static/'):
-            t['image'] = 'static/' + t['image']
 
     return render_template('index.html', featured_artworks=featured_artworks, testimonials=testimonials)
+
 
 # MODIFIED: all_products route to pass categorized artworks
 @app.route('/all-products')
