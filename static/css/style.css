@@ -20,6 +20,18 @@
     --navbar-border-color: #FFBF00; /* Golden Saffron */
 }
 
+/* Combined style for Bootstrap modal backdrop */
+.modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.4) !important; /* Adjust darkness */
+    opacity: 0.4 !important; /* Ensure compatibility */
+    height: 100% !important; /* Example: Make it half the height of the viewport */
+    /* If you choose a fixed pixel height, use this instead: */
+    /* height: 300px !important; */
+
+    /* Optional: Adjust position if not 100% height to center or place as desired */
+    /* For example, to center a 50% height backdrop: */
+    /* top: 25% !important; */
+}
 /* General Body and Typography */
 body {
     font-family: 'Inter', sans-serif;
@@ -32,6 +44,8 @@ body {
     display: flex; /* Make body a flex container */
     flex-direction: column; /* Stack children vertically */
     min-height: 100vh; /* Ensure body takes at least full viewport height */
+
+    
 }
 
 /* Custom Alert Styling */
@@ -180,6 +194,17 @@ body {
     color: white;
 }
 
+/* ADD THIS NEW RULE FOR THE HAMBURGER ICON BORDER COLOR */
+.navbar-toggler {
+    border-color: var(--navbar-hover-color) !important; /* Gold border for the button */
+}
+
+/* ADD THIS NEW RULE FOR THE HAMBURGER ICON COLOR */
+.navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23FFD700' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+
 /* Cart Badge */
 #cart-count { /* Changed from #cart-total-quantity to #cart-count based on _base.html */
     background-color: var(--red); /* Orange-red for attention */
@@ -243,17 +268,41 @@ body {
     border-color: var(--navbar-hover-color);
 }
 
+
+/* Main Content Area */
 /* Main Content Area */
 .main-content-area {
-    padding-top: 5rem; /* Adjust based on fixed navbar height */
-    flex-grow: 1; /* Allows main content to expand and push footer down */
+    padding-top: 7rem; /* Let's revert to 7rem, as 11rem is excessive if it doesn't solve it */
+    flex-grow: 1;
     background-color: rgba(255, 255, 255, 0.98); 
     border-radius: 1.5rem;
-    padding: 2rem;
+    padding: 2rem; /* This sets 2rem for right, bottom, left. Top is overridden by padding-top */
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); 
     margin-top: 2rem;
     margin-bottom: 2rem;
 }
+
+/* NEW/MODIFIED RULE: Ensure headings inside main content are properly spaced */
+.main-content-area h1,
+.main-content-area h2,
+.main-content-area h3,
+.main-content-area h4,
+.main-content-area h5,
+.main-content-area h6 {
+    margin-top: 0; /* Important: Removes any default top margin that might be collapsing or causing issues */
+    padding-top: 2rem; /* Adds explicit space above the heading content */
+    margin-bottom: 1rem; /* Ensures consistent spacing below the heading */
+}
+
+/* If "Our Divine Collection" is specifically an h1, you can be more precise */
+.main-content-area h1 {
+    font-size: 2.5rem; /* Example: adjust font size if needed */
+    margin-top: 0; 
+    padding-top: 2rem; 
+    margin-bottom: 1rem;
+}
+
+/* ... rest of your style.css ... */
 
 /* Footer Styling */
 .footer {
