@@ -193,17 +193,24 @@
                     <span class="text-2xl font-extrabold text-primary">{{ order.total_amount | currency }}</span>
                 </div>
 
+                {# Logic for "Proceed to Payment" if order is still pending payment #}
                 {% if order.status == 'Pending Payment' %}
                 <a href="{{ url_for('payment_initiate', order_id=order.id, amount=order.total_amount) }}" class="w-full btn btn-primary mt-4 py-3 text-xl block text-center rounded-md">
                     Proceed to Payment
                 </a>
+                {% else %}
+                {# NEW BUTTONS FOR POST-PAYMENT STATUS #}
+                <div class="mt-6 space-y-3">
+                    <a href="{{ url_for('thank_you_page', order_id=order.id) }}" class="w-full btn btn-primary py-3 text-xl block text-center rounded-md">
+                        View Order Confirmation
+                    </a>
+                    <a href="{{ url_for('all_products') }}" class="w-full btn btn-outline-secondary py-2.5 text-lg block text-center rounded-md">
+                        Continue Shopping
+                   <a href="{{ url_for('user_orders') }}" class="w-full btn btn-outline-secondary py-2.5 text-lg block text-center rounded-md">
+    Go to My Orders
+</a>
+                </div>
                 {% endif %}
-                <form action="{{ url_for('delete_order', order_id=order.id) }}" method="POST" class="mt-2">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="w-full btn btn-secondary py-2.5 text-lg rounded-md" onclick="return confirm('Are you sure you want to cancel this order? This action cannot be undone.');">
-                        Cancel Order
-                    </button>
-                </form>
             </div>
         </div>
     </div>

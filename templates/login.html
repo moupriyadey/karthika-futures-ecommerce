@@ -5,21 +5,37 @@
     <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md bg-opacity-95 border border-gray-200">
         <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">User Login</h2>
         <form method="POST" action="{{ url_for('user_login', next=request.args.get('next', '')) }}" class="space-y-5">
-            {# IMPORTANT: THIS IS THE LINE THAT WAS LIKELY MISSING OR NOT CACHED CORRECTLY #}
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"> 
             
             <div>
-                <label for="email" class="block text-gray-700 text-sm font-semibold mb-2">Email Address</label>
-                <input type="email" id="email" name="email" value="{{ form_data.email if form_data.email is defined else '' }}" required
+                <label for="login_identifier" class="block text-gray-700 text-sm font-semibold mb-2">Email Address or Phone Number</label>
+                <input type="text" 
+                       id="login_identifier" 
+                       name="login_identifier" 
+                       value="{{ form_data.login_identifier if form_data.login_identifier else (prefill_phone if prefill_phone else '') }}" 
+                       required
                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
-                       placeholder="Enter your email">
+                       placeholder="Enter your email or phone number">
             </div>
-            <div>
+            
+            {# START: Password Field with Toggle #}
+            <div class="relative"> {# Added relative positioning for icon placement #}
                 <label for="password" class="block text-gray-700 text-sm font-semibold mb-2">Password</label>
                 <input type="password" id="password" name="password" required
-                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 pr-10" {# Added pr-10 for padding on the right for the icon #}
                        placeholder="Enter your password">
+                <span class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer" 
+                      style="top: calc(50% + 10px); transform: translateY(-50%);" {# Adjusted top to align with input field, considering label #}
+                      onclick="togglePasswordVisibility('password', this)">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-gray-500" id="password_toggle_icon">
+                        {# Eye icon (default state - visible) #}
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                    </svg>
+                </span>
             </div>
+            {# END: Password Field with Toggle #}
+
             <button type="submit"
                     class="w-full bg-primary hover:bg-orange-700 text-white font-bold py-2.5 px-4 rounded-md transition duration-300 transform hover:scale-105 shadow-md">
                 Login
@@ -33,4 +49,32 @@
         </p>
     </div>
 </div>
+
+{# START: JavaScript for Password Toggle #}
+<script>
+    // Function to toggle password visibility
+    function togglePasswordVisibility(fieldId, iconElement) {
+        const passwordField = document.getElementById(fieldId);
+        const iconContainer = iconElement.querySelector('svg');
+
+        if (passwordField.type === "password") {
+            passwordField.type = "text";
+            // Change to 'eye-slash' icon
+            iconContainer.innerHTML = `
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.981 8.877a1.012 1.012 0 0 0 0 1.246c.94 2.18 3.121 4.225 5.25 5.568.188.12.393.216.602.285.311.103.642.17.981.195.27.022.54.022.81 0a20.806 20.806 0 0 0 1.255-.389c.79-.228 1.54-.485 2.274-.757C17.653 10.428 19.467 9.07 20.158 8.43a1.01 1.01 0 0 0 0-1.246c-.94-2.18-3.121-4.225-5.25-5.568A20.806 20.806 0 0 0 12 2.5c-4.638 0-8.573 3.007-9.963 7.178Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 12a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18" />
+            `;
+        } else {
+            passwordField.type = "password";
+            // Change back to 'eye' icon
+            iconContainer.innerHTML = `
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+            `;
+        }
+    }
+</script>
+{# END: JavaScript for Password Toggle #}
 {% endblock %}

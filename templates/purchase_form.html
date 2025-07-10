@@ -7,7 +7,6 @@
     <h1 class="text-4xl font-extrabold text-center text-gray-800 mb-8">Complete Your Purchase</h1>
 
     <div class="flex flex-col lg:flex-row gap-8">
-        <!-- Shipping Address Form -->
         <div class="lg:w-2/3 bg-white p-6 rounded-lg shadow-md">
             <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b pb-3">Shipping Address</h2>
 
@@ -18,17 +17,17 @@
                     <label class="block text-gray-700 text-lg font-semibold mb-3">Select an Existing Address or Add New:</label>
                     <div class="space-y-4">
                         {% if user_addresses %}
-                            {% for address in user_addresses %}
+                            {% for addr in user_addresses %} {# Changed 'address' to 'addr' for consistency #}
                             <label class="flex items-start p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition duration-200">
-                                <input type="radio" name="shipping_address" value="{{ address.id }}" 
+                                <input type="radio" name="shipping_address" value="{{ addr.id }}" 
                                        class="form-radio h-5 w-5 text-primary mt-1"
-                                       {% if address.id == selected_address_id or (not selected_address_id and address.is_default) %}checked{% endif %}>
+                                       {% if (form_data and form_data.shipping_address == addr.id) or (not form_data and prefill_address and prefill_address.id == addr.id) %}checked{% endif %}> {# UPDATED CHECKED LOGIC #}
                                 <div class="ml-4 flex-1">
-                                    <p class="text-lg font-semibold text-gray-900">{{ address.full_name }} <span class="text-sm text-gray-500">({{ address.label }})</span></p>
-                                    <p class="text-gray-700">{{ address.address_line1 }}{% if address.address_line2 %}, {{ address.address_line2 }}{% endif %}</p>
-                                    <p class="text-gray-700">{{ address.city }}, {{ address.state }} - {{ address.pincode }}</p>
-                                    <p class="text-gray-700">Phone: {{ address.phone }}</p>
-                                    {% if address.is_default %}
+                                    <p class="text-lg font-semibold text-gray-900">{{ addr.full_name }} <span class="text-sm text-gray-500">({{ addr.label if addr.label else 'Saved Address' }})</span></p> {# Added fallback for label #}
+                                    <p class="text-gray-700">{{ addr.address_line1 }}{% if addr.address_line2 %}, {{ addr.address_line2 }}{% endif %}</p>
+                                    <p class="text-gray-700">{{ addr.city }}, {{ addr.state }} - {{ addr.pincode }}</p>
+                                    <p class="text-gray-700">Phone: {{ addr.phone }}</p>
+                                    {% if addr.is_default %}
                                         <span class="inline-block bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full mt-1">Default</span>
                                     {% endif %}
                                 </div>
@@ -38,48 +37,69 @@
                         <label class="flex items-start p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition duration-200">
                             <input type="radio" name="shipping_address" value="new" id="addNewAddressRadio" 
                                    class="form-radio h-5 w-5 text-primary mt-1"
-                                   {% if not user_addresses or selected_address_id == 'new' %}checked{% endif %}>
+                                   {% if (form_data and form_data.shipping_address == 'new') or (not form_data and not prefill_address) or (form_data and form_data.errors and not form_data.shipping_address) %}checked{% endif %}> {# UPDATED CHECKED LOGIC #}
                             <div class="ml-4 text-lg font-semibold text-gray-900">Add a New Address</div>
                         </label>
                     </div>
                 </div>
 
-                <!-- New Address Fields (initially hidden) -->
                 <div id="newAddressFields" class="space-y-5 border border-gray-200 p-6 rounded-lg bg-gray-50">
                     <h3 class="text-2xl font-bold text-gray-800 mb-4">New Address Details</h3>
                     <div>
                         <label for="full_name" class="block text-gray-700 text-sm font-semibold mb-2">Full Name</label>
-                        <input type="text" id="full_name" name="full_name" class="form-control" value="{{ form_data.full_name }}" placeholder="Enter full name">
+                        <input type="text" id="full_name" name="full_name" class="form-control" 
+                               value="{{ form_data.full_name if form_data.full_name else (prefill_address.full_name if prefill_address and (not form_data or form_data.shipping_address == prefill_address.id)) }}" 
+                               placeholder="Enter full name">
                     </div>
                     <div>
                         <label for="phone" class="block text-gray-700 text-sm font-semibold mb-2">Phone Number</label>
-                        <input type="tel" id="phone" name="phone" class="form-control" value="{{ form_data.phone }}" placeholder="Enter phone number">
+                        <input type="tel" id="phone" name="phone" class="form-control" 
+                               value="{{ form_data.phone if form_data.phone else (prefill_address.phone if prefill_address and (not form_data or form_data.shipping_address == prefill_address.id)) }}" 
+                               placeholder="Enter phone number">
                     </div>
                     <div>
                         <label for="address_line1" class="block text-gray-700 text-sm font-semibold mb-2">Address Line 1</label>
-                        <input type="text" id="address_line1" name="address_line1" class="form-control" value="{{ form_data.address_line1 }}" placeholder="House No., Building, Street">
+                        <input type="text" id="address_line1" name="address_line1" class="form-control" 
+                               value="{{ form_data.address_line1 if form_data.address_line1 else (prefill_address.address_line1 if prefill_address and (not form_data or form_data.shipping_address == prefill_address.id)) }}" 
+                               placeholder="House No., Building, Street">
                     </div>
                     <div>
                         <label for="address_line2" class="block text-gray-700 text-sm font-semibold mb-2">Address Line 2 (Optional)</label>
-                        <input type="text" id="address_line2" name="address_line2" class="form-control" value="{{ form_data.address_line2 }}" placeholder="Area, Landmark">
+                        <input type="text" id="address_line2" name="address_line2" class="form-control" 
+                               value="{{ form_data.address_line2 if form_data.address_line2 else (prefill_address.address_line2 if prefill_address and (not form_data or form_data.shipping_address == prefill_address.id)) }}" 
+                               placeholder="Area, Landmark">
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label for="city" class="block text-gray-700 text-sm font-semibold mb-2">City</label>
-                            <input type="text" id="city" name="city" class="form-control" value="{{ form_data.city }}" placeholder="City">
+                            <input type="text" id="city" name="city" class="form-control" 
+                                   value="{{ form_data.city if form_data.city else (prefill_address.city if prefill_address and (not form_data or form_data.shipping_address == prefill_address.id)) }}" 
+                                   placeholder="City">
                         </div>
                         <div>
                             <label for="state" class="block text-gray-700 text-sm font-semibold mb-2">State</label>
-                            <input type="text" id="state" name="state" class="form-control" value="{{ form_data.state }}" placeholder="State">
+                            <input type="text" id="state" name="state" class="form-control" 
+                                   value="{{ form_data.state if form_data.state else (prefill_address.state if prefill_address and (not form_data or form_data.shipping_address == prefill_address.id)) }}" 
+                                   placeholder="State">
                         </div>
                         <div>
                             <label for="pincode" class="block text-gray-700 text-sm font-semibold mb-2">Pincode</label>
-                            <input type="text" id="pincode" name="pincode" class="form-control" value="{{ form_data.pincode }}" placeholder="Pincode">
+                            <input type="text" id="pincode" name="pincode" class="form-control" 
+                                   value="{{ form_data.pincode if form_data.pincode else (prefill_address.pincode if prefill_address and (not form_data or form_data.shipping_address == prefill_address.id)) }}" 
+                                   placeholder="Pincode">
                         </div>
                     </div>
-                    <div class="flex items-center">
-                        <input type="checkbox" id="set_as_default" name="set_as_default" class="form-checkbox h-5 w-5 text-primary rounded" {% if form_data.is_default %}checked{% endif %}>
-                        <label for="set_as_default" class="ml-2 text-gray-700 text-sm">Set as default address</label>
+                    <div class="flex items-center space-x-4"> {# Added space-x-4 for consistent spacing #}
+                        <div> {# Wrap "Save Address" in a div for consistent flex layout #}
+                            <input type="checkbox" id="save_address" name="save_address" class="form-checkbox h-5 w-5 text-primary rounded" 
+                                   {% if form_data.save_address == 'on' %}checked{% endif %}> {# Check if was previously checked on form submission #}
+                            <label for="save_address" class="ml-2 text-gray-700 text-sm">Save this address for future orders</label>
+                        </div>
+                        <div> {# Wrap "Set as Default" in a div #}
+                            <input type="checkbox" id="set_as_default" name="set_as_default" class="form-checkbox h-5 w-5 text-primary rounded" 
+                                   {% if (form_data and form_data.set_as_default == 'on') or (not form_data and prefill_address and prefill_address.is_default) %}checked{% endif %}> {# UPDATED CHECKED LOGIC #}
+                            <label for="set_as_default" class="ml-2 text-gray-700 text-sm">Set as default address</label>
+                        </div>
                     </div>
                 </div>
 
@@ -89,13 +109,12 @@
             </form>
         </div>
 
-        <!-- Order Summary -->
         <div class="lg:w-1/3 bg-white p-6 rounded-lg shadow-md h-fit sticky top-4">
             <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b pb-3">Order Summary</h2>
             <div class="space-y-4 mb-6">
-                {% for item in cart_items %}
+                {% for item in items_to_process %} {# Changed 'cart_items' to 'items_to_process' as passed from app.py #}
                 <div class="flex items-center space-x-4 border-b pb-4 last:border-b-0">
-                    <img src="{{ url_for('static', filename=item.image_url) }}" alt="{{ item.artwork.name }}" class="w-20 h-20 object-cover rounded-md shadow-sm">
+                    <img src="{{ url_for('static', filename=item.artwork.image_url) }}" alt="{{ item.artwork.name }}" class="w-20 h-20 object-cover rounded-md shadow-sm">
                     <div class="flex-1">
                         <p class="font-semibold text-gray-900">{{ item.artwork.name }}</p>
                         <p class="text-sm text-gray-600">Qty: {{ item.quantity }}</p>
@@ -119,23 +138,23 @@
                 </div>
                 <div class="flex justify-between text-gray-700">
                     <span>CGST:</span>
-                    <span class="font-semibold">{{ total_cgst_amount | currency }}</span>
+                    <span class="font-semibold">{{ total_gst_amount | currency }}</span> {# Simplify this to use total_gst_amount as passed #}
                 </div>
                 <div class="flex justify-between text-gray-700">
                     <span>SGST:</span>
-                    <span class="font-semibold">{{ total_sgst_amount | currency }}</span>
+                    <span class="font-semibold">{{ total_gst_amount | currency }}</span> {# Simplify this to use total_gst_amount as passed #}
                 </div>
                 <div class="flex justify-between text-gray-700">
                     <span>IGST:</span>
-                    <span class="font-semibold">{{ total_igst_amount | currency }}</span>
+                    <span class="font-semibold">{{ total_gst_amount | currency }}</span> {# Simplify this to use total_gst_amount as passed #}
                 </div>
                 <div class="flex justify-between text-gray-700">
                     <span>UGST:</span>
-                    <span class="font-semibold">{{ total_ugst_amount | currency }}</span>
+                    <span class="font-semibold">{{ total_gst_amount | currency }}</span> {# Simplify this to use total_gst_amount as passed #}
                 </div>
                 <div class="flex justify-between text-gray-700">
                     <span>Total GST:</span>
-                    <span class="font-semibold">{{ total_gst_amount | currency }}</span>
+                    <span class="font-semibold">{{ total_gst | currency }}</span> {# Corrected variable name #}
                 </div>
                 <div class="flex justify-between text-gray-700">
                     <span>Shipping Charge:</span>
@@ -143,7 +162,7 @@
                 </div>
                 <div class="flex justify-between items-center text-xl font-bold text-gray-800 pt-2 border-t mt-2">
                     <span>Grand Total:</span>
-                    <span class="text-primary text-2xl">{{ grand_total | currency }}</span>
+                    <span class="text-primary text-2xl">{{ final_total_amount | currency }}</span> {# Corrected variable name #}
                 </div>
             </div>
         </div>
@@ -156,14 +175,20 @@
     document.addEventListener('DOMContentLoaded', function() {
         const addNewAddressRadio = document.getElementById('addNewAddressRadio');
         const newAddressFields = document.getElementById('newAddressFields');
-        const existingAddressRadios = document.querySelectorAll('input[name="shipping_address"]:not(#addNewAddressRadio)');
+        const shippingAddressRadios = document.querySelectorAll('input[name="shipping_address"]'); // Select all radios with this name
 
         function toggleNewAddressFields() {
-            if (addNewAddressRadio.checked) {
+            // Determine if 'Add New Address' radio is checked OR if it's a POST request with errors
+            // and no existing address was explicitly selected.
+            const isAddNewChecked = addNewAddressRadio.checked;
+            const hasFormErrors = newAddressFields.querySelector('input:invalid') !== null; // Simple check for validation errors
+
+            if (isAddNewChecked || (hasFormErrors && !document.querySelector('input[name="shipping_address"]:checked:not(#addNewAddressRadio)'))) {
                 newAddressFields.style.display = 'block';
                 // Make new address fields required when "Add New Address" is selected
                 newAddressFields.querySelectorAll('input').forEach(input => {
-                    if (input.name !== 'address_line2') { // address_line2 is optional
+                    // Only make required if parent section is visible and it's not address_line2
+                    if (input.name !== 'address_line2') { 
                         input.required = true;
                     }
                 });
@@ -176,14 +201,87 @@
             }
         }
 
-        // Initial state on page load
-        toggleNewAddressFields();
+        // --- Function to prefill new address fields when an existing address is selected ---
+        function prefillNewAddressFields(addressData) {
+            document.getElementById('full_name').value = addressData.full_name || '';
+            document.getElementById('phone').value = addressData.phone || '';
+            document.getElementById('address_line1').value = addressData.address_line1 || '';
+            document.getElementById('address_line2').value = addressData.address_line2 || '';
+            document.getElementById('city').value = addressData.city || '';
+            document.getElementById('state').value = addressData.state || '';
+            document.getElementById('pincode').value = addressData.pincode || '';
+            
+            // Handle set_as_default checkbox for existing addresses
+            const setAsDefaultCheckbox = document.getElementById('set_as_default');
+            if (setAsDefaultCheckbox) {
+                setAsDefaultCheckbox.checked = addressData.is_default;
+            }
+        }
 
-        // Event listeners for radio button changes
-        addNewAddressRadio.addEventListener('change', toggleNewAddressFields);
-        existingAddressRadios.forEach(radio => {
-            radio.addEventListener('change', toggleNewAddressFields);
+        // --- Event Listeners ---
+        shippingAddressRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                toggleNewAddressFields();
+                if (this.value !== 'new') {
+                    // Find the corresponding address object from user_addresses (if needed by JS)
+                    // For this setup, we rely on the backend prefill_address for initial load.
+                    // If you want dynamic prefilling on radio button change *without a page reload*,
+                    // you'd need to store user_addresses data in a JS object or fetch via AJAX.
+                    // For now, selecting an existing address means the current new address fields
+                    // would likely clear or remain as is, if not using JS prefill.
+                    // The backend will handle which address is used on form submission.
+                } else {
+                    // If 'Add New Address' is selected, clear the fields for fresh input
+                    document.getElementById('full_name').value = '';
+                    document.getElementById('phone').value = '';
+                    document.getElementById('address_line1').value = '';
+                    document.getElementById('address_line2').value = '';
+                    document.getElementById('city').value = '';
+                    document.getElementById('state').value = '';
+                    document.getElementById('pincode').value = '';
+                    const setAsDefaultCheckbox = document.getElementById('set_as_default');
+                    if (setAsDefaultCheckbox) {
+                        setAsDefaultCheckbox.checked = false; // Uncheck when adding new
+                    }
+                }
+            });
         });
+
+        // --- Initial state on page load ---
+        // If there was a pre-selected address from backend on initial load, prefill the new address fields with it
+        // This makes sure if an existing address was chosen on a previous POST with an error, it still shows its details.
+        const checkedRadio = document.querySelector('input[name="shipping_address"]:checked');
+        if (checkedRadio && checkedRadio.value !== 'new') {
+            // Find the prefill_address if it matches the checked radio
+            {% if prefill_address %}
+                if (checkedRadio.value === "{{ prefill_address.id }}") {
+                    prefillNewAddressFields({
+                        full_name: "{{ prefill_address.full_name }}",
+                        phone: "{{ prefill_address.phone }}",
+                        address_line1: "{{ prefill_address.address_line1 }}",
+                        address_line2: "{{ prefill_address.address_line2 if prefill_address.address_line2 else '' }}",
+                        city: "{{ prefill_address.city }}",
+                        state: "{{ prefill_address.state }}",
+                        pincode: "{{ prefill_address.pincode }}",
+                        is_default: {% if prefill_address.is_default %}true{% else %}false{% endif %}
+                    });
+                }
+            {% endif %}
+        }
+        
+        // If 'Add New Address' is checked or no addresses exist, show the new address fields
+        toggleNewAddressFields(); 
+
+        // Also handle pre-filling if form_data indicates a failed submission
+        {% if form_data and form_data.shipping_address == 'new' %}
+            // This is for when "Add New Address" was selected on a failed POST
+            // The values for individual fields are already handled by Jinja in the `value` attributes
+            // Just ensure the newAddressFields are visible
+            newAddressFields.style.display = 'block';
+        {% elif form_data and form_data.shipping_address %}
+            // If an existing address was selected on a failed POST, ensure the individual fields are prefilled with its data
+            // (This is primarily handled by the `value` attribute logic, but keeping this for completeness if complex JS is needed)
+        {% endif %}
     });
 </script>
 {% endblock %}

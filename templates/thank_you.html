@@ -8,29 +8,64 @@
         <div class="col-md-8">
             <div class="card shadow-sm border-0 rounded-lg text-center p-5">
                 <div class="card-body">
+                    {# This icon is animated #}
                     <i class="fas fa-check-circle fa-5x text-success mb-4 animate__animated animate__bounceIn"></i>
-                    <h2 class="card-title mb-3 animate__animated animate__fadeInUp">Thank You for Your Order!</h2>
+                    
+                    {# Main Thank You message - Let's make this zoom/enlarge #}
+                    <h2 class="card-title mb-3 animate__animated animate__fadeInUp thank-you-text">Thank You for Your Order!</h2> 
+                    {# Added 'thank-you-text' class for custom animation #}
+
                     <p class="card-text lead animate__animated animate__fadeInUp animate__delay-1s">
-                        Your order <strong>#{{ order.order_id }}</strong> has been placed successfully.
+                        Your order <strong>#{{ order.id }}</strong> has been placed successfully. 
+                        {# Changed 'order.order_id' to 'order.id' for consistency with order_summary.html unless 'order_id' is a specific attribute that holds a different value #}
                     </p>
                     <p class="card-text animate__animated animate__fadeInUp animate__delay-1-5s">
                         Your payment details have been submitted and are awaiting verification. We will notify you once your order is processed.
                     </p>
                     <p class="card-text animate__animated animate__fadeInUp animate__delay-2s">
-                        Total Amount: <strong>₹{{ order.total_amount | floatformat(2) }}</strong>
+                        Total Amount: <strong>₹{{ order.total_amount | round(2) }}</strong>
                     </p>
                     <hr class="my-4 animate__animated animate__fadeInUp animate__delay-2-5s">
                     <div class="d-grid gap-2 col-md-6 mx-auto animate__animated animate__fadeInUp animate__delay-3s">
-                        <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg">
-                            <i class="fas fa-home me-2"></i> Go to Home
-                        </a>
-                        <a href="{{ url_for('my_orders') }}" class="btn btn-outline-secondary btn-lg">
-                            <i class="fas fa-box me-2"></i> View My Orders
-                        </a>
+                        {# Renamed 'Go to Home' to 'Continue Shopping' for better clarity #}
+                        <a href="{{ url_for('all_products') }}" class="btn btn-primary btn-lg"> 
+                            <i class="fas fa-shopping-bag me-2"></i> Continue Shopping 
+                        <a href="{{ url_for('user_orders') }}" class="btn btn-outline-secondary btn-lg">
+    <i class="fas fa-box me-2"></i> View My Orders
+</a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<style>
+    /* Custom animation for the 'Thank You' text */
+    @keyframes zoomFadeIn {
+        from {
+            opacity: 0;
+            transform: scale(0.5);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    .thank-you-text {
+        animation: zoomFadeIn 1.5s ease-out forwards; /* Apply the custom animation */
+        font-size: 2.5rem; /* Adjust as needed */
+        color: #28a745; /* Green color for success */
+        /* You can add more styles here like text-shadow */
+    }
+
+    /* Optional: Confetti effect */
+    /* This would typically involve a JavaScript library like 'canvas-confetti' */
+    /* For a simple CSS-only popping effect, you could target individual elements
+       that appear or add a pseudo-element with expanding circles. */
+</style>
 {% endblock %}

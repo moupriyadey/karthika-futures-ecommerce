@@ -18,6 +18,7 @@ import qrcode
 import io
 import base64
 import string 
+from markupsafe import Markup
 
 # SQLAlchemy Imports
 from flask_sqlalchemy import SQLAlchemy
@@ -604,7 +605,13 @@ def add_to_cart():
     session.modified = True # Important to mark session as modified
 
     total_quantity_in_cart = sum(item['quantity'] for item in session['cart'].values())
-    flash(f"{quantity} x {artwork.name} added to cart!", 'success')
+    
+    # --- MODIFICATION START ---
+    cart_url = url_for('cart') # Get the URL for the cart page
+    message_content = f"{quantity} x {artwork.name} added to cart! <a href='{cart_url}' class='alert-link' style='color: inherit; text-decoration: underline; margin-left: 10px;'>Go to Cart</a>"
+    flash(Markup(message_content), 'success') # Wrap the message in Markup
+    # --- MODIFICATION END ---
+
     return jsonify(success=True, message='Item added to cart!', cart_count=total_quantity_in_cart)
 
 # NEW: Route to remove item from cart (AJAX endpoint)
@@ -683,185 +690,373 @@ def create_direct_order():
         return jsonify(success=True, message='Please log in or sign up to complete your purchase.', redirect_url=url_for('user_login', next='purchase_form'))
 
 # MODIFIED: Purchase form to handle both cart checkout and direct purchase
-@app.route('/purchase_form', methods=['GET', 'POST'])
+# In app.py, locate your purchase_form route and update it.
+# If you don't have a purchase_form route, please let me know its actual name.
+
+@app.route('/purchase-form', methods=['GET', 'POST'])
 @login_required
 def purchase_form():
-    # Check if there's a direct purchase request in session
-    direct_purchase_item_data = session.pop('direct_purchase_cart', None) # Pop to clear it after use
-
-    if direct_purchase_item_data:
-        # If direct purchase, use its item
-        # The structure is {'temp_item_key': actual_item_data}
-        item_data = next(iter(direct_purchase_item_data.values())) # Get the actual item data
-        
-        # Temporarily put direct purchase item(s) into cart session for get_cart_items_details to process
-        # This mimics the structure expected by get_cart_items_details
-        session['cart'] = {'temp_item_key': item_data} 
-        session.modified = True
-        flash("Proceeding with your direct purchase.", "info")
-    elif not session.get('cart'):
-        flash('Your cart is empty. Please add items to proceed.', 'warning')
-        return redirect(url_for('all_products'))
-
-    detailed_cart_items, subtotal_before_gst, total_cgst_amount, \
-    total_sgst_amount, total_igst_amount, total_ugst_amount, \
-    total_gst_amount, grand_total, total_shipping_charge = get_cart_items_details() # Changed variable name
-
-    user_addresses = current_user.addresses
-    default_address = next((addr for addr in user_addresses if addr.is_default), None)
-
-    # Initialize form_data for GET requests or when re-rendering with errors
-    form_data = {}
-    if request.method == 'GET':
-        if default_address:
-            form_data = {
-                'full_name': default_address.full_name,
-                'phone': default_address.phone,
-                'address_line1': default_address.address_line1,
-                'address_line2': default_address.address_line2,
-                'city': default_address.city,
-                'state': default_address.state,
-                'pincode': default_address.pincode,
-                'is_default': default_address.is_default
-            }
-        else:
-            # If no default address, initialize with empty strings
-            form_data = {
-                'full_name': '', 'phone': '', 'address_line1': '', 'address_line2': '',
-                'city': '', 'state': '', 'pincode': '', 'is_default': False
-            }
-    elif request.method == 'POST':
-        # If POST request, and there are validation errors, form_data will be populated
-        # by the error handling block. If no errors, it proceeds to order creation.
-        # This ensures form_data is available if the template is re-rendered due to validation.
-        form_data = request.form.to_dict()
-        form_data['is_default'] = request.form.get('set_as_default') == 'on' # Manually set checkbox state
+    # Retrieve current user's default or first address for pre-filling
+    # Order by 'is_default' (True first) then by creation date/ID to get a consistent result
+    user_addresses = Address.query.filter_by(user_id=current_user.id).order_by(Address.is_default.desc(), Address.id.asc()).all()
+    
+    # Get the default address or the first address if no default is explicitly set
+    prefill_address = None
+    if user_addresses:
+        for addr in user_addresses:
+            if addr.is_default:
+                prefill_address = addr
+                break
+        if not prefill_address: # If no default found, take the first one
+            prefill_address = user_addresses[0]
 
     if request.method == 'POST':
-        selected_address_id = request.form.get('shipping_address')
-        new_address_data = {}
-
-        if selected_address_id == 'new':
-            new_address_data = {
-                'full_name': request.form.get('full_name'),
-                'phone': request.form.get('phone'),
-                'address_line1': request.form.get('address_line1'),
-                'address_line2': request.form.get('address_line2'),
-                'city': request.form.get('city'),
-                'state': request.form.get('state'),
-                'pincode': request.form.get('pincode'),
-                'is_default': request.form.get('set_as_default') == 'on'
-            }
-            # Basic validation for new address
-            if not all(new_address_data.get(field) for field in ['full_name', 'phone', 'address_line1', 'city', 'state', 'pincode']):
-                flash('Please fill in all required fields for the new address.', 'danger')
-                return render_template('purchase_form.html',
-                                       cart_items=detailed_cart_items,
-                                       subtotal_before_gst=subtotal_before_gst,
-                                       total_cgst_amount=total_cgst_amount,
-                                       total_sgst_amount=total_sgst_amount,
-                                       total_igst_amount=total_igst_amount,
-                                       total_ugst_amount=total_ugst_amount,
-                                       total_gst_amount=total_gst_amount,
-                                       grand_total=grand_total,
-                                       shipping_charge=total_shipping_charge, # Changed variable name
-                                       user_addresses=user_addresses,
-                                       selected_address_id='new',
-                                       form_data=new_address_data, # Pass new_address_data as form_data
-                                       default_address=default_address) # Pass default_address for existing addresses radio
+        # --- Handle direct purchase from session data if coming from 'Buy Now' ---
+        temp_item_data = session.pop('direct_purchase_cart', None)
+        if temp_item_data and 'temp_item' in temp_item_data:
+            item_to_buy_now = temp_item_data['temp_item']
+            # Reconstruct item details (ensure you have product ID to fetch full details)
+            # You might need to fetch the Artwork object here if item_to_buy_now only has ID
+            # For simplicity, assuming item_to_buy_now contains enough detail for display/processing
             
-            # Create and save new address
-            new_address = Address(
-                user_id=current_user.id,
-                full_name=new_address_data['full_name'],
-                phone=new_address_data['phone'],
-                address_line1=new_address_data['address_line1'],
-                address_line2=new_address_data['address_line2'],
-                city=new_address_data['city'],
-                state=new_address_data['state'],
-                pincode=new_address_data['pincode'],
-                is_default=new_address_data['is_default']
-            )
-            if new_address.is_default:
-                # Unset previous default address
-                for addr in user_addresses:
-                    if addr.is_default:
-                        addr.is_default = False
-            db.session.add(new_address)
-            db.session.commit()
-            selected_address_id = new_address.id
-            flash('New address added successfully!', 'success')
-            user_addresses = current_user.addresses # Refresh addresses
+            # Example: Fetch artwork to get price, etc.
+            artwork_id = item_to_buy_now.get('artwork_id')
+            selected_options_str = item_to_buy_now.get('selected_options_str')
+            quantity = item_to_buy_now.get('quantity', 1)
 
-        shipping_address_obj = Address.query.get(selected_address_id)
-        if not shipping_address_obj:
-            flash('Invalid shipping address selected.', 'danger')
-            return redirect(url_for('purchase_form'))
+            if not artwork_id:
+                flash("Error: Artwork ID missing for direct purchase.", "danger")
+                return redirect(url_for('index'))
 
-        try:
-            # Create the order
-            new_order = Order(
-                user_id=current_user.id,
-                total_amount=grand_total,
-                status='Pending Payment',
-                payment_status='pending',
-                shipping_address_id=shipping_address_obj.id,
-                shipping_charge=total_shipping_charge # Use the calculated total_shipping_charge
-            )
-            db.session.add(new_order)
-            db.session.flush() # To get new_order.id before commit
+            artwork = Artwork.query.get_or_404(artwork_id)
+            selected_options = json.loads(selected_options_str) if selected_options_str else {}
+            
+            # Calculate price based on selected options if necessary
+            unit_price_before_gst = artwork.price # Simplified, adjust if options affect price
+            
+            # Calculate GST percentages based on your logic (e.g., from product category or state)
+            # This is placeholder logic, replace with your actual GST calculation
+            cgst_percentage_applied = Decimal('9.00') # Example
+            sgst_percentage_applied = Decimal('9.00') # Example
+            igst_percentage_applied = Decimal('0.00') # Example for intrastate
+            ugst_percentage_applied = Decimal('0.00') # Example
 
-            # Add order items
-            for item in detailed_cart_items:
-                order_item = OrderItem(
-                    order_id=new_order.id,
-                    artwork_id=item['artwork'].id,
-                    quantity=item['quantity'],
-                    unit_price_before_gst=item['unit_price_before_gst'],
-                    cgst_percentage_applied=item['cgst_percentage'],
-                    sgst_percentage_applied=item['sgst_percentage'],
-                    igst_percentage_applied=item['igst_percentage'],
-                    ugst_percentage_applied=item['ugst_percentage'],
-                    selected_options=json.dumps(item['selected_options']) # Store options as JSON string
-                )
-                db.session.add(order_item)
-                # Deduct stock
-                artwork = Artwork.query.get(item['artwork'].id)
-                if artwork:
-                    artwork.stock -= item['quantity']
-                    if artwork.stock < 0:
-                        artwork.stock = 0 # Prevent negative stock
+            # Create a temporary OrderItem structure to simulate a cart item for display
+            # This is for internal use for calculations/display, not persistent yet
+            temp_order_item = {
+                'artwork': artwork,
+                'quantity': quantity,
+                'unit_price_before_gst': unit_price_before_gst,
+                'cgst_percentage_applied': cgst_percentage_applied,
+                'sgst_percentage_applied': sgst_percentage_applied,
+                'igst_percentage_applied': igst_percentage_applied,
+                'ugst_percentage_applied': ugst_percentage_applied,
+                'selected_options': selected_options,
+                'total_price_before_gst': unit_price_before_gst * quantity,
+                # These properties would ideally be on an OrderItem object, but creating dict for temp use
+                'cgst_amount': (unit_price_before_gst * quantity * cgst_percentage_applied) / 100,
+                'sgst_amount': (unit_price_before_gst * quantity * sgst_percentage_applied) / 100,
+                'igst_amount': (unit_price_before_gst * quantity * igst_percentage_applied) / 100,
+                'ugst_amount': (unit_price_before_gst * quantity * ugst_percentage_applied) / 100,
+                'total_gst_amount': ((unit_price_before_gst * quantity * cgst_percentage_applied) / 100) + ((unit_price_before_gst * quantity * sgst_percentage_applied) / 100) + ((unit_price_before_gst * quantity * igst_percentage_applied) / 100) + ((unit_price_before_gst * quantity * ugst_percentage_applied) / 100),
+                'total_price_incl_gst': (unit_price_before_gst * quantity) + (((unit_price_before_gst * quantity * cgst_percentage_applied) / 100) + ((unit_price_before_gst * quantity * sgst_percentage_applied) / 100) + ((unit_price_before_gst * quantity * igst_percentage_applied) / 100) + ((unit_price_before_gst * quantity * ugst_percentage_applied) / 100))
+            }
+            items_to_process = [temp_order_item]
+        else:
+            # --- Handle regular checkout from cart ---
+            cart = session.get('cart', {})
+            if not cart:
+                flash("Your cart is empty.", "info")
+                return redirect(url_for('cart_view'))
+
+            items_to_process = []
+            for artwork_id, item_data in cart.items():
+                artwork = Artwork.query.get(artwork_id)
+                if not artwork:
+                    flash(f"Artwork with ID {artwork_id} not found. Removed from cart.", "danger")
+                    # Optionally remove from cart
+                    continue
+
+                quantity = item_data.get('quantity', 1)
+                selected_options_str = item_data.get('selected_options_str')
+                selected_options = json.loads(selected_options_str) if selected_options_str else {}
                 
-            db.session.commit()
+                unit_price_before_gst = artwork.price # Simplified, adjust if options affect price
+                
+                # Calculate GST percentages based on your logic (e.g., from product category or state)
+                cgst_percentage_applied = Decimal('9.00') # Example
+                sgst_percentage_applied = Decimal('9.00') # Example
+                igst_percentage_applied = Decimal('0.00') # Example for intrastate
+                ugst_percentage_applied = Decimal('0.00') # Example
 
-            # Clear cart after successful order creation
-            session.pop('cart', None)
-            session.modified = True
-            flash('Order placed successfully! Please proceed to payment.', 'success')
-            return redirect(url_for('payment_initiate', order_id=new_order.id, amount=new_order.total_amount)) # Redirect to payment_initiate
+                temp_order_item = {
+                    'artwork': artwork,
+                    'quantity': quantity,
+                    'unit_price_before_gst': unit_price_before_gst,
+                    'cgst_percentage_applied': cgst_percentage_applied,
+                    'sgst_percentage_applied': sgst_percentage_applied,
+                    'igst_percentage_applied': igst_percentage_applied,
+                    'ugst_percentage_applied': ugst_percentage_applied,
+                    'selected_options': selected_options,
+                    'total_price_before_gst': unit_price_before_gst * quantity,
+                    'cgst_amount': (unit_price_before_gst * quantity * cgst_percentage_applied) / 100,
+                    'sgst_amount': (unit_price_before_gst * quantity * sgst_percentage_applied) / 100,
+                    'igst_amount': (unit_price_before_gst * quantity * igst_percentage_applied) / 100,
+                    'ugst_amount': (unit_price_before_gst * quantity * ugst_percentage_applied) / 100,
+                    'total_gst_amount': ((unit_price_before_gst * quantity * cgst_percentage_applied) / 100) + ((unit_price_before_gst * quantity * sgst_percentage_applied) / 100) + ((unit_price_before_gst * quantity * igst_percentage_applied) / 100) + ((unit_price_before_gst * quantity * ugst_percentage_applied) / 100),
+                    'total_price_incl_gst': (unit_price_before_gst * quantity) + (((unit_price_before_gst * quantity * cgst_percentage_applied) / 100) + ((unit_price_before_gst * quantity * sgst_percentage_applied) / 100) + ((unit_price_before_gst * quantity * igst_percentage_applied) / 100) + ((unit_price_before_gst * quantity * ugst_percentage_applied) / 100))
+                }
+                items_to_process.append(temp_order_item)
 
-        except IntegrityError:
-            db.session.rollback()
-            flash('An error occurred while creating your order. Please try again.', 'danger')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'An unexpected error occurred: {e}', 'danger')
+        if not items_to_process:
+            flash("No items to purchase.", "danger")
+            return redirect(url_for('cart_view'))
 
-    return render_template('purchase_form.html',
-                           cart_items=detailed_cart_items,
+        # Calculate totals
+        subtotal_before_gst = sum(item['total_price_before_gst'] for item in items_to_process)
+        total_gst = sum(item['total_gst_amount'] for item in items_to_process)
+        total_amount = subtotal_before_gst + total_gst
+        
+        # Shipping charge placeholder for now, implement actual calculation later
+        shipping_charge = Decimal('50.00') # Example fixed shipping charge
+        final_total_amount = total_amount + shipping_charge
+
+
+        # --- Handle POST request for order placement ---
+        # Get address details from the form
+        address_id = request.form.get('shipping_address') # If user selected an existing address (matches HTML radio button name)
+        
+        # If user submits a new address (or updates an existing one without selecting its ID)
+        full_name = request.form.get('full_name')
+        phone = request.form.get('phone')
+        address_line1 = request.form.get('address_line1')
+        address_line2 = request.form.get('address_line2')
+        city = request.form.get('city')
+        state = request.form.get('state')
+        pincode = request.form.get('pincode')
+        save_address = request.form.get('save_address') == 'on'
+        set_as_default = request.form.get('set_as_default') == 'on'
+
+        shipping_address = None
+        if address_id:
+            shipping_address = Address.query.get(address_id)
+            if shipping_address and shipping_address.user_id != current_user.id:
+                flash("Invalid address selection.", "danger")
+                return redirect(url_for('purchase_form')) # Redirect back
+        
+        # If no existing address selected or a new one is being provided/updated
+        if not shipping_address or (full_name and phone and address_line1 and city and state and pincode):
+            # Check if all fields for a new address are provided
+            if not all([full_name, phone, address_line1, city, state, pincode]):
+                flash("Please fill in all required address fields.", "danger")
+                # Re-render with existing items and address data if available for correction
+                return render_template('purchase_form.html', 
+                                       items_to_process=items_to_process, 
+                                       subtotal_before_gst=subtotal_before_gst,
+                                       total_gst=total_gst,
+                                       shipping_charge=shipping_charge,
+                                       final_total_amount=final_total_amount,
+                                       user_addresses=user_addresses, # Pass existing addresses
+                                       prefill_address=prefill_address, # Pass back prefill data
+                                       form_data={'full_name':full_name, 'phone':phone, 'address_line1':address_line1,
+                                                    'address_line2':address_line2, 'city':city, 'state':state, 'pincode':pincode})
+
+            # Create or update address
+            if not shipping_address: # New address
+                shipping_address = Address(
+                    user_id=current_user.id,
+                    full_name=full_name,
+                    phone=phone,
+                    address_line1=address_line1,
+                    address_line2=address_line2,
+                    city=city,
+                    state=state,
+                    pincode=pincode,
+                    is_default=set_as_default
+                )
+                if save_address: # Only add if saving is requested for new addresses
+                    db.session.add(shipping_address)
+            else: # Update existing selected address if form fields were also provided
+                shipping_address.full_name = full_name
+                shipping_address.phone = phone
+                shipping_address.address_line1 = address_line1
+                shipping_address.address_line2 = address_line2
+                shipping_address.city = city
+                shipping_address.state = state
+                shipping_address.pincode = pincode
+                # If an existing address is selected and set_as_default is checked, update it
+                if set_as_default:
+                    # Clear other defaults first
+                    for addr in user_addresses:
+                        if addr.is_default:
+                            addr.is_default = False
+                    shipping_address.is_default = True
+                elif not set_as_default and shipping_address.is_default:
+                    # If it was default but unchecked, unset it
+                    shipping_address.is_default = False
+
+            db.session.commit() # Commit address changes (new or updated)
+        
+        if not shipping_address: # If after all attempts, no address is set
+            flash("Please select or enter a valid shipping address.", "danger")
+            return render_template('purchase_form.html', 
+                                    items_to_process=items_to_process, 
+                                    subtotal_before_gst=subtotal_before_gst,
+                                    total_gst=total_gst,
+                                    shipping_charge=shipping_charge,
+                                    final_total_amount=final_total_amount,
+                                    user_addresses=user_addresses, # Pass existing addresses
+                                    prefill_address=prefill_address) # Pass back prefill data
+
+
+        # Generate a 7-character alphanumeric ID for the order
+        new_order_id = generate_seven_digit_id()
+        while Order.query.get(new_order_id): # Ensure ID is unique
+            new_order_id = generate_seven_digit_id()
+
+        # Create new order
+        new_order = Order(
+            id=new_order_id,
+            user_id=current_user.id,
+            total_amount=final_total_amount,
+            status='Pending Payment',
+            payment_status='pending',
+            shipping_address_id=shipping_address.id, # Link to the address
+            shipping_charge=shipping_charge
+        )
+        db.session.add(new_order)
+        db.session.commit() # Commit order to get its ID before adding items
+
+        # Add order items
+        for item_data in items_to_process:
+            order_item = OrderItem(
+                order_id=new_order.id,
+                artwork_id=item_data['artwork'].id,
+                quantity=item_data['quantity'],
+                unit_price_before_gst=item_data['unit_price_before_gst'],
+                cgst_percentage_applied=item_data['cgst_percentage_applied'],
+                sgst_percentage_applied=item_data['sgst_percentage_applied'],
+                igst_percentage_applied=item_data['igst_percentage_applied'],
+                ugst_percentage_applied=item_data['ugst_percentage_applied'],
+                selected_options=json.dumps(item_data['selected_options']) # Store options as JSON string
+            )
+            db.session.add(order_item)
+        db.session.commit()
+
+        session.pop('cart', None) # Clear cart after successful order
+        session.pop('direct_purchase_cart', None) # Clear direct purchase item
+
+        flash('Order placed successfully!', 'success')
+        return redirect(url_for('thank_you_page', order_id=new_order.id)) # Redirect to thank you page
+
+
+    # --- Handle GET request for purchase_form ---
+    # This block is for initial loading of the form (GET request)
+    # or re-rendering after a validation error in POST (if we want to prefill previous input)
+    
+    items_to_process = []
+    temp_item_data = session.get('direct_purchase_cart', None)
+    if temp_item_data and 'temp_item' in temp_item_data:
+        item_to_buy_now = temp_item_data['temp_item']
+        artwork_id = item_to_buy_now.get('artwork_id')
+        selected_options_str = item_to_buy_now.get('selected_options_str')
+        quantity = item_to_buy_now.get('quantity', 1)
+
+        if not artwork_id:
+            flash("Error: Artwork ID missing for direct purchase.", "danger")
+            return redirect(url_for('index'))
+
+        artwork = Artwork.query.get_or_404(artwork_id)
+        selected_options = json.loads(selected_options_str) if selected_options_str else {}
+        
+        unit_price_before_gst = artwork.price # Simplified, adjust if options affect price
+        
+        # Calculate GST percentages based on your logic (e.g., from product category or state)
+        cgst_percentage_applied = Decimal('9.00') # Example
+        sgst_percentage_applied = Decimal('9.00') # Example
+        igst_percentage_applied = Decimal('0.00') # Example for intrastate
+        ugst_percentage_applied = Decimal('0.00') # Example
+
+        temp_order_item = {
+            'artwork': artwork,
+            'quantity': quantity,
+            'unit_price_before_gst': unit_price_before_gst,
+            'cgst_percentage_applied': cgst_percentage_applied,
+            'sgst_percentage_applied': sgst_percentage_applied,
+            'igst_percentage_applied': igst_percentage_applied,
+            'ugst_percentage_applied': ugst_percentage_applied,
+            'selected_options': selected_options,
+            'total_price_before_gst': unit_price_before_gst * quantity,
+            'cgst_amount': (unit_price_before_gst * quantity * cgst_percentage_applied) / 100,
+            'sgst_amount': (unit_price_before_gst * quantity * sgst_percentage_applied) / 100,
+            'igst_amount': (unit_price_before_gst * quantity * igst_percentage_applied) / 100,
+            'ugst_amount': (unit_price_before_gst * quantity * ugst_percentage_applied) / 100,
+            'total_gst_amount': ((unit_price_before_gst * quantity * cgst_percentage_applied) / 100) + ((unit_price_before_gst * quantity * sgst_percentage_applied) / 100) + ((unit_price_before_gst * quantity * igst_percentage_applied) / 100) + ((unit_price_before_gst * quantity * ugst_percentage_applied) / 100),
+            'total_price_incl_gst': (unit_price_before_gst * quantity) + (((unit_price_before_gst * quantity * cgst_percentage_applied) / 100) + ((unit_price_before_gst * quantity * sgst_percentage_applied) / 100) + ((unit_price_before_gst * quantity * igst_percentage_applied) / 100) + ((unit_price_before_gst * quantity * ugst_percentage_applied) / 100))
+        }
+        items_to_process = [temp_order_item]
+    else:
+        cart = session.get('cart', {})
+        if not cart:
+            flash("Your cart is empty.", "info")
+            return redirect(url_for('cart_view')) # Redirect if cart is empty
+
+        for artwork_id, item_data in cart.items():
+            artwork = Artwork.query.get(artwork_id)
+            if not artwork:
+                flash(f"Artwork with ID {artwork_id} not found. Removed from cart.", "danger")
+                continue
+            quantity = item_data.get('quantity', 1)
+            selected_options_str = item_data.get('selected_options_str')
+            selected_options = json.loads(selected_options_str) if selected_options_str else {}
+            
+            unit_price_before_gst = artwork.price # Simplified, adjust if options affect price
+            
+            cgst_percentage_applied = Decimal('9.00') # Example
+            sgst_percentage_applied = Decimal('9.00') # Example
+            igst_percentage_applied = Decimal('0.00') # Example for intrastate
+            ugst_percentage_applied = Decimal('0.00') # Example
+
+            temp_order_item = {
+                'artwork': artwork,
+                'quantity': quantity,
+                'unit_price_before_gst': unit_price_before_gst,
+                'cgst_percentage_applied': cgst_percentage_applied,
+                'sgst_percentage_applied': sgst_percentage_applied,
+                'igst_percentage_applied': igst_percentage_applied,
+                'ugst_percentage_applied': ugst_percentage_applied,
+                'selected_options': selected_options,
+                'total_price_before_gst': unit_price_before_gst * quantity,
+                'cgst_amount': (unit_price_before_gst * quantity * cgst_percentage_applied) / 100,
+                'sgst_amount': (unit_price_before_gst * quantity * sgst_percentage_applied) / 100,
+                'igst_amount': (unit_price_before_gst * quantity * igst_percentage_applied) / 100,
+                'ugst_amount': (unit_price_before_gst * quantity * ugst_percentage_applied) / 100,
+                'total_gst_amount': ((unit_price_before_gst * quantity * cgst_percentage_applied) / 100) + ((unit_price_before_gst * quantity * sgst_percentage_applied) / 100) + ((unit_price_before_gst * quantity * igst_percentage_applied) / 100) + ((unit_price_before_gst * quantity * ugst_percentage_applied) / 100),
+                'total_price_incl_gst': (unit_price_before_gst * quantity) + (((unit_price_before_gst * quantity * cgst_percentage_applied) / 100) + ((unit_price_before_gst * quantity * sgst_percentage_applied) / 100) + ((unit_price_before_gst * quantity * igst_percentage_applied) / 100) + ((unit_price_before_gst * quantity * ugst_percentage_applied) / 100))
+            }
+            items_to_process.append(temp_order_item)
+
+    if not items_to_process:
+        flash("No items to purchase.", "danger")
+        return redirect(url_for('cart_view')) # Ensure this redirect is handled if it's the initial GET
+
+    subtotal_before_gst = sum(item['total_price_before_gst'] for item in items_to_process)
+    total_gst = sum(item['total_gst_amount'] for item in items_to_process)
+    total_amount = subtotal_before_gst + total_gst
+    shipping_charge = Decimal('50.00') 
+    final_total_amount = total_amount + shipping_charge
+
+
+    return render_template('purchase_form.html', 
+                           items_to_process=items_to_process, 
                            subtotal_before_gst=subtotal_before_gst,
-                           total_cgst_amount=total_cgst_amount,
-                           total_sgst_amount=total_sgst_amount,
-                           total_igst_amount=total_igst_amount,
-                           total_ugst_amount=total_ugst_amount,
-                           total_gst_amount=total_gst_amount,
-                           grand_total=grand_total,
-                           shipping_charge=total_shipping_charge, # Changed variable name
-                           user_addresses=user_addresses,
-                           default_address=default_address,
-                           selected_address_id=default_address.id if default_address else None,
-                           form_data=form_data) # Ensure form_data is always passed
-                           
+                           total_gst=total_gst,
+                           shipping_charge=shipping_charge,
+                           final_total_amount=final_total_amount,
+                           user_addresses=user_addresses, # Pass all existing addresses
+                           prefill_address=prefill_address) # Pass the chosen prefill address
+
+
 # MODIFIED: Signup route to include OTP verification
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -928,11 +1123,15 @@ def signup():
         send_email(new_user.email, 'Karthika Futures - Verify Your Email', f'Your OTP for email verification is: {otp_code}. It is valid for 10 minutes.')
         
         session['otp_user_id'] = new_user.id # Store user ID in session for OTP verification
+        
+        # --- NEW LINE ADDED HERE ---
+        session['prefill_login_phone'] = new_user.phone # Store phone for login prefill
+        # --- END NEW LINE ---
+
         flash('A One-Time Password (OTP) has been sent to your email. Please verify to complete registration.', 'success')
         return redirect(url_for('verify_otp'))
 
     return render_template('signup.html', form_data=form_data)
-
 # NEW: OTP Verification Route
 @app.route('/verify_otp', methods=['GET', 'POST'])
 def verify_otp():
@@ -1008,13 +1207,20 @@ def user_login():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
 
-    form_data = {}
-    if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        form_data = {'email': email}
+    # Retrieve prefill data from session (will be removed after being read once)
+    prefill_phone = session.pop('prefill_login_phone', None) # NEW LINE: Get and remove prefill phone
+    prefill_email = session.pop('prefill_login_email', None) # Optional: if you ever decide to prefill email (keep for future use if needed)
 
-        user = User.query.filter_by(email=email).first()
+    form_data = {} # Initialize form_data for GET requests or failed POSTs
+
+    if request.method == 'POST':
+        # Accept either email or phone for login
+        login_identifier = request.form.get('login_identifier') # MODIFIED: Get from 'login_identifier' field
+        password = request.form.get('password')
+        form_data = {'login_identifier': login_identifier} # Pass back entered identifier on failure
+
+        # Query for user by either email OR phone number
+        user = User.query.filter((User.email == login_identifier) | (User.phone == login_identifier)).first() # MODIFIED: Check both email and phone
 
         if user and user.check_password(password):
             if not user.email_verified:
@@ -1043,10 +1249,10 @@ def user_login():
             
             return redirect(next_page or url_for('index'))
         else:
-            flash('Invalid email or password.', 'danger')
+            flash('Invalid login ID or password.', 'danger') # MODIFIED: 'email' to 'login ID' to reflect dual login
 
-    return render_template('login.html', form_data=form_data)
-
+    # Pass prefill data AND form_data to the template for GET requests or failed POST requests
+    return render_template('login.html', form_data=form_data, prefill_phone=prefill_phone, prefill_email=prefill_email) # MODIFIED: Pass prefill_phone
 @app.route('/user-logout')
 @login_required
 def user_logout():
@@ -1322,6 +1528,21 @@ def payment_submit(order_id):
     db.session.commit()
     flash('Payment details submitted! Your order is now awaiting admin verification.', 'success')
     return redirect(url_for('order_summary', order_id=order.id))
+
+# NEW: Route for the Thank You page
+# CHANGED: <int:order_id> to <string:order_id>
+@app.route('/thank-you/<string:order_id>') 
+@login_required # If only logged-in users can view their orders
+def thank_you_page(order_id):
+    # Fetch the order using filter_by because the ID is a string
+    order = Order.query.filter_by(id=order_id).first_or_404()
+    
+    # Optional: Add security check to ensure user can only view their own order
+    if order.user_id != current_user.id:
+        flash("You do not have permission to view this order.", "danger")
+        return redirect(url_for('my_orders')) # or 'index'
+    
+    return render_template('thank_you.html', order=order)
 
 
 # --- Admin Routes ---
@@ -2074,7 +2295,7 @@ def generate_invoice_pdf(order_id):
     story.append(Spacer(1, 0.5 * inch))
 
     # Footer
-    story.append(Paragraph("Thank you for your business!", styles['Normal']))
+    story.append(Paragraph("Thank you for your purchase and devotion!", styles['Normal']))
     story.append(Paragraph(f"Invoice Status: <b>{invoice_data_safe['invoice_status']}</b>", styles['BoldBodyText']))
     story.append(Spacer(1, 0.2 * inch))
     story.append(Paragraph(f"Contact: {order.customer_phone} | {order.customer_email}", styles['Footer']))
