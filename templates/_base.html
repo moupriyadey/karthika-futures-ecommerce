@@ -121,7 +121,6 @@
             transition: top 0.4s ease-in-out, background 0.3s ease; /* Added top for floating effect */
             padding-top: 0.5rem; /* Compact padding for ~1.5cm height */
             padding-bottom: 0.5rem; /* Compact padding for ~1.5cm height */
-            /* Ensure flexbox properties are handled by Bootstrap's .navbar-expand-lg for lg screens */
         }
 
         .navbar-brand {
@@ -267,7 +266,6 @@
             color: var(--navbar-bg-start);
             border-color: var(--navbar-hover-color);
         }
-
 
         /* Main Content Area */
         .main-content-area {
@@ -432,6 +430,7 @@
             .navbar-nav {
                 text-align: center;
                 margin-top: 1rem;
+                width: 100%; /* Ensure they take full width */
             }
             .navbar-nav .nav-item {
                 margin-bottom: 0.5rem;
@@ -446,6 +445,7 @@
                 align-items: center;
                 width: 100%;
                 margin-top: 1rem;
+                margin-bottom: 1rem; /* Added bottom margin for spacing */
             }
             .navbar form.d-flex .form-control {
                 width: 90%;
@@ -457,60 +457,38 @@
             /* Ensure the collapse is correctly managed for the hamburger menu */
             .navbar-collapse {
                 flex-grow: 1; /* Allow it to take up space when expanded */
+                padding-left: 1rem; /* Add padding to the collapsed menu content */
+                padding-right: 1rem;
             }
         }
         /* New Styles for larger screens to align search and buttons */
         @media (min-width: 992px) {
-            /* The .navbar class itself should now handle the main distribution */
-            /* Removed padding-left/right override here as we are now controlling it in HTML `px-2` */
-            .navbar .w-full { /* Target the div directly using w-full as its class */
-                display: flex;
-                align-items: center;
-                justify-content: space-between; 
-                width: 100%; 
-            }
-
+            /* The .navbar-collapse should handle the main distribution */
             .navbar-collapse {
-                display: flex !important; 
+                display: flex !important; /* Ensure it's flex on large screens */
                 flex-grow: 1; 
-                justify-content: flex-end; 
+                justify-content: flex-end; /* Pushes content to the right */
                 align-items: center; 
                 width: auto; 
             }
-
-            .navbar-nav:first-of-type { 
-                margin-right: auto; 
-            }
-            
-            .navbar-nav.form-group-buttons { 
-                 margin-left: 1.5rem; 
-            }
-
-            .navbar .form-group-search {
-                display: flex;
-                align-items: center;
-                margin-left: auto; 
-                margin-right: 1.5rem; 
-            }
+            /* The me-auto and ms-auto classes in HTML now handle alignment, no custom margin here */
         }
-
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body class="flex flex-col min-h-screen">
     <nav id="mainNavbar" class="navbar fixed-top w-full z-50 navbar-expand-lg"> 
-        <div class="w-full px-2 flex items-center justify-between"> 
-            <a class="navbar-brand flex items-center" href="{{ url_for('index') }}"> 
+        <div class="container-fluid px-4 md:px-8 lg:px-12 flex items-center justify-between"> <a class="navbar-brand flex items-center" href="{{ url_for('index') }}"> 
                 <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Karthika Futures Logo" style="height: 40px; margin-right: 10px;">
                 <span>Karthika Futures</span>
             </a>
             
-            <button class="navbar-toggler lg:hidden" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
             <div class="collapse navbar-collapse" id="navbarNav"> 
-                <ul class="navbar-nav flex flex-col lg:flex-row items-center lg:space-x-6"> 
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0"> 
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('index') }}">Home</a>
                     </li>
@@ -525,12 +503,12 @@
                     </li>
                 </ul>
 
-                <form class="d-flex mx-auto my-2 my-lg-0 form-group-search" action="{{ url_for('all_products') }}" method="GET"> 
+                <form class="d-flex my-2 my-lg-0 w-100 w-lg-auto" role="search" action="{{ url_for('all_products') }}" method="GET"> 
                     <input class="form-control me-2" type="search" placeholder="Search products..." aria-label="Search" name="search" value="{{ request.args.get('search', '') }}">
                     <button class="btn btn-outline-light" type="submit"><i class="fas fa-search"></i></button>
                 </form>
 
-                <ul class="navbar-nav flex flex-col lg:flex-row items-center lg:space-x-4 form-group-buttons">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                     <li class="nav-item">
                         <a class="nav-link cart-icon-container" href="{{ url_for('cart') }}">
                             <i class="fas fa-shopping-cart"></i> Cart

@@ -11,6 +11,13 @@
     --alert-success: #d4edda;
     --alert-danger: #f8d7da;
     --alert-info: #d1ecf1;
+
+    /* New Navbar Colors - Hindu devotional theme */
+    --navbar-bg-start: #4A0E4E; /* Deep Plum */
+    --navbar-bg-end: #7B1FA2;   /* Amethyst */
+    --navbar-text-color: #F8F8F8; /* Near white */
+    --navbar-hover-color: #FFD700; /* Gold */
+    --navbar-border-color: #FFBF00; /* Golden Saffron */
 }
 
 /* General Body and Typography */
@@ -21,7 +28,10 @@ body {
     line-height: 1.6;
     margin: 0;
     padding: 0;
-    overflow-x: hidden;
+    overflow-x: hidden; /* Prevent horizontal scroll */
+    display: flex; /* Make body a flex container */
+    flex-direction: column; /* Stack children vertically */
+    min-height: 100vh; /* Ensure body takes at least full viewport height */
 }
 
 /* Custom Alert Styling */
@@ -78,94 +88,169 @@ body {
 
 /* Navbar Styling */
 .navbar {
-    background: linear-gradient(to right, var(--saffron), var(--saffron-light));
-    border-bottom: 2px solid var(--saffron-gold);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.25);
-    transition: top 0.4s ease-in-out, background 0.3s ease;
-    padding-top: 0;
-    padding-bottom: 0;
-    display: flex;
-    align-items: center;
-    height: 80px;
+    background: linear-gradient(to right, var(--navbar-bg-start), var(--navbar-bg-end));
+    border-bottom: 2px solid var(--navbar-border-color);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.25); /* Stronger shadow for depth */
+    transition: top 0.4s ease-in-out, background 0.3s ease; /* Added top for floating effect */
+    padding-top: 0.5rem; /* Compact padding for ~1.5cm height */
+    padding-bottom: 0.5rem; /* Compact padding for ~1.5cm height */
+    height: auto; /* Allow height to adjust with padding */
 }
 
 .navbar-brand {
-    color: var(--off-white) !important;
-    font-size: 1.5rem;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.4);
+    color: var(--navbar-text-color) !important;
+    font-size: 1.5rem; /* Adjusted: Smaller brand font size */
+    font-weight: 800; /* Bolder */
+    letter-spacing: 0.05em; /* Slight letter spacing */
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.4); /* More pronounced shadow */
     transition: color 0.3s ease;
 }
 
+.navbar-brand:hover {
+    color: var(--navbar-hover-color) !important; /* Gold on hover */
+}
+
 .navbar-nav .nav-link {
-    color: var(--off-white) !important;
-    font-weight: 600;
-    font-size: 0.95rem;
+    color: var(--navbar-text-color) !important;
+    font-weight: 600; /* Slightly bolder links */
+    font-size: 0.95rem; /* Adjusted: Slightly smaller nav links */
     transition: color 0.3s ease, transform 0.2s ease, text-shadow 0.3s ease;
-    padding: 0.35rem 0.75rem;
-    position: relative;
+    padding: 0.4rem 0.8rem; /* Further compact padding for nav links */
+    position: relative; /* For underline effect */
+    /* Embossed text effect */
     text-shadow: 1px 1px 2px rgba(0,0,0,0.3), -1px -1px 2px rgba(255,255,255,0.1);
 }
 
 .navbar-nav .nav-link:hover {
-    color: var(--green) !important;
+    color: var(--navbar-hover-color) !important;
     transform: translateY(-2px);
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.6); /* Glowing effect on hover */
+}
+
+/* Underline effect on hover */
+.navbar-nav .nav-link::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--navbar-hover-color);
+    transition: width 0.3s ease-out;
+}
+
+.navbar-nav .nav-link:hover::after {
+    width: 80%;
 }
 
 .navbar-nav .nav-item .btn-primary {
-    background-color: var(--green) !important;
-    border-color: var(--green) !important;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    padding: 0.35rem 0.75rem;
-    font-size: 0.95rem;
-    margin-left: 0.75rem;
+    background-color: var(--saffron) !important; /* Saffron for buttons */
+    border-color: var(--saffron) !important;
+    color: white !important;
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    padding: 0.4rem 0.8rem; /* Compact button padding */
+    font-weight: 600;
+    margin-left: 0.5rem; /* Reduced margin for closer buttons */
 }
 
 .navbar-nav .nav-item .btn-primary:hover {
-    background-color: var(--green-light) !important;
+    background-color: var(--saffron-gold) !important; /* Golden Saffron on hover */
+    border-color: var(--saffron-gold) !important;
     transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.3);
 }
 
 .navbar-nav .dropdown-menu {
-    background-color: var(--off-white);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    background-color: var(--off-white); /* Off-white dropdown background */
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+    border-radius: 0.75rem; /* More rounded dropdown */
 }
 
 .navbar-nav .dropdown-item {
     color: var(--dark-grey);
+    padding: 0.75rem 1.25rem;
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .navbar-nav .dropdown-item:hover {
-    background-color: #e0e0e0;
-    color: var(--saffron);
-}
-
-.navbar-nav .dropdown-item.active {
-    background-color: #ffe8cc;
-    color: var(--saffron);
+    background-color: var(--saffron); /* Saffron on hover */
+    color: white;
 }
 
 /* Cart Badge */
-#cart-total-quantity {
-    background-color: var(--red);
+#cart-count { /* Changed from #cart-total-quantity to #cart-count based on _base.html */
+    background-color: var(--red); /* Orange-red for attention */
     font-size: 0.75em;
     padding: 0.3em 0.6em;
     border-radius: 50%;
-    transform: translate(-50%, -50%);
-    display: none;
-    position: absolute;
-    top: -8px;
-    right: -8px;
+    position: absolute; 
+    /* ADJUSTED: Bring the badge closer to the icon and above it */
+    top: -8px;   /* Moved slightly higher */
+    right: 40px; /* Crucially increased to pull it further left over the icon */
+    transform: translate(50%, -50%); /* Still shifts it out by half its size from the new (top,right) point */
+    display: none; /* Hidden by default, shown by JS */
+    color: white;
+    font-weight: bold;
+    min-width: 20px; /* Ensure it's a circle even with single digit */
+    text-align: center;
+}
+.nav-link.cart-icon-container {
+    position: relative; /* Container for the badge */
+    display: flex; /* Flex to center icon and badge */
+    align-items: center;
+    justify-content: center;
+}
+
+/* Search input styling */
+.navbar .form-control {
+    border-radius: 9999px; /* Pill shape */
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--navbar-text-color);
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    transition: all 0.3s ease;
+    height: auto; /* Let padding define height */
+    flex-grow: 1; /* Allow it to shrink if needed but still look good */
+    max-width: 250px; /* Limit width on larger screens */
+}
+
+.navbar .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.navbar .form-control:focus {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: var(--navbar-hover-color);
+    box-shadow: 0 0 0 0.25rem rgba(255, 215, 0, 0.25);
+}
+
+.navbar .btn-outline-light {
+    border-color: var(--navbar-text-color);
+    color: var(--navbar-text-color);
+    border-radius: 9999px; /* Pill shape */
+    transition: all 0.3s ease;
+    padding: 0.4rem 1rem; /* Adjusted for better button size */
+    height: auto; /* Let padding define height */
+}
+
+.navbar .btn-outline-light:hover {
+    background-color: var(--navbar-hover-color);
+    color: var(--navbar-bg-start);
+    border-color: var(--navbar-hover-color);
 }
 
 /* Main Content Area */
 .main-content-area {
-    background-color: rgba(255, 255, 255, 0.98);
+    padding-top: 5rem; /* Adjust based on fixed navbar height */
+    flex-grow: 1; /* Allows main content to expand and push footer down */
+    background-color: rgba(255, 255, 255, 0.98); 
     border-radius: 1.5rem;
     padding: 2rem;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); 
     margin-top: 2rem;
     margin-bottom: 2rem;
 }
@@ -319,41 +404,56 @@ body {
 .card.bg-info { background-color: #17a2b8 !important; }
 .card.bg-warning { background-color: var(--saffron-gold) !important; color: var(--dark-grey) !important; }
 
-/* Search input styling */
-.navbar .form-control {
-    border-radius: 9999px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    background-color: rgba(255, 255, 255, 0.1);
-    color: var(--off-white);
-    padding: 0.35rem 1.25rem;
-    transition: all 0.3s ease;
-    height: auto;
-}
-
-.navbar .btn-outline-light {
-    border-color: var(--off-white);
-    color: var(--off-white);
-    border-radius: 9999px;
-    transition: all 0.3s ease;
-    padding: 0.35rem 1rem;
-    height: auto;
-}
-
 /* Responsive Adjustments */
 @media (max-width: 991.98px) {
     .navbar-nav {
         text-align: center;
         margin-top: 1rem;
+        width: 100%; /* Ensure they take full width */
     }
     .navbar-nav .nav-item {
         margin-bottom: 0.5rem;
     }
     .navbar-nav .nav-item .btn-primary {
-        width: 80%;
-        margin: 0.5rem auto;
+        width: 80%; /* Buttons take 80% width in mobile */
+        margin: 0.5rem auto; /* Center buttons */
+    }
+    /* Adjust search form for small screens */
+    .navbar form.d-flex {
+        flex-direction: column; /* Stack vertically */
+        align-items: center; /* Center items in the column */
+        width: 100%; /* Take full width */
+        margin-top: 1rem;
+        margin-bottom: 1rem; /* Added bottom margin for spacing */
+    }
+    .navbar form.d-flex .form-control {
+        width: 90%; /* Input takes 90% width */
+        margin-bottom: 0.5rem;
+    }
+    .navbar form.d-flex .btn-outline-light {
+        width: 90%; /* Button takes 90% width */
+    }
+    /* Ensure the collapse is correctly managed for the hamburger menu */
+    .navbar-collapse {
+        flex-grow: 1; /* Allow it to take up space when expanded */
+        padding-left: 1rem; /* Add padding to the collapsed menu content */
+        padding-right: 1rem;
     }
 }
+/* New Styles for larger screens to align search and buttons */
+@media (min-width: 992px) {
+    /* The .navbar-collapse should handle the main distribution */
+    .navbar-collapse {
+        display: flex !important; /* Ensure it's flex on large screens */
+        flex-grow: 1; 
+        justify-content: flex-end; /* Pushes content to the right */
+        align-items: center; 
+        width: auto; 
+    }
+    /* The me-auto and ms-auto classes in HTML now handle alignment, no custom margin here */
+}
 
+/* Responsive adjustment for footer */
 @media (max-width: 576px) {
     .footer .row > div {
         margin-bottom: 1.5rem;
