@@ -114,7 +114,9 @@
             <div class="space-y-4 mb-6">
                 {% for item in items_to_process %} {# Changed 'cart_items' to 'items_to_process' as passed from app.py #}
                 <div class="flex items-center space-x-4 border-b pb-4 last:border-b-0">
-                    <img src="{{ url_for('static', filename=item.artwork.image_url) }}" alt="{{ item.artwork.name }}" class="w-20 h-20 object-cover rounded-md shadow-sm">
+                    <img src="{{ url_for('static', filename=item.artwork.get_images_list()[0] if item.artwork.get_images_list() else 'images/placeholder.png') }}"
+     alt="{{ item.artwork.name }}"
+     class="w-20 h-20 object-cover rounded-md shadow-sm">
                     <div class="flex-1">
                         <p class="font-semibold text-gray-900">{{ item.artwork.name }}</p>
                         <p class="text-sm text-gray-600">Qty: {{ item.quantity }}</p>
@@ -136,22 +138,24 @@
                     <span>Subtotal (Excl. GST):</span>
                     <span class="font-semibold">{{ subtotal_before_gst | currency }}</span>
                 </div>
+                
                 <div class="flex justify-between text-gray-700">
-                    <span>CGST:</span>
-                    <span class="font-semibold">{{ total_gst_amount | currency }}</span> {# Simplify this to use total_gst_amount as passed #}
-                </div>
-                <div class="flex justify-between text-gray-700">
-                    <span>SGST:</span>
-                    <span class="font-semibold">{{ total_gst_amount | currency }}</span> {# Simplify this to use total_gst_amount as passed #}
-                </div>
-                <div class="flex justify-between text-gray-700">
-                    <span>IGST:</span>
-                    <span class="font-semibold">{{ total_gst_amount | currency }}</span> {# Simplify this to use total_gst_amount as passed #}
-                </div>
-                <div class="flex justify-between text-gray-700">
-                    <span>UGST:</span>
-                    <span class="font-semibold">{{ total_gst_amount | currency }}</span> {# Simplify this to use total_gst_amount as passed #}
-                </div>
+    <span>CGST:</span>
+    <span class="font-semibold">{{ total_cgst_amount | currency }}</span> {# Use total_cgst_amount #}
+</div>
+<div class="flex justify-between text-gray-700">
+    <span>SGST:</span>
+    <span class="font-semibold">{{ total_sgst_amount | currency }}</span> {# Use total_sgst_amount #}
+</div>
+<div class="flex justify-between text-gray-700">
+    <span>IGST:</span>
+    <span class="font-semibold">{{ total_igst_amount | currency }}</span> {# Use total_igst_amount #}
+</div>
+<div class="flex justify-between text-gray-700">
+    <span>UGST:</span>
+    <span class="font-semibold">{{ total_ugst_amount | currency }}</span> {# Use total_ugst_amount #}
+</div>
+
                 <div class="flex justify-between text-gray-700">
                     <span>Total GST:</span>
                     <span class="font-semibold">{{ total_gst | currency }}</span> {# Corrected variable name #}
