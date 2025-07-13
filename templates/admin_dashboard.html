@@ -658,12 +658,19 @@ document.addEventListener('DOMContentLoaded', function () {
                     const response = await fetch(`/delete-order/${orderId}`, {
                         method: 'POST',
                         headers: {
-                            'X-CSRFToken': window.csrfToken // Flask-WTF handles CSRF via header for POST requests
+                            'X-CSRFToken': window.csrfToken, // Flask-WTF handles CSRF via header for POST requests
+                            'X-Requested-With': 'XMLHttpRequest' // 🟢 Tells Flask this is an AJAX call
                         },
                         body: new URLSearchParams({
                             'csrf_token': window.csrfToken // Also send in body for Flask to pick up
+                            
                         })
                     });
+                            // 🟡 Validate response before attempting to parse
+        if (!response.ok) {
+            throw new Error(`Server responded with status ${response.status}`);
+        }
+
                     const data = await response.json(); // Assuming Flask returns JSON
                     if (data.success) {
                         showCustomAlert(data.message, 'success');
@@ -711,55 +718,21 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Event listener for status change within the modal to show/hide cancellation reason
-    orderStatusSelect.addEventListener('change', function() {
-        if (this.value.includes('Cancelled')) {
-            cancellationReasonGroup.style.display = 'block';
-        } else {
-            cancellationReasonGroup.style.display = 'none';
-            modalCancellationReason.value = ''; // Clear reason if not cancelled
-        }
-    });
-
-    orderStatusForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const orderId = modalOrderId.value;
-        const newStatus = orderStatusSelect.value;
-        const remark = modalRemark.value;
-        const courier = modalCourier.value;
-        const trackingNumber = modalTrackingNumber.value;
-        const cancellationReason = modalCancellationReason.value;
-
-        try {
-            const response = await fetch(`/admin/order/update_status/${orderId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': window.csrfToken
-                },
-                body: JSON.stringify({
-                    order_id: orderId, // Send order_id in JSON body
-                    status: newStatus,
-                    remark: remark,
-                    courier: courier,
-                    tracking_number: trackingNumber,
-                    cancellation_reason: cancellationReason,
-                    csrf_token: window.csrfToken // Include CSRF token in body for Flask-WTF
-                })
-            });
-            const data = await response.json();
-            if (data.success) {
-                showCustomAlert(data.message, 'success');
-                orderStatusModal.hide();
-                setTimeout(() => location.reload(), 1000);
-            } else {
-                showCustomAlert(data.message, 'danger');
-            }
-        } catch (err) {
-            console.error(err);
-            showCustomAlert('An error occurred while updating order status.', 'danger');
-        }
-    });
+    fetch(`/update-order-status/${orderId}`, {
+  method: 'POST',
+  headers: {
+    'X-CSRFToken': window.csrfToken,
+    'X-Requested-With': 'XMLHttpRequest'
+  },
+  body: new URLSearchParams({
+    'status': newStatus,
+    'remark': remark,
+    'courier': courier,
+    'tracking_number': trackingNumber,
+    'cancellation_reason': cancellationReason,
+    'csrf_token': window.csrfToken
+  })
+});
 
     // --- Monthly Revenue Chart ---
     const ctx = document.getElementById('monthlyRevenueChart').getContext('2d');

@@ -41,8 +41,11 @@ try:
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.enums import TA_RIGHT, TA_CENTER, TA_LEFT
     from reportlab.lib.units import inch
-    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.pagesizes import A4 # Changed to A4
     from reportlab.lib.colors import HexColor
+    # NEW IMPORTS FOR FONT HANDLING
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
 except ImportError:
     print("ReportLab not installed. PDF generation features will be disabled.")
     SimpleDocTemplate = None
@@ -56,8 +59,10 @@ except ImportError:
     TA_CENTER = None
     TA_LEFT = None
     inch = None
-    letter = None
+    A4 = None
     HexColor = None
+    pdfmetrics = None
+    TTFont = None
 
 
 app = Flask(__name__)
@@ -105,15 +110,31 @@ def generate_otp(length=6):
     """Generates a random numeric OTP."""
     return ''.join(random.choices(string.digits, k=length))
 
-def generate_seven_digit_id():
-    """Generates a unique 7-character alphanumeric ID for orders."""
-    characters = string.ascii_uppercase + string.digits # A-Z and 0-9
-    while True:
-        # Generate a 7-character alphanumeric string
-        new_id = ''.join(random.choices(characters, k=7))
-        # Check if it already exists in the database
-        if not Order.query.get(new_id):
-            return new_id
+# NEW: SequenceCounter model for sequential IDs
+class SequenceCounter(db.Model):
+    id = db.Column(db.String(50), primary_key=True) # e.g., 'order_id_sequence'
+    current_value = db.Column(db.BigInteger, nullable=False)
+
+# MODIFIED: Order ID generation function
+def generate_order_id():
+    counter_name = 'order_id_sequence'
+    # Use a transaction for atomic increment to prevent duplicates in concurrent environments
+    with db.session.begin_nested(): 
+        counter = db.session.query(SequenceCounter).with_for_update().filter_by(id=counter_name).first()
+        if not counter:
+            # Initialize if it's the first time.
+            # Start from 15416760 so the first increment makes it 15416761
+            counter = SequenceCounter(id=counter_name, current_value=15416760) 
+            db.session.add(counter)
+            db.session.flush() # Ensure it's in the session for the update below
+        
+        counter.current_value += 1
+        new_numeric_part = counter.current_value
+        # No need to db.session.add(counter) again if it was already fetched/added and modified
+        # The flush() above ensures it's tracked.
+
+    # Format the ID as "OD" + padded 8 digits
+    return f"OD{new_numeric_part:08d}"
 
 def send_email(to_email, subject, body, attachment_path=None, attachment_name=None):
     """Sends an email with optional attachment."""
@@ -202,6 +223,7 @@ class Artwork(db.Model):
     sgst_percentage = Column(Numeric(5, 2), default=Decimal('0.00'), nullable=False)
     igst_percentage = Column(Numeric(5, 2), default=Decimal('0.00'), nullable=False)
     ugst_percentage = Column(Numeric(5, 2), default=Decimal('0.00'), nullable=False)
+    cess_percentage = Column(Numeric(5, 2), default=Decimal('0.00'), nullable=False) # NEW: CESS percentage
     gst_type = Column(String(20), default='intra_state', nullable=False) # 'intra_state', 'inter_state', 'union_territory'
 
     stock = Column(Integer, default=0, nullable=False)
@@ -238,6 +260,8 @@ class Artwork(db.Model):
         elif self.gst_type == 'union_territory':
             total_gst_rate = self.cgst_percentage + self.ugst_percentage
         
+        total_gst_rate += self.cess_percentage # Include CESS in total rate for selling price
+
         return base_price * (1 + total_gst_rate / 100)
 
     def __repr__(self):
@@ -259,9 +283,25 @@ class Address(db.Model):
     def __repr__(self):
         return f"Address('{self.full_name}', '{self.city}', '{self.pincode}')"
 
+    # NEW: Method to convert Address object to a dictionary for JSON serialization
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'label': self.label,
+            'full_name': self.full_name,
+            'phone': self.phone,
+            'address_line1': self.address_line1,
+            'address_line2': self.address_line2,
+            'city': self.city,
+            'state': self.state,
+            'pincode': self.pincode,
+            'is_default': self.is_default
+        }
+
 class Order(db.Model):
-    # Changed primary key to use a 7-character alphanumeric ID
-    id = Column(String(7), primary_key=True, default=generate_seven_digit_id)
+    # Changed primary key to use the new function generate_order_id
+    id = Column(String(10), primary_key=True, default=generate_order_id) # Max 10 chars (OD + 8 digits)
     user_id = Column(String(36), ForeignKey('user.id'), nullable=False)
     order_date = Column(DateTime, default=datetime.utcnow)
     total_amount = Column(Numeric(10, 2), nullable=False)
@@ -275,7 +315,7 @@ class Order(db.Model):
     cancellation_reason = Column(Text, nullable=True) # New field for cancellation reason
 
     # Invoice details stored as JSON string
-    invoice_details = Column(Text, nullable=True) # {business_name, gstin, pan, business_address, invoice_number, invoice_date, billing_address, gst_rate_applied, shipping_charge, final_invoice_amount, invoice_status, is_held_by_admin, cgst_amount, sgst_amount, igst_amount, ugst_amount}
+    invoice_details = Column(Text, nullable=True) # {business_name, gstin, pan, business_address, invoice_number, invoice_date, billing_address, gst_rate_applied, shipping_charge, final_invoice_amount, invoice_status, is_held_by_admin, cgst_amount, sgst_amount, igst_amount, ugst_amount, cess_amount} # NEW: cess_amount
 
     items = relationship('OrderItem', backref='order', lazy=True, cascade="all, delete-orphan")
     shipping_address = relationship('Address', foreign_keys=[shipping_address_id])
@@ -320,7 +360,7 @@ class Order(db.Model):
 
 class OrderItem(db.Model):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    order_id = Column(String(7), ForeignKey('order.id'), nullable=False) # Changed to String(7) to match Order ID
+    order_id = Column(String(10), ForeignKey('order.id'), nullable=False) # Changed to String(10) to match Order ID
     artwork_id = Column(String(36), ForeignKey('artwork.id'), nullable=False)
     quantity = Column(Integer, nullable=False)
     
@@ -332,6 +372,7 @@ class OrderItem(db.Model):
     sgst_percentage_applied = Column(Numeric(5, 2), default=Decimal('0.00'), nullable=False)
     igst_percentage_applied = Column(Numeric(5, 2), default=Decimal('0.00'), nullable=False)
     ugst_percentage_applied = Column(Numeric(5, 2), default=Decimal('0.00'), nullable=False)
+    cess_percentage_applied = Column(Numeric(5, 2), default=Decimal('0.00'), nullable=False) # NEW: CESS percentage applied
 
     selected_options = Column(Text, nullable=True) # e.g., {"Size": "A4", "Frame": "Wooden"}
 
@@ -358,8 +399,12 @@ class OrderItem(db.Model):
         return (self.total_price_before_gst * self.ugst_percentage_applied) / 100
 
     @property
+    def cess_amount(self): # NEW: CESS amount property
+        return (self.total_price_before_gst * self.cess_percentage_applied) / 100
+
+    @property
     def total_gst_amount(self):
-        return self.cgst_amount + self.sgst_amount + self.igst_amount + self.ugst_amount
+        return self.cgst_amount + self.sgst_amount + self.igst_amount + self.ugst_amount + self.cess_amount # Include CESS
 
     @property
     def total_price_incl_gst(self):
@@ -377,7 +422,8 @@ class OrderItem(db.Model):
 # --- Flask-Login User Loader ---
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(user_id)
+    # Fix for LegacyAPIWarning
+    return db.session.get(User, user_id)
 
 # --- Context Processors ---
 @app.context_processor
@@ -438,8 +484,6 @@ def get_cart_count():
     return jsonify(success=True, cart_count=total_quantity)
 
 # NEW: Helper function to calculate item total including options and GST
-
-# NEW: Helper function to calculate item total including options and GST
 # Helper function to calculate item total including options and GST
 def calculate_item_total(artwork, selected_options, quantity):
     """
@@ -462,6 +506,7 @@ def calculate_item_total(artwork, selected_options, quantity):
     sgst_percentage = artwork.sgst_percentage
     igst_percentage = artwork.igst_percentage
     ugst_percentage = artwork.ugst_percentage
+    cess_percentage = artwork.cess_percentage # NEW: Get CESS percentage
 
     total_price_before_gst_for_item = unit_price_before_gst * quantity
 
@@ -469,8 +514,9 @@ def calculate_item_total(artwork, selected_options, quantity):
     sgst_amount = (total_price_before_gst_for_item * sgst_percentage) / 100
     igst_amount = (total_price_before_gst_for_item * igst_percentage) / 100
     ugst_amount = (total_price_before_gst_for_item * ugst_percentage) / 100
+    cess_amount = (total_price_before_gst_for_item * cess_percentage) / 100 # NEW: CESS amount
 
-    total_gst_amount_for_item = cgst_amount + sgst_amount + igst_amount + ugst_amount
+    total_gst_amount_for_item = cgst_amount + sgst_amount + igst_amount + ugst_amount + cess_amount # Include CESS
     total_price_incl_gst = total_price_before_gst_for_item + total_gst_amount_for_item
 
     return {
@@ -479,11 +525,13 @@ def calculate_item_total(artwork, selected_options, quantity):
         'sgst_percentage_applied': sgst_percentage,
         'igst_percentage_applied': igst_percentage,
         'ugst_percentage_applied': ugst_percentage,
+        'cess_percentage_applied': cess_percentage, # NEW: Pass CESS percentage
         'total_price_incl_gst': total_price_incl_gst,
         'cgst_amount': cgst_amount,
         'sgst_amount': sgst_amount,
         'igst_amount': igst_amount,
         'ugst_amount': ugst_amount,
+        'cess_amount': cess_amount, # NEW: Pass CESS amount
         'total_price_before_gst': total_price_before_gst_for_item
     }
 
@@ -496,7 +544,8 @@ from decimal import Decimal, InvalidOperation # Ensure InvalidOperation is impor
 
 def get_cart_items_details():
     """
-    Retrieves detailed information for items in the session cart.
+    Retrieves detailed information for items in the session cart or direct purchase session.
+    Prioritizes direct_purchase_cart if it exists.
     Returns (detailed_cart_items, subtotal_before_gst, total_cgst_amount,
               total_sgst_amount, total_igst_amount, total_ugst_amount,
               total_gst_amount, grand_total, total_shipping_charge)
@@ -507,20 +556,25 @@ def get_cart_items_details():
     total_sgst_amount = Decimal('0.00')
     total_igst_amount = Decimal('0.00')
     total_ugst_amount = Decimal('0.00')
+    total_cess_amount = Decimal('0.00') # NEW: Total CESS amount
     total_gst_amount = Decimal('0.00')
     grand_total = Decimal('0.00')
     total_shipping_charge = Decimal('0.00') # Initialize total shipping charge
 
-    # Iterate over a copy of the cart to allow modification during iteration
-    cart_copy = session.get('cart', {}).copy()
-    for item_key, item_data in cart_copy.items():
+    items_source = {}
+    if 'direct_purchase_cart' in session and session['direct_purchase_cart']:
+        for key, value in session['direct_purchase_cart'].items():
+            items_source[key] = value
+    else:
+        items_source = session.get('cart', {}).copy()
+
+    for item_key, item_data in items_source.items():
         sku = item_data['sku']
         quantity = item_data['quantity']
-        selected_options = item_data.get('options', {})
+        selected_options = item_data.get('selected_options', item_data.get('options', {}))
 
         artwork = Artwork.query.filter_by(sku=sku).first()
         if artwork:
-            # Re-calculate prices to ensure accuracy, especially if artwork data changed
             results_from_calculation = calculate_item_total(artwork, selected_options, quantity)
 
             unit_price_before_gst = results_from_calculation['unit_price_before_gst']
@@ -528,11 +582,13 @@ def get_cart_items_details():
             sgst_percentage_applied = results_from_calculation['sgst_percentage_applied']
             igst_percentage_applied = results_from_calculation['igst_percentage_applied']
             ugst_percentage_applied = results_from_calculation['ugst_percentage_applied']
+            cess_percentage_applied = results_from_calculation['cess_percentage_applied'] # NEW
             total_price_incl_gst = results_from_calculation['total_price_incl_gst']
             cgst_amount = results_from_calculation['cgst_amount']
             sgst_amount = results_from_calculation['sgst_amount']
             igst_amount = results_from_calculation['igst_amount']
             ugst_amount = results_from_calculation['ugst_amount']
+            cess_amount = results_from_calculation['cess_amount'] # NEW
             total_price_before_gst_for_item = results_from_calculation['total_price_before_gst']
 
             detailed_cart_items.append({
@@ -540,46 +596,43 @@ def get_cart_items_details():
                 'artwork': artwork, # Full artwork object
                 'quantity': quantity,
                 'unit_price_before_gst': unit_price_before_gst,
-                # Use the _applied variables here:
                 'cgst_percentage': cgst_percentage_applied, # CHANGED
                 'sgst_percentage': sgst_percentage_applied, # CHANGED
                 'igst_percentage': igst_percentage_applied, # CHANGED
                 'ugst_percentage': ugst_percentage_applied, # CHANGED
+                'cess_percentage': cess_percentage_applied, # NEW
                 'total_price_incl_gst': total_price_incl_gst,
                 'cgst_amount': cgst_amount,
                 'sgst_amount': sgst_amount,
                 'igst_amount': igst_amount,
                 'ugst_amount': ugst_amount,
+                'cess_amount': cess_amount, # NEW
                 'selected_options': selected_options,
                 'image_url': artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png'
             })
-            # Use total_price_before_gst_for_item here:
             subtotal_before_gst += total_price_before_gst_for_item # CHANGED
             total_cgst_amount += cgst_amount
             total_sgst_amount += sgst_amount
             total_igst_amount += igst_amount
             total_ugst_amount += ugst_amount
-            total_gst_amount += (cgst_amount + sgst_amount + igst_amount + ugst_amount)
+            total_cess_amount += cess_amount # NEW
+            total_gst_amount += (cgst_amount + sgst_amount + igst_amount + ugst_amount + cess_amount) # Include CESS
             grand_total += total_price_incl_gst
             
-            # Add artwork's specific shipping charge to the total shipping charge
-            total_shipping_charge += artwork.shipping_charge * quantity # Added * quantity, as shipping is per item
+            item_shipping_charge = Decimal(str(item_data.get('shipping_charge', artwork.shipping_charge)))
+            total_shipping_charge += item_shipping_charge * quantity
         else:
-            # If artwork not found, remove from cart and flash message
             flash(f"Artwork with SKU {sku} not found and removed from your cart.", "warning")
-            # Remove from the original session cart, not the copy
-            if item_key in session['cart']:
+            if item_key in session.get('cart', {}):
                 del session['cart'][item_key]
-            session.modified = True # Mark session as modified
+            session.modified = True
             
-    # Add calculated total shipping charge to grand total
     grand_total += total_shipping_charge
 
     return (detailed_cart_items, subtotal_before_gst, total_cgst_amount,
-            total_sgst_amount, total_igst_amount, total_ugst_amount,
+            total_sgst_amount, total_igst_amount, total_ugst_amount, total_cess_amount, # NEW: Return total_cess_amount
             total_gst_amount, grand_total, total_shipping_charge)
 
-# NEW: Route to add item to cart (AJAX endpoint)
 # NEW: Route to add item to cart (AJAX endpoint)
 @app.route('/add-to-cart', methods=['POST'])
 @csrf.exempt # Exempt CSRF for AJAX, handled by X-CSRFToken header
@@ -600,10 +653,14 @@ def add_to_cart():
         return jsonify(success=False, message=f'Only {artwork.stock} units of {artwork.name} are available.'), 400
 
     # Calculate item price including options and GST
-    # Corrected unpacking: added an extra '_' to match the 11 values returned by calculate_item_total
-    (unit_price_before_gst, cgst_percentage, sgst_percentage, 
-     igst_percentage, ugst_percentage, _, _, _, _, _, _) = \
-        calculate_item_total(artwork, selected_options, quantity)
+    calculated_results = calculate_item_total(artwork, selected_options, quantity)
+    
+    unit_price_before_gst = calculated_results['unit_price_before_gst']
+    cgst_percentage = calculated_results['cgst_percentage_applied']
+    sgst_percentage = calculated_results['sgst_percentage_applied']
+    igst_percentage = calculated_results['igst_percentage_applied']
+    ugst_percentage = calculated_results['ugst_percentage_applied']
+    cess_percentage = calculated_results['cess_percentage_applied']
 
     cart = session.get('cart', {})
     
@@ -627,6 +684,7 @@ def add_to_cart():
             'sgstPercentage': str(sgst_percentage),
             'igstPercentage': str(igst_percentage),
             'ugstPercentage': str(ugst_percentage),
+            'cessPercentage': str(cess_percentage), # NEW: Store cessPercentage
             'options': selected_options
         }
     
@@ -635,11 +693,9 @@ def add_to_cart():
 
     total_quantity_in_cart = sum(item['quantity'] for item in session['cart'].values())
     
-    # --- MODIFICATION START ---
     cart_url = url_for('cart') # Get the URL for the cart page
     message_content = f"{quantity} x {artwork.name} added to cart! <a href='{cart_url}' class='alert-link' style='color: inherit; text-decoration: underline; margin-left: 10px;'>Go to Cart</a>"
     flash(Markup(message_content), 'success') # Wrap the message in Markup
-    # --- MODIFICATION END ---
 
     return jsonify(success=True, message='Item added to cart!', cart_count=total_quantity_in_cart)
 
@@ -664,7 +720,7 @@ def remove_from_cart():
 @app.route('/cart')
 def cart():
     detailed_cart_items, subtotal_before_gst, total_cgst_amount, \
-    total_sgst_amount, total_igst_amount, total_ugst_amount, \
+    total_sgst_amount, total_igst_amount, total_ugst_amount, total_cess_amount, \
     total_gst_amount, grand_total, total_shipping_charge = get_cart_items_details() # Changed variable name
     
     return render_template('cart.html', 
@@ -674,6 +730,7 @@ def cart():
                            total_sgst_amount=total_sgst_amount,
                            total_igst_amount=total_igst_amount,
                            total_ugst_amount=total_ugst_amount,
+                           total_cess_amount=total_cess_amount, # NEW
                            total_gst_amount=total_gst_amount,
                            grand_total=grand_total,
                            shipping_charge=total_shipping_charge) # Pass the calculated total_shipping_charge
@@ -702,6 +759,9 @@ def create_direct_order():
         item_to_buy_now['igstPercentage'] = str(item_to_buy_now['igstPercentage'])
     if 'ugstPercentage' in item_to_buy_now:
         item_to_buy_now['ugstPercentage'] = str(item_to_buy_now['ugstPercentage'])
+    if 'cessPercentage' in item_to_buy_now: # NEW
+        item_to_buy_now['cessPercentage'] = str(item_to_buy_now['cessPercentage'])
+
     # NEW: Store shipping_charge in item_to_buy_now if present
     if 'shippingCharge' in item_to_buy_now:
         item_to_buy_now['shippingCharge'] = str(item_to_buy_now['shippingCharge'])
@@ -739,6 +799,10 @@ def purchase_form():
         if not prefill_address: # If no default found, take the first one
             prefill_address = user_addresses[0]
 
+    # NEW: Convert prefill_address to a dictionary if it exists
+    prefill_address_dict = prefill_address.to_dict() if prefill_address else None
+    selected_address = prefill_address  # This will be shown in the form
+
     # Initialize variables for template rendering
     items_to_process = []
     subtotal_before_gst = Decimal('0.00')
@@ -746,15 +810,17 @@ def purchase_form():
     total_sgst_amount = Decimal('0.00')
     total_igst_amount = Decimal('0.00')
     total_ugst_amount = Decimal('0.00')
+    total_cess_amount = Decimal('0.00') # NEW
     total_gst = Decimal('0.00')
     shipping_charge = Decimal('0.00')
     final_total_amount = Decimal('0.00')
+    shipping_address_obj = None  # <--- Fix added
 
     # --- Handle POST request for order placement ---
     if request.method == 'POST':
         # Recalculate all totals based on current session cart/buy now item
         (items_to_process, subtotal_before_gst, total_cgst_amount, 
-         total_sgst_amount, total_igst_amount, total_ugst_amount,
+         total_sgst_amount, total_igst_amount, total_ugst_amount, total_cess_amount, # NEW
          total_gst, final_total_amount, shipping_charge) = get_cart_items_details() # Use the helper
 
         if not items_to_process:
@@ -762,7 +828,8 @@ def purchase_form():
             return redirect(url_for('cart'))
 
         # Get address details from the form
-        selected_address_id = request.form.get('shipping_address')
+        selected_address_id = request.form.get('selected_address_id') or request.form.get('shipping_address')
+
         
         full_name = request.form.get('full_name')
         phone = request.form.get('phone')
@@ -777,7 +844,8 @@ def purchase_form():
         shipping_address_obj = None
 
         if selected_address_id and selected_address_id != 'new':
-            shipping_address_obj = Address.query.get(selected_address_id)
+            # Fix for LegacyAPIWarning
+            shipping_address_obj = db.session.get(Address, selected_address_id)
             if not shipping_address_obj or shipping_address_obj.user_id != current_user.id:
                 flash("Invalid address selection.", "danger")
                 return render_template('purchase_form.html', 
@@ -787,12 +855,13 @@ def purchase_form():
                                        shipping_charge=shipping_charge,
                                        final_total_amount=final_total_amount,
                                        user_addresses=user_addresses,
-                                       prefill_address=prefill_address,
+                                       prefill_address=prefill_address_dict, # Pass dictionary
                                        form_data=request.form.to_dict(),
                                        total_cgst_amount=total_cgst_amount,
                                        total_sgst_amount=total_sgst_amount,
                                        total_igst_amount=total_igst_amount,
-                                       total_ugst_amount=total_ugst_amount)
+                                       total_ugst_amount=total_ugst_amount,
+                                       total_cess_amount=total_cess_amount) # NEW
         
         # If 'new' address is selected or no existing address was chosen/found
         if selected_address_id == 'new' or not shipping_address_obj:
@@ -806,12 +875,13 @@ def purchase_form():
                                        shipping_charge=shipping_charge,
                                        final_total_amount=final_total_amount,
                                        user_addresses=user_addresses,
-                                       prefill_address=prefill_address,
+                                       prefill_address=prefill_address_dict, # Pass dictionary
                                        form_data=request.form.to_dict(),
                                        total_cgst_amount=total_cgst_amount,
                                        total_sgst_amount=total_sgst_amount,
                                        total_igst_amount=total_igst_amount,
-                                       total_ugst_amount=total_ugst_amount)
+                                       total_ugst_amount=total_ugst_amount,
+                                       total_cess_amount=total_cess_amount) # NEW
 
             # Create or update address
             if not shipping_address_obj: # This means it's a completely new address
@@ -836,7 +906,7 @@ def purchase_form():
                     # This is a common pattern for "one-time" addresses.
                     # However, your Order model requires shipping_address_id, so it must be persisted.
                     # The current setup assumes any new address entered is saved.
-                    # If 'save_address' is unchecked, it just means it's not set as default.
+                    # If 'save_address' is unchecked, it just won't be set as default.
                     # Let's stick to the simpler model where new addresses are always saved if entered.
                     # If save_address is unchecked, it just won't be set as default.
                     db.session.add(new_address)
@@ -870,18 +940,19 @@ def purchase_form():
                                    shipping_charge=shipping_charge,
                                    final_total_amount=final_total_amount,
                                    user_addresses=user_addresses,
-                                   prefill_address=prefill_address,
+                                   prefill_address=prefill_address_dict, # Pass dictionary
                                    form_data=request.form.to_dict(),
                                    total_cgst_amount=total_cgst_amount,
                                    total_sgst_amount=total_sgst_amount,
                                    total_igst_amount=total_igst_amount,
-                                   total_ugst_amount=total_ugst_amount)
+                                   total_ugst_amount=total_ugst_amount,
+                                   total_cess_amount=total_cess_amount) # NEW
 
 
         try:
             # Create the order
             new_order = Order(
-                id=generate_seven_digit_id(), # Generate unique ID here
+                id=generate_order_id(), # Use the new sequential ID generation function
                 user_id=current_user.id,
                 total_amount=final_total_amount,
                 status='Pending Payment',
@@ -903,20 +974,22 @@ def purchase_form():
                     sgst_percentage_applied=item['sgst_percentage'], # Corrected from _applied
                     igst_percentage_applied=item['igst_percentage'], # Corrected from _applied
                     ugst_percentage_applied=item['ugst_percentage'], # Corrected from _applied
+                    cess_percentage_applied=item['cess_percentage'], # NEW
                     selected_options=json.dumps(item['selected_options'])
                 )
                 db.session.add(order_item)
                 # Deduct stock
-                artwork = Artwork.query.get(item['artwork'].id)
+                # Fix for LegacyAPIWarning
+                artwork = db.session.get(Artwork, item['artwork'].id)
                 if artwork:
-                    artwork.stock -= item['quantity']
+                    artwork.stock -= item.get('quantity', 0) # Use .get with default 0 to prevent error if quantity is missing
                     if artwork.stock < 0:
                         artwork.stock = 0
                 
             db.session.commit()
 
             session.pop('cart', None)
-            session.pop('direct_purchase_cart', None)
+            session.pop('direct_purchase_cart', None) # Ensure direct purchase cart is cleared
             session.modified = True
 
             flash('Order placed successfully! Please proceed to payment.', 'success')
@@ -932,7 +1005,7 @@ def purchase_form():
     # --- Handle GET request for purchase_form (initial load or re-render after POST error) ---
     # This block populates items_to_process and totals for rendering the form
     (items_to_process, subtotal_before_gst, total_cgst_amount, 
-     total_sgst_amount, total_igst_amount, total_ugst_amount,
+     total_sgst_amount, total_igst_amount, total_ugst_amount, total_cess_amount, # NEW
      total_gst, final_total_amount, shipping_charge) = get_cart_items_details() # Use the helper
 
     if not items_to_process:
@@ -949,12 +1022,13 @@ def purchase_form():
                            shipping_charge=shipping_charge,
                            final_total_amount=final_total_amount,
                            user_addresses=user_addresses,
-                           prefill_address=prefill_address,
+                           selected_address=shipping_address_obj or prefill_address,
                            form_data=form_data,
                            total_cgst_amount=total_cgst_amount,
                            total_sgst_amount=total_sgst_amount,
                            total_igst_amount=total_igst_amount,
-                           total_ugst_amount=total_ugst_amount)
+                           total_ugst_amount=total_ugst_amount,
+                           total_cess_amount=total_cess_amount) # NEW
 
 # MODIFIED: Signup route to include OTP verification
 @app.route('/signup', methods=['GET', 'POST'])
@@ -1031,7 +1105,7 @@ def signup():
         return redirect(url_for('verify_otp'))
 
     return render_template('signup.html', form_data=form_data)
-# NEW: OTP Verification Route
+
 @app.route('/verify_otp', methods=['GET', 'POST'])
 def verify_otp():
     user_id = session.get('otp_user_id')
@@ -1039,7 +1113,8 @@ def verify_otp():
         flash('No pending verification. Please sign up or try forgot password again.', 'danger')
         return redirect(url_for('signup'))
 
-    user = User.query.get(user_id)
+    # Fix for LegacyAPIWarning
+    user = db.session.get(User, user_id)
     if not user:
         flash('User not found for verification.', 'danger')
         return redirect(url_for('signup'))
@@ -1052,30 +1127,32 @@ def verify_otp():
 
         if latest_otp and latest_otp.otp_code == otp_entered and latest_otp.is_valid():
             user.email_verified = True
-            db.session.delete(latest_otp) # Delete used OTP
+            db.session.delete(latest_otp)  # Delete used OTP
             db.session.commit()
-            session.pop('otp_user_id', None) # Clear OTP user ID from session
+            session.pop('otp_user_id', None)
 
-            # If user was trying to access a 'next' page after login, redirect them
+            login_user(user)  # ✅ Automatically log the user in after OTP verified
+
+            # If user was trying to access a specific page, handle redirect
             redirect_after_login = session.pop('redirect_after_login_endpoint', None)
             item_to_buy_now = session.pop('itemToBuyNow', None)
 
             if redirect_after_login == 'purchase_form' and item_to_buy_now:
-                # If it was a direct purchase, put the item back into a temporary session cart
-                # The purchase_form route will handle picking this up
                 session['direct_purchase_cart'] = {'temp_item': item_to_buy_now}
                 session.modified = True
                 flash('Email verified! Redirecting to complete your purchase.', 'success')
                 return redirect(url_for('purchase_form'))
+
             elif redirect_after_login:
                 flash('Email verified! You are now logged in.', 'success')
                 return redirect(url_for(redirect_after_login))
-            
-            flash('Email verified! You can now log in.', 'success')
-            return redirect(url_for('user_login'))
+
+            flash('Email verified! You are now logged in.', 'success')
+            return redirect(url_for('index'))
+
         else:
             flash('Invalid or expired OTP. Please try again.', 'danger')
-    
+
     return render_template('verify_otp.html', user_email=user.email)
 
 # NEW: Resend OTP route
@@ -1085,7 +1162,8 @@ def resend_otp():
     if not user_id:
         return jsonify(success=False, message='No user session found for OTP resend.'), 400
 
-    user = User.query.get(user_id)
+    # Fix for LegacyAPIWarning
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify(success=False, message='User not found.'), 404
 
@@ -1152,12 +1230,29 @@ def user_login():
 
     # Pass prefill data AND form_data to the template for GET requests or failed POST requests
     return render_template('login.html', form_data=form_data, prefill_phone=prefill_phone, prefill_email=prefill_email) # MODIFIED: Pass prefill_phone
-@app.route('/user-logout')
+
+
+@app.route('/logout')
 @login_required
-def user_logout():
+def logout():
     logout_user()
-    flash('You have been logged out.', 'info')
-    return redirect(url_for('index'))
+    
+    # Clear cartCount from session (if stored)
+    session.pop('cartCount', None)
+    
+    # Clear other session data like 'itemToBuyNow' if needed
+    session.pop('itemToBuyNow', None)
+    session.pop('redirect_after_login_endpoint', None)
+    
+    session.clear()  # Optional: Clears entire session
+    
+    flash("You’ve been logged out.", "info")
+    response = redirect(url_for('index'))
+    
+    # Optional: Clear cartCount from browser's localStorage via response cookie
+    response.set_cookie('cartCount', '', expires=0)  # Helps JS if you sync it with cookies
+    return response
+
 
 # MODIFIED: Forgot Password route to use OTP
 @app.route('/forgot-password', methods=['GET', 'POST'])
@@ -1198,7 +1293,8 @@ def verify_reset_otp():
         flash('No pending password reset. Please request a new reset.', 'danger')
         return redirect(url_for('forgot_password'))
 
-    user = User.query.get(user_id)
+    # Fix for LegacyAPIWarning
+    user = db.session.get(User, user_id)
     if not user:
         flash('User not found for password reset.', 'danger')
         return redirect(url_for('forgot_password'))
@@ -1209,10 +1305,10 @@ def verify_reset_otp():
         latest_otp = OTP.query.filter_by(user_id=user.id).order_by(OTP.created_at.desc()).first()
 
         if latest_otp and latest_otp.otp_code == otp_entered and latest_otp.is_valid():
-            session['reset_user_id'] = user.id # Store user ID to allow password change
-            session.pop('otp_user_id', None) # Clear OTP user ID
+            user.email_verified = True
             db.session.delete(latest_otp) # Delete used OTP
             db.session.commit()
+            session.pop('otp_user_id', None) # Clear OTP user ID
             flash('OTP verified! You can now set your new password.', 'success')
             return redirect(url_for('reset_password'))
         else:
@@ -1228,7 +1324,8 @@ def reset_password():
         flash('Unauthorized access. Please verify OTP first.', 'danger')
         return redirect(url_for('forgot_password'))
 
-    user = User.query.get(user_id)
+    # Fix for LegacyAPIWarning
+    user = db.session.get(User, user_id)
     if not user:
         flash('User not found for password reset.', 'danger')
         return redirect(url_for('forgot_password'))
@@ -1335,6 +1432,7 @@ def product_detail(sku):
         'sgst_percentage': float(artwork.sgst_percentage),
         'igst_percentage': float(artwork.igst_percentage),
         'ugst_percentage': float(artwork.ugst_percentage),
+        'cess_percentage': float(artwork.cess_percentage), # NEW
         'gst_type': artwork.gst_type,
         'stock': artwork.stock,
         'is_featured': artwork.is_featured,
@@ -1359,7 +1457,12 @@ def about():
 @app.route('/order-summary/<order_id>')
 @login_required
 def order_summary(order_id):
-    order = Order.query.get_or_404(order_id)
+    # Fix for LegacyAPIWarning
+    order = db.session.get(Order, order_id)
+    if not order:
+        flash('Order not found.', 'danger')
+        return redirect(url_for('user_orders'))
+
     if order.user_id != current_user.id and not current_user.is_admin(): # Changed to call is_admin()
         flash('You are not authorized to view this order.', 'danger')
         return redirect(url_for('user_orders'))
@@ -1368,7 +1471,12 @@ def order_summary(order_id):
 @app.route('/payment_initiate/<order_id>/<amount>')
 @login_required
 def payment_initiate(order_id, amount):
-    order = Order.query.get_or_404(order_id)
+    # Fix for LegacyAPIWarning
+    order = db.session.get(Order, order_id)
+    if not order:
+        flash('Order not found.', 'danger')
+        return redirect(url_for('user_orders'))
+
     if order.user_id != current_user.id:
         flash('You are not authorized to make payment for this order.', 'danger')
         return redirect(url_for('user_orders'))
@@ -1392,7 +1500,12 @@ def payment_initiate(order_id, amount):
 @app.route('/payment_submit/<order_id>', methods=['POST'])
 @login_required
 def payment_submit(order_id):
-    order = Order.query.get_or_404(order_id)
+    # Fix for LegacyAPIWarning
+    order = db.session.get(Order, order_id)
+    if not order:
+        flash('Order not found.', 'danger')
+        return redirect(url_for('user_orders'))
+
     if order.user_id != current_user.id:
         flash('You are not authorized to submit payment for this order.', 'danger')
         return redirect(url_for('user_orders'))
@@ -1440,6 +1553,11 @@ def thank_you_page(order_id):
     if order.user_id != current_user.id:
         flash("You do not have permission to view this order.", "danger")
         return redirect(url_for('my_orders')) # or 'index'
+    
+
+    # Insert here to clear cart session
+    session['cart'] = {}
+    session.modified = True
     
     return render_template('thank_you.html', order=order)
 
@@ -1495,7 +1613,7 @@ def admin_dashboard():
     if search_query:
         orders_query = orders_query.join(User).filter(
             (Order.id.ilike(f'%{search_query}%')) |
-            (User.full_name.ilike(f'%{search_query}%')) | # Changed to full_name
+            (User.full_name.ilike(f'%{search_query}%')) | # Corrected variable name
             (User.email.ilike(f'%{search_query}%'))
         )
     if filter_status:
@@ -1544,7 +1662,8 @@ def admin_dashboard():
 @csrf.exempt # Handled by X-CSRFToken header
 def admin_verify_payment():
     order_id = request.form.get('order_id')
-    order = Order.query.get(order_id)
+    # Fix for LegacyAPIWarning
+    order = db.session.get(Order, order_id)
     if order:
         order.status = 'Payment Verified – Preparing Order'
         order.payment_status = 'completed' # Ensure payment status is also completed
@@ -1561,7 +1680,8 @@ def admin_update_order_status(order_id): # Added order_id to arguments
     try:
         data = request.get_json()
         # order_id is now correctly passed as a path parameter, no need to get from data
-        order = Order.query.get(order_id)
+        # Fix for LegacyAPIWarning
+        order = db.session.get(Order, order_id)
         if not order:
             return jsonify(success=False, message='Order not found.'), 404
 
@@ -1603,11 +1723,12 @@ def admin_users():
     users = User.query.all()
     return render_template('admin_users.html', users=users)
 
-@app.route('/admin/delete-user/<user_id>', methods=['POST'])
+@app.route('/admin/delete-user/<user_id>', methods=['POST']) # Corrected from @app.Route
 @login_required
 @admin_required
 def admin_delete_user(user_id):
-    user = User.query.get(user_id)
+    # Fix for LegacyAPIWarning
+    user = db.session.get(User, user_id)
     if user:
         if user.is_admin(): # Changed to call is_admin()
             flash('Cannot delete an admin user directly.', 'danger')
@@ -1687,7 +1808,8 @@ def admin_edit_category(category_id):
 @login_required
 @admin_required
 def admin_delete_category(category_id):
-    category = Category.query.get(category_id)
+    # Fix for LegacyAPIWarning
+    category = db.session.get(Category, category_id)
     if category:
         # Check if there are artworks associated with this category
         if category.artworks:
@@ -1722,27 +1844,30 @@ def admin_add_artwork():
         sku = request.form.get('sku')
         name = request.form.get('name')
         description = request.form.get('description')
-        original_price = request.form.get('original_price')
+        # Use .get() with a default value to prevent NoneType errors
+        original_price = request.form.get('original_price', '0.00')
         
-        # New GST fields
-        cgst_percentage = request.form.get('cgst_percentage')
-        sgst_percentage = request.form.get('sgst_percentage')
-        igst_percentage = request.form.get('igst_percentage')
-        ugst_percentage = request.form.get('ugst_percentage')
+        # New GST fields - provide default '0.00' if not present
+        cgst_percentage = request.form.get('cgst_percentage', '0.00')
+        sgst_percentage = request.form.get('sgst_percentage', '0.00')
+        igst_percentage = request.form.get('igst_percentage', '0.00')
+        ugst_percentage = request.form.get('ugst_percentage', '0.00')
+        cess_percentage = request.form.get('cess_percentage', '0.00') # NEW
         gst_type = request.form.get('gst_type')
 
-        stock = request.form.get('stock')
+        stock = request.form.get('stock', '0') # Default to '0' for stock
         category_id = request.form.get('category_id')
         is_featured = 'is_featured' in request.form # Checkbox
         custom_options_json = request.form.get('custom_options') # JSON string from JS
-        shipping_charge = request.form.get('shipping_charge') # NEW: Get shipping charge from form
+        shipping_charge = request.form.get('shipping_charge', '0.00') # NEW: Default to '0.00'
 
         # Populate form_data for re-rendering on error
         form_data = {
             'sku': sku, 'name': name, 'description': description,
             'original_price': original_price, 'cgst_percentage': cgst_percentage,
             'sgst_percentage': sgst_percentage, 'igst_percentage': igst_percentage,
-            'ugst_percentage': ugst_percentage, 'gst_type': gst_type,
+            'ugst_percentage': ugst_percentage, 'cess_percentage': cess_percentage, # NEW
+            'gst_type': gst_type,
             'stock': stock, 'category_id': category_id, 'is_featured': is_featured,
             'shipping_charge': shipping_charge
         }
@@ -1752,8 +1877,8 @@ def admin_add_artwork():
             except json.JSONDecodeError:
                 form_data['custom_option_groups'] = {} # Invalid JSON, treat as empty
 
-        if not all([sku, name, original_price, stock, category_id, gst_type]):
-            flash('Please fill in all required fields.', 'danger')
+        if not all([sku, name, category_id, gst_type]): # Removed original_price and stock from this check
+            flash('Please fill in all required fields (SKU, Name, Category, GST Type).', 'danger')
             return render_template('admin_add_artwork.html', categories=categories, form_data=form_data)
 
         try:
@@ -1762,10 +1887,11 @@ def admin_add_artwork():
             sgst_percentage = Decimal(sgst_percentage)
             igst_percentage = Decimal(igst_percentage)
             ugst_percentage = Decimal(ugst_percentage)
+            cess_percentage = Decimal(cess_percentage) # NEW
             stock = int(stock)
             shipping_charge = Decimal(shipping_charge) # NEW: Convert to Decimal
         except (ValueError, InvalidOperation):
-            flash('Invalid price, GST percentage, stock quantity, or shipping charge.', 'danger')
+            flash('Invalid numeric value for price, GST percentage, stock quantity, or shipping charge.', 'danger')
             return render_template('admin_add_artwork.html', categories=categories, form_data=form_data)
 
         existing_artwork = Artwork.query.filter_by(sku=sku).first()
@@ -1795,6 +1921,7 @@ def admin_add_artwork():
             sgst_percentage=sgst_percentage,
             igst_percentage=igst_percentage,
             ugst_percentage=ugst_percentage,
+            cess_percentage=cess_percentage, # NEW
             gst_type=gst_type,
             stock=stock,
             category_id=category_id,
@@ -1832,19 +1959,21 @@ def admin_edit_artwork(artwork_id):
         name = request.form.get('name')
         category_id = request.form.get('category_id')
         is_featured = 'is_featured' in request.form
-        original_price = request.form.get('original_price')
+        # Use .get() with a default value to prevent NoneType errors
+        original_price = request.form.get('original_price', '0.00')
         
-        # New GST fields
-        cgst_percentage = request.form.get('cgst_percentage')
-        sgst_percentage = request.form.get('sgst_percentage')
-        igst_percentage = request.form.get('igst_percentage')
-        ugst_percentage = request.form.get('ugst_percentage')
-        gst_type = request.form.get('gst_type')
+        # New GST fields - provide default '0.00' if not present
+        cgst_percentage = request.form.get('cgst_percentage', '0.00')
+        sgst_percentage = request.form.get('sgst_percentage', '0.00')
+        igst_percentage = request.form.get('igst_percentage', '0.00')
+        ugst_percentage = request.form.get('ugst_percentage', '0.00')
+        cess_percentage = request.form.get('cess_percentage', '0.00') # NEW
 
-        stock = request.form.get('stock')
+        stock = request.form.get('stock', '0') # Default to '0' for stock
         description = request.form.get('description')
-        shipping_charge = request.form.get('shipping_charge') # NEW: Get shipping charge from form
-        
+        shipping_charge = request.form.get('shipping_charge', '0.00') # NEW: Default to '0.00'
+        gst_type = request.form.get('gst_type') # NEW
+
         # Get images to keep (hidden inputs from frontend)
         images_to_keep = request.form.getlist('images_to_keep')
         
@@ -1856,7 +1985,7 @@ def admin_edit_artwork(artwork_id):
         artwork.category_id = category_id
         artwork.is_featured = is_featured
         artwork.description = description
-        artwork.gst_type = gst_type
+        artwork.gst_type = gst_type # NEW
 
         try:
             artwork.original_price = Decimal(original_price)
@@ -1864,10 +1993,11 @@ def admin_edit_artwork(artwork_id):
             artwork.sgst_percentage = Decimal(sgst_percentage)
             artwork.igst_percentage = Decimal(igst_percentage)
             artwork.ugst_percentage = Decimal(ugst_percentage)
+            artwork.cess_percentage = Decimal(cess_percentage) # NEW
             artwork.stock = int(stock)
             artwork.shipping_charge = Decimal(shipping_charge) # NEW: Assign shipping charge
         except (ValueError, InvalidOperation):
-            flash('Invalid price, GST percentage, stock quantity, or shipping charge.', 'danger')
+            flash('Invalid numeric value for price, GST percentage, stock quantity, or shipping charge.', 'danger')
             # Pass form data back to template to re-populate
             form_data = request.form.to_dict()
             form_data['custom_option_groups'] = json.loads(custom_options_json_str) if custom_options_json_str else {} # Ensure it's a dict
@@ -1921,6 +2051,7 @@ def admin_edit_artwork(artwork_id):
         'sgst_percentage': artwork.sgst_percentage,
         'igst_percentage': artwork.igst_percentage,
         'ugst_percentage': artwork.ugst_percentage,
+        'cess_percentage': artwork.cess_percentage, # NEW
         'gst_type': artwork.gst_type,
         'stock': artwork.stock,
         'description': artwork.description,
@@ -1938,7 +2069,8 @@ def admin_edit_artwork(artwork_id):
 @login_required
 @admin_required
 def admin_delete_artwork(artwork_id):
-    artwork = Artwork.query.get(artwork_id)
+    # Fix for LegacyAPIWarning
+    artwork = db.session.get(Artwork, artwork_id)
     if artwork:
         # Delete associated images from uploads folder
         for img_path in artwork.get_images_list():
@@ -1978,7 +2110,8 @@ def admin_edit_invoice(order_id):
             'cgst_amount': str(Decimal(request.form.get('cgst_amount', '0.00'))), 
             'sgst_amount': str(Decimal(request.form.get('sgst_amount', '0.00'))),
             'igst_amount': str(Decimal(request.form.get('igst_amount', '0.00'))),
-            'ugst_amount': str(Decimal(request.form.get('ugst_amount', '0.00')))
+            'ugst_amount': str(Decimal(request.form.get('ugst_amount', '0.00'))),
+            'cess_amount': str(Decimal(request.form.get('cess_amount', '0.00'))) # NEW
         }
         
         order.set_invoice_details(invoice_details)
@@ -2005,6 +2138,215 @@ def admin_edit_invoice(order_id):
 
     return render_template('admin_edit_invoice.html', order=order, invoice_data=invoice_data)
 
+
+# Helper function to generate the flowables for a single invoice copy
+def _get_single_invoice_flowables(order, invoice_data_safe, styles, font_name, font_name_bold):
+    story_elements = []
+
+    # Header
+    story_elements.append(Paragraph(invoice_data_safe['business_name'], styles['h1']))
+    story_elements.append(Paragraph(invoice_data_safe['business_address'], styles['Normal']))
+    story_elements.append(Paragraph(f"GSTIN: {invoice_data_safe['gst_number']} | PAN: {invoice_data_safe['pan_number']}", styles['Normal']))
+    story_elements.append(Spacer(1, 0.05 * inch)) # Reduced space
+
+    # Invoice Title and Details
+    story_elements.append(Paragraph("TAX INVOICE", styles['h2']))
+    
+    # Use a two-column table for Invoice No and Date for better alignment
+    invoice_header_data = [
+        [Paragraph(f"<b>Invoice No:</b> {invoice_data_safe['invoice_number']}", styles['BoldBodyText']),
+         Paragraph(f"<b>Invoice Date:</b> {invoice_data_safe['invoice_date_dt'].strftime('%d-%m-%Y')}", styles['RightAlign'])]
+    ]
+    invoice_header_table = Table(invoice_header_data, colWidths=[3.25*inch, 3.25*inch]) # Still using 3.25*inch for each, but total width is 6.5 inch
+    invoice_header_table.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('LEFTPADDING', (0,0), (-1,-1), 0),
+        ('RIGHTPADDING', (0,0), (-1,-1), 0),
+        ('TOPPADDING', (0,0), (-1,-1), 0),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+    ]))
+    story_elements.append(invoice_header_table)
+    story_elements.append(Spacer(1, 0.05 * inch)) # Reduced space
+
+    # Billing Address
+    story_elements.append(Paragraph("<b>Bill To:</b>", styles['BoldBodyText']))
+    # Split the consolidated address into lines for better formatting
+    billing_address_lines = invoice_data_safe['billing_address'].split(', ')
+    # Filter out empty strings that might result from missing address parts
+    billing_address_paragraphs = [Paragraph(line, styles['Normal']) for line in filter(None, billing_address_lines)]
+    story_elements.extend(billing_address_paragraphs)
+    story_elements.append(Spacer(1, 0.05 * inch)) # Reduced space
+
+    # Order Items Table
+    data = [
+        [
+            Paragraph('SKU', styles['BoldBodyText']),
+            Paragraph('Artwork Name', styles['BoldBodyText']),
+            Paragraph('Options', styles['BoldBodyText']),
+            Paragraph('Unit Price (Excl. GST)', styles['BoldBodyText']),
+            Paragraph('Qty', styles['BoldBodyText']),
+            Paragraph('Taxable Value', styles['BoldBodyText']), # NEW
+            Paragraph('CGST', styles['BoldBodyText']),
+            Paragraph('SGST', styles['BoldBodyText']),
+            Paragraph('IGST', styles['BoldBodyText']),
+            Paragraph('UGST', styles['BoldBodyText']),
+            Paragraph('CESS', styles['BoldBodyText']), # NEW
+            Paragraph('Total (Incl. GST)', styles['BoldBodyText'])
+        ]
+    ]
+    
+    total_cgst_items = Decimal('0.00')
+    total_sgst_items = Decimal('0.00')
+    total_igst_items = Decimal('0.00')
+    total_ugst_items = Decimal('0.00')
+    total_cess_items = Decimal('0.00') # NEW
+
+    for item in order.items:
+        options_str = ", ".join([f"{k}: {v}" for k, v in item.get_selected_options_dict().items()])
+        
+        # Ensure Decimal values are converted to string for display in PDF
+        unit_price_excl_gst_display = f"₹{item.unit_price_before_gst:,.2f}"
+        taxable_value_display = f"₹{item.total_price_before_gst:,.2f}" # NEW
+        
+        # Conditional display for GST components
+        cgst_display = f"₹{item.cgst_amount:,.2f} ({item.cgst_percentage_applied}%)" if item.cgst_amount > Decimal('0.00') else ""
+        sgst_display = f"₹{item.sgst_amount:,.2f} ({item.sgst_percentage_applied}%)" if item.sgst_amount > Decimal('0.00') else ""
+        igst_display = f"₹{item.igst_amount:,.2f} ({item.igst_percentage_applied}%)" if item.igst_amount > Decimal('0.00') else ""
+        ugst_display = f"₹{item.ugst_amount:,.2f} ({item.ugst_percentage_applied}%)" if item.ugst_amount > Decimal('0.00') else ""
+        cess_display = f"₹{item.cess_amount:,.2f} ({item.cess_percentage_applied}%)" if item.cess_amount > Decimal('0.00') else "" # NEW
+        
+        total_incl_gst_display = f"₹{item.total_price_incl_gst:,.2f}"
+
+        data.append([
+            Paragraph(item.artwork.sku, styles['TableCell']),
+            Paragraph(item.artwork.name, styles['TableCellLeft']),
+            Paragraph(options_str, styles['TableCellLeft']),
+            Paragraph(unit_price_excl_gst_display, styles['TableCellRight']),
+            Paragraph(str(item.quantity), styles['TableCell']),
+            Paragraph(taxable_value_display, styles['TableCellRight']), # NEW
+            Paragraph(cgst_display, styles['TableCellRight']),
+            Paragraph(sgst_display, styles['TableCellRight']),
+            Paragraph(igst_display, styles['TableCellRight']),
+            Paragraph(ugst_display, styles['TableCellRight']),
+            Paragraph(cess_display, styles['TableCellRight']), # NEW
+            Paragraph(total_incl_gst_display, styles['TableCellRight'])
+        ])
+        total_cgst_items += item.cgst_amount
+        total_sgst_items += item.sgst_amount
+        total_igst_items += item.igst_amount
+        total_ugst_items += item.ugst_amount
+        total_cess_items += item.cess_amount # NEW
+
+    # Adjusted colWidths to better fit content and distribute space for 12 columns
+    # Total width is A4[0] - 2*0.3 inches (margins) = 7.67 inches. Let's make it 7.5 inches for easier division.
+    col_widths = [
+        0.5*inch, # SKU
+        1.0*inch, # Artwork Name
+        0.9*inch, # Options
+        0.8*inch, # Unit Price (Excl. GST)
+        0.3*inch, # Qty
+        0.8*inch, # Taxable Value (NEW)
+        0.6*inch, # CGST
+        0.6*inch, # SGST
+        0.6*inch, # IGST
+        0.6*inch, # UGST
+        0.5*inch, # CESS (NEW)
+        0.8*inch  # Total (Incl. GST)
+    ]
+    table = Table(data, colWidths=col_widths)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), HexColor('#FFBF00')), # Golden Saffron header
+        ('TEXTCOLOR', (0, 0), (-1, 0), HexColor('#FFFFFF')),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('ALIGN', (1, 0), (1, -1), 'LEFT'), # Align artwork name left
+        ('ALIGN', (2, 0), (2, -1), 'LEFT'), # Align options left
+        ('ALIGN', (3, 0), (3, -1), 'RIGHT'), # Align unit price right
+        ('ALIGN', (4, 0), (4, -1), 'CENTER'), # Align quantity center
+        ('ALIGN', (5, 0), (-1, -1), 'RIGHT'), # Align Taxable Value, GST and total amounts right
+        ('FONTNAME', (0, 0), (-1, 0), font_name_bold), # Use registered bold font
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 4), # Reduced padding
+        ('BACKGROUND', (0, 1), (-1, -1), HexColor('#FAF9F6')), # Light background for rows
+        ('GRID', (0, 0), (-1, -1), 0.25, HexColor('#E5E7EB')), # Lighter grid lines
+        ('BOX', (0, 0), (-1, -1), 0.25, HexColor('#E5E7EB')),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('LEFTPADDING', (0,0), (-1,-1), 2), # Further reduced padding
+        ('RIGHTPADDING', (0,0), (-1,-1), 2), # Further reduced padding
+        ('TOPPADDING', (0,0), (-1,-1), 2), # Further reduced padding
+        ('BOTTOMPADDING', (0,0), (-1,-1), 2), # Further reduced padding
+    ]))
+    story_elements.append(table)
+    story_elements.append(Spacer(1, 0.05 * inch)) # Reduced space
+
+    # Summary Table
+    summary_data = []
+    summary_data.append([Paragraph('Subtotal (Excl. GST):', styles['RightAlign']), Paragraph(f"₹{order.total_amount - order.shipping_charge - total_cgst_items - total_sgst_items - total_igst_items - total_ugst_items - total_cess_items:,.2f}", styles['RightAlign'])]) # Adjusted calculation
+    if total_cgst_items > Decimal('0.00'):
+        summary_data.append([Paragraph('CGST:', styles['RightAlign']), Paragraph(f"₹{total_cgst_items:,.2f}", styles['RightAlign'])])
+    if total_sgst_items > Decimal('0.00'):
+        summary_data.append([Paragraph('SGST:', styles['RightAlign']), Paragraph(f"₹{total_sgst_items:,.2f}", styles['RightAlign'])])
+    if total_igst_items > Decimal('0.00'):
+        summary_data.append([Paragraph('IGST:', styles['RightAlign']), Paragraph(f"₹{total_igst_items:,.2f}", styles['RightAlign'])])
+    if total_ugst_items > Decimal('0.00'):
+        summary_data.append([Paragraph('UGST:', styles['RightAlign']), Paragraph(f"₹{total_ugst_items:,.2f}", styles['RightAlign'])])
+    if total_cess_items > Decimal('0.00'): # NEW: Conditional CESS display
+        summary_data.append([Paragraph('CESS:', styles['RightAlign']), Paragraph(f"₹{total_cess_items:,.2f}", styles['RightAlign'])])
+    
+    summary_data.append([Paragraph('Shipping Charge:', styles['RightAlign']), Paragraph(f"₹{order.shipping_charge:,.2f}", styles['RightAlign'])])
+    summary_data.append([Paragraph('<b>Grand Total (Incl. GST):</b>', styles['BoldBodyText']), Paragraph(f"<b>₹{order.total_amount:,.2f}</b>", styles['BoldBodyText'])])
+    
+    summary_table = Table(summary_data, colWidths=[5*inch, 2.5*inch]) # Adjusted total width to 7.5 inches
+    summary_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+        ('FONTNAME', (0, -1), (-1, -1), font_name_bold), # Bold for Grand Total
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2), # Reduced padding
+        ('GRID', (0, 0), (-1, -1), 0.25, HexColor('#E5E7EB')),
+        ('BOX', (0, 0), (-1, -1), 0.25, HexColor('#E5E7EB')),
+    ]))
+    story_elements.append(summary_table)
+    story_elements.append(Spacer(1, 0.1 * inch)) # Reduced space
+
+    # WhatsApp Message
+    story_elements.append(Paragraph("Please WhatsApp to +919123700057 for easy returns and refund.", styles['Normal']))
+    story_elements.append(Spacer(1, 0.1 * inch)) # Reduced space
+
+    # Authorized Signatory and Office Seal Block
+    story_elements.append(Spacer(1, 0.2 * inch)) # Add some space before the signature block
+
+    signature_data = [
+        [Paragraph("<b>For Karthika Futures</b>", styles['RightAlign'])],
+        [Spacer(1, 0.5 * inch)], # Space for signature
+        [Paragraph("_________________________", styles['RightAlign'])], # Corrected line
+        [Paragraph("<b>Authorized Signatory</b>", styles['RightAlign'])],
+        [Spacer(1, 0.1 * inch)], # Space between signatory and seal area
+        [Paragraph(f"Date: {datetime.now().strftime('%d-%m-%Y')}", styles['RightAlign'])], # Date for ink seal
+        [Paragraph("(Office Seal)", styles['RightAlign'])] # Placeholder for office seal
+    ]
+
+    signature_table = Table(signature_data, colWidths=[7.5*inch]) # Table spans full content width
+    signature_table.setStyle(TableStyle([
+        ('ALIGN', (0,0), (-1,-1), 'RIGHT'),
+        ('ALIGN', (0,2), (0,2), 'RIGHT'),
+        ('ALIGN', (0,3), (0,3), 'RIGHT'),
+        ('ALIGN', (0,5), (0,5), 'RIGHT'),
+        ('ALIGN', (0,6), (0,6), 'RIGHT'),
+        ('LEFTPADDING', (0,0), (-1,-1), 0),
+        ('RIGHTPADDING', (0,0), (-1,-1), 0),
+        ('TOPPADDING', (0,0), (-1,-1), 0),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+    ]))
+    story_elements.append(signature_table)
+
+    story_elements.append(Spacer(1, 0.1 * inch)) # Space before footer
+
+    # Footer
+    story_elements.append(Paragraph("Thank you for your purchase and devotion!", styles['Normal']))
+    story_elements.append(Paragraph(f"Invoice Status: <b>{invoice_data_safe['invoice_status']}</b>", styles['BoldBodyText']))
+    story_elements.append(Spacer(1, 0.05 * inch)) # Reduced space
+    story_elements.append(Paragraph(f"Contact: {order.customer_phone if order.customer_phone else 'N/A'} | {order.customer_email if order.customer_email else 'N/A'}", styles['Footer']))
+
+    return story_elements
+
+
 @app.route('/generate_invoice_pdf/<order_id>')
 @login_required
 @admin_required
@@ -2024,15 +2366,16 @@ def generate_invoice_pdf(order_id):
         'business_address': invoice_data.get('business_address') or app.config['OUR_BUSINESS_ADDRESS'],
         'invoice_number': invoice_data.get('invoice_number') or order.id,
         'invoice_date': invoice_data.get('invoice_date') or datetime.utcnow().strftime('%Y-%m-%d'),
-        'billing_address': invoice_data.get('billing_address') or ', '.join(order.get_shipping_address().values()),
-        'gst_rate_applied': Decimal(invoice_data.get('gst_rate_applied', '0.00')),
-        'shipping_charge': Decimal(invoice_data.get('shipping_charge', '0.00')),
-        'final_invoice_amount': Decimal(invoice_data.get('final_invoice_amount', '0.00')),
+        'billing_address': invoice_data.get('billing_address') or ', '.join(filter(None, [order.customer_name, order.customer_phone, order.get_shipping_address().get('address_line1'), order.get_shipping_address().get('address_line2'), order.get_shipping_address().get('city'), order.get_shipping_address().get('state'), order.get_shipping_address().get('pincode')])), # Consolidated
+        'gst_rate_applied': Decimal(invoice_data.get('gst_rate_applied', '0.00')), 
+        'shipping_charge': Decimal(invoice_data.get('shipping_charge', '0.00')), 
+        'final_invoice_amount': Decimal(invoice_data.get('final_invoice_amount', '0.00')), 
         'invoice_status': invoice_data.get('invoice_status', 'Generated'),
-        'cgst_amount': Decimal(invoice_data.get('cgst_amount', '0.00')),
+        'cgst_amount': Decimal(invoice_data.get('cgst_amount', '0.00')), 
         'sgst_amount': Decimal(invoice_data.get('sgst_amount', '0.00')),
         'igst_amount': Decimal(invoice_data.get('igst_amount', '0.00')),
         'ugst_amount': Decimal(invoice_data.get('ugst_amount', '0.00')),
+        'cess_amount': Decimal(invoice_data.get('cess_amount', '0.00')), # NEW
     }
 
     # Convert date string to datetime object for formatting in PDF
@@ -2046,161 +2389,123 @@ def generate_invoice_pdf(order_id):
 
 
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
-    styles = getSampleStyleSheet()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, # Set page size to A4
+                            leftMargin=0.3*inch, rightMargin=0.3*inch, # Reduced margins
+                            topMargin=0.3*inch, bottomMargin=0.3*inch) # Reduced margins
     
-    # Custom styles - Modify existing or add with unique names
-    # Modify existing 'h1', 'h2', 'Normal' styles
-    styles['h1'].fontSize = 24
-    styles['h1'].leading = 28
-    styles['h1'].alignment = TA_CENTER
-    styles['h1'].fontName = 'Helvetica-Bold'
+    # NEW: Register a Unicode font that supports the Rupee symbol
+    # You need to ensure 'DejaVuSans.ttf' and 'DejaVuSans-Bold.ttf' are available in your project's root directory
+    # You can download DejaVuSans.ttf from: https://dejavu-fonts.github.io/
+    try:
+        pdfmetrics.registerFont(TTFont('DejaVuSans', 'DejaVuSans.ttf'))
+        pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', 'DejaVuSans-Bold.ttf'))
+        font_name = 'DejaVuSans'
+        font_name_bold = 'DejaVuSans-Bold'
+    except Exception as e:
+        print(f"Could not register DejaVuSans font: {e}. Falling back to default.")
+        font_name = 'Helvetica'
+        font_name_bold = 'Helvetica-Bold'
 
-    styles['h2'].fontSize = 18
-    styles['h2'].leading = 22
-    styles['h2'].alignment = TA_LEFT
-    styles['h2'].fontName = 'Helvetica-Bold'
-    styles['h2'].spaceAfter = 10
-
-    styles['Normal'].fontSize = 10
-    styles['Normal'].leading = 12
+    # Get a fresh stylesheet
+    styles = getSampleStyleSheet() 
+    
+    # Modify the base 'Normal' style first and ensure bulletText is a string
+    styles['Normal'].fontName = font_name
+    styles['Normal'].fontSize = 8
+    styles['Normal'].leading = 9
     styles['Normal'].alignment = TA_LEFT
-    styles['Normal'].spaceAfter = 5
+    styles['Normal'].spaceAfter = 1
+    styles['Normal'].bulletText = '' # Crucial: Ensure this is a string
 
-    # Add new styles with unique names
-    styles.add(ParagraphStyle(name='RightAlign', parent=styles['Normal'], alignment=TA_RIGHT))
-    styles.add(ParagraphStyle(name='BoldBodyText', parent=styles['Normal'], fontName='Helvetica-Bold'))
-    styles.add(ParagraphStyle(name='Footer', parent=styles['Normal'], fontSize=8, leading=10, alignment=TA_CENTER, spaceBefore=20))
-    styles.add(ParagraphStyle(name='TableCell', parent=styles['Normal'], alignment=TA_CENTER))
-    styles.add(ParagraphStyle(name='TableCellLeft', parent=styles['Normal'], alignment=TA_LEFT))
-    styles.add(ParagraphStyle(name='TableCellRight', parent=styles['Normal'], alignment=TA_RIGHT))
-
-
-    story = []
-
-    # Header
-    story.append(Paragraph(invoice_data_safe['business_name'], styles['h1']))
-    story.append(Paragraph(invoice_data_safe['business_address'], styles['Normal']))
-    story.append(Paragraph(f"GSTIN: {invoice_data_safe['gst_number']} | PAN: {invoice_data_safe['pan_number']}", styles['Normal']))
-    story.append(Spacer(1, 0.2 * inch))
-
-    # Invoice Title and Details
-    story.append(Paragraph("TAX INVOICE", styles['h2']))
-    story.append(Paragraph(f"<b>Invoice No:</b> {invoice_data_safe['invoice_number']}", styles['BoldBodyText']))
-    story.append(Paragraph(f"<b>Invoice Date:</b> {invoice_data_safe['invoice_date_dt'].strftime('%d-%m-%Y')}", styles['BoldBodyText']))
-    story.append(Spacer(1, 0.2 * inch))
-
-    # Billing Address
-    # Ensure billing_address is split into lines for proper Paragraph rendering
-    billing_address_lines = invoice_data_safe['billing_address'].split(', ')
-    story.append(Paragraph("<b>Bill To:</b>", styles['BoldBodyText']))
-    for line in billing_address_lines:
-        story.append(Paragraph(line, styles['Normal']))
-    story.append(Spacer(1, 0.2 * inch))
-
-    # Order Items Table
-    # Wrap header text in Paragraphs for better control
-    data = [
-        [
-            Paragraph('SKU', styles['BoldBodyText']),
-            Paragraph('Artwork Name', styles['BoldBodyText']),
-            Paragraph('Options', styles['BoldBodyText']),
-            Paragraph('Unit Price (Excl. GST)', styles['BoldBodyText']),
-            Paragraph('Qty', styles['BoldBodyText']),
-            Paragraph('CGST', styles['BoldBodyText']),
-            Paragraph('SGST', styles['BoldBodyText']),
-            Paragraph('IGST', styles['BoldBodyText']),
-            Paragraph('UGST', styles['BoldBodyText']),
-            Paragraph('Total (Incl. GST)', styles['BoldBodyText'])
-        ]
-    ]
+    # Now define other styles, inheriting from the modified 'Normal'
+    # and explicitly setting bulletText to an empty string.
+    # We must use styles.add() for new styles, and modify existing ones directly.
+    # Ensure 'parent' argument is used correctly for inheritance.
     
-    total_cgst_items = Decimal('0.00')
-    total_sgst_items = Decimal('0.00')
-    total_igst_items = Decimal('0.00')
-    total_ugst_items = Decimal('0.00')
+    # Re-define or modify styles to ensure bulletText is always a string
+    styles['h1'].fontName = font_name_bold
+    styles['h1'].fontSize = 14
+    styles['h1'].leading = 16
+    styles['h1'].alignment = TA_CENTER
+    styles['h1'].spaceAfter = 3
+    styles['h1'].bulletText = '' # Explicitly set
 
-    for item in order.items:
-        options_str = ", ".join([f"{k}: {v}" for k, v in item.get_selected_options_dict().items()])
-        
-        # Ensure Decimal values are converted to string for display in PDF
-        unit_price_excl_gst_display = f"₹{item.unit_price_before_gst:,.2f}"
-        cgst_display = f"₹{item.cgst_amount:,.2f} ({item.cgst_percentage_applied}%)"
-        sgst_display = f"₹{item.sgst_amount:,.2f} ({item.sgst_percentage_applied}%)"
-        igst_display = f"₹{item.igst_amount:,.2f} ({item.igst_percentage_applied}%)"
-        ugst_display = f"₹{item.ugst_amount:,.2f} ({item.ugst_percentage_applied}%)"
-        total_incl_gst_display = f"₹{item.total_price_incl_gst:,.2f}"
+    styles['h2'].fontName = font_name_bold
+    styles['h2'].fontSize = 12
+    styles['h2'].leading = 14
+    styles['h2'].alignment = TA_LEFT
+    styles['h2'].spaceAfter = 4
+    styles['h2'].bulletText = '' # Explicitly set
 
-        data.append([
-            Paragraph(item.artwork.sku, styles['TableCell']),
-            Paragraph(item.artwork.name, styles['TableCellLeft']),
-            Paragraph(options_str, styles['TableCellLeft']),
-            Paragraph(unit_price_excl_gst_display, styles['TableCellRight']),
-            Paragraph(str(item.quantity), styles['TableCell']),
-            Paragraph(cgst_display, styles['TableCellRight']),
-            Paragraph(sgst_display, styles['TableCellRight']),
-            Paragraph(igst_display, styles['TableCellRight']),
-            Paragraph(ugst_display, styles['TableCellRight']),
-            Paragraph(total_incl_gst_display, styles['TableCellRight'])
-        ])
-        total_cgst_items += item.cgst_amount
-        total_sgst_items += item.sgst_amount
-        total_igst_items += item.igst_amount
-        total_ugst_items += item.ugst_amount
+    # Add new styles or modify existing ones, always setting bulletText
+    # If a style already exists in getSampleStyleSheet, modify it directly.
+    # If it's a new custom style, use styles.add()
+    
+    # Check if 'RightAlign' exists, if not, add it. Then modify.
+    if 'RightAlign' not in styles:
+        styles.add(ParagraphStyle(name='RightAlign', parent=styles['Normal']))
+    styles['RightAlign'].alignment = TA_RIGHT
+    styles['RightAlign'].fontName = font_name
+    styles['RightAlign'].bulletText = ''
 
-    # Adjusted colWidths to better fit content and distribute space
-    table = Table(data, colWidths=[0.8*inch, 1.5*inch, 1.5*inch, 1.2*inch, 0.5*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 1.2*inch])
-    table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), HexColor('#FFBF00')), # Golden Saffron header
-        ('TEXTCOLOR', (0, 0), (-1, 0), HexColor('#FFFFFF')),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('ALIGN', (1, 0), (1, -1), 'LEFT'), # Align artwork name left
-        ('ALIGN', (3, 0), (3, -1), 'RIGHT'), # Align unit price right
-        ('ALIGN', (4, 0), (4, -1), 'CENTER'), # Align quantity center
-        ('ALIGN', (5, 0), (-1, -1), 'RIGHT'), # Align GST and total amounts right
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), HexColor('#FAF9F6')), # Light background for rows
-        ('GRID', (0, 0), (-1, -1), 1, HexColor('#E5E7EB')), # Light grid lines
-        ('BOX', (0, 0), (-1, -1), 1, HexColor('#E5E7EB')),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('LEFTPADDING', (0,0), (-1,-1), 6),
-        ('RIGHTPADDING', (0,0), (-1,-1), 6),
-        ('TOPPADDING', (0,0), (-1,-1), 6),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
-    ]))
-    story.append(table)
-    story.append(Spacer(1, 0.2 * inch))
+    if 'BoldBodyText' not in styles:
+        styles.add(ParagraphStyle(name='BoldBodyText', parent=styles['Normal']))
+    styles['BoldBodyText'].fontName = font_name_bold
+    styles['BoldBodyText'].spaceAfter = 1
+    styles['BoldBodyText'].bulletText = ''
 
-    # Summary Table
-    summary_data = [
-        [Paragraph('Subtotal (Excl. GST):', styles['RightAlign']), Paragraph(f"₹{order.total_amount - order.shipping_charge - total_cgst_items - total_sgst_items - total_igst_items - total_ugst_items:,.2f}", styles['RightAlign'])],
-        [Paragraph('CGST:', styles['RightAlign']), Paragraph(f"₹{total_cgst_items:,.2f}", styles['RightAlign'])],
-        [Paragraph('SGST:', styles['RightAlign']), Paragraph(f"₹{total_sgst_items:,.2f}", styles['RightAlign'])],
-        [Paragraph('IGST:', styles['RightAlign']), Paragraph(f"₹{total_igst_items:,.2f}", styles['RightAlign'])],
-        [Paragraph('UGST:', styles['RightAlign']), Paragraph(f"₹{total_ugst_items:,.2f}", styles['RightAlign'])],
-        [Paragraph('Shipping Charge:', styles['RightAlign']), Paragraph(f"₹{order.shipping_charge:,.2f}", styles['RightAlign'])],
-        [Paragraph('<b>Grand Total (Incl. GST):</b>', styles['BoldBodyText']), Paragraph(f"<b>₹{order.total_amount:,.2f}</b>", styles['BoldBodyText'])]
-    ]
-    summary_table = Table(summary_data, colWidths=[4.5*inch, 2.5*inch])
-    summary_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
-        ('FONTNAME', (0, 6), (-1, 6), 'Helvetica-Bold'), # Bold for Grand Total
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ('GRID', (0, 0), (-1, -1), 0.5, HexColor('#E5E7EB')),
-        ('BOX', (0, 0), (-1, -1), 0.5, HexColor('#E5E7EB')),
-    ]))
-    story.append(summary_table)
-    story.append(Spacer(1, 0.5 * inch))
+    if 'Footer' not in styles:
+        styles.add(ParagraphStyle(name='Footer', parent=styles['Normal']))
+    styles['Footer'].fontSize = 6
+    styles['Footer'].leading = 7
+    styles['Footer'].alignment = TA_CENTER
+    styles['Footer'].spaceBefore = 5
+    styles['Footer'].fontName = font_name
+    styles['Footer'].bulletText = ''
 
-    # Footer
-    story.append(Paragraph("Thank you for your purchase and devotion!", styles['Normal']))
-    story.append(Paragraph(f"Invoice Status: <b>{invoice_data_safe['invoice_status']}</b>", styles['BoldBodyText']))
-    story.append(Spacer(1, 0.2 * inch))
-    story.append(Paragraph(f"Contact: {order.customer_phone} | {order.customer_email}", styles['Footer']))
+    if 'TableCell' not in styles:
+        styles.add(ParagraphStyle(name='TableCell', parent=styles['Normal']))
+    styles['TableCell'].alignment = TA_CENTER
+    styles['TableCell'].fontName = font_name
+    styles['TableCell'].fontSize = 7
+    styles['TableCell'].leading = 8
+    styles['TableCell'].bulletText = ''
+
+    if 'TableCellLeft' not in styles:
+        styles.add(ParagraphStyle(name='TableCellLeft', parent=styles['Normal']))
+    styles['TableCellLeft'].alignment = TA_LEFT
+    styles['TableCellLeft'].fontName = font_name
+    styles['TableCellLeft'].fontSize = 7
+    styles['TableCellLeft'].leading = 8
+    styles['TableCellLeft'].bulletText = ''
+
+    if 'TableCellRight' not in styles:
+        styles.add(ParagraphStyle(name='TableCellRight', parent=styles['Normal']))
+    styles['TableCellRight'].alignment = TA_RIGHT
+    styles['TableCellRight'].fontName = font_name
+    styles['TableCellRight'].fontSize = 7
+    styles['TableCellRight'].leading = 8
+    styles['TableCellRight'].bulletText = ''
 
 
-    doc.build(story)
+    full_story = []
+
+    # Generate the first invoice copy
+    invoice_copy_1_story = _get_single_invoice_flowables(order, invoice_data_safe, styles, font_name, font_name_bold)
+    full_story.extend(invoice_copy_1_story)
+
+    # Add a spacer to push the second copy down.
+    # A4 height is 11.69 inches. We need to push the second copy roughly to the middle.
+    # The exact value might need fine-tuning based on content.
+    # This spacer will act as a separator and push the second invoice to the lower half.
+    # It's a bit of a hack for SimpleDocTemplate to get two distinct sections on one page.
+    full_story.append(Spacer(1, 0.5 * inch)) # Adjust this value if needed for exact positioning
+
+    # Generate the second invoice copy (identical to the first)
+    invoice_copy_2_story = _get_single_invoice_flowables(order, invoice_data_safe, styles, font_name, font_name_bold)
+    full_story.extend(invoice_copy_2_story)
+
+    doc.build(full_story)
     buffer.seek(0)
     
     return send_file(buffer, as_attachment=True, download_name=f"invoice_{order.id}.pdf", mimetype='application/pdf')
@@ -2212,6 +2517,12 @@ def generate_invoice_pdf(order_id):
 def user_profile():
     user_addresses = current_user.addresses
     return render_template('user_profile.html', user_addresses=user_addresses)
+
+@app.route('/add-address-form', methods=['GET'])
+@login_required
+def add_address_form():
+    return render_template('add_address_form.html')
+
 
 @app.route('/add-address', methods=['POST'])
 @login_required
@@ -2251,44 +2562,24 @@ def add_address():
     flash('Address added successfully!', 'success')
     return redirect(url_for('user_profile'))
 
-@app.route('/edit-address/<address_id>', methods=['GET', 'POST'])
+@app.route('/my-addresses')
 @login_required
-def edit_address(address_id):
-    address = Address.query.get_or_404(address_id)
-    if address.user_id != current_user.id:
-        flash('You are not authorized to edit this address.', 'danger')
-        return redirect(url_for('user_profile'))
+def my_addresses():
+    addresses = Address.query.filter_by(user_id=current_user.id).order_by(Address.is_default.desc(), Address.id.asc()).all()
+    return render_template('my_addresses.html', addresses=addresses)
 
-    if request.method == 'POST':
-        address.full_name = request.form.get('full_name')
-        address.phone = request.form.get('phone')
-        address.address_line1 = request.form.get('address_line1')
-        address.address_line2 = request.form.get('address_line2')
-        address.city = request.form.get('city')
-        address.state = request.form.get('state')
-        address.pincode = request.form.get('pincode')
-        is_default = 'is_default' in request.form
 
-        if not all([address.full_name, address.phone, address.address_line1, address.city, address.state, address.pincode]):
-            flash('Please fill in all required address fields.', 'danger')
-            return render_template('edit_address.html', address=address)
 
-        if is_default:
-            # Unset previous default address
-            for addr in current_user.addresses:
-                if addr.is_default and addr.id != address.id:
-                    addr.is_default = False
-        address.is_default = is_default
-
-        db.session.commit()
-        flash('Address updated successfully!', 'success')
-        return redirect(url_for('user_profile'))
-    return render_template('edit_address.html', address=address)
 
 @app.route('/delete-address/<address_id>', methods=['POST'])
 @login_required
 def delete_address(address_id):
-    address = Address.query.get_or_404(address_id)
+    # Fix for LegacyAPIWarning
+    address = db.session.get(Address, address_id)
+    if not address:
+        flash('Address not found.', 'danger')
+        return redirect(url_for('user_profile'))
+
     if address.user_id != current_user.id:
         flash('You are not authorized to delete this address.', 'danger')
         return redirect(url_for('user_profile'))
@@ -2308,38 +2599,46 @@ def user_orders():
     orders = Order.query.filter_by(user_id=current_user.id).order_by(Order.order_date.desc()).all()
     return render_template('user_orders.html', orders=orders)
 
-@app.route('/delete-order/<order_id>', methods=['POST'])
+from flask import jsonify, request
+
+@app.route('/delete-order/<order_id>', methods=['POST', 'DELETE'])
+
 @login_required
 def delete_order(order_id):
-    order = Order.query.get_or_404(order_id)
-    # Only allow user to delete their own pending/failed orders, or admin to delete any
-    if order.user_id != current_user.id and not current_user.is_admin(): # Changed to call is_admin()
-        flash('You are not authorized to delete this order.', 'danger')
-        return redirect(url_for('user_orders'))
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
     
-    # Prevent deletion of completed/shipped/delivered orders by users
-    if not current_user.is_admin() and order.status not in ['Pending Payment', 'Payment Failed', 'Cancelled by User', 'Cancelled by Admin']: # Changed to call is_admin()
+    order = db.session.get(Order, order_id)
+    if not order:
+        if is_ajax:
+            return jsonify(success=False, message='Order not found.'), 404
+        flash('Order not found.', 'danger')
+        return redirect(url_for('user_orders'))
+
+    if not current_user.is_admin() and order.status not in ['Pending Payment', 'Payment Failed', 'Cancelled by User', 'Cancelled by Admin']:
+        if is_ajax:
+            return jsonify(success=False, message='You are not allowed to delete this order.'), 403
         flash('This order cannot be deleted.', 'danger')
         return redirect(url_for('user_orders'))
 
     try:
-        # Restore stock for items in the order before deleting
         for item in order.items:
-            artwork = Artwork.query.get(item.artwork_id)
+            artwork = db.session.get(Artwork, item.artwork_id)
             if artwork:
                 artwork.stock += item.quantity
-        
+
         db.session.delete(order)
         db.session.commit()
-        flash(f'Order {order_id} deleted successfully.', 'success')
+        if is_ajax:
+            return jsonify(success=True, message='Order deleted successfully.')
+        flash('Order deleted successfully.', 'success')
+
     except Exception as e:
         db.session.rollback()
+        if is_ajax:
+            return jsonify(success=False, message=f'Error deleting order: {e}'), 500
         flash(f'Error deleting order: {e}', 'danger')
 
-    if current_user.is_admin(): # Changed to call is_admin()
-        return redirect(url_for('admin_dashboard'))
-    return redirect(url_for('user_orders'))
-
+    return redirect(url_for('admin_dashboard' if current_user.is_admin() else 'user_orders'))
 
 # --- Initialize DB and Migrate Data on First Run ---
 with app.app_context():
@@ -2390,6 +2689,27 @@ with app.app_context():
             print(f"------------------------------------------------------------------\n")
         else:
             print("Admin user already exists. Skipping default admin creation.")
+
+    # NEW: Initialize order_id_sequence if it doesn't exist
+    order_sequence_exists = db.session.get(SequenceCounter, 'order_id_sequence')
+    if not order_sequence_exists:
+        initial_sequence = SequenceCounter(id='order_id_sequence', current_value=15416760)
+        db.session.add(initial_sequence)
+        db.session.commit()
+        print("Initialized 'order_id_sequence' to 15416760.")
+    
+    # NEW: Check for CESS column in Artwork and OrderItem models
+    # This is a simple check. For production, use Flask-Migrate.
+    from sqlalchemy import inspect
+    inspector = inspect(db.engine)
+    artwork_columns = [col['name'] for col in inspector.get_columns('artwork')]
+    order_item_columns = [col['name'] for col in inspector.get_columns('order_item')]
+
+    if 'cess_percentage' not in artwork_columns or \
+       'cess_percentage_applied' not in order_item_columns or \
+       'cess_amount' not in order_item_columns:
+        # Removed the print statement for this warning
+        pass # Keep this for schema check, but no print output
 
 
 # --- Run the App ---

@@ -3,74 +3,75 @@
 {% block title %}My Orders - Karthika Futures{% endblock %}
 
 {% block content %}
-<div class="container main-content-area py-5">
-    <h2 class="text-center mb-4">My Orders</h2>
+<div class="container main-content-area py-6">
+    <h2 class="text-2xl md:text-3xl font-bold text-center mb-6">My Orders</h2>
 
-    <div class="row justify-content-center">
-        <div class="col-md-10">
-            <div class="card shadow-sm border-0 rounded-lg p-4 mb-4">
-                <div class="card-body">
-                    {% if orders %}
-                    <div class="table-responsive">
-                        <table class="table table-hover table-striped align-middle">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th scope="col">Order ID</th>
-                                    <th scope="col">Date</th>
-                                    <th scope="col">Total Amount</th>
-                                    <th scope="col">Status</th>
-                                    <th scope="col">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for order in orders %}
-                                <tr>
-                                    <td>{{ order.id }}</td>
-                                    <td>{{ order.order_date.strftime('%Y-%m-%d %H:%M') }}</td>
-                                    <td>₹{{ order.total_amount | floatformat(2) }}</td>
-                                    <td>
-                                        <span class="badge bg-{{ 'success' if 'Delivered' in order.status else ('warning' if 'Pending' in order.status or 'Awaiting' in order.status else 'primary') }}">
-                                            {{ order.status }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <a href="{{ url_for('order_summary', order_id=order.id) }}" class="btn btn-info btn-sm me-2">
-                                            <i class="fas fa-eye"></i> View
-                                        </a>
-                                        {% if order.status in ['Pending Payment', 'Payment Failed', 'Cancelled by User', 'Cancelled by Admin'] %}
-                                        <button type="button" class="btn btn-danger btn-sm delete-order-btn"
-                                                data-bs-toggle="modal" data-bs-target="#deleteOrderModal"
-                                                data-order-id="{{ order.id }}">
-                                            <i class="fas fa-trash-alt"></i> Delete
-                                        </button>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="alert alert-info text-center" role="alert">
-                        You have not placed any orders yet.
-                    </div>
+    <div class="flex justify-end mb-4">
+        <input type="text" placeholder="Search by Order ID..." class="border border-gray-300 rounded px-3 py-2 text-sm w-full max-w-xs" id="orderSearch">
+    </div>
+
+    {% if orders %}
+    <div class="grid gap-4">
+        {% for order in orders %}
+        <div class="bg-white p-4 rounded-lg shadow-md">
+            <div class="flex justify-between items-center mb-2">
+                <h4 class="font-semibold text-gray-700">Order ID: {{ order.id }}</h4>
+                <span class="text-sm text-gray-500">{{ order.order_date.strftime('%Y-%m-%d %H:%M') }}</span>
+            </div>
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-sm">Total Amount: <span class="font-semibold">₹{{ order.total_amount | floatformat(2) }}</span></p>
+                    <p class="text-sm mt-1">Status:
+                        <span class="inline-block px-2 py-1 rounded text-white text-xs font-medium
+                            {% if 'Delivered' in order.status %}bg-green-500
+                            {% elif 'Pending' in order.status or 'Awaiting' in order.status %}bg-yellow-500
+                            {% else %}bg-blue-500{% endif %}">
+                            {{ order.status }}
+                        </span>
+                    </p>
+                </div>
+                <div class="flex gap-2">
+                    <a href="{{ url_for('order_summary', order_id=order.id) }}" class="btn btn-info btn-sm">View</a>
+                    {% if order.status in ['Pending Payment', 'Payment Failed', 'Cancelled by User', 'Cancelled by Admin'] %}
+                    <button class="btn btn-danger btn-sm delete-order-btn" data-bs-toggle="modal" data-bs-target="#deleteOrderModal" data-order-id="{{ order.id }}">
+                        Delete
+                    </button>
                     {% endif %}
                 </div>
             </div>
         </div>
+        {% endfor %}
+
+        <!-- Pagination Controls -->
+        <div class="mt-6 flex justify-center">
+            <nav class="inline-flex space-x-2">
+                <button class="px-3 py-1 border rounded bg-white text-sm hover:bg-gray-100">&laquo;</button>
+                <button class="px-3 py-1 border rounded bg-blue-500 text-white text-sm">1</button>
+                <button class="px-3 py-1 border rounded bg-white text-sm hover:bg-gray-100">2</button>
+                <button class="px-3 py-1 border rounded bg-white text-sm hover:bg-gray-100">3</button>
+                <button class="px-3 py-1 border rounded bg-white text-sm hover:bg-gray-100">&raquo;</button>
+            </nav>
+        </div>
+
     </div>
+    {% else %}
+    <div class="bg-white p-6 rounded shadow text-center">
+        <p class="text-gray-600 text-lg">You haven’t placed any orders yet.</p>
+        <a href="{{ url_for('all_products') }}" class="btn btn-primary mt-4">Start Shopping</a>
+    </div>
+    {% endif %}
 </div>
 
-{# Delete Order Confirmation Modal #}
+<!-- Delete Order Modal -->
 <div class="modal fade" id="deleteOrderModal" tabindex="-1" aria-labelledby="deleteOrderModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="deleteOrderModalLabel">Confirm Order Deletion</h5>
+                <h5 class="modal-title" id="deleteOrderModalLabel">Confirm Deletion</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                Are you sure you want to delete Order ID: "<strong id="orderIdToDelete"></strong>"? This action cannot be undone.
+                Are you sure you want to delete Order ID: <strong id="orderIdToDelete"></strong>? This action cannot be undone.
                 <p class="text-danger mt-2">Note: Deleting an order will restore the stock of items in it.</p>
             </div>
             <div class="modal-footer">
@@ -87,21 +88,27 @@
 
 {% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const deleteOrderModalElement = document.getElementById('deleteOrderModal');
-        const deleteOrderModal = new bootstrap.Modal(deleteOrderModalElement);
-        const orderIdToDelete = document.getElementById('orderIdToDelete');
-        const deleteOrderForm = document.getElementById('deleteOrderForm');
+document.addEventListener('DOMContentLoaded', function () {
+    const deleteOrderModal = document.getElementById('deleteOrderModal');
+    const deleteOrderForm = document.getElementById('deleteOrderForm');
+    const orderIdToDelete = document.getElementById('orderIdToDelete');
 
-        document.querySelectorAll('.delete-order-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const orderId = this.dataset.orderId;
-                
-                orderIdToDelete.textContent = orderId;
-                deleteOrderForm.action = `/delete-order/${orderId}`;
-                deleteOrderModal.show();
-            });
+    document.querySelectorAll('.delete-order-btn').forEach(button => {
+        button.addEventListener('click', function () {
+            const orderId = this.dataset.orderId;
+            deleteOrderForm.action = `/delete-order/${orderId}`;
+            orderIdToDelete.textContent = orderId;
         });
     });
+
+    const searchInput = document.getElementById('orderSearch');
+    searchInput.addEventListener('input', function () {
+        const term = this.value.toLowerCase();
+        document.querySelectorAll('.grid > div.bg-white').forEach(card => {
+            const text = card.textContent.toLowerCase();
+            card.style.display = text.includes(term) ? '' : 'none';
+        });
+    });
+});
 </script>
 {% endblock %}

@@ -45,11 +45,12 @@ function getHeaders() {
  * @param {number} sgstPercentage - The SGST percentage.
  * @param {number} igstPercentage - The IGST percentage.
  * @param {number} ugstPercentage - The UGST percentage.
+ * @param {number} cessPercentage - The CESS percentage. // ADDED
  * @param {number} quantity - The quantity to add.
  * @param {object} selectedOptions - Object of selected options (e.g., { "Size": "A4", "Frame": "Wooden" }).
  */
-async function addToCart(sku, name, imageUrl, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, quantity, selectedOptions) {
-    console.log("addToCart called from main.js:", { sku, name, quantity, selectedOptions, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage });
+async function addToCart(sku, name, imageUrl, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, cessPercentage, quantity, selectedOptions) { // ADDED cessPercentage
+    console.log("addToCart called from main.js:", { sku, name, quantity, selectedOptions, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, cessPercentage }); // ADDED cessPercentage
     try {
         const response = await fetch('/add-to-cart', {
             method: 'POST',
@@ -63,6 +64,7 @@ async function addToCart(sku, name, imageUrl, unitPriceBeforeGst, cgstPercentage
                 sgst_percentage: sgstPercentage,
                 igst_percentage: igstPercentage,
                 ugst_percentage: ugstPercentage,
+                cess_percentage: cessPercentage, // ADDED
                 quantity: quantity,
                 selected_options: selectedOptions
             })
@@ -72,10 +74,18 @@ async function addToCart(sku, name, imageUrl, unitPriceBeforeGst, cgstPercentage
         if (response.ok && data.success) {
             console.log("Item added to cart successfully:", data);
             if (data.cart_count !== undefined) {
+                // Update local storage with the new cart count from the server
                 localStorage.setItem('cartCount', data.cart_count);
-                updateCartCountDisplay();
+                
+                // --- CRITICAL DEBUGGING LOG ---
+                console.log("DEBUG: Type of updateCartCountDisplay before call:", typeof updateCartCountDisplay);
+                // --- END CRITICAL DEBUGGING LOG ---
+
+                // Call the correct function to update the display
+                updateCartCountDisplay(); 
             }
-            window.location.href = '/cart'; // Redirect to cart to show success message there
+            // Redirect to cart to show success message there (as per your original logic)
+            window.location.href = '/cart'; 
         } else {
             console.error("Failed to add item to cart:", data.message);
             showCustomAlert(data.message || 'Failed to add item to cart.', 'danger');
@@ -98,10 +108,11 @@ async function addToCart(sku, name, imageUrl, unitPriceBeforeGst, cgstPercentage
  * @param {number} sgstPercentage - The SGST percentage.
  * @param {number} igstPercentage - The IGST percentage.
  * @param {number} ugstPercentage - The UGST percentage.
+ * @param {number} cessPercentage - The CESS percentage. // ADDED
  * @param {number} shippingCharge - The shipping charge for the item.
  */
-async function buyNow(sku, name, imageUrl, selectedOptions, quantity, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, shippingCharge) {
-    console.log("buyNow called from main.js:", { sku, name, quantity, selectedOptions, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, shippingCharge });
+async function buyNow(sku, name, imageUrl, selectedOptions, quantity, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, cessPercentage, shippingCharge) { // ADDED cessPercentage
+    console.log("buyNow called from main.js:", { sku, name, quantity, selectedOptions, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, cessPercentage, shippingCharge }); // ADDED cessPercentage
     const itemToBuyNow = {
         sku: sku,
         name: name,
@@ -113,6 +124,7 @@ async function buyNow(sku, name, imageUrl, selectedOptions, quantity, unitPriceB
         sgst_percentage: sgstPercentage,
         igst_percentage: igstPercentage,
         ugst_percentage: ugstPercentage,
+        cess_percentage: cessPercentage, // ADDED
         shipping_charge: shippingCharge
     };
 
@@ -147,14 +159,17 @@ async function buyNow(sku, name, imageUrl, selectedOptions, quantity, unitPriceB
 
 // Function to update cart count display in the navbar
 function updateCartCountDisplay() {
-    const cartCount = localStorage.getItem('cartCount') || '0';
-    const cartCountBadge = document.getElementById('cart-count'); // Corrected ID to 'cart-count'
+    let cartCount = parseInt(localStorage.getItem('cartCount')) || 0;
+    const cartCountBadge = document.getElementById('cart-count');
+
     if (cartCountBadge) {
         cartCountBadge.textContent = cartCount;
-        cartCountBadge.style.display = cartCount > 0 ? 'inline-block' : 'none'; // Ensure visibility
+        cartCountBadge.style.display = cartCount > 0 ? 'inline-block' : 'none';
     }
+
     console.log("main.js: Cart count updated to:", cartCount);
 }
+
 
 // Attach functions to the window object immediately as they are defined
 window.showCustomAlert = showCustomAlert;
@@ -181,6 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const modalSgstPercentage = parseFloat(document.getElementById('modalSgstPercentage').value);
             const modalIgstPercentage = parseFloat(document.getElementById('modalIgstPercentage').value);
             const modalUgstPercentage = parseFloat(document.getElementById('modalUgstPercentage').value);
+            const modalCessPercentage = parseFloat(document.getElementById('modalCessPercentage').value); // ADDED: Get cess percentage
             const modalGstType = document.getElementById('modalGstType').value;
             const modalShippingCharge = parseFloat(document.getElementById('modalShippingCharge').value);
             
@@ -215,6 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (modalGstType === 'union_territory') {
                 totalGstRate = modalCgstPercentage + modalUgstPercentage;
             }
+            totalGstRate += modalCessPercentage; // ADDED: Include cess in total GST rate for display calculation
 
             const gstAmount = (totalBeforeGst * totalGstRate) / 100;
             let finalPrice = totalBeforeGst + gstAmount;
@@ -248,6 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 sgstPercentage: modalSgstPercentage,
                 igstPercentage: modalIgstPercentage,
                 ugstPercentage: modalUgstPercentage,
+                cessPercentage: modalCessPercentage, // ADDED: Return cessPercentage
                 shippingCharge: modalShippingCharge
             };
         }
@@ -269,6 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('modalSgstPercentage').value = artworkData.sgst_percentage;
             document.getElementById('modalIgstPercentage').value = artworkData.igst_percentage;
             document.getElementById('modalUgstPercentage').value = artworkData.ugst_percentage;
+            document.getElementById('modalCessPercentage').value = artworkData.cess_percentage; // ADDED: Populate cess_percentage
             document.getElementById('modalGstType').value = artworkData.gst_type;
             document.getElementById('modalShippingCharge').value = artworkData.shipping_charge;
             
@@ -308,7 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('modalAddToCartBtn')?.addEventListener('click', async function() {
             const sku = document.getElementById('modalSku').value;
-            const { name, imageUrl, selectedOptions, quantity, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage } = updateModalPrice(); 
+            const { name, imageUrl, selectedOptions, quantity, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, cessPercentage } = updateModalPrice(); // ADDED: Destructure cessPercentage
 
             if (!sku || !name || !imageUrl || isNaN(quantity) || quantity < 1) {
                 showCustomAlert('Please select a valid product and quantity from the modal.', 'danger');
@@ -316,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
-                await window.addToCart(sku, name, imageUrl, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, quantity, selectedOptions);
+                await window.addToCart(sku, name, imageUrl, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, cessPercentage, quantity, selectedOptions); // ADDED: Pass cessPercentage
                 const modalElement = this.closest('.modal');
                 if (modalElement) {
                     const bootstrapModal = bootstrap.Modal.getInstance(modalElement);
@@ -330,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('modalBuyNowBtn')?.addEventListener('click', async function() {
             const sku = document.getElementById('modalSku').value;
-            const { name, imageUrl, selectedOptions, quantity, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, shippingCharge } = updateModalPrice(); 
+            const { name, imageUrl, selectedOptions, quantity, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, cessPercentage, shippingCharge } = updateModalPrice(); // ADDED: Destructure cessPercentage
 
             if (!sku || !name || !imageUrl || isNaN(quantity) || quantity < 1) {
                 showCustomAlert('Please select a valid product and quantity for direct purchase from the modal.', 'danger');
@@ -338,7 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
-                await window.buyNow(sku, name, imageUrl, selectedOptions, quantity, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, shippingCharge);
+                await window.buyNow(sku, name, imageUrl, selectedOptions, quantity, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, cessPercentage, shippingCharge); // ADDED: Pass cessPercentage
                 const modalElement = this.closest('.modal');
                 if (modalElement) {
                     const bootstrapModal = bootstrap.Modal.getInstance(modalElement);
@@ -374,6 +393,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 parsedItem.sgst_percentage, 
                 parsedItem.igst_percentage, 
                 parsedItem.ugst_percentage, 
+                parsedItem.cess_percentage, // ADDED: Pass cess_percentage
                 parsedItem.shipping_charge
             );
         } catch (e) {

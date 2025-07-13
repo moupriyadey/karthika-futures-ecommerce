@@ -528,7 +528,7 @@
                                     <li><a class="dropdown-item" href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a></li>
                                 {% endif %}
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{{ url_for('user_logout') }}">Logout</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
                             </ul>
                         </li>
                     {% else %}
@@ -604,8 +604,8 @@
             lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
         });
     </script>
-
-    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/main.js', v=now().timestamp()) }}"></script>
+    
     
     <script>
         console.log("_base.html: DOMContentLoaded fired. Initializing flashed messages and cart count.");
@@ -656,6 +656,24 @@
             }, 200); // Give main.js a bit more time
         });
     </script>
+
+    <script>
+    window.updateCartCountDisplay = function () {
+        const cartCount = localStorage.getItem('cartCount');
+        const cartCountElement = document.getElementById('cart-count');
+        if (!cartCountElement) return;
+
+        if (cartCount && parseInt(cartCount) > 0) {
+            cartCountElement.textContent = cartCount;
+            cartCountElement.style.display = 'inline-block';
+        } else {
+            cartCountElement.textContent = '';
+            cartCountElement.style.display = 'none';
+        }
+    };
+</script>
+
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>

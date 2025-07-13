@@ -3,127 +3,64 @@
 {% block title %}Your Cart - Karthika Futures{% endblock %}
 
 {% block content %}
-<div class="container mx-auto p-4 md:p-8 main-content-area">
-    <h1 class="text-4xl font-extrabold text-center text-gray-800 mb-8">Your Shopping Cart</h1>
+<div class="container mx-auto p-4 md:p-6 main-content-area">
+    <h1 class="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-6">Your Shopping Cart</h1>
 
     {% if cart_items %}
-    <div class="overflow-x-auto bg-white rounded-lg shadow-md mb-8">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Options</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price (Excl. GST)</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CGST</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SGST</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IGST</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UGST</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total (Incl. GST)</th>
-                    <th scope="col" class="relative px-6 py-3"><span class="sr-only">Actions</span></th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                {% for item in cart_items %}
-                <tr>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0 h-20 w-20">
-                                <img class="h-20 w-20 rounded-lg object-cover" src="{{ url_for('static', filename=item.image_url) }}" alt="{{ item.artwork.name }}">
-                            </div>
-                            <div class="ml-4">
-                                <div class="text-lg font-medium text-gray-900">{{ item.artwork.name }}</div>
-                                <div class="text-sm text-gray-500">SKU: {{ item.artwork.sku }}</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {% if item.selected_options %}
-                            {% for group, option in item.selected_options.items() %}
-                                <div>{{ group }}: {{ option }}</div>
-                            {% endfor %}
-                        {% else %}
-                            N/A
-                        {% endif %}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-lg text-gray-900 font-semibold">
-                        {{ item.unit_price_before_gst | currency }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-center text-lg text-gray-900">
-                        {{ item.quantity }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {{ item.cgst_amount | currency }} ({{ item.cgst_percentage | percent }})
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {{ item.sgst_amount | currency }} ({{ item.sgst_percentage | percent }})
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {{ item.igst_amount | currency }} ({{ item.igst_percentage | percent }})
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {{ item.ugst_amount | currency }} ({{ item.ugst_percentage | percent }})
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-lg text-gray-900 font-bold">
-                        {{ item.total_price_incl_gst | currency }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button class="text-red-600 hover:text-red-900 remove-from-cart-btn" data-item-key="{{ item.item_key }}">
-                            Remove
-                        </button>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Cart Summary Card -->
+        <div class="lg:col-start-3 order-last lg:order-none">
+            <div class="bg-white p-4 rounded-lg shadow-md">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Cart Summary</h2>
+                <div class="flex justify-between py-2 border-b">
+                    <span class="text-gray-600">Subtotal (Excl. GST):</span>
+                    <span class="font-semibold text-gray-900">{{ subtotal_before_gst | currency }}</span>
+                </div>
+                <div class="flex justify-between py-2 border-b">
+                    <span class="text-gray-600">Shipping Charge:</span>
+                    <span class="font-semibold text-gray-900">{{ shipping_charge | currency }}</span>
+                </div>
+                <div class="flex justify-between py-3 text-xl font-bold text-gray-800">
+                    <span>Grand Total:</span>
+                    <span class="text-primary">{{ grand_total | currency }}</span>
+                </div>
+                <a href="{{ url_for('purchase_form') }}" class="btn btn-primary w-full mt-4 py-3 text-lg text-center rounded-md">Proceed to Checkout</a>
+            </div>
+        </div>
 
-    <div class="flex flex-col md:flex-row justify-end space-y-6 md:space-y-0 md:space-x-8">
-        <div class="w-full md:w-1/2 lg:w-1/3 bg-white p-6 rounded-lg shadow-md">
-            <h3 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Cart Summary</h3>
-            <div class="flex justify-between items-center py-2 border-b border-gray-200">
-                <span class="text-gray-700">Subtotal (Excl. GST):</span>
-                <span class="font-semibold text-gray-900">{{ subtotal_before_gst | currency }}</span>
+        <!-- Items List -->
+        <div class="lg:col-span-2">
+            <div class="space-y-4">
+                {% for item in cart_items %}
+                <div class="flex items-start gap-4 p-4 bg-white rounded-lg shadow-sm">
+                    <img src="{{ url_for('static', filename=item.image_url) }}" alt="{{ item.artwork.name }}" class="w-20 h-20 object-cover rounded">
+                    <div class="flex-1">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-800">{{ item.artwork.name }}</h3>
+                                <p class="text-sm text-gray-500">SKU: {{ item.artwork.sku }}</p>
+                                {% if item.selected_options %}
+                                <div class="text-sm text-gray-600 mt-1">
+                                    {% for group, option in item.selected_options.items() %}
+                                        <span>{{ group }}: {{ option }}</span>{% if not loop.last %}, {% endif %}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <button class="text-red-600 text-sm hover:underline remove-from-cart-btn" data-item-key="{{ item.item_key }}">Remove</button>
+                        </div>
+                        <div class="mt-2 text-sm text-gray-700">Qty: {{ item.quantity }}</div>
+                        <div class="mt-1 text-primary font-bold text-lg">{{ item.total_price_incl_gst | currency }}</div>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
-            <div class="flex justify-between items-center py-2 border-b border-gray-200">
-                <span class="text-gray-700">CGST:</span>
-                <span class="font-semibold text-gray-900">{{ total_cgst_amount | currency }}</span>
-            </div>
-            <div class="flex justify-between items-center py-2 border-b border-gray-200">
-                <span class="text-gray-700">SGST:</span>
-                <span class="font-semibold text-gray-900">{{ total_sgst_amount | currency }}</span>
-            </div>
-            <div class="flex justify-between items-center py-2 border-b border-gray-200">
-                <span class="text-gray-700">IGST:</span>
-                <span class="font-semibold text-gray-900">{{ total_igst_amount | currency }}</span>
-            </div>
-            <div class="flex justify-between items-center py-2 border-b border-gray-200">
-                <span class="text-gray-700">UGST:</span>
-                <span class="font-semibold text-gray-900">{{ total_ugst_amount | currency }}</span>
-            </div>
-            <div class="flex justify-between items-center py-2 border-b border-gray-200">
-                <span class="text-gray-700">Total GST:</span>
-                <span class="font-semibold text-gray-900">{{ total_gst_amount | currency }}</span>
-            </div>
-            <div class="flex justify-between items-center py-2 border-b border-gray-200">
-                <span class="text-gray-700">Shipping Charge:</span>
-                <span class="font-semibold text-gray-900">{{ shipping_charge | currency }}</span>
-            </div>
-            <div class="flex justify-between items-center py-3 mt-2">
-                <span class="text-xl font-bold text-gray-800">Grand Total:</span>
-                <span class="text-2xl font-extrabold text-primary">{{ grand_total | currency }}</span>
-            </div>
-            <a href="{{ url_for('purchase_form') }}" class="w-full btn btn-primary mt-4 py-3 text-xl block text-center rounded-md">
-                Proceed to Checkout
-            </a>
         </div>
     </div>
     {% else %}
     <div class="text-center py-12 bg-white rounded-lg shadow-md">
         <p class="text-xl text-gray-600 mb-4">Your cart is empty.</p>
-        <a href="{{ url_for('all_products') }}" class="btn btn-primary px-6 py-3 text-lg">
-            Start Shopping
-        </a>
+        <a href="{{ url_for('all_products') }}" class="btn btn-primary px-6 py-3 text-lg">Start Shopping</a>
     </div>
     {% endif %}
 </div>
@@ -131,38 +68,43 @@
 
 {% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Global CSRF token from _base.html
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-        document.querySelectorAll('.remove-from-cart-btn').forEach(button => {
-            button.addEventListener('click', async function() {
-                const itemKey = this.dataset.itemKey;
-                
-                try {
-                    const response = await fetch('/remove-from-cart', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': csrfToken // Use the global CSRF token
-                        },
-                        body: JSON.stringify({ item_key: itemKey })
-                    });
-                    const data = await response.json();
+    document.querySelectorAll('.remove-from-cart-btn').forEach(button => {
+        button.addEventListener('click', async function() {
+            const itemKey = this.dataset.itemKey;
 
-                    if (response.ok && data.success) {
-                        showCustomAlert(data.message, 'info');
-                        // Reload the page to reflect cart changes
-                        window.location.reload(); 
-                    } else {
-                        showCustomAlert(data.message || 'Failed to remove item from cart.', 'danger');
+            try {
+                const response = await fetch('/remove-from-cart', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ item_key: itemKey })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    if (typeof data.cart_count === 'number') {
+                        localStorage.setItem('cartCount', data.cart_count);
                     }
-                } catch (error) {
-                    console.error('Error removing item from cart:', error);
-                    showCustomAlert('An error occurred. Please try again.', 'danger');
+                    if (typeof window.updateCartCountDisplay === 'function') {
+                        window.updateCartCountDisplay();
+                    }
+                    showCustomAlert(data.message, 'info');
+                    window.location.reload();
+                } else {
+                    showCustomAlert(data.message || 'Failed to remove item from cart.', 'danger');
                 }
-            });
+            } catch (error) {
+                console.error('Error removing item from cart:', error);
+                showCustomAlert('An error occurred. Please try again.', 'danger');
+            }
         });
     });
+});
 </script>
 {% endblock %}

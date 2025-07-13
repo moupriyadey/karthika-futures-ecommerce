@@ -181,6 +181,14 @@
 </script>
 {% endblock %}
 
+<script>
+  if (!window.isUserLoggedIn) {
+    localStorage.removeItem('cartCount');
+    window.updateCartCountDisplay?.();  // If function exists, call it
+  }
+</script>
+
+
 <style>
     /* Custom styles for animations */
     @keyframes fadeIn {

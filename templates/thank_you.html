@@ -43,6 +43,22 @@
 
 {% block scripts %}
 {{ super() }}
+
+
+<script>
+// ✅ Overwrite the localStorage cartCount
+localStorage.setItem('cartCount', '0');
+
+// ✅ Then update the badge
+if (window.updateCartCountDisplay) {
+    window.updateCartCountDisplay();
+} else {
+    console.warn("Cart count display function not found.");
+}
+</script>
+
+
+
 <style>
     /* Custom animation for the 'Thank You' text */
     @keyframes zoomFadeIn {
