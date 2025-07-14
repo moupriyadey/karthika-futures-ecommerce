@@ -33,7 +33,7 @@
             <div class="space-y-4">
                 {% for item in cart_items %}
                 <div class="flex items-start gap-4 p-4 bg-white rounded-lg shadow-sm">
-                    <img src="{{ url_for('static', filename=item.image_url) }}" alt="{{ item.artwork.name }}" class="w-20 h-20 object-cover rounded">
+                    <img src="{{ url_for('static', filename=item.image_url) }}" alt="{{ item.artwork.name }}" class="w-20 h-20 object-cover rounded cursor-pointer popup-image">
                     <div class="flex-1">
                         <div class="flex justify-between items-start">
                             <div>
@@ -63,6 +63,16 @@
         <a href="{{ url_for('all_products') }}" class="btn btn-primary px-6 py-3 text-lg">Start Shopping</a>
     </div>
     {% endif %}
+</div>
+
+<div id="imagePopup" class="fixed inset-0 bg-black bg-opacity-80 hidden z-50 flex items-center justify-center">
+    <div class="relative max-w-3xl w-full">
+        <img id="popupImage" class="w-full max-h-screen object-contain relative">
+        <div class="absolute inset-0 pointer-events-none z-20 flex flex-wrap justify-center items-center text-white text-lg font-bold opacity-40">
+            {% for i in range(6) %}<div class="m-4">Karthikafutures</div>{% endfor %}
+        </div>
+        <button onclick="closePopup()" class="absolute top-4 right-4 text-white text-2xl">&times;</button>
+    </div>
 </div>
 {% endblock %}
 
@@ -105,6 +115,20 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // Image popup
+    const popup = document.getElementById("imagePopup");
+    const popupImage = document.getElementById("popupImage");
+    document.querySelectorAll(".popup-image").forEach(img => {
+        img.addEventListener("click", () => {
+            popupImage.src = img.src;
+            popup.classList.remove("hidden");
+        });
+    });
 });
+
+function closePopup() {
+    document.getElementById("imagePopup").classList.add("hidden");
+}
 </script>
 {% endblock %}

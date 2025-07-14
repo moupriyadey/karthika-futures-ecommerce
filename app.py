@@ -787,7 +787,6 @@ def create_direct_order():
 @app.route('/purchase-form', methods=['GET', 'POST'])
 @login_required
 def purchase_form():
-    # Retrieve current user's default or first address for pre-filling
     user_addresses = Address.query.filter_by(user_id=current_user.id).order_by(Address.is_default.desc(), Address.id.asc()).all()
     
     prefill_address = None
@@ -796,41 +795,35 @@ def purchase_form():
             if addr.is_default:
                 prefill_address = addr
                 break
-        if not prefill_address: # If no default found, take the first one
+        if not prefill_address:
             prefill_address = user_addresses[0]
 
-    # NEW: Convert prefill_address to a dictionary if it exists
     prefill_address_dict = prefill_address.to_dict() if prefill_address else None
-    selected_address = prefill_address  # This will be shown in the form
+    selected_address = prefill_address
 
-    # Initialize variables for template rendering
     items_to_process = []
     subtotal_before_gst = Decimal('0.00')
     total_cgst_amount = Decimal('0.00')
     total_sgst_amount = Decimal('0.00')
     total_igst_amount = Decimal('0.00')
     total_ugst_amount = Decimal('0.00')
-    total_cess_amount = Decimal('0.00') # NEW
+    total_cess_amount = Decimal('0.00')
     total_gst = Decimal('0.00')
     shipping_charge = Decimal('0.00')
     final_total_amount = Decimal('0.00')
-    shipping_address_obj = None  # <--- Fix added
+    shipping_address_obj = None
 
-    # --- Handle POST request for order placement ---
     if request.method == 'POST':
-        # Recalculate all totals based on current session cart/buy now item
         (items_to_process, subtotal_before_gst, total_cgst_amount, 
-         total_sgst_amount, total_igst_amount, total_ugst_amount, total_cess_amount, # NEW
-         total_gst, final_total_amount, shipping_charge) = get_cart_items_details() # Use the helper
+         total_sgst_amount, total_igst_amount, total_ugst_amount, total_cess_amount,
+         total_gst, final_total_amount, shipping_charge) = get_cart_items_details()
 
         if not items_to_process:
             flash("No items to purchase.", "danger")
             return redirect(url_for('cart'))
 
-        # Get address details from the form
         selected_address_id = request.form.get('selected_address_id') or request.form.get('shipping_address')
 
-        
         full_name = request.form.get('full_name')
         phone = request.form.get('phone')
         address_line1 = request.form.get('address_line1')
@@ -844,7 +837,6 @@ def purchase_form():
         shipping_address_obj = None
 
         if selected_address_id and selected_address_id != 'new':
-            # Fix for LegacyAPIWarning
             shipping_address_obj = db.session.get(Address, selected_address_id)
             if not shipping_address_obj or shipping_address_obj.user_id != current_user.id:
                 flash("Invalid address selection.", "danger")
@@ -855,17 +847,15 @@ def purchase_form():
                                        shipping_charge=shipping_charge,
                                        final_total_amount=final_total_amount,
                                        user_addresses=user_addresses,
-                                       prefill_address=prefill_address_dict, # Pass dictionary
+                                       prefill_address=prefill_address_dict,
                                        form_data=request.form.to_dict(),
                                        total_cgst_amount=total_cgst_amount,
                                        total_sgst_amount=total_sgst_amount,
                                        total_igst_amount=total_igst_amount,
                                        total_ugst_amount=total_ugst_amount,
-                                       total_cess_amount=total_cess_amount) # NEW
-        
-        # If 'new' address is selected or no existing address was chosen/found
+                                       total_cess_amount=total_cess_amount)
+
         if selected_address_id == 'new' or not shipping_address_obj:
-            # Basic validation for new address fields
             if not all([full_name, phone, address_line1, city, state, pincode]):
                 flash('Please fill in all required fields for the new address.', 'danger')
                 return render_template('purchase_form.html',
@@ -875,84 +865,34 @@ def purchase_form():
                                        shipping_charge=shipping_charge,
                                        final_total_amount=final_total_amount,
                                        user_addresses=user_addresses,
-                                       prefill_address=prefill_address_dict, # Pass dictionary
+                                       prefill_address=prefill_address_dict,
                                        form_data=request.form.to_dict(),
                                        total_cgst_amount=total_cgst_amount,
                                        total_sgst_amount=total_sgst_amount,
                                        total_igst_amount=total_igst_amount,
                                        total_ugst_amount=total_ugst_amount,
-                                       total_cess_amount=total_cess_amount) # NEW
+                                       total_cess_amount=total_cess_amount)
 
-            # Create or update address
-            if not shipping_address_obj: # This means it's a completely new address
-                new_address = Address(
-                    user_id=current_user.id,
-                    full_name=full_name,
-                    phone=phone,
-                    address_line1=address_line1,
-                    address_line2=address_line2,
-                    city=city,
-                    state=state,
-                    pincode=pincode,
-                    is_default=set_as_default # Default based on checkbox
-                )
-                if save_address: # Only add to DB if user wants to save it
-                    db.session.add(new_address)
-                    db.session.commit() # Commit to get ID for linking to order
-                    shipping_address_obj = new_address # Use this new address for the order
-                    flash('New address added successfully!', 'success')
-                else:
-                    # If not saving, create a temporary Address object that is not committed
-                    # This is a common pattern for "one-time" addresses.
-                    # However, your Order model requires shipping_address_id, so it must be persisted.
-                    # The current setup assumes any new address entered is saved.
-                    # If 'save_address' is unchecked, it just won't be set as default.
-                    # Let's stick to the simpler model where new addresses are always saved if entered.
-                    # If save_address is unchecked, it just won't be set as default.
-                    db.session.add(new_address)
-                    db.session.commit()
-                    shipping_address_obj = new_address
-
-            else: # Updating an existing address that was selected (this path is less likely with radio buttons)
-                  # This part of the logic might be redundant if radio buttons are exclusive.
-                shipping_address_obj.full_name = full_name
-                shipping_address_obj.phone = phone
-                shipping_address_obj.address_line1 = address_line1
-                shipping_address_obj.address_line2 = address_line2
-                shipping_address_obj.city = city
-                shipping_address_obj.state = state
-                shipping_address_obj.pincode = pincode
-                if set_as_default:
-                    for addr in user_addresses:
-                        if addr.is_default and addr.id != shipping_address_obj.id:
-                            addr.is_default = False
-                    shipping_address_obj.is_default = True
-                elif not set_as_default and shipping_address_obj.is_default:
-                    shipping_address_obj.is_default = False
-                db.session.commit()
-
-        if not shipping_address_obj:
-            flash("Failed to determine shipping address. Please try again.", "danger")
-            return render_template('purchase_form.html', 
-                                   items_to_process=items_to_process, 
-                                   subtotal_before_gst=subtotal_before_gst,
-                                   total_gst=total_gst,
-                                   shipping_charge=shipping_charge,
-                                   final_total_amount=final_total_amount,
-                                   user_addresses=user_addresses,
-                                   prefill_address=prefill_address_dict, # Pass dictionary
-                                   form_data=request.form.to_dict(),
-                                   total_cgst_amount=total_cgst_amount,
-                                   total_sgst_amount=total_sgst_amount,
-                                   total_igst_amount=total_igst_amount,
-                                   total_ugst_amount=total_ugst_amount,
-                                   total_cess_amount=total_cess_amount) # NEW
-
+            new_address = Address(
+                user_id=current_user.id,
+                full_name=full_name,
+                phone=phone,
+                address_line1=address_line1,
+                address_line2=address_line2,
+                city=city,
+                state=state,
+                pincode=pincode,
+                is_default=set_as_default
+            )
+            db.session.add(new_address)
+            db.session.commit()
+            session['pre_selected_address_id'] = new_address.id
+            flash('New address added successfully! Please select it below before placing the order.', 'info')
+            return redirect(url_for('purchase_form'))
 
         try:
-            # Create the order
             new_order = Order(
-                id=generate_order_id(), # Use the new sequential ID generation function
+                id=generate_order_id(),
                 user_id=current_user.id,
                 total_amount=final_total_amount,
                 status='Pending Payment',
@@ -961,35 +901,32 @@ def purchase_form():
                 shipping_charge=shipping_charge
             )
             db.session.add(new_order)
-            db.session.flush() # To get new_order.id before commit
+            db.session.flush()
 
-            # Add order items
             for item in items_to_process:
                 order_item = OrderItem(
                     order_id=new_order.id,
                     artwork_id=item['artwork'].id,
                     quantity=item['quantity'],
                     unit_price_before_gst=item['unit_price_before_gst'],
-                    cgst_percentage_applied=item['cgst_percentage'], # Corrected from _applied
-                    sgst_percentage_applied=item['sgst_percentage'], # Corrected from _applied
-                    igst_percentage_applied=item['igst_percentage'], # Corrected from _applied
-                    ugst_percentage_applied=item['ugst_percentage'], # Corrected from _applied
-                    cess_percentage_applied=item['cess_percentage'], # NEW
+                    cgst_percentage_applied=item['cgst_percentage'],
+                    sgst_percentage_applied=item['sgst_percentage'],
+                    igst_percentage_applied=item['igst_percentage'],
+                    ugst_percentage_applied=item['ugst_percentage'],
+                    cess_percentage_applied=item['cess_percentage'],
                     selected_options=json.dumps(item['selected_options'])
                 )
                 db.session.add(order_item)
-                # Deduct stock
-                # Fix for LegacyAPIWarning
+
                 artwork = db.session.get(Artwork, item['artwork'].id)
                 if artwork:
-                    artwork.stock -= item.get('quantity', 0) # Use .get with default 0 to prevent error if quantity is missing
+                    artwork.stock -= item.get('quantity', 0)
                     if artwork.stock < 0:
                         artwork.stock = 0
-                
-            db.session.commit()
 
+            db.session.commit()
             session.pop('cart', None)
-            session.pop('direct_purchase_cart', None) # Ensure direct purchase cart is cleared
+            session.pop('direct_purchase_cart', None)
             session.modified = True
 
             flash('Order placed successfully! Please proceed to payment.', 'success')
@@ -1002,33 +939,38 @@ def purchase_form():
             db.session.rollback()
             flash(f'An unexpected error occurred: {e}', 'danger')
 
-    # --- Handle GET request for purchase_form (initial load or re-render after POST error) ---
-    # This block populates items_to_process and totals for rendering the form
+    # --- Handle GET request ---
     (items_to_process, subtotal_before_gst, total_cgst_amount, 
-     total_sgst_amount, total_igst_amount, total_ugst_amount, total_cess_amount, # NEW
-     total_gst, final_total_amount, shipping_charge) = get_cart_items_details() # Use the helper
+     total_sgst_amount, total_igst_amount, total_ugst_amount, total_cess_amount,
+     total_gst, final_total_amount, shipping_charge) = get_cart_items_details()
 
     if not items_to_process:
         flash("No items to purchase.", "danger")
         return redirect(url_for('cart'))
 
-    # Ensure form_data is present for template rendering, especially on GET
+    # Handle pre-selected address after adding new
+    pre_selected_id = session.pop('pre_selected_address_id', None)
+    if pre_selected_id:
+        selected_address = db.session.get(Address, pre_selected_id)
+
     form_data = request.form.to_dict() if request.method == 'POST' else {}
 
-    return render_template('purchase_form.html', 
-                           items_to_process=items_to_process, 
+    return render_template('purchase_form.html',
+                           items_to_process=items_to_process,
                            subtotal_before_gst=subtotal_before_gst,
                            total_gst=total_gst,
                            shipping_charge=shipping_charge,
                            final_total_amount=final_total_amount,
                            user_addresses=user_addresses,
-                           selected_address=shipping_address_obj or prefill_address,
+                           selected_address=selected_address,
+                           prefill_address=prefill_address_dict,
                            form_data=form_data,
                            total_cgst_amount=total_cgst_amount,
                            total_sgst_amount=total_sgst_amount,
                            total_igst_amount=total_igst_amount,
                            total_ugst_amount=total_ugst_amount,
-                           total_cess_amount=total_cess_amount) # NEW
+                           total_cess_amount=total_cess_amount,
+                           new_address_added=bool(pre_selected_id))
 
 # MODIFIED: Signup route to include OTP verification
 @app.route('/signup', methods=['GET', 'POST'])
@@ -2568,6 +2510,34 @@ def my_addresses():
     addresses = Address.query.filter_by(user_id=current_user.id).order_by(Address.is_default.desc(), Address.id.asc()).all()
     return render_template('my_addresses.html', addresses=addresses)
 
+@app.route('/edit-address/<address_id>', methods=['GET', 'POST'])
+@login_required
+def edit_address(address_id):
+    # Fetch address belonging to current user only
+    address = Address.query.filter_by(id=address_id, user_id=current_user.id).first_or_404()
+
+    if request.method == 'POST':
+        address.label = request.form.get('label', '')
+        address.full_name = request.form.get('full_name', '')
+        address.phone = request.form.get('phone', '')
+        address.address_line1 = request.form.get('address_line1', '')
+        address.address_line2 = request.form.get('address_line2', '')
+        address.pincode = request.form.get('pincode', '')
+        address.city = request.form.get('city', '')
+        address.state = request.form.get('state', '')
+        address.is_default = 'is_default' in request.form
+
+        # If user set this as default, unset all others
+        if address.is_default:
+            other_addresses = Address.query.filter(Address.user_id == current_user.id, Address.id != address.id)
+            for addr in other_addresses:
+                addr.is_default = False
+
+        db.session.commit()
+        flash("Address updated successfully!", "success")
+        return redirect(url_for('my_addresses'))  # Or wherever you show the list of addresses
+
+    return render_template("edit_address.html", address=address)
 
 
 
