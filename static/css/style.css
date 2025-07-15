@@ -282,32 +282,33 @@ body {
     margin-bottom: 2rem;
 }
 
-#featured-artworks-carousel,
+/* REMOVED: Conflicting carousel styles from here. They are now in _base.html */
+/* #featured-artworks-carousel,
 #all-products-carousel {
     scroll-behavior: smooth;
     overflow-x: auto;
     white-space: nowrap;
-}
+} */
 
 .thumbnail-wrapper {
-  width: 100%;
-  aspect-ratio: 4 / 5;
-  background-color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    background-color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
 }
 
 .thumbnail-wrapper img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  transition: transform 0.3s ease-in-out;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    transition: transform 0.3s ease-in-out;
 }
 
 .thumbnail-wrapper:hover img {
-  transform: scale(1.05);
+    transform: scale(1.05);
 }
 
 /* NEW/MODIFIED RULE: Ensure headings inside main content are properly spaced */

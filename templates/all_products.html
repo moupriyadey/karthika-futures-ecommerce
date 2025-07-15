@@ -28,10 +28,11 @@
                 <div class="container mx-auto">
                     <h2 class="text-3xl font-bold text-gray-800 mb-6 px-4">{{ category_name }}</h2>
                     <div class="relative">
+                        {# Changed snap-mandatory to snap-proximity for smoother feel #}
                         {# Added cursor-grab and active:cursor-grabbing for better UX #}
+                        {# Removed inline style="touch-action: pan-x;" as it's now in _base.html CSS #}
                         <div id="category-carousel-{{ category_name | slugify }}" 
-                             class="flex overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-hide cursor-grab active:cursor-grabbing"
-                             style="touch-action: pan-x;"> {# Added touch-action for explicit horizontal pan #}
+                             class="flex overflow-x-scroll snap-x snap-proximity pb-4 scrollbar-hide cursor-grab active:cursor-grabbing">
                             {% for artwork in artworks %}
                             <div class="flex-shrink-0 w-80 snap-center mx-3 product-card bg-white rounded-lg shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
                                 <a href="{{ url_for('product_detail', sku=artwork.sku) }}"> 
@@ -49,6 +50,7 @@
                                     <p class="text-gray-600 text-sm mb-3">{{ artwork.description[:100] }}{% if artwork.description|length > 100 %}...{% endif %}</p>
                                     <div class="flex items-baseline justify-between mb-4">
                                         <span class="text-2xl font-bold text-primary final-price">{{ artwork.selling_price_incl_gst | currency }}</span>
+                                        {# REMOVED: Original price display #}
                                     </div>
                                     <div class="flex items-center mb-3">
                                         <div class="text-yellow-500">
@@ -72,10 +74,11 @@
                             </div>
                             {% endfor %}
                         </div>
-                        <button class="absolute left-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 z-30 opacity-75 hover:opacity-100 transition-opacity" onclick="scrollCarousel('category-carousel-{{ category_name | slugify }}', -1)">
+                        {# Increased z-index for buttons to ensure clickability #}
+                        <button class="absolute left-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 z-40 opacity-75 hover:opacity-100 transition-opacity" onclick="scrollCarousel('category-carousel-{{ category_name | slugify }}', -1)">
                             <i class="fas fa-chevron-left text-gray-700"></i>
                         </button>
-                        <button class="absolute right-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 z-30 opacity-75 hover:opacity-100 transition-opacity" onclick="scrollCarousel('category-carousel-{{ category_name | slugify }}', 1)">
+                        <button class="absolute right-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 z-40 opacity-75 hover:opacity-100 transition-opacity" onclick="scrollCarousel('category-carousel-{{ category_name | slugify }}', 1)">
                             <i class="fas fa-chevron-right text-gray-700"></i>
                         </button>
                     </div>
@@ -169,23 +172,20 @@
         document.getElementById('fullImagePreview').src = src;
         document.getElementById('fullImageModal').classList.remove('hidden');
         document.getElementById('fullImageModal').classList.add('flex');
-        // Add event listener to the image itself to close the modal
-        document.getElementById('fullImagePreview').addEventListener('click', closeFullImage, { once: true });
-        // Add event listener to the modal background to close the modal
-        document.getElementById('fullImageModal').addEventListener('click', function(event) {
+        const modal = document.getElementById('fullImageModal');
+        const clickListener = function(event) {
             if (event.target === this) { // Only close if clicking the background, not the image or button
                 closeFullImage();
             }
-        });
+        };
+        modal.addEventListener('click', clickListener);
+        modal._clickListener = clickListener; // Store listener to remove later
     }
 
     function closeFullImage() {
         document.getElementById('fullImageModal').classList.remove('flex');
         document.getElementById('fullImageModal').classList.add('hidden');
         document.getElementById('fullImagePreview').src = '';
-        // Remove event listener to prevent multiple bindings
-        document.getElementById('fullImagePreview').removeEventListener('click', closeFullImage);
-        // Remove the background click listener to prevent multiple bindings
         const fullImageModal = document.getElementById('fullImageModal');
         const oldListener = fullImageModal._clickListener; // Retrieve stored listener
         if (oldListener) {
@@ -193,24 +193,105 @@
             fullImageModal._clickListener = null; // Clear stored listener
         }
     }
-</script>
 
-<script>
+    // --- Carousel Looping and Navigation Logic ---
+    function initializeCarousel(carouselId) {
+        const carousel = document.getElementById(carouselId);
+        if (!carousel) {
+            console.error(`initializeCarousel: Carousel element not found: ${carouselId}`);
+            return;
+        }
+
+        const items = Array.from(carousel.querySelectorAll('.product-card')); // Select only product cards
+        if (items.length === 0) {
+            console.warn(`initializeCarousel: No product-card items found in carousel: ${carouselId}`);
+            return;
+        }
+
+        // Precise itemWidth calculation (w-80 = 320px, mx-3 = 12px left + 12px right = 24px)
+        const itemWidth = 320 + 24; // Total 344px
+        
+        const numClones = Math.min(items.length, 3); // Clone a few items for seamless loop
+
+        // Clear existing clones to prevent duplicates on re-initialization (if any)
+        Array.from(carousel.children).forEach(child => {
+            if (child.classList.contains('cloned-item')) {
+                carousel.removeChild(child);
+            }
+        });
+
+        // Clone items for infinite loop effect
+        // Append clones of first items
+        for (let i = 0; i < numClones; i++) {
+            const clone = items[i].cloneNode(true);
+            clone.classList.add('cloned-item'); // Mark as clone
+            carousel.appendChild(clone); 
+        }
+        // Prepend clones of last items
+        for (let i = 0; i < numClones; i++) {
+            const clone = items[items.length - 1 - i].cloneNode(true);
+            clone.classList.add('cloned-item'); // Mark as clone
+            carousel.prepend(clone); 
+        }
+
+        // Adjust initial scroll position to start of original items
+        // Use setTimeout to ensure initial scroll happens after DOM layout is complete
+        setTimeout(() => {
+            carousel.scrollLeft = numClones * itemWidth;
+            console.log(`initializeCarousel: ${carouselId} initial scrollLeft set to ${carousel.scrollLeft}`);
+        }, 100); // Increased delay to allow layout
+
+        let isScrolling;
+        carousel.addEventListener('scroll', () => {
+            clearTimeout(isScrolling);
+            isScrolling = setTimeout(() => {
+                const scrollLeft = carousel.scrollLeft;
+                const scrollWidth = carousel.scrollWidth;
+                const clientWidth = carousel.clientWidth;
+
+                console.log(`Carousel ${carouselId} scroll event: scrollLeft=${scrollLeft}, scrollWidth=${scrollWidth}, clientWidth=${clientWidth}, numClones=${numClones}, itemWidth=${itemWidth}`);
+
+                // If scrolled to the end of appended clones (original start)
+                // Use a small epsilon for floating point comparison
+                if (scrollLeft + clientWidth >= scrollWidth - (numClones * itemWidth) - 1) { 
+                    carousel.scrollLeft = numClones * itemWidth; // Jump to original start
+                    console.log(`Carousel ${carouselId}: Jumped from end clone to original start (new scrollLeft: ${carousel.scrollLeft}).`);
+                } 
+                // If scrolled to the beginning of prepended clones (original end)
+                else if (scrollLeft <= 1) { // Use a small epsilon for floating point comparison
+                    carousel.scrollLeft = scrollWidth - (numClones * itemWidth) - clientWidth; // Jump to original end
+                    console.log(`Carousel ${carouselId}: Jumped from start clone to original end (new scrollLeft: ${carousel.scrollLeft}).`);
+                }
+            }, 150); // Increased debounce time for more stable jumps
+        });
+    }
+
+    // This function is for the buttons
     function scrollCarousel(carouselId, direction) {
-        console.log(`Attempting to scroll carousel: ${carouselId} in direction: ${direction}`);
+        console.log(`scrollCarousel: Attempting to scroll carousel: ${carouselId} in direction: ${direction}`);
         const carousel = document.getElementById(carouselId);
         if (carousel) {
-            console.log(`Carousel found: ${carouselId}. Current scrollLeft: ${carousel.scrollLeft}`);
-            const scrollAmount = carousel.offsetWidth / 2;
+            // Precise itemWidth calculation (w-80 = 320px, mx-3 = 12px left + 12px right = 24px)
+            const itemWidth = 320 + 24; // Total 344px
+            const scrollAmount = itemWidth; // Scroll exactly one item
+
+            console.log(`scrollCarousel: Carousel found: ${carouselId}. Current scrollLeft: ${carousel.scrollLeft}. Item Width: ${itemWidth}. Scroll Amount: ${scrollAmount}`);
             carousel.scrollBy({
                 left: direction * scrollAmount,
                 behavior: 'smooth'
             });
-            console.log(`Scroll initiated. Target scrollLeft: ${carousel.scrollLeft + (direction * scrollAmount)}`);
+            console.log(`scrollCarousel: Scroll initiated. Target scrollLeft: ${carousel.scrollLeft + (direction * scrollAmount)}`);
         } else {
-            console.error(`Carousel not found with ID: ${carouselId}`);
+            console.error(`scrollCarousel: Carousel not found with ID: ${carouselId}`);
         }
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize all category carousels on all-products.html
+        document.querySelectorAll('[id^="category-carousel-"]').forEach(carousel => {
+            initializeCarousel(carousel.id);
+        });
+    });
 </script>
 
 <style>

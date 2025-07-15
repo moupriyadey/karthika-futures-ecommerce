@@ -14,21 +14,26 @@
             Your browser does not support the video tag.
         </video>
         <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black opacity-75 z-10"></div>
-        <div class="relative z-20 text-center p-4 max-w-4xl mx-auto">
+        
+        {# START: Main content container for text and button #}
+        {# This div now holds both the text and the button, and has the highest z-index #}
+        <div class="relative z-30 text-center p-4 max-w-4xl mx-auto flex flex-col items-center justify-center">
             <h1 class="text-3xl sm:text-5xl md:text-7xl font-extrabold mb-4 animate-fade-in-up leading-tight">
                 MouRupa.com: Where Art Meets Divinity
             </h1>
             <p class="text-base sm:text-lg md:text-2xl mb-6 font-light animate-fade-in-up animation-delay-300">
                 Embark on a spiritual journey through timeless artworks inspired by the Mahabharata and Hindu mythology.
             </p>
-            {# START: Go Button Wrapper #}
-            <div class="go-button-wrapper animate-fade-in-up animation-delay-600 relative"> 
+            {# Go Button Wrapper - Directly inside the z-30 container #}
+            {# Removed 'relative z-50' from here, as parent z-30 should be sufficient #}
+            <div class="go-button-wrapper animate-fade-in-up animation-delay-600"> 
                 <a href="/all-products" class="btn btn-primary text-base sm:text-xl px-6 sm:px-8 py-3 sm:py-4 rounded-full go-button-inner">
                     Go
                 </a>
             </div>
-            {# END: Go Button Wrapper #}
         </div>
+        {# END: Main content container #}
+
     </section>
 
     <!-- Dharma Prachar & Donation Section -->
@@ -49,9 +54,10 @@
         <div class="container mx-auto">
             <h2 class="text-4xl font-extrabold text-center text-gray-800 mb-10">Featured Divine Masterpieces</h2>
             <div class="relative">
+                {# Changed snap-mandatory to snap-proximity for smoother feel #}
                 {# Added cursor-grab and active:cursor-grabbing for better UX #}
                 <div id="featured-artworks-carousel" 
-                     class="flex overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-hide cursor-grab active:cursor-grabbing"
+                     class="flex overflow-x-scroll snap-x snap-proximity pb-4 scrollbar-hide cursor-grab active:cursor-grabbing"
                      style="touch-action: pan-x;"> {# Added touch-action for explicit horizontal pan #}
                     {% for artwork in featured_artworks %}
                     <div class="flex-shrink-0 w-80 snap-center mx-3 product-card bg-white rounded-lg shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
@@ -71,9 +77,7 @@
                             <p class="text-gray-600 text-sm mb-3">{{ artwork.description[:100] }}{% if artwork.description|length > 100 %}...{% endif %}</p>
                             <div class="flex items-baseline justify-between mb-4">
                                 <span class="text-2xl font-bold text-primary final-price">{{ artwork.selling_price_incl_gst | currency }}</span>
-                                {% if artwork.selling_price_incl_gst != artwork.original_price %}
-                                    <span class="text-lg text-gray-500 line-through">{{ artwork.original_price | currency }}</span>
-                                {% endif %}
+                                {# REMOVED: Original price display #}
                             </div>
                             <div class="flex items-center mb-3">
                                 <!-- Placeholder for Ratings - Integrate actual rating system if available -->
@@ -96,10 +100,11 @@
                     <p class="text-center text-gray-600 w-full">No featured artworks available at the moment.</p>
                     {% endfor %}
                 </div>
-                <button class="absolute left-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 z-30" id="scroll-left-featured">
+                {# Increased z-index for buttons to ensure clickability #}
+                <button class="absolute left-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 z-40" id="scroll-left-featured">
                     <i class="fas fa-chevron-left text-gray-700"></i>
                 </button>
-                <button class="absolute right-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 z-30" id="scroll-right-featured">
+                <button class="absolute right-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 z-40" id="scroll-right-featured">
                     <i class="fas fa-chevron-right text-gray-700"></i>
                 </button>
             </div>
@@ -176,15 +181,8 @@
         const scrollLeftBtn = document.getElementById('scroll-left-featured');
         const scrollRightBtn = document.getElementById('scroll-right-featured');
 
-        console.log('index.html DOMContentLoaded:');
-        console.log('Carousel element:', carousel);
-        console.log('Scroll Left Button:', scrollLeftBtn);
-        console.log('Scroll Right Button:', scrollRightBtn);
-
-
-        if (carousel && scrollLeftBtn && scrollRightBtn) {
+        if (carousel) {
             scrollLeftBtn.addEventListener('click', () => {
-                console.log('index.html: Scroll Left button clicked.');
                 carousel.scrollBy({
                     left: -carousel.offsetWidth / 2, // Scroll half the visible width
                     behavior: 'smooth'
@@ -192,14 +190,11 @@
             });
 
             scrollRightBtn.addEventListener('click', () => {
-                console.log('index.html: Scroll Right button clicked.');
                 carousel.scrollBy({
                     left: carousel.offsetWidth / 2, // Scroll half the visible width
                     behavior: 'smooth'
                 });
             });
-        } else {
-            console.error('index.html: One or more carousel elements not found for event listeners.');
         }
     });
 </script>
@@ -257,73 +252,5 @@
         }
     }
 
-    /* Styles for the Go button wrapper */
-    .go-button-wrapper {
-        position: relative; /* Ensure position is not static for z-index to work */
-        display: inline-flex; /* Use inline-flex to size to content */
-        align-items: center;
-        justify-content: center;
-        padding: 3px; /* Thickness of the gradient border */
-        border-radius: 9999px; /* Fully rounded */
-        background: linear-gradient(to right, #6A0DAD, #4B0082, #0000FF); /* Blue to Violet Purple Gradient */
-        animation: floatAnimation 3s ease-in-out infinite; /* Apply floating animation */
-        box-shadow: 0 0 15px rgba(106, 13, 173, 0.6), 0 0 30px rgba(75, 0, 130, 0.4); /* Outer glow */
-        z-index: 50; /* Ensure it's above other content */
-        transition: all 0.3s ease; /* For hover effect on wrapper */
-    }
-
-    /* Inner button styling */
-    .go-button-wrapper .go-button-inner { /* Target the inner button specifically */
-        background-color: var(--primary-color); /* Explicitly set to ensure it's not transparent */
-        color: white; /* Ensure text color is white */
-        border: none; /* Remove any default button border */
-        
-        /* Add subtle inner shadow for emboss effect */
-        box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.2), 
-                    inset 0 -2px 4px rgba(0, 0, 0, 0.2); /* Only inner shadows for emboss */
-        
-        transition: all 0.3s ease; /* Smooth transitions for inner button changes */
-    }
-
-    /* Hover effect on the wrapper, affecting the inner button */
-    .go-button-wrapper:hover {
-        box-shadow: 0 0 20px rgba(106, 13, 173, 0.8), 0 0 40px rgba(75, 0, 130, 0.6); /* Enhanced outer glow on hover */
-        transform: translateY(-5px); /* Slight lift on hover */
-    }
-
-    .go-button-wrapper:hover .go-button-inner {
-        box-shadow: inset 0 3px 5px rgba(255, 255, 255, 0.3), 
-                    inset 0 -3px 5px rgba(0, 0, 0, 0.3); /* Deeper emboss on hover */
-    }
-
-    /* Keyframes for floating animation */
-    @keyframes floatAnimation {
-        0% { transform: translateY(0px); }
-        50% { transform: translateY(-10px); }
-        100% { transform: translateY(0px); }
-    }
-
-    /* Additional style for image wrapper in featured artworks */
-    .thumbnail-wrapper {
-        width: 100%;
-        height: 16rem; /* Fixed height for consistency */
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        border-radius: 0.5rem; /* rounded-lg */
-        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
-        transition: all 0.3s ease-in-out;
-    }
-
-    .thumbnail-wrapper:hover {
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* hover:shadow-md */
-    }
-
-    .thumbnail-wrapper img {
-        width: 100%; /* Ensure image fills width */
-        height: 100%; /* Ensure image fills height */
-        object-fit: contain; /* Maintain aspect ratio and fit within bounds */
-    }
 </style>
 {% endblock %}

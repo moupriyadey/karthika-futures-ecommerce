@@ -12,7 +12,36 @@
     
     <meta name="csrf-token" content="{{ csrf_token() }}">
     
+{# ... (previous content of _base.html) ... #}
+
+<style>
+    /* Ensure consistent box-sizing for all elements */
+    *, *::before, *::after {
+        box-sizing: border-box;
+    }
+
+    /* Ensure smooth scrolling and touch action for elements with overflow-x-scroll */
+    /* This rule is crucial and uses !important to override potential conflicts */
+    .overflow-x-scroll {
+        scroll-behavior: smooth !important; /* Force smooth scrolling */
+        overflow-x: scroll !important; /* Force scroll behavior */
+        -webkit-overflow-scrolling: touch; /* Enable momentum scrolling on iOS */
+        touch-action: pan-x; /* Allow horizontal panning for touch events */
+    }
+
+    /* Your existing styles in _base.html */
+    /* ... */
+</style>
+
+{# ... (rest of _base.html) ... #}
+
     <style>
+
+           /* Ensure smooth scrolling for elements with overflow-x-scroll */
+    .overflow-x-scroll {
+        scroll-behavior: smooth !important; /* Force smooth scrolling */
+    }
+
         /* Custom styles for the theme */
         :root {
             --primary-color: #FF8C00; /* Saffron */
