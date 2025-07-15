@@ -49,9 +49,15 @@
                     {% for artwork in featured_artworks %}
                     <div class="flex-shrink-0 w-80 snap-center mx-3 product-card bg-white rounded-lg shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
                         <a href="{{ url_for('product_detail', sku=artwork.sku) }}">
-                            <img src="{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}" 
-                                 alt="{{ artwork.name }}" 
-                                 class="w-full h-64 object-cover object-center">
+                            <div class="thumbnail-wrapper rounded-lg shadow-sm group">
+  <img 
+    src="{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}"
+    alt="{{ artwork.name }}"
+    class="object-contain transition-transform duration-300 group-hover:scale-105 cursor-pointer"
+    onclick="event.preventDefault(); openFullImage('{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}');"
+  >
+</div>
+
                         </a>
                         <div class="p-4">
                             <h3 class="text-xl font-semibold text-gray-900 mb-2 truncate">{{ artwork.name }}</h3>
