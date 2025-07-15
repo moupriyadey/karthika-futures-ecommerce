@@ -537,9 +537,6 @@ def calculate_item_total(artwork, selected_options, quantity):
 
 # Assuming you have a get_cart_items_details() function somewhere,
 # NEW: Helper function to get detailed cart items for display and calculation
-# NEW: Helper function to get detailed cart items for display and calculation
-from decimal import Decimal, InvalidOperation # Ensure InvalidOperation is imported
-
 from decimal import Decimal, InvalidOperation # Ensure InvalidOperation is imported
 
 def get_cart_items_details():
@@ -776,7 +773,10 @@ def create_direct_order():
         return jsonify(success=True, message='Proceeding to checkout.', redirect_url=url_for('purchase_form'))
     else:
         # If not logged in, redirect to login page, which will then redirect to purchase_form
-        return jsonify(success=True, message='Please log in or sign up to complete your purchase.', redirect_url=url_for('user_login', next='purchase_form'))
+        # Store the intended destination for after login
+        session['redirect_after_auth'] = url_for('purchase_form') 
+        session.modified = True
+        return jsonify(success=True, message='Please log in or sign up to complete your purchase.', redirect_url=url_for('user_login', next=url_for('purchase_form')))
 
 # MODIFIED: Purchase form to handle both cart checkout and direct purchase
 # In app.py, locate your purchase_form route and update it.
@@ -972,12 +972,22 @@ def purchase_form():
                            total_cess_amount=total_cess_amount,
                            new_address_added=bool(pre_selected_id))
 
-# MODIFIED: Signup route to include OTP verification
+# MODIFIED: Signup route to include OTP verification and next_url capture
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
 
+    # Store the 'next' URL if provided in the query parameters (e.g., from @login_required)
+    next_url = request.args.get('next')
+    if next_url:
+        session['redirect_after_auth'] = next_url
+    # If no 'next' param, try to use referrer, but avoid redirecting back to auth pages
+    elif request.referrer and request.referrer != request.url:
+        # Check if referrer is not from an authentication page to avoid redirection loops
+        if not any(auth_path in request.referrer for auth_path in ['/user-login', '/signup', '/verify_otp', '/forgot-password', '/verify_reset_otp', '/reset_password']):
+            session['redirect_after_auth'] = request.referrer
+    
     form_data = {}
     if request.method == 'POST':
         email = request.form.get('email')
@@ -1039,14 +1049,34 @@ def signup():
         
         session['otp_user_id'] = new_user.id # Store user ID in session for OTP verification
         
-        # --- NEW LINE ADDED HERE ---
         session['prefill_login_phone'] = new_user.phone # Store phone for login prefill
-        # --- END NEW LINE ---
 
         flash('A One-Time Password (OTP) has been sent to your email. Please verify to complete registration.', 'success')
         return redirect(url_for('verify_otp'))
 
     return render_template('signup.html', form_data=form_data)
+
+# NEW: Helper function to handle post-authentication redirection
+def _handle_post_auth_redirect():
+    # Prioritize direct purchase flow (from 'Buy Now' button)
+    if 'direct_purchase_cart' in session and session['direct_purchase_cart']:
+        # Clear the direct purchase cart from session once handled
+        session.pop('direct_purchase_cart', None)
+        # Ensure 'itemToBuyNow' is cleared if it was set by older logic
+        session.pop('itemToBuyNow', None) 
+        flash('Login successful! Redirecting to complete your purchase.', 'success')
+        return redirect(url_for('purchase_form'))
+    
+    # Then check for a general 'next' URL (from @login_required or referrer)
+    redirect_to_url = session.pop('redirect_after_auth', None)
+    if redirect_to_url:
+        flash('Login successful! You are now logged in.', 'success')
+        return redirect(redirect_to_url)
+    
+    # Fallback to homepage if no specific URL was stored
+    flash('Login successful! You are now logged in.', 'success')
+    return redirect(url_for('index'))
+
 
 @app.route('/verify_otp', methods=['GET', 'POST'])
 def verify_otp():
@@ -1075,22 +1105,8 @@ def verify_otp():
 
             login_user(user)  # ✅ Automatically log the user in after OTP verified
 
-            # If user was trying to access a specific page, handle redirect
-            redirect_after_login = session.pop('redirect_after_login_endpoint', None)
-            item_to_buy_now = session.pop('itemToBuyNow', None)
-
-            if redirect_after_login == 'purchase_form' and item_to_buy_now:
-                session['direct_purchase_cart'] = {'temp_item': item_to_buy_now}
-                session.modified = True
-                flash('Email verified! Redirecting to complete your purchase.', 'success')
-                return redirect(url_for('purchase_form'))
-
-            elif redirect_after_login:
-                flash('Email verified! You are now logged in.', 'success')
-                return redirect(url_for(redirect_after_login))
-
-            flash('Email verified! You are now logged in.', 'success')
-            return redirect(url_for('index'))
+            # Use the new helper function for redirection
+            return _handle_post_auth_redirect()
 
         else:
             flash('Invalid or expired OTP. Please try again.', 'danger')
@@ -1126,20 +1142,30 @@ def user_login():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
 
+    # Store the 'next' URL if provided in the query parameters (e.g., from @login_required)
+    next_url = request.args.get('next')
+    if next_url:
+        session['redirect_after_auth'] = next_url
+    # If no 'next' param, try to use referrer, but avoid redirecting back to auth pages
+    elif request.referrer and request.referrer != request.url:
+        # Check if referrer is not from an authentication page to avoid redirection loops
+        if not any(auth_path in request.referrer for auth_path in ['/user-login', '/signup', '/verify_otp', '/forgot-password', '/verify_reset_otp', '/reset_password']):
+            session['redirect_after_auth'] = request.referrer
+    
     # Retrieve prefill data from session (will be removed after being read once)
-    prefill_phone = session.pop('prefill_login_phone', None) # NEW LINE: Get and remove prefill phone
-    prefill_email = session.pop('prefill_login_email', None) # Optional: if you ever decide to prefill email (keep for future use if needed)
+    prefill_phone = session.pop('prefill_login_phone', None)
+    prefill_email = session.pop('prefill_login_email', None)
 
     form_data = {} # Initialize form_data for GET requests or failed POSTs
 
     if request.method == 'POST':
         # Accept either email or phone for login
-        login_identifier = request.form.get('login_identifier') # MODIFIED: Get from 'login_identifier' field
+        login_identifier = request.form.get('login_identifier')
         password = request.form.get('password')
         form_data = {'login_identifier': login_identifier} # Pass back entered identifier on failure
 
         # Query for user by either email OR phone number
-        user = User.query.filter((User.email == login_identifier) | (User.phone == login_identifier)).first() # MODIFIED: Check both email and phone
+        user = User.query.filter((User.email == login_identifier) | (User.phone == login_identifier)).first()
 
         if user and user.check_password(password):
             if not user.email_verified:
@@ -1154,24 +1180,13 @@ def user_login():
                 return redirect(url_for('verify_otp'))
             
             login_user(user)
-            flash('Logged in successfully!', 'success')
-
-            next_page = request.args.get('next')
-            # Handle redirect after login for direct purchase
-            item_to_buy_now = session.pop('itemToBuyNow', None)
-            redirect_after_login_endpoint = session.pop('redirect_after_login_endpoint', None)
-
-            if redirect_after_login_endpoint == 'purchase_form' and item_to_buy_now:
-                session['direct_purchase_cart'] = {'temp_item': item_to_buy_now}
-                session.modified = True
-                return redirect(url_for('purchase_form'))
-            
-            return redirect(next_page or url_for('index'))
+            # Use the new helper function for redirection
+            return _handle_post_auth_redirect()
         else:
-            flash('Invalid login ID or password.', 'danger') # MODIFIED: 'email' to 'login ID' to reflect dual login
+            flash('Invalid login ID or password.', 'danger')
 
     # Pass prefill data AND form_data to the template for GET requests or failed POST requests
-    return render_template('login.html', form_data=form_data, prefill_phone=prefill_phone, prefill_email=prefill_email) # MODIFIED: Pass prefill_phone
+    return render_template('login.html', form_data=form_data, prefill_phone=prefill_phone, prefill_email=prefill_email)
 
 
 @app.route('/logout')
@@ -1185,6 +1200,8 @@ def logout():
     # Clear other session data like 'itemToBuyNow' if needed
     session.pop('itemToBuyNow', None)
     session.pop('redirect_after_login_endpoint', None)
+    session.pop('redirect_after_auth', None) # Clear the new redirect key
+    session.pop('direct_purchase_cart', None) # Clear direct purchase cart on logout
     
     session.clear()  # Optional: Clears entire session
     
@@ -1911,7 +1928,6 @@ def admin_edit_artwork(artwork_id):
         igst_percentage = request.form.get('igst_percentage', '0.00')
         ugst_percentage = request.form.get('ugst_percentage', '0.00')
         cess_percentage = request.form.get('cess_percentage', '0.00') # NEW
-
         stock = request.form.get('stock', '0') # Default to '0' for stock
         description = request.form.get('description')
         shipping_charge = request.form.get('shipping_charge', '0.00') # NEW: Default to '0.00'
@@ -2143,7 +2159,6 @@ def _get_single_invoice_flowables(order, invoice_data_safe, styles, font_name, f
     total_igst_items = Decimal('0.00')
     total_ugst_items = Decimal('0.00')
     total_cess_items = Decimal('0.00') # NEW
-
     for item in order.items:
         options_str = ", ".join([f"{k}: {v}" for k, v in item.get_selected_options_dict().items()])
         
@@ -2440,7 +2455,6 @@ def generate_invoice_pdf(order_id):
     # Add a spacer to push the second copy down.
     # A4 height is 11.69 inches. We need to push the second copy roughly to the middle.
     # The exact value might need fine-tuning based on content.
-    # This spacer will act as a separator and push the second invoice to the lower half.
     # It's a bit of a hack for SimpleDocTemplate to get two distinct sections on one page.
     full_story.append(Spacer(1, 0.5 * inch)) # Adjust this value if needed for exact positioning
 

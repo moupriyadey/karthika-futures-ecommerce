@@ -13,7 +13,7 @@
         <a class="flex-sm-fill text-sm-center nav-link {% if request.endpoint == 'admin_artworks' %}active{% endif %}" href="{{ url_for('admin_artworks') }}">Artworks</a>
         <a class="flex-sm-fill text-sm-center nav-link {% if request.endpoint == 'admin_categories' %}active{% endif %}" href="{{ url_for('admin_categories') }}">Categories</a>
         <a class="flex-sm-fill text-sm-center nav-link {% if request.endpoint == 'admin_users' %}active{% endif %}" href="{{ url_for('admin_users') }}">Users</a>
-        <a class="flex-sm-fill text-sm-center nav-link" href="{{ url_for('user_logout') }}">Logout</a> {# Changed admin_logout to user_logout #}
+        <a class="flex-sm-fill text-sm-center nav-link" href="{{ url_for('logout') }}">Logout</a> {# Changed admin_logout to user_logout #}
     </nav>
     {# End of admin_navbar.html content #}
 
