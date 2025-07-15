@@ -21,9 +21,13 @@
             <p class="text-base sm:text-lg md:text-2xl mb-6 font-light animate-fade-in-up animation-delay-300">
                 Embark on a spiritual journey through timeless artworks inspired by the Mahabharata and Hindu mythology.
             </p>
-            <a href="/all-products" class="btn btn-primary text-base sm:text-xl px-6 sm:px-8 py-3 sm:py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 animate-fade-in-up animation-delay-600">
-                Go
-            </a>
+            {# START: Go Button Wrapper #}
+            <div class="go-button-wrapper animate-fade-in-up animation-delay-600 relative"> 
+                <a href="/all-products" class="btn btn-primary text-base sm:text-xl px-6 sm:px-8 py-3 sm:py-4 rounded-full go-button-inner">
+                    Go
+                </a>
+            </div>
+            {# END: Go Button Wrapper #}
         </div>
     </section>
 
@@ -45,19 +49,22 @@
         <div class="container mx-auto">
             <h2 class="text-4xl font-extrabold text-center text-gray-800 mb-10">Featured Divine Masterpieces</h2>
             <div class="relative">
-                <div id="featured-artworks-carousel" class="flex overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-hide">
+                {# Added cursor-grab and active:cursor-grabbing for better UX #}
+                <div id="featured-artworks-carousel" 
+                     class="flex overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-hide cursor-grab active:cursor-grabbing"
+                     style="touch-action: pan-x;"> {# Added touch-action for explicit horizontal pan #}
                     {% for artwork in featured_artworks %}
                     <div class="flex-shrink-0 w-80 snap-center mx-3 product-card bg-white rounded-lg shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
                         <a href="{{ url_for('product_detail', sku=artwork.sku) }}">
                             <div class="thumbnail-wrapper rounded-lg shadow-sm group">
-  <img 
-    src="{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}"
-    alt="{{ artwork.name }}"
-    class="object-contain transition-transform duration-300 group-hover:scale-105 cursor-pointer"
-    onclick="event.preventDefault(); openFullImage('{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}');"
-  >
-</div>
-
+                                <img 
+                                    src="{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}"
+                                    alt="{{ artwork.name }}"
+                                    class="object-contain transition-transform duration-300 group-hover:scale-105 cursor-pointer"
+                                    title="Click to view larger"
+                                    onclick="event.preventDefault(); openFullImage('{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}');"
+                                >
+                            </div>
                         </a>
                         <div class="p-4">
                             <h3 class="text-xl font-semibold text-gray-900 mb-2 truncate">{{ artwork.name }}</h3>
@@ -169,8 +176,15 @@
         const scrollLeftBtn = document.getElementById('scroll-left-featured');
         const scrollRightBtn = document.getElementById('scroll-right-featured');
 
-        if (carousel) {
+        console.log('index.html DOMContentLoaded:');
+        console.log('Carousel element:', carousel);
+        console.log('Scroll Left Button:', scrollLeftBtn);
+        console.log('Scroll Right Button:', scrollRightBtn);
+
+
+        if (carousel && scrollLeftBtn && scrollRightBtn) {
             scrollLeftBtn.addEventListener('click', () => {
+                console.log('index.html: Scroll Left button clicked.');
                 carousel.scrollBy({
                     left: -carousel.offsetWidth / 2, // Scroll half the visible width
                     behavior: 'smooth'
@@ -178,11 +192,14 @@
             });
 
             scrollRightBtn.addEventListener('click', () => {
+                console.log('index.html: Scroll Right button clicked.');
                 carousel.scrollBy({
                     left: carousel.offsetWidth / 2, // Scroll half the visible width
                     behavior: 'smooth'
                 });
             });
+        } else {
+            console.error('index.html: One or more carousel elements not found for event listeners.');
         }
     });
 </script>
@@ -240,5 +257,73 @@
         }
     }
 
+    /* Styles for the Go button wrapper */
+    .go-button-wrapper {
+        position: relative; /* Ensure position is not static for z-index to work */
+        display: inline-flex; /* Use inline-flex to size to content */
+        align-items: center;
+        justify-content: center;
+        padding: 3px; /* Thickness of the gradient border */
+        border-radius: 9999px; /* Fully rounded */
+        background: linear-gradient(to right, #6A0DAD, #4B0082, #0000FF); /* Blue to Violet Purple Gradient */
+        animation: floatAnimation 3s ease-in-out infinite; /* Apply floating animation */
+        box-shadow: 0 0 15px rgba(106, 13, 173, 0.6), 0 0 30px rgba(75, 0, 130, 0.4); /* Outer glow */
+        z-index: 50; /* Ensure it's above other content */
+        transition: all 0.3s ease; /* For hover effect on wrapper */
+    }
+
+    /* Inner button styling */
+    .go-button-wrapper .go-button-inner { /* Target the inner button specifically */
+        background-color: var(--primary-color); /* Explicitly set to ensure it's not transparent */
+        color: white; /* Ensure text color is white */
+        border: none; /* Remove any default button border */
+        
+        /* Add subtle inner shadow for emboss effect */
+        box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.2), 
+                    inset 0 -2px 4px rgba(0, 0, 0, 0.2); /* Only inner shadows for emboss */
+        
+        transition: all 0.3s ease; /* Smooth transitions for inner button changes */
+    }
+
+    /* Hover effect on the wrapper, affecting the inner button */
+    .go-button-wrapper:hover {
+        box-shadow: 0 0 20px rgba(106, 13, 173, 0.8), 0 0 40px rgba(75, 0, 130, 0.6); /* Enhanced outer glow on hover */
+        transform: translateY(-5px); /* Slight lift on hover */
+    }
+
+    .go-button-wrapper:hover .go-button-inner {
+        box-shadow: inset 0 3px 5px rgba(255, 255, 255, 0.3), 
+                    inset 0 -3px 5px rgba(0, 0, 0, 0.3); /* Deeper emboss on hover */
+    }
+
+    /* Keyframes for floating animation */
+    @keyframes floatAnimation {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+        100% { transform: translateY(0px); }
+    }
+
+    /* Additional style for image wrapper in featured artworks */
+    .thumbnail-wrapper {
+        width: 100%;
+        height: 16rem; /* Fixed height for consistency */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border-radius: 0.5rem; /* rounded-lg */
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
+        transition: all 0.3s ease-in-out;
+    }
+
+    .thumbnail-wrapper:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* hover:shadow-md */
+    }
+
+    .thumbnail-wrapper img {
+        width: 100%; /* Ensure image fills width */
+        height: 100%; /* Ensure image fills height */
+        object-fit: contain; /* Maintain aspect ratio and fit within bounds */
+    }
 </style>
 {% endblock %}

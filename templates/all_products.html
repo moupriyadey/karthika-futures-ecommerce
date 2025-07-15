@@ -3,209 +3,224 @@
 {% block title %}All Artworks - Karthika Futures{% endblock %}
 
 {% block content %}
-<div class="container mx-auto p-4 md:p-8 main-content-area">
-  <h1 class="text-4xl font-extrabold text-center text-gray-800 mb-8">Our Divine Collection</h1>
+{# Added pt-20 to ensure content is below fixed navbar #}
+<div class="container mx-auto p-4 md:p-8 pt-20 main-content-area"> 
+    <h1 class="text-4xl font-extrabold text-center text-gray-800 mb-8">Our Divine Collection</h1>
 
-  <div class="mb-8 flex justify-center">
-    <form action="{{ url_for('all_products') }}" method="GET" class="w-full max-w-lg flex">
-      <input type="search" name="search" placeholder="Search artworks by name, SKU or description..."
-             class="form-control flex-grow rounded-l-lg border-r-0 focus:ring-primary focus:border-primary"
-             value="{{ search_query }}">
-      <button type="submit" class="btn btn-primary rounded-r-lg px-6 py-2.5">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-             xmlns="http://www.w3.org/2000/svg">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-        </svg>
-      </button>
-    </form>
-  </div>
-
-  {% if categorized_artworks %}
-    {% for category_name, artworks in categorized_artworks.items() %}
-      <section class="py-8 mb-8 bg-white rounded-lg shadow-md">
-        <div class="container mx-auto">
-          <h2 class="text-3xl font-bold text-gray-800 mb-6 px-4">{{ category_name }}</h2>
-          <div class="relative">
-            <div id="category-carousel-{{ category_name | slugify }}" class="flex overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-hide">
-              {% for artwork in artworks %}
-              <div class="flex-shrink-0 w-80 snap-center mx-3 product-card bg-white rounded-lg shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
-                <a href="{{ url_for('product_detail', sku=artwork.sku) }}"> 
-                  <div class="aspect-[4/5] bg-white flex items-center justify-center overflow-hidden rounded-lg shadow-sm hover:shadow-md transition duration-300 group">
-                    <img 
-                      src="{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}"
-                      alt="{{ artwork.name }}"
-                      class="object-contain max-h-full max-w-full transition-transform duration-300 group-hover:scale-105 cursor-pointer"
-                      title="Click to view larger"
-                      onclick="event.preventDefault(); openFullImage('{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}');"> 
-                  </div>
-                </a>
-                <div class="p-4">
-                  <h3 class="text-xl font-semibold text-gray-900 mb-2 truncate">{{ artwork.name }}</h3>
-                  <p class="text-gray-600 text-sm mb-3">{{ artwork.description[:100] }}{% if artwork.description|length > 100 %}...{% endif %}</p>
-                  <div class="flex items-baseline justify-between mb-4">
-                    <span class="text-2xl font-bold text-primary final-price">{{ artwork.selling_price_incl_gst | currency }}</span>
-                  </div>
-                  <div class="flex items-center mb-3">
-                    <div class="text-yellow-500">
-                      <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
-                    </div>
-                    <span class="text-sm text-gray-600 ml-2">(4.5/5)</span>
-                  </div>
-                  {% if artwork.shipping_charge == 0 %}
-                    <p class="text-green-600 font-semibold text-sm mb-3"><i class="fas fa-truck mr-1"></i> Free Delivery</p>
-                  {% else %}
-                    <p class="text-gray-500 text-sm mb-3"><i class="fas fa-truck mr-1"></i> Shipping: {{ artwork.shipping_charge | currency }}</p>
-                  {% endif %}
-                  <div class="flex justify-center">
-                    {% if artwork.stock > 0 %}
-                      <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary px-6 py-2">View Details</a>
-                    {% else %}
-                      <button class="btn btn-secondary px-6 py-2 opacity-60 cursor-not-allowed" disabled>Out of Stock</button>
-                    {% endif %}
-                  </div>
-                </div>
-              </div>
-              {% endfor %}
-            </div>
-            <button class="absolute left-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 z-30 opacity-75 hover:opacity-100 transition-opacity" onclick="scrollCarousel('category-carousel-{{ category_name | slugify }}', -1)">
-              <i class="fas fa-chevron-left text-gray-700"></i>
+    <div class="mb-8 flex justify-center">
+        <form action="{{ url_for('all_products') }}" method="GET" class="w-full max-w-lg flex">
+            <input type="search" name="search" placeholder="Search artworks by name, SKU or description..."
+                   class="form-control flex-grow rounded-l-lg border-r-0 focus:ring-primary focus:border-primary"
+                   value="{{ search_query }}">
+            <button type="submit" class="btn btn-primary rounded-r-lg px-6 py-2.5">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                     xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
             </button>
-            <button class="absolute right-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 z-30 opacity-75 hover:opacity-100 transition-opacity" onclick="scrollCarousel('category-carousel-{{ category_name | slugify }}', 1)">
-              <i class="fas fa-chevron-right text-gray-700"></i>
-            </button>
-          </div>
-        </div>
-      </section>
-    {% endfor %}
-  {% else %}
-    <div class="text-center py-12 bg-white rounded-lg shadow-md">
-      <p class="text-xl text-gray-600 mb-4">No artworks found matching your search criteria.</p>
-      <a href="{{ url_for('all_products') }}" class="btn btn-primary">Browse All Artworks</a>
+        </form>
     </div>
-  {% endif %}
+
+    {% if categorized_artworks %}
+        {% for category_name, artworks in categorized_artworks.items() %}
+            <section class="py-8 mb-8 bg-white rounded-lg shadow-md">
+                <div class="container mx-auto">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6 px-4">{{ category_name }}</h2>
+                    <div class="relative">
+                        {# Added cursor-grab and active:cursor-grabbing for better UX #}
+                        <div id="category-carousel-{{ category_name | slugify }}" 
+                             class="flex overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-hide cursor-grab active:cursor-grabbing"
+                             style="touch-action: pan-x;"> {# Added touch-action for explicit horizontal pan #}
+                            {% for artwork in artworks %}
+                            <div class="flex-shrink-0 w-80 snap-center mx-3 product-card bg-white rounded-lg shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
+                                <a href="{{ url_for('product_detail', sku=artwork.sku) }}"> 
+                                    <div class="aspect-[4/5] bg-white flex items-center justify-center overflow-hidden rounded-lg shadow-sm hover:shadow-md transition duration-300 group">
+                                        <img 
+                                            src="{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}"
+                                            alt="{{ artwork.name }}"
+                                            class="object-contain max-h-full max-w-full transition-transform duration-300 group-hover:scale-105 cursor-pointer"
+                                            title="Click to view larger"
+                                            onclick="event.preventDefault(); openFullImage('{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}');"> 
+                                    </div>
+                                </a>
+                                <div class="p-4">
+                                    <h3 class="text-xl font-semibold text-gray-900 mb-2 truncate">{{ artwork.name }}</h3>
+                                    <p class="text-gray-600 text-sm mb-3">{{ artwork.description[:100] }}{% if artwork.description|length > 100 %}...{% endif %}</p>
+                                    <div class="flex items-baseline justify-between mb-4">
+                                        <span class="text-2xl font-bold text-primary final-price">{{ artwork.selling_price_incl_gst | currency }}</span>
+                                    </div>
+                                    <div class="flex items-center mb-3">
+                                        <div class="text-yellow-500">
+                                            <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
+                                        </div>
+                                        <span class="text-sm text-gray-600 ml-2">(4.5/5)</span>
+                                    </div>
+                                    {% if artwork.shipping_charge == 0 %}
+                                        <p class="text-green-600 font-semibold text-sm mb-3"><i class="fas fa-truck mr-1"></i> Free Delivery</p>
+                                    {% else %}
+                                        <p class="text-gray-500 text-sm mb-3"><i class="fas fa-truck mr-1"></i> Shipping: {{ artwork.shipping_charge | currency }}</p>
+                                    {% endif %}
+                                    <div class="flex justify-center">
+                                        {% if artwork.stock > 0 %}
+                                            <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary px-6 py-2">View Details</a>
+                                        {% else %}
+                                            <button class="btn btn-secondary px-6 py-2 opacity-60 cursor-not-allowed" disabled>Out of Stock</button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button class="absolute left-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 z-30 opacity-75 hover:opacity-100 transition-opacity" onclick="scrollCarousel('category-carousel-{{ category_name | slugify }}', -1)">
+                            <i class="fas fa-chevron-left text-gray-700"></i>
+                        </button>
+                        <button class="absolute right-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 z-30 opacity-75 hover:opacity-100 transition-opacity" onclick="scrollCarousel('category-carousel-{{ category_name | slugify }}', 1)">
+                            <i class="fas fa-chevron-right text-gray-700"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+        {% endfor %}
+    {% else %}
+        <div class="text-center py-12 bg-white rounded-lg shadow-md">
+            <p class="text-xl text-gray-600 mb-4">No artworks found matching your search criteria.</p>
+            <a href="{{ url_for('all_products') }}" class="btn btn-primary">Browse All Artworks</a>
+        </div>
+    {% endif %}
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <!-- Fullscreen Preview Modal -->
-<div id="fullImageModal" class="fixed inset-0 bg-black bg-opacity-80 z-50 hidden justify-center items-center p-4"> {# Added p-4 for padding #}
-  <div class="relative max-w-full max-h-full flex justify-center items-center"> {# Changed to flex for centering image #}
-    <img id="fullImagePreview" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-xl" src="" alt=""> {# Adjusted max-h, added shadow #}
-    <div class="absolute inset-0 pointer-events-none watermark-grid"></div>
-    
-    {# Explicit Close Button #}
-    <button onclick="closeFullImage()" class="absolute top-4 right-4 bg-white text-gray-800 rounded-full p-2 px-4 font-bold text-lg shadow-lg hover:bg-gray-200 transition-colors duration-200">
-      <i class="fas fa-times"></i> Close
-    </button>
-  </div>
+<div id="fullImageModal" class="fixed inset-0 bg-black bg-opacity-80 z-50 hidden justify-center items-center p-4">
+    <div class="relative max-w-full max-h-full flex justify-center items-center">
+        <img id="fullImagePreview" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-xl" src="" alt="">
+        <div class="absolute inset-0 pointer-events-none watermark-grid"></div>
+        
+        {# Explicit Close Button #}
+        <button onclick="closeFullImage()" class="absolute top-4 right-4 bg-white text-gray-800 rounded-full p-2 px-4 font-bold text-lg shadow-lg hover:bg-gray-200 transition-colors duration-200">
+            <i class="fas fa-times"></i> Close
+        </button>
+    </div>
 </div>
 
 
 <!-- Modal for Quick Purchase -->
 <div id="productModal" class="modal fade" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content p-4">
-      <div class="modal-header">
-        <h5 class="modal-title" id="productModalTitle">Quick Order</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content p-4">
+            <div class="modal-header">
+                <h5 class="modal-title" id="productModalTitle">Quick Order</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
 
-        <!-- Hidden Data Inputs for Calculation -->
-        <input type="hidden" id="modalOriginalPrice" value="">
-        <input type="hidden" id="modalCgstPercentage" value="">
-        <input type="hidden" id="modalSgstPercentage" value="">
-        <input type="hidden" id="modalIgstPercentage" value="">
-        <input type="hidden" id="modalUgstPercentage" value="">
-        <input type="hidden" id="modalCessPercentage" value="">
-        <input type="hidden" id="modalGstType" value="">
-        <input type="hidden" id="modalShippingCharge" value="">
-        <input type="hidden" id="modalShippingSlabSize" value="3">
+                <!-- Hidden Data Inputs for Calculation -->
+                <input type="hidden" id="modalOriginalPrice" value="">
+                <input type="hidden" id="modalCgstPercentage" value="">
+                <input type="hidden" id="modalSgstPercentage" value="">
+                <input type="hidden" id="modalIgstPercentage" value="">
+                <input type="hidden" id="modalUgstPercentage" value="">
+                <input type="hidden" id="modalCessPercentage" value="">
+                <input type="hidden" id="modalGstType" value="">
+                <input type="hidden" id="modalShippingCharge" value="">
+                <input type="hidden" id="modalShippingSlabSize" value="3">
 
-        <!-- Visible Inputs -->
-        <input type="hidden" id="modalArtworkName" value="">
-        <input type="hidden" id="modalArtworkImageUrl" value="">
+                <!-- Visible Inputs -->
+                <input type="hidden" id="modalArtworkName" value="">
+                <input type="hidden" id="modalArtworkImageUrl" value="">
 
-        <div class="mb-3">
-          <label for="modalQuantity" class="form-label">Quantity</label>
-          <input type="number" id="modalQuantity" class="form-control" value="1" min="1">
+                <div class="mb-3">
+                    <label for="modalQuantity" class="form-label">Quantity</label>
+                    <input type="number" id="modalQuantity" class="form-control" value="1" min="1">
+                </div>
+
+                <div class="mb-3">
+                    <strong>Price:</strong> ₹<span id="modalCalculatedPrice">0.00</span><br>
+                    <small class="text-muted">Includes GST + Shipping</small>
+                </div>
+
+                <div class="mb-3">
+                    <span>Available stock: <span id="modalStock" data-initial-stock="0">0</span></span>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button id="modalAddToCartBtn" class="btn btn-outline-primary" disabled>Add to Cart</button>
+                    <button id="modalBuyNowBtn" class="btn btn-primary" disabled>Buy Now</button>
+                </div>
+
+            </div>
         </div>
-
-        <div class="mb-3">
-          <strong>Price:</strong> ₹<span id="modalCalculatedPrice">0.00</span><br>
-          <small class="text-muted">Includes GST + Shipping</small>
-        </div>
-
-        <div class="mb-3">
-          <span>Available stock: <span id="modalStock" data-initial-stock="0">0</span></span>
-        </div>
-
-        <div class="d-flex gap-2">
-          <button id="modalAddToCartBtn" class="btn btn-outline-primary" disabled>Add to Cart</button>
-          <button id="modalBuyNowBtn" class="btn btn-primary" disabled>Buy Now</button>
-        </div>
-
-      </div>
     </div>
-  </div>
 </div>
 
 <style>
-  .watermark-grid {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Ctext x='0' y='20' font-size='20' fill='rgba(255,255,255,0.2)' font-family='Arial'%3EKarthikafutures%3C/text%3E%3C/svg%3E");
-    background-size: 140px 140px;
-    background-repeat: repeat;
-    opacity: 1;
-  }
+    .watermark-grid {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Ctext x='0' y='20' font-size='20' fill='rgba(255,255,255,0.2)' font-family='Arial'%3EKarthikafutures%3C/text%3E%3C/svg%3E");
+        background-size: 140px 140px;
+        background-repeat: repeat;
+        opacity: 1;
+    }
 </style>
 
 <script>
-  function openFullImage(src) {
-    document.getElementById('fullImagePreview').src = src;
-    document.getElementById('fullImageModal').classList.remove('hidden');
-    document.getElementById('fullImageModal').classList.add('flex');
-    // Add event listener to the image itself to close the modal
-    document.getElementById('fullImagePreview').addEventListener('click', closeFullImage, { once: true });
-    // Add event listener to the modal background to close the modal
-    document.getElementById('fullImageModal').addEventListener('click', function(event) {
-        if (event.target === this) { // Only close if clicking the background, not the image or button
-            closeFullImage();
-        }
-    });
-  }
+    function openFullImage(src) {
+        document.getElementById('fullImagePreview').src = src;
+        document.getElementById('fullImageModal').classList.remove('hidden');
+        document.getElementById('fullImageModal').classList.add('flex');
+        // Add event listener to the image itself to close the modal
+        document.getElementById('fullImagePreview').addEventListener('click', closeFullImage, { once: true });
+        // Add event listener to the modal background to close the modal
+        document.getElementById('fullImageModal').addEventListener('click', function(event) {
+            if (event.target === this) { // Only close if clicking the background, not the image or button
+                closeFullImage();
+            }
+        });
+    }
 
-  function closeFullImage() {
-    document.getElementById('fullImageModal').classList.remove('flex');
-    document.getElementById('fullImageModal').classList.add('hidden');
-    document.getElementById('fullImagePreview').src = '';
-    // Remove event listener to prevent multiple bindings
-    document.getElementById('fullImagePreview').removeEventListener('click', closeFullImage);
-    document.getElementById('fullImageModal').removeEventListener('click', arguments.callee); // Remove background click listener
-  }
+    function closeFullImage() {
+        document.getElementById('fullImageModal').classList.remove('flex');
+        document.getElementById('fullImageModal').classList.add('hidden');
+        document.getElementById('fullImagePreview').src = '';
+        // Remove event listener to prevent multiple bindings
+        document.getElementById('fullImagePreview').removeEventListener('click', closeFullImage);
+        // Remove the background click listener to prevent multiple bindings
+        const fullImageModal = document.getElementById('fullImageModal');
+        const oldListener = fullImageModal._clickListener; // Retrieve stored listener
+        if (oldListener) {
+            fullImageModal.removeEventListener('click', oldListener);
+            fullImageModal._clickListener = null; // Clear stored listener
+        }
+    }
 </script>
 
 <script>
-  function scrollCarousel(carouselId, direction) {
-    const carousel = document.getElementById(carouselId);
-    if (carousel) {
-      const scrollAmount = carousel.offsetWidth / 2;
-      carousel.scrollBy({
-        left: direction * scrollAmount,
-        behavior: 'smooth'
-      });
+    function scrollCarousel(carouselId, direction) {
+        console.log(`Attempting to scroll carousel: ${carouselId} in direction: ${direction}`);
+        const carousel = document.getElementById(carouselId);
+        if (carousel) {
+            console.log(`Carousel found: ${carouselId}. Current scrollLeft: ${carousel.scrollLeft}`);
+            const scrollAmount = carousel.offsetWidth / 2;
+            carousel.scrollBy({
+                left: direction * scrollAmount,
+                behavior: 'smooth'
+            });
+            console.log(`Scroll initiated. Target scrollLeft: ${carousel.scrollLeft + (direction * scrollAmount)}`);
+        } else {
+            console.error(`Carousel not found with ID: ${carouselId}`);
+        }
     }
-  }
 </script>
 
 <style>
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
 
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
 </style>
 {% endblock %}
