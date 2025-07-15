@@ -1802,6 +1802,7 @@ def admin_add_artwork():
         is_featured = 'is_featured' in request.form # Checkbox
         custom_options_json = request.form.get('custom_options') # JSON string from JS
         shipping_charge = request.form.get('shipping_charge', '0.00') # NEW: Default to '0.00'
+        shipping_slab_size = int(request.form.get('shipping_slab_size', 3))
 
         # Populate form_data for re-rendering on error
         form_data = {

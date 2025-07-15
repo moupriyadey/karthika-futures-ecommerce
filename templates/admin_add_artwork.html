@@ -54,6 +54,16 @@
                     <small class="form-text text-muted">Enter 0 for free shipping.</small>
                 </div>
                 
+
+                <div class="mb-3">
+    <label for="shipping_slab_size" class="form-label">Shipping Slab Size (Items per Charge)</label>
+    <input type="number" class="form-control" id="shipping_slab_size" name="shipping_slab_size" min="1" value="{{ form_data.shipping_slab_size if form_data.shipping_slab_size is defined else '3' }}" required>
+    <small class="form-text text-muted">
+        Enter how many items per shipping charge. (Example: 3 means 1 shipping fee covers up to 3 items)
+    </small>
+</div>
+
+
                 <h5 class="mt-4 mb-3">GST Details</h5>
                 <div class="mb-3">
                     <label for="gst_type" class="form-label">GST Type</label>

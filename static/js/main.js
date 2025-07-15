@@ -1,3 +1,4 @@
+// ✅ main.js script started execution.
 console.log("✅ main.js script started execution.");
 
 function showCustomAlert(message, type = 'info', showCartLink = false) {
@@ -127,17 +128,11 @@ document.addEventListener('DOMContentLoaded', () => {
     enableAutoScrollCarousel('featured-artworks-carousel');
     enableAutoScrollCarousel('all-products-carousel');
 
-    document.querySelectorAll('[id^="category-carousel-"]').forEach(carousel => {
-  const carouselId = carousel.id;
-  enableAutoScrollCarousel(carouselId);
-});
-
-if (window.location.pathname.includes('/all-products')) {
-  document.querySelectorAll('[id^="category-carousel-"]').forEach(carousel => {
-    enableAutoScrollCarousel(carousel.id);
-  });
-}
-
+    if (window.location.pathname.includes('/all-products')) {
+        document.querySelectorAll('[id^="category-carousel-"]').forEach(carousel => {
+            enableAutoScrollCarousel(carousel.id);
+        });
+    }
 
     const productModalElement = document.getElementById('productModal');
     if (productModalElement) {
@@ -150,38 +145,72 @@ if (window.location.pathname.includes('/all-products')) {
             const modalCessPercentage = parseFloat(document.getElementById('modalCessPercentage').value);
             const modalGstType = document.getElementById('modalGstType').value;
             const modalShippingCharge = parseFloat(document.getElementById('modalShippingCharge').value);
+            const modalShippingSlabSize = parseInt(document.getElementById('modalShippingSlabSize')?.value) || 3;
 
             const modalQuantityInput = document.getElementById('modalQuantity');
             const modalCalculatedPriceSpan = document.getElementById('modalCalculatedPrice');
+            const modalStockSpan = document.getElementById('modalStock');
 
-            const optionSelectors = document.querySelectorAll('[data-option-group]');
-            let optionTotal = 0;
+            const quantity = parseInt(modalQuantityInput.value);
             const selectedOptions = {};
 
-            optionSelectors.forEach(select => {
-                const group = select.getAttribute('data-option-group');
-                const value = select.value;
-                if (value && select.selectedOptions[0]) {
-                    const priceAddon = parseFloat(select.selectedOptions[0].getAttribute('data-price') || '0');
-                    optionTotal += priceAddon;
-                    selectedOptions[group] = value;
+            let basePriceWithOptions = modalOriginalPrice;
+
+            productModalElement.querySelectorAll('.modal-option-select').forEach(selectElement => {
+                const groupName = selectElement.dataset.groupName;
+                const selectedValue = selectElement.value;
+
+                if (selectedValue && selectedValue !== 'default') {
+                    const parts = selectedValue.split('|');
+                    const optionLabel = parts[0];
+                    const optionPrice = parseFloat(parts[1]);
+                    basePriceWithOptions += optionPrice;
+                    selectedOptions[groupName] = optionLabel;
                 }
             });
 
-            const quantity = parseInt(modalQuantityInput.value);
-            let totalPriceBeforeGST = (modalOriginalPrice + optionTotal) * quantity;
+            const totalBeforeGst = basePriceWithOptions * quantity;
 
-            let gstRate = 0;
-            if (modalGstType === 'intra_state') gstRate = modalCgstPercentage + modalSgstPercentage;
-            else if (modalGstType === 'inter_state') gstRate = modalIgstPercentage;
-            else if (modalGstType === 'union_territory') gstRate = modalCgstPercentage + modalUgstPercentage;
+            let totalGstRate = 0;
+            if (modalGstType === 'intra_state') {
+                totalGstRate = modalCgstPercentage + modalSgstPercentage;
+            } else if (modalGstType === 'inter_state') {
+                totalGstRate = modalIgstPercentage;
+            } else if (modalGstType === 'union_territory') {
+                totalGstRate = modalCgstPercentage + modalUgstPercentage;
+            }
+            totalGstRate += modalCessPercentage;
 
-            gstRate += modalCessPercentage;
-            const gstAmount = (totalPriceBeforeGST * gstRate) / 100;
+            const gstAmount = (totalBeforeGst * totalGstRate) / 100;
+            const totalShippingCharge = Math.ceil(quantity / modalShippingSlabSize) * modalShippingCharge;
+            const finalPrice = totalBeforeGst + gstAmount + totalShippingCharge;
 
-            const totalPrice = totalPriceBeforeGST + gstAmount + (modalShippingCharge * quantity);
+            modalCalculatedPriceSpan.textContent = finalPrice.toFixed(2);
 
-            modalCalculatedPriceSpan.innerText = `₹${totalPrice.toFixed(2)}`;
+            const currentStock = parseInt(modalStockSpan.dataset.initialStock);
+            if (currentStock === 0 || quantity > currentStock) {
+                document.getElementById('modalAddToCartBtn').disabled = true;
+                document.getElementById('modalBuyNowBtn').disabled = true;
+                modalStockSpan.textContent = currentStock === 0 ? "Out of Stock" : `Only ${currentStock} units available`;
+            } else {
+                document.getElementById('modalAddToCartBtn').disabled = false;
+                document.getElementById('modalBuyNowBtn').disabled = false;
+                modalStockSpan.textContent = `${currentStock}`;
+            }
+
+            return {
+                name: document.getElementById('modalArtworkName').value,
+                imageUrl: document.getElementById('modalArtworkImageUrl').value,
+                selectedOptions: selectedOptions,
+                quantity: quantity,
+                unitPriceBeforeGst: basePriceWithOptions,
+                cgstPercentage: modalCgstPercentage,
+                sgstPercentage: modalSgstPercentage,
+                igstPercentage: modalIgstPercentage,
+                ugstPercentage: modalUgstPercentage,
+                cessPercentage: modalCessPercentage,
+                shippingCharge: modalShippingCharge
+            };
         }
 
         document.getElementById('modalQuantity')?.addEventListener('input', updateModalPrice);
