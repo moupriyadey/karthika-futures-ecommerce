@@ -282,13 +282,47 @@ body {
     margin-bottom: 2rem;
 }
 
-/* REMOVED: Conflicting carousel styles from here. They are now in _base.html */
-/* #featured-artworks-carousel,
-#all-products-carousel {
-    scroll-behavior: smooth;
-    overflow-x: auto;
-    white-space: nowrap;
-} */
+/* NEW: Styles for horizontally scrollable carousels */
+#featured-artworks-carousel,
+#all-products-carousel,
+[id^="category-carousel-"] { /* This targets all category carousels */
+    -webkit-overflow-scrolling: touch; /* Improves scrolling on iOS */
+    touch-action: pan-y; /* Allows horizontal swiping */
+    overflow-x: auto; /* Ensures horizontal scrolling */
+    white-space: nowrap; /* Keeps items in a single line */
+    scroll-behavior: smooth; /* Already there, good for buttons */
+    /* Optional: Add scroll-snap for better item alignment after swipe */
+    scroll-snap-type: x mandatory;
+}
+
+/* If you use scroll-snap, ensure direct children also snap */
+#featured-artworks-carousel > div,
+#all-products-carousel > div,
+[id^="category-carousel-"] > div { /* Target direct children of carousel for snapping */
+    scroll-snap-align: start;
+    display: inline-block; /* Essential for nowrap and horizontal layout */
+    /* Ensure items have defined width, e.g., using Bootstrap cols or fixed width */
+    width: 70%; /* Example for mobile view, adjust as needed */
+    margin-right: 15px; /* Spacing between items */
+    flex-shrink: 0; /* Prevent items from shrinking */
+}
+
+/* Adjust for larger screens */
+@media (min-width: 768px) {
+    #featured-artworks-carousel > div,
+    #all-products-carousel > div,
+    [id^="category-carousel-"] > div {
+        width: 30%; /* Example: Show more items on tablet/desktop */
+    }
+}
+@media (min-width: 992px) {
+    #featured-artworks-carousel > div,
+    #all-products-carousel > div,
+    [id^="category-carousel-"] > div {
+        width: 23%; /* Example: Even more items on large desktops */
+    }
+}
+
 
 .thumbnail-wrapper {
     width: 100%;

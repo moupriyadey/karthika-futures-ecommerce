@@ -532,10 +532,10 @@
                     </li>
                 </ul>
 
-                <form class="d-flex my-2 my-lg-0 w-100 w-lg-auto" role="search" action="{{ url_for('all_products') }}" method="GET"> 
-                    <input class="form-control me-2" type="search" placeholder="Search products..." aria-label="Search" name="search" value="{{ request.args.get('search', '') }}">
-                    <button class="btn btn-outline-light" type="submit"><i class="fas fa-search"></i></button>
-                </form>
+                <form class="d-flex" role="search" action="{{ url_for('all_products') }}" method="get"></form>
+    <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" name="query">
+    <button class="btn btn-outline-light" type="submit">GO</button>
+</form>
 
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                     <li class="nav-item">

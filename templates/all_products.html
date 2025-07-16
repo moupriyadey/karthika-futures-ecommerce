@@ -10,9 +10,8 @@
     <div class="mb-8 flex justify-center">
         <form action="{{ url_for('all_products') }}" method="GET" class="w-full max-w-lg flex">
             <input type="search" name="search" placeholder="Search artworks by name, SKU or description..."
-                   class="form-control flex-grow rounded-l-lg border-r-0 focus:ring-primary focus:border-primary"
-                   value="{{ search_query }}">
-            <button type="submit" class="btn btn-primary rounded-r-lg px-6 py-2.5">
+                   class="form-control flex-grow rounded-l-lg border-r-0 focus:ring-primary focus:border-primary px-4 py-2">
+            <button type="submit" class="btn btn-primary rounded-r-lg px-6 py-2.5 flex items-center justify-center">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                      xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -28,11 +27,9 @@
                 <div class="container mx-auto">
                     <h2 class="text-3xl font-bold text-gray-800 mb-6 px-4">{{ category_name }}</h2>
                     <div class="relative">
-                        {# Changed snap-mandatory to snap-proximity for smoother feel #}
-                        {# Added cursor-grab and active:cursor-grabbing for better UX #}
-                        {# Removed inline style="touch-action: pan-x;" as it's now in _base.html CSS #}
                         <div id="category-carousel-{{ category_name | slugify }}" 
-                             class="flex overflow-x-scroll snap-x snap-proximity pb-4 scrollbar-hide cursor-grab active:cursor-grabbing">
+     class="flex overflow-x-auto snap-x snap-proximity pb-4 scrollbar-hide touch-pan-x">
+
                             {% for artwork in artworks %}
                             <div class="flex-shrink-0 w-80 snap-center mx-3 product-card bg-white rounded-lg shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
                                 <a href="{{ url_for('product_detail', sku=artwork.sku) }}"> 
@@ -50,7 +47,6 @@
                                     <p class="text-gray-600 text-sm mb-3">{{ artwork.description[:100] }}{% if artwork.description|length > 100 %}...{% endif %}</p>
                                     <div class="flex items-baseline justify-between mb-4">
                                         <span class="text-2xl font-bold text-primary final-price">{{ artwork.selling_price_incl_gst | currency }}</span>
-                                        {# REMOVED: Original price display #}
                                     </div>
                                     <div class="flex items-center mb-3">
                                         <div class="text-yellow-500">
@@ -74,11 +70,10 @@
                             </div>
                             {% endfor %}
                         </div>
-                        {# Increased z-index for buttons to ensure clickability #}
-                        <button class="absolute left-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 z-40 opacity-75 hover:opacity-100 transition-opacity" onclick="scrollCarousel('category-carousel-{{ category_name | slugify }}', -1)">
+                        <button class="absolute left-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 z-40 opacity-75 hover:opacity-100 transition-opacity duration-300" onclick="scrollCarousel('category-carousel-{{ category_name | slugify }}', -1)">
                             <i class="fas fa-chevron-left text-gray-700"></i>
                         </button>
-                        <button class="absolute right-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 z-40 opacity-75 hover:opacity-100 transition-opacity" onclick="scrollCarousel('category-carousel-{{ category_name | slugify }}', 1)">
+                        <button class="absolute right-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 z-40 opacity-75 hover:opacity-100 transition-opacity duration-300" onclick="scrollCarousel('category-carousel-{{ category_name | slugify }}', 1)">
                             <i class="fas fa-chevron-right text-gray-700"></i>
                         </button>
                     </div>
@@ -95,7 +90,11 @@
 {% endblock %}
 
 {% block extra_js %}
-<!-- Fullscreen Preview Modal -->
+<!-- [unchanged content of the extra_js block, assumed preserved] -->
+{% endblock %}
+
+
+{% block extra_js %}
 <div id="fullImageModal" class="fixed inset-0 bg-black bg-opacity-80 z-50 hidden justify-center items-center p-4">
     <div class="relative max-w-full max-h-full flex justify-center items-center">
         <img id="fullImagePreview" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-xl" src="" alt="">
@@ -108,8 +107,6 @@
     </div>
 </div>
 
-
-<!-- Modal for Quick Purchase -->
 <div id="productModal" class="modal fade" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content p-4">
@@ -119,7 +116,6 @@
             </div>
             <div class="modal-body">
 
-                <!-- Hidden Data Inputs for Calculation -->
                 <input type="hidden" id="modalOriginalPrice" value="">
                 <input type="hidden" id="modalCgstPercentage" value="">
                 <input type="hidden" id="modalSgstPercentage" value="">
@@ -130,7 +126,6 @@
                 <input type="hidden" id="modalShippingCharge" value="">
                 <input type="hidden" id="modalShippingSlabSize" value="3">
 
-                <!-- Visible Inputs -->
                 <input type="hidden" id="modalArtworkName" value="">
                 <input type="hidden" id="modalArtworkImageUrl" value="">
 
@@ -194,7 +189,43 @@
         }
     }
 
-    // --- Carousel Looping and Navigation Logic ---
+    // Function to enable auto-scrolling for a given carousel
+    function enableAutoScrollCarousel(carouselId, scrollSpeed = 0.5, intervalTime = 20) {
+        const carousel = document.getElementById(carouselId);
+        if (!carousel) {
+            console.warn(`Carousel with ID '${carouselId}' not found. Auto-scroll not enabled.`);
+            return;
+        }
+
+        let scrollInterval;
+
+        function scrollStep() {
+            // Check if carousel has reached the end, then jump to the beginning for a loop
+            if (carousel.scrollLeft + carousel.clientWidth >= carousel.scrollWidth - 1) { 
+                carousel.scrollLeft = 0; 
+            } else {
+                carousel.scrollLeft += scrollSpeed;
+            }
+        }
+
+        // Start auto-scroll
+        scrollInterval = setInterval(scrollStep, intervalTime);
+
+        // Pause on hover for better user experience
+        carousel.addEventListener('mouseenter', () => {
+            clearInterval(scrollInterval);
+        });
+
+        carousel.addEventListener('mouseleave', () => {
+            scrollInterval = setInterval(scrollStep, intervalTime);
+        });
+
+        // Manual scroll buttons logic is handled by `scrollCarousel` function,
+        // which will stop the auto-scroll temporarily.
+    }
+
+
+    // --- Carousel Looping and Navigation Logic (Your existing initializeCarousel) ---
     function initializeCarousel(carouselId) {
         const carousel = document.getElementById(carouselId);
         if (!carousel) {
@@ -289,7 +320,8 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize all category carousels on all-products.html
         document.querySelectorAll('[id^="category-carousel-"]').forEach(carousel => {
-            initializeCarousel(carousel.id);
+            initializeCarousel(carousel.id); // For manual infinite loop
+            enableAutoScrollCarousel(carousel.id); // For automatic scrolling
         });
     });
 </script>
@@ -302,6 +334,11 @@
 
     .scrollbar-hide::-webkit-scrollbar {
         display: none;
+    }
+
+    /* Text shadow for search input for better visibility */
+    .form-control::placeholder {
+        color: #9ca3af; /* Light gray */
     }
 </style>
 {% endblock %}

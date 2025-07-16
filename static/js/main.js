@@ -102,38 +102,122 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function enableAutoScrollCarousel(carouselId) {
         const carousel = document.getElementById(carouselId);
-        let scrollDirection = 1;
+        let scrollDirection = 1; // 1 for right, -1 for left
         let scrollingPaused = false;
+        let animationFrameId;
+        let scrollTimeout; // <<<<<<<<<<<<< ADDED THIS LINE
 
-        if (!carousel) return;
+        if (!carousel) {
+            console.warn(`Carousel with ID '${carouselId}' not found. Auto-scroll not enabled.`);
+            return;
+        }
+
+        // Clone items for seamless loop
+        const carouselItems = Array.from(carousel.children);
+        if (carouselItems.length === 0) {
+            console.warn(`Carousel with ID '${carouselId}' has no children. Auto-scroll not enabled.`);
+            return;
+        }
+
+        // Clear any existing clones to prevent duplicates on re-init
+        Array.from(carousel.children).filter(child => child.dataset.clone).forEach(clone => clone.remove());
+
+
+        // Determine how many items to clone to create a smooth loop.
+        // Clone enough items to fill the visible area at least once, plus one extra for smooth transition.
+        const itemWidth = carouselItems[0].offsetWidth || 300; // fallback if zero
+ // Assuming all items have the same width
+        const visibleItemsCount = Math.ceil(carousel.clientWidth / itemWidth);
+        const numClones = visibleItemsCount + 1; // Clone slightly more than visible to hide the jump
+
+        // Append clones of the beginning items to the end
+        for (let i = 0; i < numClones; i++) {
+            const clone = carouselItems[i % carouselItems.length].cloneNode(true);
+            clone.dataset.clone = 'true'; // Mark as clone
+            carousel.appendChild(clone);
+        }
+
+        // Prepend clones of the ending items to the beginning (for reverse scrolling if implemented, or just for robustness)
+        // For simple right-to-left loop, only appending is critical. This part can be removed if not needed.
+        for (let i = carouselItems.length - 1; i >= carouselItems.length - numClones && i >= 0; i--) {
+            const clone = carouselItems[i].cloneNode(true);
+            clone.dataset.clone = 'true'; // Mark as clone
+            carousel.prepend(clone);
+        }
+
+
+        // Set initial scroll position to the start of the original content
+        // This offset is crucial after prepending clones
+        carousel.scrollLeft = numClones * itemWidth;
+        
+        const startScrolling = () => {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            animationFrameId = requestAnimationFrame(scrollStep);
+        };
+
+        const stopScrolling = () => {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        };
 
         const scrollStep = () => {
             if (!scrollingPaused) {
-                if (carousel.scrollLeft + carousel.clientWidth >= carousel.scrollWidth) {
-                    scrollDirection = -1;
-                } else if (carousel.scrollLeft <= 0) {
-                    scrollDirection = 1;
+                // If scrolling right and reached end of original content (before appended clones)
+                if (carousel.scrollLeft >= (carouselItems.length * itemWidth)) { 
+                    // Jump back to the start of the original content (after prepended clones)
+                    carousel.scrollLeft = numClones * itemWidth; 
+                    console.log(`Carousel ${carouselId}: Jumped from end clone to original start (new scrollLeft: ${carousel.scrollLeft}).`);
                 }
-                carousel.scrollLeft += scrollDirection * 0.5;
+                carousel.scrollLeft += scrollDirection * 0.2; // Smooth scroll speed adjust carousel speed
             }
-            requestAnimationFrame(scrollStep);
+            animationFrameId = requestAnimationFrame(scrollStep);
         };
 
         carousel.addEventListener('mouseenter', () => scrollingPaused = true);
         carousel.addEventListener('mouseleave', () => scrollingPaused = false);
+        carousel.addEventListener('touchstart', () => scrollingPaused = true, { passive: true });
+        carousel.addEventListener('touchend', () => {
+            setTimeout(() => { scrollingPaused = false; }, 500);
+        }, { passive: true });
+        carousel.addEventListener('scroll', () => {
+            scrollingPaused = true;
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                scrollingPaused = false;
+            }, 1000);
+        }, { passive: true });
 
-        requestAnimationFrame(scrollStep);
+        startScrolling();
     }
 
+    // Call for both main carousels
     enableAutoScrollCarousel('featured-artworks-carousel');
-    enableAutoScrollCarousel('all-products-carousel');
+    // enableAutoScrollCarousel('all-products-carousel'); //
 
-    if (window.location.pathname.includes('/all-products')) {
-        document.querySelectorAll('[id^="category-carousel-"]').forEach(carousel => {
-            enableAutoScrollCarousel(carousel.id);
-        });
+    // Also call for all category carousels on the all-products page
+    document.querySelectorAll('[id^="category-carousel-"]').forEach(carousel => {
+        enableAutoScrollCarousel(carousel.id);
+    });
+
+    window.scrollCarousel = function (carouselId, direction) {
+    const carousel = document.getElementById(carouselId);
+    if (!carousel) return;
+    const scrollAmount = carousel.clientWidth / 2;
+    carousel.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
+};
+
+
+    // Fix for left/right arrow buttons (if present)
+    const leftBtn = document.getElementById('scrollLeftBtn');
+    const rightBtn = document.getElementById('scrollRightBtn');
+    const featuredCarousel = document.getElementById('featured-artworks-carousel'); // Or whichever carousel these buttons control
+
+    if (leftBtn && rightBtn && featuredCarousel) {
+        const scrollAmount = featuredCarousel.clientWidth / 2;
+        leftBtn.onclick = () => featuredCarousel.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+        rightBtn.onclick = () => featuredCarousel.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
 
+    // Modal price update logic (keeping as is)
     const productModalElement = document.getElementById('productModal');
     if (productModalElement) {
         function updateModalPrice() {
@@ -219,14 +303,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         updateModalPrice();
-    }
-
-    const leftBtn = document.getElementById('scrollLeftBtn');
-    const rightBtn = document.getElementById('scrollRightBtn');
-    const featuredCarousel = document.getElementById('featured-artworks-carousel');
-
-    if (leftBtn && rightBtn && featuredCarousel) {
-        leftBtn.onclick = () => featuredCarousel.scrollLeft -= 200;
-        rightBtn.onclick = () => featuredCarousel.scrollLeft += 200;
     }
 });
