@@ -571,3 +571,22 @@ body {
         margin-bottom: 1.5rem;
     }
 }
+
+.scroll-arrow {
+  position: absolute;
+  top: 45%;
+  z-index: 10;
+  background-color: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  padding: 0.6rem;
+  transition: all 0.3s ease;
+  color: white;
+}
+
+.scroll-arrow:hover {
+  box-shadow: 0 0 10px 4px rgba(255, 255, 255, 0.6);
+  transform: scale(1.1);
+}
+
+.scroll-left { left: 10px; }
+.scroll-right { right: 10px; }

@@ -715,6 +715,49 @@ document.addEventListener('DOMContentLoaded', function () {
                 modalCancellationReason.value = ''; // Clear reason if not cancelled
             }
             orderStatusModal.show();
+
+            orderStatusForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const orderId = modalOrderId.value;
+    const status = orderStatusSelect.value;
+    const remark = modalRemark.value;
+    const courier = modalCourier.value;
+    const trackingNumber = modalTrackingNumber.value;
+    const cancellationReason = modalCancellationReason.value;
+
+    try {
+        const response = await fetch(`/admin/order/update_status/${orderId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': window.csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                status,
+                remark,
+                courier,
+                tracking_number: trackingNumber,
+                cancellation_reason: cancellationReason
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showCustomAlert(result.message, 'success');
+            orderStatusModal.hide();
+            setTimeout(() => location.reload(), 1000); // reload to see updated status
+        } else {
+            showCustomAlert(result.message, 'danger');
+        }
+    } catch (err) {
+        console.error('Error updating order status:', err);
+        showCustomAlert('An error occurred while updating the order status.', 'danger');
+    }
+});
+
         });
     });
 

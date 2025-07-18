@@ -1314,16 +1314,41 @@ def reset_password():
     return render_template('reset_password.html')
 
 
+# app.py (Modified Excerpt)
+
 @app.route('/')
 def index():
     featured_artworks = Artwork.query.filter_by(is_featured=True).limit(6).all()
+
+    # --- NEW LOGIC FOR CONTINUOUS CAROUSEL LOOP ---
+    featured_artworks_for_carousel = [] # Initialize the list to be passed to the template
+
+    if featured_artworks:
+        # Define how many initial items to duplicate at the end.
+        # This number should be at least the number of items visible in your carousel at once.
+        # For example, if 3 items are visible, duplicate at least 3. Let's use 3 as a default.
+        num_duplicates = 3
+        
+        # Ensure we don't try to duplicate more items than are available
+        if len(featured_artworks) < num_duplicates:
+            num_duplicates = len(featured_artworks) # Duplicate all if fewer than num_duplicates
+
+        # Create a slice of the first 'num_duplicates' items
+        items_to_duplicate = featured_artworks[:num_duplicates]
+        
+        # Combine the original list with the duplicated items
+        featured_artworks_for_carousel = featured_artworks + items_to_duplicate
+    else:
+        # If no featured artworks, the list remains empty
+        featured_artworks_for_carousel = []
+    # --- END NEW LOGIC ---
 
     testimonials = [
         {
             'name': 'Radha Devi',
             'feedback': 'The artwork is truly divine and brings immense peace to my home. Highly recommend Karthika Futures!',
             'rating': 5,
-            'image': 'images/testimonial1.jpg',  # Just path under /static/
+            'image': 'images/testimonial1.jpg',
             'product_sku': '89898'
         },
         {
@@ -1342,8 +1367,10 @@ def index():
         },
     ]
 
-    return render_template('index.html', featured_artworks=featured_artworks, testimonials=testimonials)
-
+    # Pass the new 'featured_artworks_for_carousel' list to your template
+    return render_template('index.html', 
+                           featured_artworks=featured_artworks_for_carousel, 
+                           testimonials=testimonials)
 
 # MODIFIED: all_products route to pass categorized artworks
 @app.route('/all-products')

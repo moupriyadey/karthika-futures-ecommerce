@@ -51,9 +51,12 @@
             <div class="relative">
                 {# Changed snap-mandatory to snap-proximity for smoother feel #}
                 {# Added cursor-grab and active:cursor-grabbing for better UX #}
-                <div id="featured-artworks-carousel" 
-                     class="flex overflow-x-scroll snap-x snap-proximity pb-4 scrollbar-hide cursor-grab active:cursor-grabbing"
-                     style="touch-action: pan-x;"> {# Added touch-action for explicit horizontal pan #}
+                
+                <div id="featured-artworks-carousel"
+    class="flex overflow-x-scroll pb-4 scrollbar-hide cursor-grab active:cursor-grabbing relative transition-all duration-300 ease-in-out"
+    style="touch-action: pan-x;">
+
+                {# Added touch-action for explicit horizontal pan #}
                     {% for artwork in featured_artworks %}
                     <div class="flex-shrink-0 w-80 snap-center mx-3 product-card bg-white rounded-lg shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
                         <a href="{{ url_for('product_detail', sku=artwork.sku) }}">
@@ -177,20 +180,23 @@
     </div>
 </div>
 
-<script>
-    // Functions for Fullscreen Image Modal (re-added for index.html if not in base)
+
+
+    // Your existing openFullImage and closeFullImage functions go here
+  <script>
+    // Your existing openFullImage and closeFullImage functions go here
     function openFullImage(src) {
         document.getElementById('fullImagePreview').src = src;
         document.getElementById('fullImageModal').classList.remove('hidden');
         document.getElementById('fullImageModal').classList.add('flex');
         const modal = document.getElementById('fullImageModal');
         const clickListener = function(event) {
-            if (event.target === this) { // Only close if clicking the background, not the image or button
+            if (event.target === this) {
                 closeFullImage();
             }
         };
         modal.addEventListener('click', clickListener);
-        modal._clickListener = clickListener; // Store listener to remove later
+        modal._clickListener = clickListener;
     }
 
     function closeFullImage() {
@@ -198,85 +204,108 @@
         document.getElementById('fullImageModal').classList.add('hidden');
         document.getElementById('fullImagePreview').src = '';
         const fullImageModal = document.getElementById('fullImageModal');
-        const oldListener = fullImageModal._clickListener; // Retrieve stored listener
+        const oldListener = fullImageModal._clickListener;
         if (oldListener) {
             fullImageModal.removeEventListener('click', oldListener);
-            fullImageModal._clickListener = null; // Clear stored listener
+            fullImageModal._clickListener = null;
         }
     }
 
-    // Function to enable auto-scrolling for a given carousel
-    
-function enableAutoScrollCarousel(carouselId, scrollSpeed = 0.5, intervalTime = 20) {
-    const carousel = document.getElementById(carouselId);
-    if (!carousel) {
-        console.warn(`Carousel with ID '${carouselId}' not found.`);
-        return;
-    }
-
-    let scrollInterval;
-
-    function scrollStep() {
-        if (carousel.scrollLeft + carousel.clientWidth >= carousel.scrollWidth - 1) {
-            carousel.scrollLeft = 0;
-        } else {
-            carousel.scrollLeft += scrollSpeed;
+    // UPDATED Function to enable auto-scrolling for a given carousel
+    function enableAutoScrollCarousel(carouselId) {
+        const carousel = document.getElementById(carouselId);
+        if (!carousel) {
+            console.error(`enableAutoScrollCarousel: Carousel not found with ID: ${carouselId}`);
+            return;
         }
-    }
 
-    // Auto-scroll start
-    function startAutoScroll() {
-        scrollInterval = setInterval(scrollStep, intervalTime);
-    }
+        const itemWidth = 320 + 24; // w-80 (320px) + mx-3 (24px total margin)
+        const scrollStep = itemWidth;
+        let scrollInterval;
 
-    // Auto-scroll stop
-    function stopAutoScroll() {
-        clearInterval(scrollInterval);
-    }
+        // IMPORTANT: This 'originalItemsCount' MUST precisely match the 'limit'
+        // you use in your app.py for fetching 'featured_artworks' (e.g., .limit(6).all()).
+        // If app.py fetches fewer items than this, adjust accordingly.
+        const originalItemsCount = 6; 
 
-    // Start initially after a tiny delay
-    setTimeout(() => {
+        // This is the scroll position where the ORIGINAL content ends and duplicated items begin.
+        const resetThreshold = originalItemsCount * itemWidth;
+
+        const startAutoScroll = () => {
+            clearInterval(scrollInterval); // Clear any existing interval
+            scrollInterval = setInterval(() => {
+                // Calculate the maximum scroll position the carousel can reach
+                const maxScrollLeft = carousel.scrollWidth - carousel.clientWidth;
+
+                // Condition to trigger reset:
+                // 1. If we have scrolled past the point where original content ends (main seamless loop trigger)
+                // 2. OR, if the carousel is very close to its absolute physical end (a robust fallback for "stuck" issues)
+                if (carousel.scrollLeft >= resetThreshold || 
+                    carousel.scrollLeft >= maxScrollLeft - (itemWidth / 2)) {
+                    
+                    // Instantly jump back to the beginning (scrollLeft: 0) without animation
+                    carousel.scrollTo({ left: 0, behavior: 'auto' });
+                    // The next interval tick will then start the smooth scroll from 0.
+                } else {
+                    // Otherwise, scroll by one step smoothly
+                    carousel.scrollBy({ left: scrollStep, behavior: 'smooth' });
+                }
+            }, 3000); // Scroll every 3 seconds (adjust as needed)
+        };
+
+        const stopAutoScroll = () => {
+            clearInterval(scrollInterval);
+        };
+
+        // Pause auto-scroll on hover
+        carousel.addEventListener('mouseenter', stopAutoScroll);
+        carousel.addEventListener('mouseleave', startAutoScroll);
+
+        // Start auto-scroll initially
         startAutoScroll();
-    }, 200);
-
-    // Pause on hover (desktop)
-    carousel.addEventListener('mouseenter', stopAutoScroll);
-    carousel.addEventListener('mouseleave', startAutoScroll);
-
-    // Pause on touch (mobile)
-    carousel.addEventListener('touchstart', stopAutoScroll, { passive: true });
-    carousel.addEventListener('touchend', () => setTimeout(startAutoScroll, 3000), { passive: true });
-
-    // Scroll buttons
-    const scrollLeftBtn = document.getElementById(`scroll-left-${carouselId.replace('-carousel', '')}`);
-    const scrollRightBtn = document.getElementById(`scroll-right-${carouselId.replace('-carousel', '')}`);
-
-    const manualScroll = (direction) => {
-        stopAutoScroll();
-        carousel.scrollBy({
-            left: direction * (carousel.offsetWidth / 2),
-            behavior: 'smooth'
-        });
-        setTimeout(startAutoScroll, 3000);
-    };
-
-    if (scrollLeftBtn && scrollRightBtn) {
-        scrollLeftBtn.addEventListener('click', () => manualScroll(-1));
-        scrollRightBtn.addEventListener('click', () => manualScroll(1));
     }
-}
 
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => enableAutoScrollCarousel('featured-artworks-carousel'), 300);
+    // Ensure auto-scroll starts only after all carousel images are loaded for accurate measurements
+    document.addEventListener('DOMContentLoaded', function() {
+        const carousel = document.getElementById('featured-artworks-carousel');
+        if (carousel) {
+            const images = carousel.querySelectorAll('img');
+            let imagesLoadedCount = 0;
 
-    // Cart logic if needed
-    if (!window.isUserLoggedIn) {
-        localStorage.removeItem('cartCount');
-        window.updateCartCountDisplay?.();
-    }
-});
+            if (images.length === 0) {
+                // If no images in the carousel, start immediately
+                enableAutoScrollCarousel('featured-artworks-carousel');
+            } else {
+                images.forEach(img => {
+                    // Check if image is already loaded (e.g., from cache)
+                    if (img.complete) {
+                        imagesLoadedCount++;
+                    } else {
+                        // Add load listener for images not yet complete
+                        img.addEventListener('load', () => {
+                            imagesLoadedCount++;
+                            if (imagesLoadedCount === images.length) {
+                                enableAutoScrollCarousel('featured-artworks-carousel');
+                            }
+                        });
+                        // Add error listener to prevent getting stuck if an image fails to load
+                        img.addEventListener('error', () => {
+                            console.warn(`Error loading image in carousel: ${img.src}`);
+                            imagesLoadedCount++;
+                            if (imagesLoadedCount === images.length) {
+                                enableAutoScrollCarousel('featured-artworks-carousel');
+                            }
+                        });
+                    }
+                });
+                // If all images were already loaded initially, trigger it
+                if (imagesLoadedCount === images.length) {
+                    enableAutoScrollCarousel('featured-artworks-carousel');
+                }
+            }
+        }
+    });
 </script>
-
 <style>
     /* Custom styles for animations */
     @keyframes fadeIn {

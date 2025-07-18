@@ -4,7 +4,7 @@
 
 {% block content %}
 {# Added pt-20 to ensure content is below fixed navbar #}
-<div class="container mx-auto p-4 md:p-8 pt-20 main-content-area"> 
+<div class="container mx-auto p-4 md:p-8 pt-20 main-content-area">
     <h1 class="text-4xl font-extrabold text-center text-gray-800 mb-8">Our Divine Collection</h1>
 
     <div class="mb-8 flex justify-center">
@@ -27,49 +27,52 @@
                 <div class="container mx-auto">
                     <h2 class="text-3xl font-bold text-gray-800 mb-6 px-4">{{ category_name }}</h2>
                     <div class="relative">
-                        <div id="category-carousel-{{ category_name | slugify }}" 
-     class="flex overflow-x-auto snap-x snap-proximity pb-4 scrollbar-hide touch-pan-x">
+                        <div id="category-carousel-{{ category_name | slugify }}"
+                            class="flex overflow-x-auto snap-x snap-proximity pb-4 scrollbar-hide touch-pan-x">
 
-                            {% for artwork in artworks %}
-                            <div class="flex-shrink-0 w-80 snap-center mx-3 product-card bg-white rounded-lg shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
-                                <a href="{{ url_for('product_detail', sku=artwork.sku) }}"> 
-                                    <div class="aspect-[4/5] bg-white flex items-center justify-center overflow-hidden rounded-lg shadow-sm hover:shadow-md transition duration-300 group">
-                                        <img 
-                                            src="{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}"
-                                            alt="{{ artwork.name }}"
-                                            class="object-contain max-h-full max-w-full transition-transform duration-300 group-hover:scale-105 cursor-pointer"
-                                            title="Click to view larger"
-                                            onclick="event.preventDefault(); openFullImage('{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}');"> 
-                                    </div>
-                                </a>
-                                <div class="p-4">
-                                    <h3 class="text-xl font-semibold text-gray-900 mb-2 truncate">{{ artwork.name }}</h3>
-                                    <p class="text-gray-600 text-sm mb-3">{{ artwork.description[:100] }}{% if artwork.description|length > 100 %}...{% endif %}</p>
-                                    <div class="flex items-baseline justify-between mb-4">
-                                        <span class="text-2xl font-bold text-primary final-price">{{ artwork.selling_price_incl_gst | currency }}</span>
-                                    </div>
-                                    <div class="flex items-center mb-3">
-                                        <div class="text-yellow-500">
-                                            <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
+                                {% for artwork in artworks %}
+                                <div class="flex-shrink-0 w-80 snap-center mx-3 product-card bg-white rounded-lg shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
+                                    <a href="{{ url_for('product_detail', sku=artwork.sku) }}">
+                                        {# Updated: Retained h-48 for fixed height, but reverted image to object-contain for no cropping #}
+                                        <div class="h-48 bg-white flex items-center justify-center overflow-hidden rounded-lg shadow-sm hover:shadow-md transition duration-300 group">
+                                            <img
+                                                src="{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}"
+                                                alt="{{ artwork.name }}"
+                                                class="object-contain max-h-full max-w-full transition-transform duration-300 group-hover:scale-105 cursor-pointer"
+                                                title="Click to view larger"
+                                                onclick="event.preventDefault(); openFullImage('{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}');">
                                         </div>
-                                        <span class="text-sm text-gray-600 ml-2">(4.5/5)</span>
-                                    </div>
-                                    {% if artwork.shipping_charge == 0 %}
-                                        <p class="text-green-600 font-semibold text-sm mb-3"><i class="fas fa-truck mr-1"></i> Free Delivery</p>
-                                    {% else %}
-                                        <p class="text-gray-500 text-sm mb-3"><i class="fas fa-truck mr-1"></i> Shipping: {{ artwork.shipping_charge | currency }}</p>
-                                    {% endif %}
-                                    <div class="flex justify-center">
-                                        {% if artwork.stock > 0 %}
-                                            <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary px-6 py-2">View Details</a>
+                                    </a>
+                                    {# Price block remains shrunken as per previous request #}
+                                    <div class="p-3">
+                                        <h3 class="text-xl font-semibold text-gray-900 mb-1 truncate">{{ artwork.name }}</h3>
+                                        <p class="text-gray-600 text-sm mb-1">{{ artwork.description[:100] }}{% if artwork.description|length > 100 %}...{% endif %}</p>
+                                        <div class="flex items-baseline justify-between mb-2">
+                                            <span class="text-2xl font-bold text-primary final-price">{{ artwork.selling_price_incl_gst | currency }}</span>
+                                        </div>
+                                        <div class="flex items-center mb-1">
+                                            <div class="text-yellow-500">
+                                                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
+                                            </div>
+                                            <span class="text-sm text-gray-600 ml-2">(4.5/5)</span>
+                                        </div>
+                                        {% if artwork.shipping_charge == 0 %}
+                                            <p class="text-green-600 font-semibold text-sm mb-1"><i class="fas fa-truck mr-1"></i> Free Delivery</p>
                                         {% else %}
-                                            <button class="btn btn-secondary px-6 py-2 opacity-60 cursor-not-allowed" disabled>Out of Stock</button>
+                                            <p class="text-gray-500 text-sm mb-1"><i class="fas fa-truck mr-1"></i> Shipping: {{ artwork.shipping_charge | currency }}</p>
                                         {% endif %}
+                                        <div class="flex justify-center">
+                                            {% if artwork.stock > 0 %}
+                                                <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary px-6 py-2">View Details</a>
+                                            {% else %}
+                                                <button class="btn btn-secondary px-6 py-2 opacity-60 cursor-not-allowed" disabled>Out of Stock</button>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            {% endfor %}
+                                {% endfor %}
                         </div>
+                        {# Carousel Navigation Arrows for each category carousel #}
                         <button class="absolute left-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 z-40 opacity-75 hover:opacity-100 transition-opacity duration-300" onclick="scrollCarousel('category-carousel-{{ category_name | slugify }}', -1)">
                             <i class="fas fa-chevron-left text-gray-700"></i>
                         </button>
@@ -90,16 +93,11 @@
 {% endblock %}
 
 {% block extra_js %}
-<!-- [unchanged content of the extra_js block, assumed preserved] -->
-{% endblock %}
-
-
-{% block extra_js %}
 <div id="fullImageModal" class="fixed inset-0 bg-black bg-opacity-80 z-50 hidden justify-center items-center p-4">
     <div class="relative max-w-full max-h-full flex justify-center items-center">
         <img id="fullImagePreview" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-xl" src="" alt="">
         <div class="absolute inset-0 pointer-events-none watermark-grid"></div>
-        
+
         {# Explicit Close Button #}
         <button onclick="closeFullImage()" class="absolute top-4 right-4 bg-white text-gray-800 rounded-full p-2 px-4 font-bold text-lg shadow-lg hover:bg-gray-200 transition-colors duration-200">
             <i class="fas fa-times"></i> Close
@@ -189,39 +187,66 @@
         }
     }
 
-    // Function to enable auto-scrolling for a given carousel
+    // New helper function to get accurate item width, including margins
+    function getAccurateItemWidth(carouselElement) {
+        const firstProductCard = carouselElement.querySelector('.product-card');
+        if (firstProductCard) {
+            const computedStyle = getComputedStyle(firstProductCard);
+            const cardWidth = firstProductCard.offsetWidth; // Includes padding and border
+            const marginLeft = parseFloat(computedStyle.marginLeft) || 0;
+            const marginRight = parseFloat(computedStyle.marginRight) || 0;
+            return cardWidth + marginLeft + marginRight;
+        }
+        return 344; // Fallback to hardcoded value if no card found (unlikely)
+    }
+
+    // In global scope or within DOMContentLoaded, manage intervals
+    const carouselIntervals = {}; // To store intervals for each carousel ID
+
+    // Modified enableAutoScrollCarousel
     function enableAutoScrollCarousel(carouselId, scrollSpeed = 0.5, intervalTime = 20) {
         const carousel = document.getElementById(carouselId);
         if (!carousel) {
-            console.warn(`Carousel with ID '${carouselId}' not found. Auto-scroll not enabled.`);
+            console.warn(`[Auto-scroll Warning] Carousel with ID '${carouselId}' not found. Auto-scroll not enabled.`);
             return;
         }
 
-        let scrollInterval;
+        // Clear any existing interval for this carousel
+        if (carouselIntervals[carouselId]) {
+            clearInterval(carouselIntervals[carouselId]);
+        }
 
         function scrollStep() {
             // Check if carousel has reached the end, then jump to the beginning for a loop
-            if (carousel.scrollLeft + carousel.clientWidth >= carousel.scrollWidth - 1) { 
-                carousel.scrollLeft = 0; 
+            // Use a small tolerance for the end check
+            if (carousel.scrollLeft + carousel.clientWidth >= carousel.scrollWidth - 5) { // Increased tolerance
+                carousel.scrollLeft = 0;
             } else {
                 carousel.scrollLeft += scrollSpeed;
             }
         }
 
-        // Start auto-scroll
-        scrollInterval = setInterval(scrollStep, intervalTime);
+        function startScroll() {
+            if (!carouselIntervals[carouselId]) { // Only start if not already running
+                carouselIntervals[carouselId] = setInterval(scrollStep, intervalTime);
+            }
+        }
 
-        // Pause on hover for better user experience
-        carousel.addEventListener('mouseenter', () => {
-            clearInterval(scrollInterval);
-        });
+        function stopScroll() {
+            if (carouselIntervals[carouselId]) {
+                clearInterval(carouselIntervals[carouselId]);
+                delete carouselIntervals[carouselId];
+            }
+        }
 
-        carousel.addEventListener('mouseleave', () => {
-            scrollInterval = setInterval(scrollStep, intervalTime);
-        });
+        startScroll(); // Start auto-scroll initially
 
-        // Manual scroll buttons logic is handled by `scrollCarousel` function,
-        // which will stop the auto-scroll temporarily.
+        carousel.addEventListener('mouseenter', stopScroll);
+        carousel.addEventListener('mouseleave', startScroll);
+
+        // Store stop/start functions on the carousel element for external control
+        carousel._stopAutoScroll = stopScroll;
+        carousel._startAutoScroll = startScroll;
     }
 
 
@@ -229,19 +254,17 @@
     function initializeCarousel(carouselId) {
         const carousel = document.getElementById(carouselId);
         if (!carousel) {
-            console.error(`initializeCarousel: Carousel element not found: ${carouselId}`);
+            console.error(`[Init Carousel Error] Carousel element not found: ${carouselId}`);
             return;
         }
 
         const items = Array.from(carousel.querySelectorAll('.product-card')); // Select only product cards
         if (items.length === 0) {
-            console.warn(`initializeCarousel: No product-card items found in carousel: ${carouselId}`);
+            console.warn(`[Init Carousel Warning] No product-card items found in carousel: ${carouselId}`);
             return;
         }
 
-        // Precise itemWidth calculation (w-80 = 320px, mx-3 = 12px left + 12px right = 24px)
-        const itemWidth = 320 + 24; // Total 344px
-        
+        const itemWidth = getAccurateItemWidth(carousel); // Use dynamic calculation
         const numClones = Math.min(items.length, 3); // Clone a few items for seamless loop
 
         // Clear existing clones to prevent duplicates on re-initialization (if any)
@@ -256,64 +279,75 @@
         for (let i = 0; i < numClones; i++) {
             const clone = items[i].cloneNode(true);
             clone.classList.add('cloned-item'); // Mark as clone
-            carousel.appendChild(clone); 
+            carousel.appendChild(clone);
         }
         // Prepend clones of last items
         for (let i = 0; i < numClones; i++) {
             const clone = items[items.length - 1 - i].cloneNode(true);
             clone.classList.add('cloned-item'); // Mark as clone
-            carousel.prepend(clone); 
+            carousel.prepend(clone);
         }
 
         // Adjust initial scroll position to start of original items
         // Use setTimeout to ensure initial scroll happens after DOM layout is complete
         setTimeout(() => {
             carousel.scrollLeft = numClones * itemWidth;
-            console.log(`initializeCarousel: ${carouselId} initial scrollLeft set to ${carousel.scrollLeft}`);
-        }, 100); // Increased delay to allow layout
+        }, 100);
 
-        let isScrolling;
+        // Updated scroll event listener for smoother "infinite" scroll on drag/swipe
         carousel.addEventListener('scroll', () => {
-            clearTimeout(isScrolling);
-            isScrolling = setTimeout(() => {
-                const scrollLeft = carousel.scrollLeft;
-                const scrollWidth = carousel.scrollWidth;
-                const clientWidth = carousel.clientWidth;
+            const scrollLeft = carousel.scrollLeft;
+            const scrollWidth = carousel.scrollWidth;
+            const clientWidth = carousel.clientWidth;
 
-                console.log(`Carousel ${carouselId} scroll event: scrollLeft=${scrollLeft}, scrollWidth=${scrollWidth}, clientWidth=${clientWidth}, numClones=${numClones}, itemWidth=${itemWidth}`);
+            // Calculate the exact scroll position of the first original item
+            const firstOriginalItemStart = numClones * itemWidth;
+            // Calculate the exact scroll position where the last original item is fully visible
+            const lastOriginalItemEnd = scrollWidth - (numClones * itemWidth) - clientWidth;
 
-                // If scrolled to the end of appended clones (original start)
-                // Use a small epsilon for floating point comparison
-                if (scrollLeft + clientWidth >= scrollWidth - (numClones * itemWidth) - 1) { 
-                    carousel.scrollLeft = numClones * itemWidth; // Jump to original start
-                    console.log(`Carousel ${carouselId}: Jumped from end clone to original start (new scrollLeft: ${carousel.scrollLeft}).`);
-                } 
-                // If scrolled to the beginning of prepended clones (original end)
-                else if (scrollLeft <= 1) { // Use a small epsilon for floating point comparison
-                    carousel.scrollLeft = scrollWidth - (numClones * itemWidth) - clientWidth; // Jump to original end
-                    console.log(`Carousel ${carouselId}: Jumped from start clone to original end (new scrollLeft: ${carousel.scrollLeft}).`);
-                }
-            }, 150); // Increased debounce time for more stable jumps
+            // If scrolled past the last original item into the appended clones (scrolling forward)
+            // Trigger jump when the scroll position is one item width past the last original item
+            if (scrollLeft >= lastOriginalItemEnd + itemWidth) {
+                carousel.scrollLeft = firstOriginalItemStart;
+                // console.log("Jumped to start (forward)");
+            }
+            // If scrolled before the first original item into the prepended clones (scrolling backward)
+            // Trigger jump when the scroll position is one item width before the first original item
+            else if (scrollLeft <= firstOriginalItemStart - itemWidth) {
+                carousel.scrollLeft = lastOriginalItemEnd;
+                // console.log("Jumped to end (backward)");
+            }
         });
     }
 
     // This function is for the buttons
     function scrollCarousel(carouselId, direction) {
-        console.log(`scrollCarousel: Attempting to scroll carousel: ${carouselId} in direction: ${direction}`);
+        console.log(`[Manual Scroll] Attempting to scroll carousel: ${carouselId} in direction: ${direction}`);
         const carousel = document.getElementById(carouselId);
         if (carousel) {
-            // Precise itemWidth calculation (w-80 = 320px, mx-3 = 12px left + 12px right = 24px)
-            const itemWidth = 320 + 24; // Total 344px
+            // Temporarily stop auto-scroll if it's active
+            if (carousel._stopAutoScroll) {
+                carousel._stopAutoScroll();
+            }
+
+            const itemWidth = getAccurateItemWidth(carousel); // Use dynamic calculation
             const scrollAmount = itemWidth; // Scroll exactly one item
 
-            console.log(`scrollCarousel: Carousel found: ${carouselId}. Current scrollLeft: ${carousel.scrollLeft}. Item Width: ${itemWidth}. Scroll Amount: ${scrollAmount}`);
             carousel.scrollBy({
                 left: direction * scrollAmount,
                 behavior: 'smooth'
             });
-            console.log(`scrollCarousel: Scroll initiated. Target scrollLeft: ${carousel.scrollLeft + (direction * scrollAmount)}`);
+
+            // After a manual scroll, re-enable auto-scroll after a delay
+            // This ensures the user has time to read/interact before auto-scroll resumes
+            clearTimeout(carousel._autoScrollResumeTimeout);
+            carousel._autoScrollResumeTimeout = setTimeout(() => {
+                if (carousel._startAutoScroll) {
+                    carousel._startAutoScroll();
+                }
+            }, 3000); // Resume after 3 seconds of inactivity
         } else {
-            console.error(`scrollCarousel: Carousel not found with ID: ${carouselId}`);
+            console.error(`[Manual Scroll Error] Carousel not found with ID: ${carouselId}`);
         }
     }
 
