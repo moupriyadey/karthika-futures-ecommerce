@@ -64,6 +64,19 @@
     .table-danger-flagged td {
         border-color: #f5c6cb; /* Slightly darker border */
     }
+.payment-thumb {
+    max-width: 100px;
+    max-height: 100px;
+    object-fit: cover;
+    cursor: pointer;
+    border: 2px solid #ccc;
+    transition: transform 0.2s ease;
+}
+.payment-thumb:hover {
+    transform: scale(1.05);
+}
+
+
 </style>
 {% endblock %}
 
@@ -123,9 +136,18 @@
                             {% if order.payment_date_time %}
                                 <p><strong>Date/Time:</strong> {{ order.payment_date_time }}</p>
                             {% endif %}
-                            {% if order.payment_screenshot %}
-                                <p><a href="{{ url_for('static', filename=order.payment_screenshot) }}" target="_blank">View Screenshot</a></p>
-                            {% endif %}
+                           
+                                {% if order.payment_screenshot %}
+    <div class="payment-thumb-wrapper">
+        <img src="{{ url_for('static', filename=order.payment_screenshot) }}"
+             alt="Payment Screenshot"
+             class="img-thumbnail payment-thumb"
+             onclick="openScreenshotModal('{{ url_for('static', filename=order.payment_screenshot) }}')">
+        <small class="text-muted d-block">Click to enlarge</small>
+    </div>
+{% endif %}
+
+
                             {% if not order.transaction_id and not order.payment_screenshot %}
                                 <em>No details provided</em>
                             {% endif %}
@@ -181,9 +203,31 @@
     <div id="popupOverlay" class="popup-overlay"></div>
 
 </div>
+
+
+<!-- Screenshot Modal -->
+<div class="modal fade" id="screenshotModal" tabindex="-1" aria-labelledby="screenshotModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content bg-dark">
+      <div class="modal-body text-center">
+        <img id="screenshotModalImage" src="" class="img-fluid" alt="Full Payment Screenshot">
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
+<script>
+function openScreenshotModal(imageUrl) {
+    const modalImage = document.getElementById('screenshotModalImage');
+    modalImage.src = imageUrl;
+    const modal = new bootstrap.Modal(document.getElementById('screenshotModal'));
+    modal.show();
+}
+</script>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const updateStatusButtons = document.querySelectorAll('.update-status-btn');
@@ -222,5 +266,8 @@
             popupOverlay.style.display = 'none';
         });
     });
+
+
+    
 </script>
 {% endblock %}

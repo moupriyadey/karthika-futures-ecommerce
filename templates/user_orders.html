@@ -87,6 +87,28 @@
                 </div>
             </div>
 
+
+            {% if order.payment_screenshot %}
+  <div class="mt-4 text-sm">
+    <label class="font-semibold text-gray-700">Submitted Screenshot:</label>
+    <div class="mt-1">
+      <img src="{{ url_for('static', filename=order.payment_screenshot) }}" class="rounded-md border border-gray-300 shadow-sm max-h-32 cursor-pointer" onclick="openScreenshotModal('{{ url_for('static', filename=order.payment_screenshot) }}')">
+      <p class="text-xs text-gray-500 mt-1">Click to enlarge</p>
+    </div>
+  </div>
+{% endif %}
+
+<!-- Screenshot Upload Form -->
+<form action="{{ url_for('edit_payment_screenshot', order_id=order.id) }}" method="POST" enctype="multipart/form-data" class="mt-4">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label for="screenshot-{{ order.id }}" class="block text-sm font-semibold text-gray-700 mb-1">Upload or Replace Payment Screenshot:</label>
+  <input type="file" name="screenshot" id="screenshot-{{ order.id }}" accept=".png,.jpg,.jpeg" class="block w-full border rounded px-3 py-1 text-sm">
+  <button type="submit" class="mt-2 px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm">
+    Upload Screenshot
+  </button>
+</form>
+
+
             <div class="flex justify-end mt-4 space-x-2">
                 <a href="{{ url_for('order_summary', order_id=order.id) }}" class="btn btn-primary btn-sm">Shipping Details</a>
                 <form action="{{ url_for('delete_order', order_id=order.id) }}" method="POST">
@@ -108,4 +130,26 @@
     </div>
     {% endif %}
 </div>
+
+<!-- Screenshot Zoom Modal -->
+<div class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50" id="screenshotModal">
+  <img id="modalScreenshotImage" src="" class="max-h-full max-w-full rounded shadow-lg">
+</div>
+
+<script>
+function openScreenshotModal(url) {
+  const modal = document.getElementById('screenshotModal');
+  const img = document.getElementById('modalScreenshotImage');
+  img.src = url;
+  modal.classList.remove('hidden');
+}
+
+document.addEventListener('click', function (e) {
+  const modal = document.getElementById('screenshotModal');
+  if (e.target === modal) {
+    modal.classList.add('hidden');
+  }
+});
+</script>
+
 {% endblock %}

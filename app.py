@@ -26,6 +26,9 @@ from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Numeric
 from sqlalchemy.orm import relationship
 from sqlalchemy.exc import IntegrityError 
 
+from flask_migrate import Migrate
+
+
 # Email Sending
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -67,7 +70,6 @@ except ImportError:
 
 app = Flask(__name__)
 
-from slugify import slugify
 app.jinja_env.filters['slugify'] = slugify
 # --- Configuration ---
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_very_secret_key_that_should_be_in_env')
@@ -91,11 +93,13 @@ app.config['OUR_GSTIN'] = "29ABCDE1234F1Z5" # Example GSTIN
 app.config['OUR_PAN'] = "ABCDE1234F" # Example PAN
 app.config['DEFAULT_GST_RATE'] = Decimal('18.00') # Default GST rate for products
 # app.config['DEFAULT_SHIPPING_CHARGE'] = Decimal('100.00') # This is now deprecated for per-artwork shipping
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 # Ensure upload folder exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-db = SQLAlchemy(app)
+
 login_manager = LoginManager(app)
 login_manager.login_view = 'user_login'
 login_manager.login_message_category = 'info'
@@ -313,6 +317,8 @@ class Order(db.Model):
     tracking_number = Column(String(100), nullable=True)
     remark = Column(Text, nullable=True) # Admin remarks
     cancellation_reason = Column(Text, nullable=True) # New field for cancellation reason
+    payment_screenshot = db.Column(db.String(255), nullable=True)
+
 
     # Invoice details stored as JSON string
     invoice_details = Column(Text, nullable=True) # {business_name, gstin, pan, business_address, invoice_number, invoice_date, billing_address, gst_rate_applied, shipping_charge, final_invoice_amount, invoice_status, is_held_by_admin, cgst_amount, sgst_amount, igst_amount, ugst_amount, cess_amount} # NEW: cess_amount
@@ -1538,7 +1544,7 @@ def thank_you_page(order_id):
     # Optional: Add security check to ensure user can only view their own order
     if order.user_id != current_user.id:
         flash("You do not have permission to view this order.", "danger")
-        return redirect(url_for('my_orders')) # or 'index'
+        return redirect(url_for('user_orders')) # or 'index'
     
 
     # Insert here to clear cart session
@@ -1700,6 +1706,7 @@ def admin_update_order_status(order_id): # Added order_id to arguments
         db.session.rollback() # Rollback in case of error
         print(f"Error updating order status for {order_id}: {e}")
         return jsonify(success=False, message='An internal server error occurred.'), 500
+
 
 
 @app.route('/admin/users')
@@ -2552,6 +2559,21 @@ def my_addresses():
     addresses = Address.query.filter_by(user_id=current_user.id).order_by(Address.is_default.desc(), Address.id.asc()).all()
     return render_template('my_addresses.html', addresses=addresses)
 
+
+@app.route('/admin/screenshots')
+@login_required
+@admin_required
+def view_uploaded_screenshots():
+    orders = Order.query.filter(Order.payment_screenshot.isnot(None)).order_by(Order.order_date.desc()).all()
+    missing_files = []
+
+    for order in orders:
+        path = os.path.join('static', order.payment_screenshot)
+        if not os.path.exists(path):
+            missing_files.append(order.order_id)
+
+    return render_template('admin_screenshots.html', orders=orders, missing_files=missing_files)
+
 @app.route('/edit-address/<address_id>', methods=['GET', 'POST'])
 @login_required
 def edit_address(address_id):
@@ -2610,6 +2632,54 @@ def delete_address(address_id):
 def user_orders():
     orders = Order.query.filter_by(user_id=current_user.id).order_by(Order.order_date.desc()).all()
     return render_template('user_orders.html', orders=orders)
+
+import os
+from werkzeug.utils import secure_filename
+from flask import current_app
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/user/order/<order_id>/edit_screenshot', methods=['POST'])
+@login_required
+@csrf.exempt  # If you're using AJAX or ensure CSRF token included
+def edit_payment_screenshot(order_id):
+    order = Order.query.filter_by(order_id=order_id, user_email=session.get('user_email')).first()
+    if not order:
+        flash("Order not found or access denied.", "danger")
+        return redirect(url_for('user_orders'))
+
+    if 'screenshot' not in request.files:
+        flash("No screenshot uploaded.", "warning")
+        return redirect(url_for('user_orders'))
+
+    file = request.files['screenshot']
+    if file and allowed_file(file.filename):
+        filename = secure_filename(f"{order.order_id}_screenshot.{file.filename.rsplit('.', 1)[1].lower()}")
+        filepath = os.path.join('static', 'payment_screenshots', filename)
+
+        # Ensure folder exists
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+
+        # Delete old screenshot if exists
+        if order.payment_screenshot:
+            try:
+                os.remove(os.path.join('static', order.payment_screenshot))
+            except Exception as e:
+                print(f"Warning: Could not delete old screenshot: {e}")
+
+        file.save(filepath)
+        order.payment_screenshot = f'payment_screenshots/{filename}'
+        db.session.commit()
+
+        flash("Screenshot uploaded successfully.", "success")
+    else:
+        flash("Invalid file format. Only PNG, JPG, JPEG allowed.", "danger")
+
+    return redirect(url_for('user_orders'))
+
 
 from flask import jsonify, request
 
@@ -2727,3 +2797,4 @@ with app.app_context():
 # --- Run the App ---
 if __name__ == '__main__':
     app.run(debug=True)
+

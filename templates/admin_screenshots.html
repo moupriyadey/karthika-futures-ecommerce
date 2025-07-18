@@ -1,0 +1,66 @@
+{% extends '_base.html' %}
+{% block title %}Uploaded Screenshots{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h2 class="text-center mb-4">🖼 Uploaded Payment Screenshots</h2>
+
+    {% if missing_files %}
+        <div class="alert alert-danger">
+            <strong>Missing Files:</strong> Could not find screenshots for these orders:
+            <ul>
+                {% for order_id in missing_files %}
+                    <li>Order #{{ order_id }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <div class="row">
+        {% for order in orders %}
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <strong>Order #{{ order.order_id }}</strong>
+                    <br><small>{{ order.user_email }}</small>
+                </div>
+                <div class="card-body text-center">
+                    {% if order.payment_screenshot %}
+                        <img src="{{ url_for('static', filename=order.payment_screenshot) }}"
+                             alt="Payment Screenshot"
+                             class="img-fluid rounded shadow-sm"
+                             style="max-height: 250px; cursor: pointer;"
+                             onclick="openModal('{{ url_for('static', filename=order.payment_screenshot) }}')">
+                        <p class="mt-2 text-muted small">Click to enlarge</p>
+                    {% else %}
+                        <p class="text-danger">No Screenshot Found</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal for full-size image -->
+<div class="modal fade" id="screenshotModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content bg-dark">
+      <div class="modal-body p-0 text-center">
+        <img id="modalImage" src="" class="img-fluid rounded" alt="Full Screenshot">
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openModal(imgUrl) {
+  const modalImage = document.getElementById("modalImage");
+  modalImage.src = imgUrl;
+  new bootstrap.Modal(document.getElementById("screenshotModal")).show();
+}
+</script>
+{% endblock %}
