@@ -287,7 +287,7 @@ body {
 #all-products-carousel,
 [id^="category-carousel-"] { /* This targets all category carousels */
     -webkit-overflow-scrolling: touch; /* Improves scrolling on iOS */
-    touch-action: pan-y; /* Allows horizontal swiping */
+    touch-action: pan-x pan-y; /* Allows horizontal swiping */
     overflow-x: auto; /* Ensures horizontal scrolling */
     white-space: nowrap; /* Keeps items in a single line */
     scroll-behavior: smooth; /* Already there, good for buttons */
