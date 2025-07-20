@@ -45,7 +45,7 @@ body {
     flex-direction: column; /* Stack children vertically */
     min-height: 100vh; /* Ensure body takes at least full viewport height */
 
-    
+
 }
 
 /* Custom Alert Styling */
@@ -211,9 +211,9 @@ body {
     font-size: 0.75em;
     padding: 0.3em 0.6em;
     border-radius: 50%;
-    position: absolute; 
+    position: absolute;
     /* ADJUSTED: Bring the badge closer to the icon and above it */
-    top: -8px;   /* Moved slightly higher */
+    top: -8px;  /* Moved slightly higher */
     right: 40px; /* Crucially increased to pull it further left over the icon */
     transform: translate(50%, -50%); /* Still shifts it out by half its size from the new (top,right) point */
     display: none; /* Hidden by default, shown by JS */
@@ -274,10 +274,10 @@ body {
 .main-content-area {
     padding-top: 7rem; /* Let's revert to 7rem, as 11rem is excessive if it doesn't solve it */
     flex-grow: 1;
-    background-color: rgba(255, 255, 255, 0.98); 
+    background-color: rgba(255, 255, 255, 0.98);
     border-radius: 1.5rem;
     padding: 2rem; /* This sets 2rem for right, bottom, left. Top is overridden by padding-top */
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); 
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
     margin-top: 2rem;
     margin-bottom: 2rem;
 }
@@ -287,41 +287,14 @@ body {
 #all-products-carousel,
 [id^="category-carousel-"] { /* This targets all category carousels */
     -webkit-overflow-scrolling: touch; /* Improves scrolling on iOS */
-    touch-action: pan-x pan-y; /* Allows horizontal swiping */
+    touch-action: pan-x pan-y; /* Allow both horizontal and vertical panning for free-form scroll */
     overflow-x: auto; /* Ensures horizontal scrolling */
     white-space: nowrap; /* Keeps items in a single line */
     scroll-behavior: smooth; /* Already there, good for buttons */
-    /* Optional: Add scroll-snap for better item alignment after swipe */
-    scroll-snap-type: x mandatory;
+    /* REMOVED: scroll-snap-type property entirely to allow free-flowing scroll */
 }
 
 /* If you use scroll-snap, ensure direct children also snap */
-#featured-artworks-carousel > div,
-#all-products-carousel > div,
-[id^="category-carousel-"] > div { /* Target direct children of carousel for snapping */
-    scroll-snap-align: start;
-    display: inline-block; /* Essential for nowrap and horizontal layout */
-    /* Ensure items have defined width, e.g., using Bootstrap cols or fixed width */
-    width: 70%; /* Example for mobile view, adjust as needed */
-    margin-right: 15px; /* Spacing between items */
-    flex-shrink: 0; /* Prevent items from shrinking */
-}
-
-/* Adjust for larger screens */
-@media (min-width: 768px) {
-    #featured-artworks-carousel > div,
-    #all-products-carousel > div,
-    [id^="category-carousel-"] > div {
-        width: 30%; /* Example: Show more items on tablet/desktop */
-    }
-}
-@media (min-width: 992px) {
-    #featured-artworks-carousel > div,
-    #all-products-carousel > div,
-    [id^="category-carousel-"] > div {
-        width: 23%; /* Example: Even more items on large desktops */
-    }
-}
 
 
 .thumbnail-wrapper {
@@ -360,8 +333,8 @@ body {
 /* If "Our Divine Collection" is specifically an h1, you can be more precise */
 .main-content-area h1 {
     font-size: 2.5rem; /* Example: adjust font size if needed */
-    margin-top: 0; 
-    padding-top: 2rem; 
+    margin-top: 0;
+    padding-top: 2rem;
     margin-bottom: 1rem;
 }
 
@@ -557,10 +530,10 @@ body {
     /* The .navbar-collapse should handle the main distribution */
     .navbar-collapse {
         display: flex !important; /* Ensure it's flex on large screens */
-        flex-grow: 1; 
+        flex-grow: 1;
         justify-content: flex-end; /* Pushes content to the right */
-        align-items: center; 
-        width: auto; 
+        align-items: center;
+        width: auto;
     }
     /* The me-auto and ms-auto classes in HTML now handle alignment, no custom margin here */
 }

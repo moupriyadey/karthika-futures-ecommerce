@@ -4,7 +4,7 @@
 
 {% block content %}
 {# Added pt-20 to push content down below the navbar #}
-<main class="pt-20"> 
+<main class="pt-20">
     <section class="relative min-h-[100vh] sm:min-h-[90vh] flex items-center justify-center text-white overflow-hidden px-4">
         <video autoplay muted loop class="absolute inset-0 w-full h-full object-cover z-0">
             <source src="https://assets.mixkit.co/videos/preview/mixkit-sun-rays-in-the-forest-1296-large.mp4" type="video/mp4">
@@ -23,7 +23,7 @@
             </p>
             {# Go Button Wrapper - Directly inside the z-30 container #}
             {# Removed 'relative z-50' from here, as parent z-30 should be sufficient #}
-            <div class="go-button-wrapper animate-fade-in-up animation-delay-600"> 
+            <div class="go-button-wrapper animate-fade-in-up animation-delay-600">
                 <a href="/all-products" class="btn btn-primary text-base sm:text-xl px-6 sm:px-8 py-3 sm:py-4 rounded-full go-button-inner hover:scale-105 transition-transform duration-300">
                     Go
                 </a>
@@ -48,63 +48,69 @@
     <section class="py-16 bg-white">
         <div class="container mx-auto">
             <h2 class="text-4xl font-extrabold text-center text-gray-800 mb-10">Featured Divine Masterpieces</h2>
-            <div class="relative">
-                {# Changed snap-mandatory to snap-proximity for smoother feel #}
-                {# Added cursor-grab and active:cursor-grabbing for better UX #}
-                
-                <div id="featured-artworks-carousel"
-    class="flex overflow-x-scroll pb-4 scrollbar-hide cursor-grab active:cursor-grabbing relative transition-all duration-300 ease-in-out"
-    style="touch-action: pan-x pan-y;">
-
-                {# Added touch-action for explicit horizontal pan #}
+            
+            {# START: Bootstrap Carousel for Featured Artworks #}
+            <div id="featuredArtworksBootstrapCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="3000">
+                <div class="carousel-inner">
                     {% for artwork in featured_artworks %}
-                    <div class="flex-shrink-0 w-80 snap-center mx-3 product-card bg-white rounded-lg shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
-                        <a href="{{ url_for('product_detail', sku=artwork.sku) }}">
-                            <div class="thumbnail-wrapper rounded-lg shadow-sm group">
-                                <img 
-                                    src="{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}"
-                                    alt="{{ artwork.name }}"
-                                    class="object-contain transition-transform duration-300 group-hover:scale-105 cursor-pointer"
-                                    title="Click to view larger"
-                                    onclick="event.preventDefault(); openFullImage('{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}');"
-                                >
-                            </div>
-                        </a>
-                        <div class="p-4">
-                            <h3 class="text-xl font-semibold text-gray-900 mb-2 truncate">{{ artwork.name }}</h3>
-                            <p class="text-gray-600 text-sm mb-3">{{ artwork.description[:100] }}{% if artwork.description|length > 100 %}...{% endif %}</p>
-                            <div class="flex items-baseline justify-between mb-4">
-                                <span class="text-2xl font-bold text-primary final-price">{{ artwork.selling_price_incl_gst | currency }}</span>
-                                {# REMOVED: Original price display #}
-                            </div>
-                            <div class="flex items-center mb-3">
-                                <div class="text-yellow-500">
-                                    <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
+                    <div class="carousel-item {% if loop.first %}active{% endif %}">
+                        <div class="flex justify-center"> {# Center the single item in the carousel-item #}
+                            <div class="product-card bg-white rounded-lg shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl w-80 mx-auto">
+                                <a href="{{ url_for('product_detail', sku=artwork.sku) }}">
+                                    <div class="thumbnail-wrapper rounded-lg shadow-sm group">
+                                        <img
+                                            src="{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}"
+                                            alt="{{ artwork.name }}"
+                                            class="d-block w-full object-contain transition-transform duration-300 group-hover:scale-105 cursor-pointer"
+                                            title="Click to view larger"
+                                            onclick="event.preventDefault(); openFullImage('{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}'); event.stopPropagation();" {# FIX IS HERE #}
+                                            loading="lazy" {# Lazy loading for images #}
+                                        >
+                                    </div>
+                                </a>
+                                <div class="p-4">
+                                    <h3 class="text-xl font-semibold text-gray-900 mb-2 truncate">{{ artwork.name }}</h3>
+                                    <p class="text-gray-600 text-sm mb-3">{{ artwork.description[:100] }}{% if artwork.description|length > 100 %}...{% endif %}</p>
+                                    <div class="flex items-baseline justify-between mb-4">
+                                        <span class="text-2xl font-bold text-primary final-price">{{ artwork.selling_price_incl_gst | currency }}</span>
+                                    </div>
+                                    <div class="flex items-center mb-3">
+                                        <div class="text-yellow-500">
+                                            <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
+                                        </div>
+                                        <span class="text-sm text-gray-600 ml-2">(4.5/5)</span>
+                                    </div>
+                                    {% if artwork.shipping_charge is defined and artwork.shipping_charge == 0 %}
+                                    <p class="text-green-600 font-semibold text-sm mb-3"><i class="fas fa-truck mr-1"></i> Free Delivery</p>
+                                    {% else %}
+                                    <p class="text-gray-500 text-sm mb-3"><i class="fas fa-truck mr-1"></i> Shipping charges apply</p>
+                                    {% endif %}
+                                    <div class="flex justify-center">
+                                        <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary px-6 py-2">View Details</a>
+                                    </div>
                                 </div>
-                                <span class="text-sm text-gray-600 ml-2">(4.5/5)</span>
-                            </div>
-                            {% if artwork.shipping_charge is defined and artwork.shipping_charge == 0 %}
-                            <p class="text-green-600 font-semibold text-sm mb-3"><i class="fas fa-truck mr-1"></i> Free Delivery</p>
-                            {% else %}
-                            <p class="text-gray-500 text-sm mb-3"><i class="fas fa-truck mr-1"></i> Shipping charges apply</p>
-                            {% endif %}
-                            <div class="flex justify-center">
-                                <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary px-6 py-2">View Details</a>
                             </div>
                         </div>
                     </div>
                     {% else %}
-                    <p class="text-center text-gray-600 w-full">No featured artworks available at the moment.</p>
+                    <div class="carousel-item active">
+                        <p class="text-center text-gray-600 w-full py-10">No featured artworks available at the moment.</p>
+                    </div>
                     {% endfor %}
                 </div>
-                {# Increased z-index for buttons to ensure clickability #}
-                <button class="absolute left-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 z-40 opacity-75 hover:opacity-100 transition-opacity duration-300" id="scroll-left-featured">
-                    <i class="fas fa-chevron-left text-gray-700"></i>
+
+                {# Carousel Controls #}
+                <button class="carousel-control-prev" type="button" data-bs-target="#featuredArtworksBootstrapCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
                 </button>
-                <button class="absolute right-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 z-40 opacity-75 hover:opacity-100 transition-opacity duration-300" id="scroll-right-featured">
-                    <i class="fas fa-chevron-right text-gray-700"></i>
+                <button class="carousel-control-next" type="button" data-bs-target="#featuredArtworksBootstrapCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
                 </button>
             </div>
+            {# END: Bootstrap Carousel for Featured Artworks #}
+
         </div>
     </section>
 
@@ -115,8 +121,8 @@
                 Your generous contributions help us propagate Dharma and preserve ancient spiritual wisdom through art. Every donation makes a difference.
             </p>
             <div class="inline-block p-4 bg-white rounded-xl shadow-2xl border-4 border-white transition-transform duration-300 hover:rotate-0">
-                <img src="{{ url_for('static', filename='uploads/qr_code.png') }}" alt="Donation QR Code" 
-                     class="w-48 h-48 object-contain rounded-lg border-8 border-gray-100 shadow-inner-lg embossed-qr-shadow">
+                <img src="{{ url_for('static', filename='uploads/qr_code.png') }}" alt="Donation QR Code"
+                             class="w-48 h-48 object-contain rounded-lg border-8 border-gray-100 shadow-inner-lg embossed-qr-shadow">
             </div>
             <p class="text-2xl font-bold text-gray-800 mt-6 mb-4">Scan to Donate via UPI</p>
             <div class="flex justify-center space-x-6 mb-8">
@@ -180,11 +186,7 @@
     </div>
 </div>
 
-
-
-    // Your existing openFullImage and closeFullImage functions go here
-  <script>
-    // Your existing openFullImage and closeFullImage functions go here
+<script>
     function openFullImage(src) {
         document.getElementById('fullImagePreview').src = src;
         document.getElementById('fullImageModal').classList.remove('hidden');
@@ -210,101 +212,6 @@
             fullImageModal._clickListener = null;
         }
     }
-
-    // UPDATED Function to enable auto-scrolling for a given carousel
-    function enableAutoScrollCarousel(carouselId) {
-        const carousel = document.getElementById(carouselId);
-        if (!carousel) {
-            console.error(`enableAutoScrollCarousel: Carousel not found with ID: ${carouselId}`);
-            return;
-        }
-
-        const itemWidth = 320 + 24; // w-80 (320px) + mx-3 (24px total margin)
-        const scrollStep = itemWidth;
-        let scrollInterval;
-
-        // IMPORTANT: This 'originalItemsCount' MUST precisely match the 'limit'
-        // you use in your app.py for fetching 'featured_artworks' (e.g., .limit(6).all()).
-        // If app.py fetches fewer items than this, adjust accordingly.
-        const originalItemsCount = 6; 
-
-        // This is the scroll position where the ORIGINAL content ends and duplicated items begin.
-        const resetThreshold = originalItemsCount * itemWidth;
-
-        const startAutoScroll = () => {
-            clearInterval(scrollInterval); // Clear any existing interval
-            scrollInterval = setInterval(() => {
-                // Calculate the maximum scroll position the carousel can reach
-                const maxScrollLeft = carousel.scrollWidth - carousel.clientWidth;
-
-                // Condition to trigger reset:
-                // 1. If we have scrolled past the point where original content ends (main seamless loop trigger)
-                // 2. OR, if the carousel is very close to its absolute physical end (a robust fallback for "stuck" issues)
-                if (carousel.scrollLeft >= resetThreshold || 
-                    carousel.scrollLeft >= maxScrollLeft - (itemWidth / 2)) {
-                    
-                    // Instantly jump back to the beginning (scrollLeft: 0) without animation
-                    carousel.scrollTo({ left: 0, behavior: 'auto' });
-                    // The next interval tick will then start the smooth scroll from 0.
-                } else {
-                    // Otherwise, scroll by one step smoothly
-                    carousel.scrollBy({ left: scrollStep, behavior: 'smooth' });
-                }
-            }, 3000); // Scroll every 3 seconds (adjust as needed)
-        };
-
-        const stopAutoScroll = () => {
-            clearInterval(scrollInterval);
-        };
-
-        // Pause auto-scroll on hover
-        carousel.addEventListener('mouseenter', stopAutoScroll);
-        carousel.addEventListener('mouseleave', startAutoScroll);
-
-        // Start auto-scroll initially
-        startAutoScroll();
-    }
-
-    // Ensure auto-scroll starts only after all carousel images are loaded for accurate measurements
-    document.addEventListener('DOMContentLoaded', function() {
-        const carousel = document.getElementById('featured-artworks-carousel');
-        if (carousel) {
-            const images = carousel.querySelectorAll('img');
-            let imagesLoadedCount = 0;
-
-            if (images.length === 0) {
-                // If no images in the carousel, start immediately
-                enableAutoScrollCarousel('featured-artworks-carousel');
-            } else {
-                images.forEach(img => {
-                    // Check if image is already loaded (e.g., from cache)
-                    if (img.complete) {
-                        imagesLoadedCount++;
-                    } else {
-                        // Add load listener for images not yet complete
-                        img.addEventListener('load', () => {
-                            imagesLoadedCount++;
-                            if (imagesLoadedCount === images.length) {
-                                enableAutoScrollCarousel('featured-artworks-carousel');
-                            }
-                        });
-                        // Add error listener to prevent getting stuck if an image fails to load
-                        img.addEventListener('error', () => {
-                            console.warn(`Error loading image in carousel: ${img.src}`);
-                            imagesLoadedCount++;
-                            if (imagesLoadedCount === images.length) {
-                                enableAutoScrollCarousel('featured-artworks-carousel');
-                            }
-                        });
-                    }
-                });
-                // If all images were already loaded initially, trigger it
-                if (imagesLoadedCount === images.length) {
-                    enableAutoScrollCarousel('featured-artworks-carousel');
-                }
-            }
-        }
-    });
 </script>
 <style>
     /* Custom styles for animations */
@@ -337,7 +244,7 @@
 
     /* Custom styles for the embossed QR code */
     .embossed-qr-shadow {
-        box-shadow: 
+        box-shadow:
             inset 0 2px 4px rgba(0,0,0,0.06), /* Inner shadow for embossed effect */
             0 4px 8px rgba(0,0,0,0.1); /* Soft outer shadow */
     }

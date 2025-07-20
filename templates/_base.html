@@ -532,10 +532,16 @@
                     </li>
                 </ul>
 
-                <form class="d-flex" role="search" action="{{ url_for('all_products') }}" method="get"></form>
-    <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" name="query">
-    <button class="btn btn-outline-light" type="submit">GO</button>
+             {# Search Form - Adjusted for better mobile centering #}
+{# On large screens (lg), it will be ms-auto (margin-left auto) to push right #}
+{# On smaller screens, d-flex and justify-content-center will center it #}
+                <form class="d-flex ms-auto me-2 my-2 my-lg-0 flex-grow-1 justify-content-center"
+      action="{{ url_for('all_products') }}" method="GET"> {# ADDED action and method #}
+    <input class="form-control me-2" type="search" placeholder="Search by name, SKU, or description..." aria-label="Search" name="search"> {# ADDED name="search" #}
+    <button class="btn btn-outline-light" type="submit">Search</button>
 </form>
+
+
 
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                     <li class="nav-item">
