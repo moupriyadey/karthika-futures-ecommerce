@@ -2648,7 +2648,14 @@ def allowed_file(filename):
 @login_required
 @csrf.exempt  # If you're using AJAX or ensure CSRF token included
 def edit_payment_screenshot(order_id):
-    order = Order.query.filter_by(order_id=order_id, user_email=session.get('user_email')).first()
+    # FIX START:
+    # 1. Changed 'order_id' to 'id' because the column in your Order model is named 'id'.
+    # 2. Changed 'user_email=session.get('user_email')' to 'user_id=current_user.id'
+    #    because Order model has 'user_id' foreign key, and current_user is available
+    #    due to @login_required decorator. This ensures the user can only modify their own orders.
+    order = Order.query.filter_by(id=order_id, user_id=current_user.id).first()
+    # FIX END
+
     if not order:
         flash("Order not found or access denied.", "danger")
         return redirect(url_for('user_orders'))
@@ -2659,7 +2666,9 @@ def edit_payment_screenshot(order_id):
 
     file = request.files['screenshot']
     if file and allowed_file(file.filename):
-        filename = secure_filename(f"{order.order_id}_screenshot.{file.filename.rsplit('.', 1)[1].lower()}")
+        # FIX START: Use order.id instead of order.order_id for filename
+        filename = secure_filename(f"{order.id}_screenshot.{file.filename.rsplit('.', 1)[1].lower()}")
+        # FIX END
         filepath = os.path.join('static', 'payment_screenshots', filename)
 
         # Ensure folder exists
@@ -2668,19 +2677,26 @@ def edit_payment_screenshot(order_id):
         # Delete old screenshot if exists
         if order.payment_screenshot:
             try:
-                os.remove(os.path.join('static', order.payment_screenshot))
+                # Ensure the path is correctly constructed for deletion
+                old_screenshot_path = os.path.join('static', order.payment_screenshot)
+                if os.path.exists(old_screenshot_path):
+                    os.remove(old_screenshot_path)
             except Exception as e:
                 print(f"Warning: Could not delete old screenshot: {e}")
 
         file.save(filepath)
+        # FIX START: Use order.payment_screenshot directly
         order.payment_screenshot = f'payment_screenshots/{filename}'
+        # FIX END
         db.session.commit()
 
         flash("Screenshot uploaded successfully.", "success")
     else:
-        flash("Invalid file format. Only PNG, JPG, JPEG allowed.", "danger")
+        flash("Choose an image first & then Upload Screenshot. Only PNG, JPG, JPEG allowed.", "danger")
 
     return redirect(url_for('user_orders'))
+
+
 
 
 from flask import jsonify, request
