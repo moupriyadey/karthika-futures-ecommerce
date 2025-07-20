@@ -1273,7 +1273,9 @@ def verify_reset_otp():
             user.email_verified = True
             db.session.delete(latest_otp) # Delete used OTP
             db.session.commit()
-            session.pop('otp_user_id', None) # Clear OTP user ID
+            # IMPORTANT FIX: Set the user_id in the correct session key for reset_password
+            session['reset_user_id'] = user.id
+            session.pop('otp_user_id', None) # Clear the temporary OTP user ID
             flash('OTP verified! You can now set your new password.', 'success')
             return redirect(url_for('reset_password'))
         else:
