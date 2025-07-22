@@ -9,7 +9,14 @@ function showCustomAlert(message, type = 'info', showCartLink = false) {
     alertDiv.className = `custom-alert alert-${type}`;
     alertDiv.style.zIndex = 9999;
 
-    let contentHtml = `<div class="custom-alert-message">${message}</div>`;
+    // --- IMPORTANT DEBUGGING LOGS ---
+    console.log("DEBUG: showCustomAlert received message TYPE:", typeof message);
+    console.log("DEBUG: showCustomAlert received message CONTENT:", message);
+    // --- END DEBUGGING LOGS ---
+
+    // Ensure the message is always a string, even if an object is passed.
+    let contentHtml = `<div class="custom-alert-message">${typeof message === 'object' ? JSON.stringify(message) : message}</div>`;
+    
     if (showCartLink) {
         contentHtml += `<a href="/cart" class="btn btn-primary mt-3">Go To Cart</a>`;
     }
@@ -26,39 +33,80 @@ function getHeaders() {
 }
 
 async function addToCart(sku, name, imageUrl, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, cessPercentage, quantity, selectedOptions) {
-    console.log("addToCart called from main.js:", { sku, name, quantity, selectedOptions, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, cessPercentage });
+    console.log("DEBUG: addToCart function started.");
+    console.log("DEBUG: Add to Cart payload being sent:", { sku, name, quantity, selectedOptions, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, cessPercentage });
+
     try {
         const response = await fetch('/add-to-cart', {
             method: 'POST',
             headers: getHeaders(),
-            body: JSON.stringify({ sku, name, imageUrl, unit_price_before_gst: unitPriceBeforeGst, cgst_percentage: cgstPercentage, sgst_percentage: sgstPercentage, igst_percentage: igstPercentage, ugst_percentage: ugstPercentage, cess_percentage: cessPercentage, quantity, selected_options: selectedOptions })
+            body: JSON.stringify({ 
+                sku, 
+                name, 
+                imageUrl, 
+                unit_price_before_gst: unitPriceBeforeGst, 
+                cgst_percentage: cgstPercentage, 
+                sgst_percentage: sgstPercentage, 
+                igst_percentage: igstPercentage, 
+                ugst_percentage: ugstPercentage, 
+                cess_percentage: cessPercentage, 
+                quantity, 
+                selected_options: selectedOptions 
+            })
         });
+        
+        console.log("DEBUG: Response received from /add-to-cart. Status:", response.status, "OK:", response.ok);
+        
         const data = await response.json();
+        console.log("DEBUG: Parsed JSON data from /add-to-cart:", data); 
 
         if (response.ok && data.success) {
+            console.log("DEBUG: Add to Cart SUCCESS path entered. Data:", data);
             if (data.cart_count !== undefined) {
                 localStorage.setItem('cartCount', data.cart_count);
-                updateCartCountDisplay();
+                updateCartCountDisplay(); // Update the cart badge
+                console.log("DEBUG: Cart count updated and display function called.");
+            } else {
+                console.warn("DEBUG: No 'cart_count' found in successful /add-to-cart response.");
             }
-            window.location.href = '/cart';
+            console.log("DEBUG: Initiating immediate redirect to /cart.");
+            window.location.href = '/cart'; // CRITICAL: Immediate redirect on success
+            // Adding a return here to ensure no further JS executes on the current page
+            return; 
         } else {
-            console.error("Failed to add item to cart:", data.message);
-            showCustomAlert(data.message || 'Failed to add item to cart.', 'danger');
+            // This path is for failures (response.ok is false or data.success is false)
+            console.error("DEBUG: Add to Cart FAILURE path entered. Server message:", data.message);
+            showCustomAlert(data.message || 'Failed to add item to cart. Please check stock.', 'danger');
         }
     } catch (error) {
-        console.error('Error adding to cart:', error);
-        showCustomAlert('An error occurred. Please try again.', 'danger');
+        console.error('DEBUG: Error during addToCart fetch operation:', error);
+        showCustomAlert('An unexpected error occurred while adding to cart. Please try again.', 'danger');
     }
+    console.log("DEBUG: addToCart function finished (or caught error).");
 }
 
 async function buyNow(sku, name, imageUrl, selectedOptions, quantity, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, cessPercentage, shippingCharge) {
-    console.log("buyNow called from main.js:", { sku, name, quantity, selectedOptions, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, cessPercentage, shippingCharge });
-    const itemToBuyNow = { sku, name, imageUrl, selected_options: selectedOptions, quantity, unit_price_before_gst: unitPriceBeforeGst, cgst_percentage: cgstPercentage, sgst_percentage: sgstPercentage, igst_percentage: igstPercentage, ugst_percentage: ugstPercentage, cess_percentage: cessPercentage, shipping_charge: shippingCharge };
+    console.log("DEBUG: buyNow function called with:", { sku, name, quantity, selectedOptions, unitPriceBeforeGst, cgstPercentage, sgstPercentage, igstPercentage, ugstPercentage, cessPercentage, shippingCharge });
+    const itemToBuyNow = { 
+        sku, 
+        name, 
+        imageUrl, 
+        selected_options: selectedOptions, 
+        quantity, 
+        unit_price_before_gst: unitPriceBeforeGst, 
+        cgst_percentage: cgstPercentage, 
+        sgst_percentage: sgstPercentage, 
+        igst_percentage: igstPercentage, 
+        ugst_percentage: ugstPercentage, 
+        cess_percentage: cessPercentage, 
+        shipping_charge: shippingCharge 
+    };
 
     if (!window.isUserLoggedIn) {
+        console.log("DEBUG: User not logged in for Buy Now. Storing item and redirecting to login.");
         sessionStorage.setItem('itemToBuyNow', JSON.stringify(itemToBuyNow));
-        sessionStorage.setItem('redirect_after_login_endpoint', 'purchase_form');
-        window.location.href = window.userLoginUrl;
+        sessionStorage.setItem('redirect_after_login_endpoint', 'purchase_form'); // This might be used by your Flask login route
+        window.location.href = window.userLoginUrl || '/user-login'; // Fallback to /user-login if userLoginUrl not set
         return;
     }
 
@@ -69,15 +117,17 @@ async function buyNow(sku, name, imageUrl, selectedOptions, quantity, unitPriceB
             body: JSON.stringify(itemToBuyNow)
         });
         const data = await response.json();
+        console.log("DEBUG: Response data from /create_direct_order:", data); 
 
         if (response.ok && data.success) {
+            console.log("DEBUG: Buy Now SUCCESS. Redirecting to:", data.redirect_url);
             window.location.href = data.redirect_url;
         } else {
-            console.error('Direct order initiation failed:', data.message);
-            showCustomAlert(data.message || 'Failed to initiate direct purchase.', 'danger');
+            console.error('DEBUG: Direct order initiation failed. Server message:', data.message);
+            showCustomAlert(data.message || 'Failed to initiate direct purchase. Please try again.', 'danger');
         }
     } catch (error) {
-        console.error('Error initiating direct purchase:', error);
+        console.error('DEBUG: Error initiating direct purchase:', error);
         showCustomAlert('An error occurred during direct purchase setup. Please try again.', 'danger');
     }
 }
@@ -87,11 +137,13 @@ function updateCartCountDisplay() {
     const cartCountBadge = document.getElementById('cart-count');
     if (cartCountBadge) {
         cartCountBadge.textContent = cartCount;
+        // Only display the badge if count is greater than 0
         cartCountBadge.style.display = cartCount > 0 ? 'inline-block' : 'none';
     }
     console.log("main.js: Cart count updated to:", cartCount);
 }
 
+// Expose functions to the global window object so they can be called from HTML onclick attributes
 window.showCustomAlert = showCustomAlert;
 window.addToCart = addToCart;
 window.buyNow = buyNow;
@@ -306,7 +358,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 
-    // Modal price update logic
+    // Modal price update logic (from product_detail.html's modal)
+    // This part is crucial for product_detail.html
     const productModalElement = document.getElementById('productModal');
     if (productModalElement) {
         function updateModalPrice() {
@@ -371,6 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 modalStockSpan.textContent = `${currentStock}`;
             }
 
+            // Return the calculated details for use by Add to Cart/Buy Now buttons in the modal
             return {
                 name: document.getElementById('modalArtworkName').value,
                 imageUrl: document.getElementById('modalArtworkImageUrl').value,
@@ -391,6 +445,7 @@ document.addEventListener('DOMContentLoaded', () => {
             select.addEventListener('change', updateModalPrice);
         });
 
+        // Initial call for modal price
         updateModalPrice();
     }
     // Cart logic from the original index.html's DOMContentLoaded

@@ -7,10 +7,13 @@
     <h1 class="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-6 md:mb-8">Complete Your Purchase</h1>
 
     <div class="flex flex-col lg:flex-row gap-6 md:gap-8">
+        {# Left Column: Address Selection #}
         <div class="lg:w-2/3 bg-white p-4 md:p-6 rounded-lg shadow-sm">
             <div class="flex justify-between items-center mb-4 md:mb-6 border-b pb-2">
-                <h2 class="text-2xl md:text-3xl font-semibold text-gray-800">Select a Saved Address</h2>
-                <a href="#" onclick="toggleNewAddressForm(); return false;" class="text-sm text-blue-600 hover:underline">+ Add New Address</a>
+                <h2 class="text-2xl md:text-3xl font-semibold text-gray-800">Shipping Address</h2>
+                <a href="#" onclick="toggleNewAddressForm(); return false;" class="text-sm text-blue-600 hover:underline" id="addNewAddressLink">
+                    + Add New Address
+                </a>
             </div>
 
             {% if new_address_added %}
@@ -19,16 +22,18 @@
             </div>
             {% endif %}
 
-            <form method="POST" action="{{ url_for('purchase_form') }}" class="space-y-6">
+            {# This form now only contains the address selection and new address form #}
+            <form method="POST" action="{{ url_for('purchase_form') }}" class="space-y-6" id="addressSelectionForm">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="action_type" value="place_order">
+                {# Hidden input to send the selected address ID or 'new' #}
+                <input type="hidden" name="selected_address_id" id="hiddenSelectedAddressId">
 
                 {% if user_addresses %}
-                <div class="space-y-4 mb-4">
+                <div id="existingAddressesDisplay" class="space-y-4 mb-4">
                     {% for addr in user_addresses %}
                     <div class="bg-gray-50 border p-3 rounded-lg shadow-sm space-y-2">
                         <label class="flex items-start space-x-3 cursor-pointer">
-                            <input type="radio" name="selected_address_id" value="{{ addr.id }}" class="mt-1 address-radio"
+                            <input type="radio" name="selected_address_id_radio" value="{{ addr.id }}" class="mt-1 address-radio"
                                    {% if selected_address and selected_address.id == addr.id %}checked{% endif %} required>
                             <div>
                                 <p class="font-semibold">{{ addr.full_name }}</p>
@@ -50,55 +55,60 @@
                     </div>
                     {% endfor %}
                 </div>
+                {% else %}
+                <p class="text-gray-600 mb-4" id="noAddressesMessage">You don't have any saved addresses yet. Please add a new one below.</p>
                 {% endif %}
 
-                <div id="newAddressForm" class="hidden">
-                    <h5 class="text-md font-semibold mb-2">Enter New Address</h5>
-                    <input type="hidden" name="action_type" value="add_address">
-                    <input type="hidden" name="selected_address_id" value="new">
+                {# New Address Form - Initially hidden #}
+                <div id="newAddressForm" class="mt-4 hidden"> {# Ensure this is hidden by default #}
+                    <h5 class="text-md font-semibold mb-2">Enter New Address Details</h5>
+                    {# No hidden selected_address_id here, as it's handled by the radio buttons or JS #}
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
                             <label class="form-label">Full Name</label>
-                            <input type="text" class="form-control" name="full_name">
+                            <input type="text" class="form-control" name="full_name"
+                                   value="{{ form_data.full_name or current_user_data.full_name or '' }}"> {# Prefill #}
                         </div>
                         <div>
                             <label class="form-label">Phone Number</label>
-                            <input type="tel" class="form-control" name="phone" pattern="[0-9]{10}" maxlength="10" minlength="10" title="Enter a valid 10-digit phone number">
+                            <input type="tel" class="form-control" name="phone" pattern="[0-9]{10}" maxlength="10" minlength="10" title="Enter a valid 10-digit phone number"
+                                   value="{{ form_data.phone or current_user_data.phone or '' }}"> {# Prefill #}
                         </div>
                         <div class="md:col-span-2">
                             <label class="form-label">Address Line 1</label>
-                            <input type="text" class="form-control" name="address_line1">
+                            <input type="text" class="form-control" name="address_line1" value="{{ form_data.address_line1 or '' }}">
                         </div>
                         <div class="md:col-span-2">
                             <label class="form-label">Address Line 2 (optional)</label>
-                            <input type="text" class="form-control" name="address_line2">
+                            <input type="text" class="form-control" name="address_line2" value="{{ form_data.address_line2 or '' }}">
                         </div>
                         <div>
                             <label class="form-label">City</label>
-                            <input type="text" class="form-control" name="city">
+                            <input type="text" class="form-control" name="city" value="{{ form_data.city or '' }}">
                         </div>
                         <div>
                             <label class="form-label">State</label>
-                            <input type="text" class="form-control" name="state">
+                            <input type="text" class="form-control" name="state" value="{{ form_data.state or '' }}">
                         </div>
                         <div>
                             <label class="form-label">Pincode</label>
-                            <input type="text" class="form-control" name="pincode" pattern="[0-9]{6}" maxlength="6" minlength="6" title="Enter a valid 6-digit pincode">
+                            <input type="text" class="form-control" name="pincode" pattern="[0-9]{6}" maxlength="6" minlength="6" title="Enter a valid 6-digit pincode" value="{{ form_data.pincode or '' }}">
                         </div>
                     </div>
                     <div class="form-check mt-3">
-                        <input type="checkbox" class="form-check-input" name="save_address">
-                        <label class="form-check-label">Save this address for future orders</label>
+                        <input type="checkbox" class="form-check-input" name="save_address" id="save_address_new_form" {% if form_data.save_address %}checked{% endif %}>
+                        <label class="form-check-label" for="save_address_new_form">Save this address for future use</label>
                     </div>
                     <div class="form-check">
-                        <input type="checkbox" class="form-check-input" name="set_as_default">
-                        <label class="form-check-label">Set as default address</label>
+                        <input type="checkbox" class="form-check-input" name="set_as_default" id="set_as_default_new_form" {% if form_data.set_as_default %}checked{% endif %}>
+                        <label class="form-check-label" for="set_as_default_new_form">Set as default address</label>
                     </div>
-                    <button type="submit" class="btn btn-success mt-4">Add New Address</button>
+                    <button type="submit" class="btn btn-success mt-4" name="action_type" value="add_new_address">Add New Address</button>
                 </div>
             </form>
         </div>
 
+        {# Right Column: Cart Summary & Place Order Button #}
         <div class="lg:w-1/3 bg-white p-4 md:p-6 rounded-lg shadow-sm h-fit sticky top-4">
             <h2 class="text-xl md:text-2xl font-semibold text-gray-800 mb-4 md:mb-6 border-b pb-2">Cart Summary</h2>
             <div class="space-y-2 mb-4">
@@ -106,6 +116,36 @@
                     <span>Subtotal (Excl. GST):</span>
                     <span class="font-semibold">{{ subtotal_before_gst | currency }}</span>
                 </div>
+                {% if total_cgst_amount > 0 %}
+                <div class="flex justify-between text-sm text-gray-700">
+                    <span>CGST:</span>
+                    <span class="font-semibold">{{ total_cgst_amount | currency }}</span>
+                </div>
+                {% endif %}
+                {% if total_sgst_amount > 0 %}
+                <div class="flex justify-between text-sm text-gray-700">
+                    <span>SGST:</span>
+                    <span class="font-semibold">{{ total_sgst_amount | currency }}</span>
+                </div>
+                {% endif %}
+                {% if total_igst_amount > 0 %}
+                <div class="flex justify-between text-sm text-gray-700">
+                    <span>IGST:</span>
+                    <span class="font-semibold">{{ total_igst_amount | currency }}</span>
+                </div>
+                {% endif %}
+                {% if total_ugst_amount > 0 %}
+                <div class="flex justify-between text-sm text-gray-700">
+                    <span>UGST:</span>
+                    <span class="font-semibold">{{ total_ugst_amount | currency }}</span>
+                </div>
+                {% endif %}
+                {% if total_cess_amount > 0 %}
+                <div class="flex justify-between text-sm text-gray-700">
+                    <span>CESS:</span>
+                    <span class="font-semibold">{{ total_cess_amount | currency }}</span>
+                </div>
+                {% endif %}
                 <div class="flex justify-between text-sm text-gray-700">
                     <span>Shipping Charge:</span>
                     <span class="font-semibold">{{ shipping_charge | currency }}</span>
@@ -116,14 +156,27 @@
                 </div>
             </div>
 
-            <form method="POST" action="{{ url_for('purchase_form') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="action_type" value="place_order">
-                <input type="hidden" name="selected_address_id" id="summarySelectedAddressId">
-                <button type="submit" class="btn btn-primary w-full py-3 text-lg rounded-md" id="placeOrderButtonSummary" disabled>
+                <div class="mb-4">
+    <label for="pinInputCheckout" class="font-semibold">Check Delivery Date:</label>
+    <div class="flex items-center gap-2 mt-1">
+        <input type="text" id="pinInputCheckout" maxlength="6" placeholder="Enter Pincode" class="form-input w-40 px-2 py-1 border rounded">
+        <button type="button" onclick="checkEDD('pinInputCheckout', 'eddCheckout')" class="bg-blue-600 text-white px-3 py-1 rounded text-sm">Check</button>
+    </div>
+    <p id="eddCheckout" class="mt-1 text-sm"></p>
+</div>
+
+
+            {# PLACE ORDER BUTTON - MOVED HERE #}
+            <div class="d-grid gap-2 mt-4 relative"> {# Added relative for alert positioning #}
+                <button type="submit" class="btn btn-primary btn-lg" id="placeOrderButton" form="addressSelectionForm" name="action_type" value="place_order">
                     Place Order
                 </button>
-            </form>
+                {# Floating alert - positioned relative to this button's parent div #}
+                <div id="noAddressAlert" class="absolute -bottom-10 left-1/2 transform -translate-x-1/2 bg-red-600 text-white text-sm px-3 py-1 rounded-md shadow-lg flex items-center space-x-1 whitespace-nowrap z-10 hidden">
+                    <i class="fas fa-hand-point-left text-xs animate-pulse-hand"></i> {# Now points left #}
+                    <span>Please add an address!</span>
+                </div>
+            </div>
 
             <div class="border-t pt-4">
                 <h3 class="text-lg font-semibold mb-2">Items in Cart</h3>
@@ -153,30 +206,195 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }} {# Include parent's extra_js #}
 <script>
-    function toggleNewAddressForm() {
-        const form = document.getElementById('newAddressForm');
-        form.classList.toggle('hidden');
-    }
+    document.addEventListener('DOMContentLoaded', function() {
+        const newAddressFormDiv = document.getElementById('newAddressForm');
+        const noAddressAlert = document.getElementById('noAddressAlert');
+        const placeOrderButton = document.getElementById('placeOrderButton');
+        const hasAddresses = {{ has_addresses | tojson }}; // Flask variable passed from backend
+        const addressRadios = document.querySelectorAll('input[name="selected_address_id_radio"]');
+        const addressSelectionForm = document.getElementById('addressSelectionForm'); // The form for addresses
+        const hiddenSelectedAddressIdInput = document.getElementById('hiddenSelectedAddressId');
+        const addNewAddressLink = document.getElementById('addNewAddressLink');
+        const noAddressesMessage = document.getElementById('noAddressesMessage');
+        const newAddressAddButton = newAddressFormDiv.querySelector('button[name="action_type"][value="add_new_address"]');
 
-    document.addEventListener("DOMContentLoaded", function () {
-        const radios = document.querySelectorAll('input[name="selected_address_id"]');
-        const placeOrderBtn = document.getElementById('placeOrderButtonSummary');
-        const hiddenInput = document.getElementById('summarySelectedAddressId');
 
-        radios.forEach(radio => {
-            radio.addEventListener('change', () => {
-                placeOrderBtn.disabled = false;
-                hiddenInput.value = radio.value;
+        // Function to toggle new address form visibility
+        function toggleNewAddressForm() {
+            newAddressFormDiv.classList.toggle('hidden');
+            if (!newAddressFormDiv.classList.contains('hidden')) {
+                // If the new form is shown, hide existing addresses if any
+                if (hasAddresses && document.getElementById('existingAddressesDisplay')) {
+                    document.getElementById('existingAddressesDisplay').classList.add('hidden');
+                }
+                // Also hide the "You don't have any saved addresses" message if it's visible
+                if (noAddressesMessage) {
+                    noAddressesMessage.classList.add('hidden');
+                }
+                // Scroll to the new address form
+                newAddressFormDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // Uncheck any existing address radios
+                addressRadios.forEach(radio => radio.checked = false);
+                // Ensure new address fields are required
+                updateNewAddressFormRequired(true);
+                // Set hidden input to 'new'
+                hiddenSelectedAddressIdInput.value = 'new';
+                // Enable place order button
+                placeOrderButton.disabled = false;
+                // Hide alert
+                noAddressAlert.classList.add('hidden');
+
+            } else {
+                // If the new form is hidden, show existing addresses if any
+                if (hasAddresses && document.getElementById('existingAddressesDisplay')) {
+                    document.getElementById('existingAddressesDisplay').classList.remove('hidden');
+                }
+                // If no addresses exist, show the "You don't have any saved addresses" message
+                if (!hasAddresses && noAddressesMessage) {
+                    noAddressesMessage.classList.remove('hidden');
+                }
+                // New address fields are not required
+                updateNewAddressFormRequired(false);
+                // Reset hidden input
+                hiddenSelectedAddressIdInput.value = '';
+                // Check if any existing radio is checked to enable button
+                const anyRadioChecked = Array.from(addressRadios).some(radio => radio.checked);
+                placeOrderButton.disabled = !anyRadioChecked;
+                if (!anyRadioChecked && !hasAddresses) { // If no addresses and new form hidden
+                    noAddressAlert.classList.remove('hidden'); // Show alert
+                }
+            }
+        }
+
+        // Function to update required attributes for new address form inputs
+        function updateNewAddressFormRequired(isRequired) {
+            const newAddressInputs = newAddressFormDiv.querySelectorAll('input[name="full_name"], input[name="phone"], input[name="address_line1"], input[name="pincode"], input[name="city"], input[name="state"]');
+            newAddressInputs.forEach(input => {
+                input.required = isRequired;
+            });
+        }
+
+        // Initial setup on page load
+        if (!hasAddresses) {
+            // If no addresses, automatically show new address form and message
+            newAddressFormDiv.classList.remove('hidden');
+            if (document.getElementById('existingAddressesDisplay')) {
+                document.getElementById('existingAddressesDisplay').classList.add('hidden');
+            }
+            if (noAddressesMessage) {
+                noAddressesMessage.classList.remove('hidden'); // Keep message visible
+            }
+            updateNewAddressFormRequired(true); // Make new address fields required
+            placeOrderButton.disabled = false; // Enable button as new form is active
+            hiddenSelectedAddressIdInput.value = 'new'; // Set hidden input to 'new'
+            
+            // Show the subtle alert below the button
+            noAddressAlert.classList.remove('hidden');
+
+        } else {
+            // If addresses exist, ensure new address form is hidden by default
+            newAddressFormDiv.classList.add('hidden');
+            updateNewAddressFormRequired(false); // Not required unless explicitly shown
+            // Check if any radio button is checked to enable the place order button
+            const anyRadioChecked = Array.from(addressRadios).some(radio => radio.checked);
+            placeOrderButton.disabled = !anyRadioChecked;
+            if (anyRadioChecked) {
+                // If an existing address is checked, set the hidden input
+                const checkedRadio = document.querySelector('input[name="selected_address_id_radio"]:checked');
+                hiddenSelectedAddressIdInput.value = checkedRadio.value;
+            } else {
+                // If no existing address is checked, disable button and show alert
+                placeOrderButton.disabled = true;
+                noAddressAlert.classList.remove('hidden');
+            }
+        }
+
+        // Event listener for existing address radio buttons
+        addressRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (this.checked) {
+                    placeOrderButton.disabled = false; // Enable button if an address is selected
+                    noAddressAlert.classList.add('hidden'); // Hide alert if an address is selected
+                    hiddenSelectedAddressIdInput.value = this.value; // Update hidden input
+                    newAddressFormDiv.classList.add('hidden'); // Hide new address form
+                    updateNewAddressFormRequired(false); // New address fields not required
+                    if (hasAddresses && document.getElementById('existingAddressesDisplay')) {
+                        document.getElementById('existingAddressesDisplay').classList.remove('hidden');
+                    }
+                    if (noAddressesMessage) {
+                        noAddressesMessage.classList.add('hidden');
+                    }
+                }
             });
         });
 
-        const selected = document.querySelector('input[name="selected_address_id"]:checked');
-        if (selected) {
-            placeOrderBtn.disabled = false;
-            hiddenInput.value = selected.value;
+        // Event listener for "Add New Address" button within the new address form
+        if (newAddressAddButton) {
+            newAddressAddButton.addEventListener('click', function() {
+                // When this button is clicked, we assume the user is adding an address, so hide the alert
+                noAddressAlert.classList.add('hidden');
+            });
         }
 
+
+        // If a new address was just added (from POST redirect), pre-select it
+        const newAddressAdded = {{ new_address_added | tojson }};
+        {% if new_address_added %}
+            const preSelectedId = '{{ selected_address.id if selected_address else '' }}';
+            if (preSelectedId) {
+                const radioToSelect = document.querySelector(`input[name="selected_address_id_radio"][value="${preSelectedId}"]`);
+                if (radioToSelect) {
+                    radioToSelect.checked = true;
+                    hiddenSelectedAddressIdInput.value = preSelectedId; // Set hidden input
+                    placeOrderButton.disabled = false; // Enable button
+                    noAddressAlert.classList.add('hidden'); // Hide alert
+                    newAddressFormDiv.classList.add('hidden'); // Ensure new form is hidden
+                    updateNewAddressFormRequired(false);
+                    if (document.getElementById('existingAddressesDisplay')) {
+                        document.getElementById('existingAddressesDisplay').classList.remove('hidden');
+                    }
+                    if (noAddressesMessage) {
+                        noAddressesMessage.classList.add('hidden');
+                    }
+                }
+            }
+        {% endif %}
+
+        // Handle form submission for the main "Place Order" button
+        placeOrderButton.addEventListener('click', function(event) {
+            // This button submits the addressSelectionForm
+            // The hiddenSelectedAddressIdInput value is already set by JS logic
+
+            // If new address form is visible, ensure its required fields are filled
+            if (!newAddressFormDiv.classList.contains('hidden')) {
+                const newAddressInputs = newAddressFormDiv.querySelectorAll('input[name="full_name"], input[name="phone"], input[name="address_line1"], input[name="pincode"], input[name="city"], input[name="state"]');
+                let allRequiredFilled = true;
+                newAddressInputs.forEach(input => {
+                    if (input.required && !input.value.trim()) {
+                        allRequiredFilled = false;
+                        input.focus(); // Focus on the first empty required field
+                    }
+                });
+                if (!allRequiredFilled) {
+                    flashMessage('Please fill in all required fields for the new address.', 'danger');
+                    event.preventDefault(); // Prevent form submission
+                    return;
+                }
+            } else if (hiddenSelectedAddressIdInput.value === '') { // No address selected at all
+                flashMessage('Please select an existing address or add a new one.', 'danger');
+                noAddressAlert.classList.remove('hidden'); // Show alert
+                event.preventDefault(); // Prevent form submission
+                return;
+            }
+            // If all checks pass, the form will submit normally
+        });
+
+        // Popup image functionality (existing code)
         document.querySelectorAll(".popup-image").forEach(img => {
             img.addEventListener("click", () => {
                 document.getElementById("popupImage").src = img.src;
@@ -190,6 +408,7 @@
     }
 </script>
 
+{# Image Popup HTML - moved here from main content block #}
 <div id="imagePopup" class="fixed inset-0 bg-black bg-opacity-80 hidden z-50 flex items-center justify-center">
     <div class="relative max-w-3xl w-full">
         <img id="popupImage" class="w-full max-h-screen object-contain relative">
@@ -200,4 +419,18 @@
     </div>
 </div>
 
+<style>
+    /* Animation for the pointing hand icon */
+    @keyframes pulse-hand {
+        0%, 100% {
+            transform: translateY(0) scale(1);
+        }
+        50% {
+            transform: translateY(-5px) scale(1.05); /* Slight lift and scale */
+        }
+    }
+    .animate-pulse-hand {
+        animation: pulse-hand 1.5s infinite;
+    }
+</style>
 {% endblock %}

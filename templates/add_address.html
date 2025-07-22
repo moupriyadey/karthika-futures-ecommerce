@@ -1,70 +1,53 @@
-{% extends '_base.html' %}
+{% extends "_base.html" %}
 
 {% block title %}Add New Address - Karthika Futures{% endblock %}
 
 {% block content %}
-<div class="container main-content-area py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            <div class="card shadow-sm border-0 rounded-lg p-4">
-                <div class="card-body">
-                    <h2 class="text-center mb-4">Add New Address</h2>
-                    <p class="text-center text-muted mb-4">Provide details for your new shipping address.</p>
-
-                    <form action="{{ url_for('add_address') }}" method="POST">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                        <div class="mb-3">
-                            <label for="label" class="form-label">Address Label (e.g., Home, Office)</label>
-                            <input type="text" class="form-control" id="label" name="label" required value="{{ request.form.label or '' }}">
-                        </div>
-                        <div class="mb-3">
-                            <label for="full_name" class="form-label">Recipient Full Name</label>
-                            <input type="text" class="form-control" id="full_name" name="full_name" required value="{{ request.form.full_name or '' }}">
-                        </div>
-                        <div class="mb-3">
-                            <label for="phone" class="form-label">Phone Number</</label>
-                            <input type="tel" class="form-control" id="phone" name="phone" pattern="[0-9]{10}" placeholder="e.g., 9876543210" required value="{{ request.form.phone or '' }}">
-                            <small class="form-text text-muted">Please enter a 10-digit phone number.</small>
-                        </div>
-                        <div class="mb-3">
-                            <label for="address_line1" class="form-label">Address Line 1</label>
-                            <input type="text" class="form-control" id="address_line1" name="address_line1" required value="{{ request.form.address_line1 or '' }}">
-                        </div>
-                        <div class="mb-3">
-                            <label for="address_line2" class="form-label">Address Line 2 (Optional)</label>
-                            <input type="text" class="form-control" id="address_line2" name="address_line2" value="{{ request.form.address_line2 or '' }}">
-                        </div>
-                        <div class="mb-3">
-                            <label for="pincode" class="form-label">Pincode</label>
-                            <input type="text" class="form-control" id="pincode" name="pincode" pattern="[0-9]{6}" placeholder="e.g., 123456" required value="{{ request.form.pincode or '' }}">
-                            <small class="form-text text-muted">Please enter a 6-digit pincode.</small>
-                        </div>
-                        <div class="mb-3">
-                            <label for="city" class="form-label">City</label>
-                            <input type="text" class="form-control" id="city" name="city" required value="{{ request.form.city or '' }}">
-                        </div>
-                        <div class="mb-3">
-                            <label for="state" class="form-label">State</label>
-                            <input type="text" class="form-control" id="state" name="state" required value="{{ request.form.state or '' }}">
-                        </div>
-
-                        <div class="mb-3 form-check">
-                            <input type="checkbox" class="form-check-input" id="is_default" name="is_default" value="true" {% if request.form.is_default %}checked{% endif %}>
-                            <label class="form-check-label" for="is_default">Set as default address</label>
-                        </div>
-
-                        <div class="d-grid gap-2 mt-4">
-                            <button type="submit" class="btn btn-primary btn-lg">Add Address</button>
-                        </div>
-                    </form>
-
-                    <p class="text-center mt-3">
-                        <a href="{{ url_for('manage_addresses') }}">Back to My Addresses</a>
-                    </p>
+<div class="container py-4 main-content-area">
+    <h2 class="mb-4 text-center">Add New Address</h2>
+    <form method="POST" action="{{ url_for('add_address') }}">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label for="full_name" class="form-label">Full Name</label>
+                <input type="text" name="full_name" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+                <label for="phone" class="form-label">Phone Number</label>
+                <input type="tel" name="phone" class="form-control" required>
+            </div>
+            <div class="col-12">
+                <label for="address_line1" class="form-label">Address Line 1</label>
+                <input type="text" name="address_line1" class="form-control" required>
+            </div>
+            <div class="col-12">
+                <label for="address_line2" class="form-label">Address Line 2 (optional)</label>
+                <input type="text" name="address_line2" class="form-control">
+            </div>
+            <div class="col-md-4">
+                <label for="city" class="form-label">City</label>
+                <input type="text" name="city" class="form-control" required>
+            </div>
+            <div class="col-md-4">
+                <label for="state" class="form-label">State</label>
+                <input type="text" name="state" class="form-control" required>
+            </div>
+            <div class="col-md-4">
+                <label for="pincode" class="form-label">Pincode</label>
+                <input type="text" name="pincode" class="form-control" required>
+            </div>
+            <div class="col-12">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="is_default" id="is_default">
+                    <label class="form-check-label" for="is_default">
+                        Set as default address
+                    </label>
                 </div>
             </div>
+            <div class="col-12 text-center">
+                <button type="submit" class="btn btn-primary">Save Address</button>
+                <a href="{{ url_for('my_addresses') }}" class="btn btn-secondary ms-2">Cancel</a>
+            </div>
         </div>
-    </div>
+    </form>
 </div>
 {% endblock %}

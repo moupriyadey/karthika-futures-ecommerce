@@ -789,6 +789,7 @@ def create_direct_order():
 # If you don't have a purchase_form route, please let me know its actual name.
 
 # In app.py, locate your purchase_form route and update it.
+# app.py (Modified Excerpt for purchase_form route)
 
 @app.route('/purchase-form', methods=['GET', 'POST'])
 @login_required
@@ -859,7 +860,9 @@ def purchase_form():
                                        total_sgst_amount=total_sgst_amount,
                                        total_igst_amount=total_igst_amount,
                                        total_ugst_amount=total_ugst_amount,
-                                       total_cess_amount=total_cess_amount)
+                                       total_cess_amount=total_cess_amount,
+                                       has_addresses=bool(user_addresses), # Keep this flag
+                                       current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email}) # Pass user data
 
         if selected_address_id == 'new' or not shipping_address_obj:
             if not all([full_name, phone, address_line1, city, state, pincode]):
@@ -877,7 +880,9 @@ def purchase_form():
                                        total_sgst_amount=total_sgst_amount,
                                        total_igst_amount=total_igst_amount,
                                        total_ugst_amount=total_ugst_amount,
-                                       total_cess_amount=total_cess_amount)
+                                       total_cess_amount=total_cess_amount,
+                                       has_addresses=bool(user_addresses), # Keep this flag
+                                       current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email}) # Pass user data
 
             new_address = Address(
                 user_id=current_user.id,
@@ -976,7 +981,10 @@ def purchase_form():
                            total_igst_amount=total_igst_amount,
                            total_ugst_amount=total_ugst_amount,
                            total_cess_amount=total_cess_amount,
-                           new_address_added=bool(pre_selected_id))
+                           new_address_added=bool(pre_selected_id),
+                           has_addresses=bool(user_addresses), # Pass this flag
+                           current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email}) # Pass user data
+
 
 # MODIFIED: Signup route to include OTP verification and next_url capture
 @app.route('/signup', methods=['GET', 'POST'])

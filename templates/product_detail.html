@@ -74,13 +74,14 @@
 
                 <p class="text-gray-700 mb-6 leading-relaxed">{{ artwork.description }}</p>
 
-                <!-- Custom Options -->
+                <!-- Custom Options - MODIFIED SECTION -->
                 <div id="customOptionsContainer" class="mb-6">
-                    {% for group, options in artwork.get_custom_options_dict().items() %}
+                    {% for group_name, options_dict in artwork.get_custom_options_dict().items() %}
                     <div class="mb-4">
-                        <label for="{{ group | slugify }}" class="block text-gray-700 font-semibold mb-2">{{ group }}:</label>
-                        <select id="{{ group | slugify }}" name="option_{{ group | slugify }}" class="form-select w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50" data-option-group="{{ group }}">
-                            {% for option_name, price_impact in options.items() %}
+                        <label for="{{ group_name | slugify }}" class="block text-gray-700 font-semibold mb-2">{{ group_name }}:</label>
+                        <select id="{{ group_name | slugify }}" name="option_{{ group_name | slugify }}" class="form-select w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50" data-option-group="{{ group_name }}">
+                            <option value="default" data-price-impact="0">Select {{ group_name }}...</option> {# Added default option #}
+                            {% for option_name, price_impact in options_dict.items() %}
                             <option value="{{ option_name }}" data-price-impact="{{ price_impact }}">
                                 {{ option_name }} ({% if price_impact >= 0 %}+{% endif %}{{ price_impact | currency }})
                             </option>
@@ -89,6 +90,7 @@
                     </div>
                     {% endfor %}
                 </div>
+                {# END MODIFIED SECTION #}
 
                 <div class="flex items-center mb-6">
                     <label for="quantity" class="text-gray-700 font-semibold mr-4">Quantity:</label>
@@ -104,6 +106,16 @@
                     <span class="text-sm ml-4 {% if artwork.stock > 0 %}text-gray-500{% else %}text-red-600 font-semibold{% endif %}">({{ artwork.stock }} in stock)</span>
                 </div>
             </div>
+
+            <div class="mt-4">
+    <label for="pinInputProduct" class="font-semibold">Check Delivery Date:</label>
+    <div class="flex items-center gap-2 mt-1">
+        <input type="text" id="pinInputProduct" maxlength="6" placeholder="Enter Pincode" class="form-input w-40 px-2 py-1 border rounded">
+        <button type="button" onclick="checkEDD('pinInputProduct', 'eddProduct')" class="bg-blue-600 text-white px-3 py-1 rounded text-sm">Check</button>
+    </div>
+    <p id="eddProduct" class="mt-1 text-sm"></p>
+</div>
+
 
             <!-- Action Buttons -->
             <div class="mt-auto pt-4 border-t border-gray-200">
@@ -166,13 +178,14 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const artworkData = {{ artwork_data | tojson }};
+        console.log("DEBUG: artworkData loaded:", artworkData); // Log the entire artworkData object
         const quantityInput = document.getElementById('quantity');
         const customOptionsContainer = document.getElementById('customOptionsContainer');
         const displayPriceElement = document.getElementById('displayPrice');
         const addToCartBtn = document.getElementById('addToCartBtn');
         const buyNowBtn = document.getElementById('buyNowBtn');
 
-        // Carousel Logic
+        // Carousel Logic (unchanged)
         const carousel = document.getElementById('productImageCarousel');
         const carouselInner = carousel.querySelector('.carousel-inner');
         const carouselItems = carousel.querySelectorAll('.carousel-item');
@@ -213,22 +226,36 @@
 
         updateCarousel(); // Initialize carousel position and indicator
 
-        // Function to calculate and update price
+        // Function to calculate and update price - ENHANCED DEBUGGING
         function updatePrice() {
+            console.log("DEBUG: updatePrice function started.");
+            console.log("DEBUG: Initial artworkData.original_price:", artworkData.original_price);
             let currentPrice = artworkData.original_price;
             const selectedOptions = {};
-            const quantity = parseInt(quantityInput.value); // Get the current quantity
+            const quantity = parseInt(quantityInput.value);
+            console.log("DEBUG: Current quantity:", quantity);
 
             // Add price impact from selected options
-            customOptionsContainer.querySelectorAll('select').forEach(select => {
+            customOptionsContainer.querySelectorAll('select[data-option-group]').forEach(select => { // Target only selects with data-option-group
                 const selectedOption = select.options[select.selectedIndex];
-                // Ensure a valid option is selected (not the disabled "Select..." option)
-                if (selectedOption.value !== "default") { 
+                const groupName = select.dataset.optionGroup; // Get the group name
+                console.log(`DEBUG: Processing option group: "${groupName}", selected option value: "${selectedOption.value}"`);
+
+                if (selectedOption.value !== "default") { // Only process if a non-default option is selected
                     const priceImpact = parseFloat(selectedOption.dataset.priceImpact);
-                    currentPrice += priceImpact;
-                    selectedOptions[select.dataset.optionGroup] = selectedOption.value;
+                    console.log(`DEBUG: Option "${selectedOption.value}" for group "${groupName}" has price impact: ${selectedOption.dataset.priceImpact} (parsed as ${priceImpact})`);
+                    
+                    if (!isNaN(priceImpact)) {
+                        currentPrice += priceImpact;
+                        selectedOptions[groupName] = selectedOption.value;
+                    } else {
+                        console.warn(`WARNING: priceImpact for option "${selectedOption.value}" in group "${groupName}" is NaN. Check data-price-impact attribute.`);
+                    }
+                } else {
+                    console.log(`DEBUG: Default option selected for group: "${groupName}". No price impact added.`);
                 }
             });
+            console.log("DEBUG: Price after options applied (unit price before GST):", currentPrice);
 
             // Calculate GST
             let totalGstRate = 0;
@@ -240,26 +267,40 @@
                 totalGstRate = artworkData.cgst_percentage + artworkData.ugst_percentage;
             }
             totalGstRate += artworkData.cess_percentage; // Include CESS
+            console.log("DEBUG: Total GST Rate:", totalGstRate);
 
             // Calculate total price before GST for the given quantity
-            const totalPriceBeforeGstForQuantity = currentPrice * quantity; // MODIFIED: Multiply by quantity here
+            const totalPriceBeforeGstForQuantity = currentPrice * quantity;
+            console.log("DEBUG: Total price before GST for quantity:", totalPriceBeforeGstForQuantity);
 
             const gstAmount = (totalPriceBeforeGstForQuantity * totalGstRate) / 100;
-            let finalPrice = totalPriceBeforeGstForQuantity + gstAmount; // MODIFIED: Use total price before GST
+            console.log("DEBUG: GST Amount:", gstAmount);
+            
+            let finalPrice = totalPriceBeforeGstForQuantity + gstAmount;
+            console.log("DEBUG: Price after GST:", finalPrice);
 
-            finalPrice += artworkData.shipping_charge; // Add shipping charge per item (assuming it's per item)
+            // Calculate total shipping charge based on quantity and artwork's shipping_charge
+            // Assuming artworkData.shipping_charge is the charge per item/slab.
+            // Your app.py has `total_shipping_charge += item_shipping_charge * quantity;`
+            // So, let's assume shipping_charge in artworkData is per item.
+            finalPrice += artworkData.shipping_charge * quantity; 
+            console.log("DEBUG: Final price after shipping charge (multiplied by quantity):", finalPrice);
 
+            // Format and display the price
             displayPriceElement.textContent = `₹${finalPrice.toFixed(2)}`;
+            console.log("DEBUG: Display price updated to:", displayPriceElement.textContent);
 
-            // Store current calculated price and options for Add to Cart/Buy Now
-            artworkData.current_unit_price_before_gst = currentPrice; // This is still unit price
+            // Update artworkData for Add to Cart/Buy Now buttons
+            artworkData.current_unit_price_before_gst = currentPrice; // This is still unit price before GST
             artworkData.selected_options = selectedOptions;
+            console.log("DEBUG: artworkData.current_unit_price_before_gst updated to:", artworkData.current_unit_price_before_gst);
+            console.log("DEBUG: artworkData.selected_options updated to:", artworkData.selected_options);
         }
 
         // Event listeners for quantity and custom options
         quantityInput.addEventListener('change', updatePrice);
-        quantityInput.addEventListener('input', updatePrice); // Also listen to input for real-time changes
-        customOptionsContainer.querySelectorAll('select').forEach(select => {
+        quantityInput.addEventListener('input', updatePrice); 
+        customOptionsContainer.querySelectorAll('select[data-option-group]').forEach(select => { // Target only selects with data-option-group
             select.addEventListener('change', updatePrice);
         });
 
@@ -268,10 +309,10 @@
 
         // Add to Cart functionality - NOW CALLS GLOBAL FUNCTION
         addToCartBtn.addEventListener('click', function() {
+            console.log("DEBUG: Add to Cart button clicked.");
             const quantity = parseInt(quantityInput.value);
             if (quantity < 1 || quantity > artworkData.stock) {
-                // MODIFIED: Use new showCustomAlert signature
-                window.showCustomAlert({ message: `Please enter a quantity between 1 and ${artworkData.stock}.`, type: 'danger' });
+                window.showCustomAlert(`Please enter a quantity between 1 and ${artworkData.stock}.`, 'danger');
                 return;
             }
 
@@ -279,13 +320,13 @@
             window.addToCart(
                 artworkData.sku,
                 artworkData.name,
-                artworkData.image_url, // Pass image_url
+                artworkData.image_url, 
                 artworkData.current_unit_price_before_gst,
                 artworkData.cgst_percentage,
                 artworkData.sgst_percentage,
                 artworkData.igst_percentage,
                 artworkData.ugst_percentage,
-                artworkData.cess_percentage, // Pass cess_percentage
+                artworkData.cess_percentage, 
                 quantity,
                 artworkData.selected_options
             );
@@ -293,10 +334,10 @@
 
         // Buy Now functionality - NOW CALLS GLOBAL FUNCTION
         buyNowBtn.addEventListener('click', function() {
+            console.log("DEBUG: Buy Now button clicked.");
             const quantity = parseInt(quantityInput.value);
             if (quantity < 1 || quantity > artworkData.stock) {
-                // MODIFIED: Use new showCustomAlert signature
-                window.showCustomAlert({ message: `Please enter a quantity between 1 and ${artworkData.stock}.`, type: 'danger' });
+                window.showCustomAlert(`Please enter a quantity between 1 and ${artworkData.stock}.`, 'danger');
                 return;
             }
 
@@ -312,7 +353,7 @@
                 artworkData.sgst_percentage,
                 artworkData.igst_percentage,
                 artworkData.ugst_percentage,
-                artworkData.cess_percentage, // Pass cess_percentage
+                artworkData.cess_percentage, 
                 artworkData.shipping_charge
             );
         });
