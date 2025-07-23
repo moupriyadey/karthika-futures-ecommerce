@@ -3,7 +3,6 @@
 {% block title %}Order Summary #{{ order.id }} - Karthika Futures{% endblock %}
 
 {% block content %}
-<!-- Payment screenshot modal CSS -->
 <style>
   .modal-img-preview {
     max-width: 100%;
@@ -43,21 +42,19 @@
           </li>
           {% if order.courier %}<li><strong>Courier:</strong> {{ order.courier }}</li>{% endif %}
           {% if order.tracking_number %}<li><strong>Tracking #:</strong> {{ order.tracking_number }}</li>{% endif %}
-
           {% if order.remark %}
-            <li><strong>Admin Remark:</strong> {{ order.remark.split('Screenshot:')[0] }}</li>
-            {% set screenshot_path = order.remark.split('Screenshot:')[-1].strip() %}
-            {% if screenshot_path %}
-              <li><strong>Payment Screenshot:</strong><br>
-                <!-- Thumbnail -->
-                <img src="{{ url_for('static', filename=screenshot_path) }}"
-                     alt="Payment Screenshot"
-                     class="cursor-pointer border rounded"
-                     style="max-width: 120px; height: auto; margin-top: 8px;"
-                     data-bs-toggle="modal"
-                     data-bs-target="#screenshotModal">
-              </li>
-            {% endif %}
+            <li><strong>Admin Remark:</strong> {{ order.remark }}</li>
+          {% endif %}
+
+          {% if order.payment_screenshot %}
+            <li><strong>Payment Screenshot:</strong><br>
+              <img src="{{ url_for('static', filename=order.payment_screenshot) }}"
+                   alt="Payment Screenshot"
+                   class="cursor-pointer border rounded"
+                   style="max-width: 120px; height: auto; margin-top: 8px;"
+                   data-bs-toggle="modal"
+                   data-bs-target="#screenshotModal">
+            </li>
           {% endif %}
 
           {% if order.cancellation_reason %}
@@ -135,14 +132,15 @@
   </div>
 </div>
 
-<!-- Screenshot Modal (placed at end for Bootstrap compatibility) -->
+{% if order.payment_screenshot %}
 <div class="modal fade" id="screenshotModal" tabindex="-1" aria-labelledby="screenshotModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-xl">
     <div class="modal-content bg-dark">
       <div class="modal-body text-center">
-        <img src="{{ url_for('static', filename=screenshot_path) }}" class="modal-img-preview" alt="Full Screenshot">
+        <img src="{{ url_for('static', filename=order.payment_screenshot) }}" class="modal-img-preview" alt="Full Screenshot">
       </div>
     </div>
   </div>
 </div>
+{% endif %}
 {% endblock %}

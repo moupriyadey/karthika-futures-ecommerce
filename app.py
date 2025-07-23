@@ -444,6 +444,16 @@ def load_user(user_id):
     # Fix for LegacyAPIWarning
     return db.session.get(User, user_id)
 
+@app.template_filter('strftime')
+def format_datetime(value, format="%Y-%m-%d %H:%M:%S"):
+    """Format a datetime object to a string."""
+    if value is None:
+        return ""
+    if isinstance(value, datetime):
+        return value.strftime(format)
+    return str(value) # Or raise an error if you only expect datetime objects
+
+
 # --- Context Processors ---
 @app.context_processor
 def inject_global_data():
@@ -843,7 +853,6 @@ def purchase_form():
             return redirect(url_for('cart'))
 
         selected_address_id = request.form.get('selected_address_id') or request.form.get('shipping_address')
-
         full_name = request.form.get('full_name')
         phone = request.form.get('phone')
         address_line1 = request.form.get('address_line1')
@@ -853,8 +862,6 @@ def purchase_form():
         pincode = request.form.get('pincode')
         save_address = request.form.get('save_address') == 'on'
         set_as_default = request.form.get('set_as_default') == 'on'
-
-        shipping_address_obj = None
 
         if selected_address_id and selected_address_id != 'new':
             shipping_address_obj = db.session.get(Address, selected_address_id)
@@ -874,8 +881,8 @@ def purchase_form():
                                        total_igst_amount=total_igst_amount,
                                        total_ugst_amount=total_ugst_amount,
                                        total_cess_amount=total_cess_amount,
-                                       has_addresses=bool(user_addresses), # Keep this flag
-                                       current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email}) # Pass user data
+                                       has_addresses=bool(user_addresses),
+                                       current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
 
         if selected_address_id == 'new' or not shipping_address_obj:
             if not all([full_name, phone, address_line1, city, state, pincode]):
@@ -894,8 +901,8 @@ def purchase_form():
                                        total_igst_amount=total_igst_amount,
                                        total_ugst_amount=total_ugst_amount,
                                        total_cess_amount=total_cess_amount,
-                                       has_addresses=bool(user_addresses), # Keep this flag
-                                       current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email}) # Pass user data
+                                       has_addresses=bool(user_addresses),
+                                       current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
 
             new_address = Address(
                 user_id=current_user.id,
@@ -953,6 +960,25 @@ def purchase_form():
             session.pop('direct_purchase_cart', None)
             session.modified = True
 
+            # ✅ Send confirmation email with attached invoice
+            try:
+                msg = Message(
+                    subject=f"Your Order #{new_order.id} Confirmation - Karthika Futures",
+                    recipients=[current_user.email]
+                )
+                msg.body = f"Dear {current_user.full_name},\n\nThank you for your order #{new_order.id}.\n\nPlease find your invoice attached.\n\nKarthika Futures Team"
+
+                pdf_buffer = generate_invoice_pdf_buffer(new_order)
+                if pdf_buffer:
+                    msg.attach(
+                        filename=f"invoice_{new_order.id}.pdf",
+                        content_type="application/pdf",
+                        data=pdf_buffer.read()
+                    )
+                mail.send(msg)
+            except Exception as e:
+                print(f"Error sending email: {e}")
+
             flash('Order placed successfully! Please proceed to payment.', 'success')
             return redirect(url_for('payment_initiate', order_id=new_order.id, amount=new_order.total_amount))
 
@@ -963,7 +989,7 @@ def purchase_form():
             db.session.rollback()
             flash(f'An unexpected error occurred: {e}', 'danger')
 
-    # --- Handle GET request ---
+    # ----- Handle GET -----
     (items_to_process, subtotal_before_gst, total_cgst_amount, 
      total_sgst_amount, total_igst_amount, total_ugst_amount, total_cess_amount,
      total_gst, final_total_amount, shipping_charge) = get_cart_items_details()
@@ -972,7 +998,6 @@ def purchase_form():
         flash("No items to purchase.", "danger")
         return redirect(url_for('cart'))
 
-    # Handle pre-selected address after adding new
     pre_selected_id = session.pop('pre_selected_address_id', None)
     if pre_selected_id:
         selected_address = db.session.get(Address, pre_selected_id)
@@ -995,8 +1020,8 @@ def purchase_form():
                            total_ugst_amount=total_ugst_amount,
                            total_cess_amount=total_cess_amount,
                            new_address_added=bool(pre_selected_id),
-                           has_addresses=bool(user_addresses), # Pass this flag
-                           current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email}) # Pass user data
+                           has_addresses=bool(user_addresses),
+                           current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
 
 
 # MODIFIED: Signup route to include OTP verification and next_url capture
@@ -1579,7 +1604,7 @@ def payment_submit(order_id):
     # Update order status to awaiting verification
     order.status = 'Payment Submitted - Awaiting Verification'
     order.payment_status = 'submitted' # New payment status to indicate submission
-    order.remark = f"Transaction ID: {transaction_id}"
+   
 
     # Handle screenshot upload
     if payment_screenshot and allowed_file(payment_screenshot.filename):
@@ -1587,7 +1612,7 @@ def payment_submit(order_id):
         unique_filename = str(uuid.uuid4()) + '_' + filename
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
         payment_screenshot.save(file_path)
-        order.remark += f" | Screenshot: uploads/{unique_filename}"
+        order.payment_screenshot = f'uploads/{unique_filename}'
     elif payment_screenshot and not allowed_file(payment_screenshot.filename):
         flash('Invalid file type for screenshot. Please upload an image.', 'warning')
         # Do not return, allow the order status to update even without screenshot
@@ -2563,6 +2588,73 @@ def generate_invoice_pdf(order_id):
     buffer.seek(0)
     
     return send_file(buffer, as_attachment=True, download_name=f"invoice_{order.id}.pdf", mimetype='application/pdf')
+
+def generate_invoice_pdf_buffer(order):
+    if SimpleDocTemplate is None:
+        return None
+
+    invoice_data = order.get_invoice_details()
+
+    invoice_data_safe = {
+        'business_name': invoice_data.get('business_name') or app.config['OUR_BUSINESS_NAME'],
+        'gst_number': invoice_data.get('gst_number') or app.config['OUR_GSTIN'],
+        'pan_number': invoice_data.get('pan_number') or app.config['OUR_PAN'],
+        'business_address': invoice_data.get('business_address') or app.config['OUR_BUSINESS_ADDRESS'],
+        'invoice_number': invoice_data.get('invoice_number') or order.id,
+        'invoice_date': invoice_data.get('invoice_date') or datetime.utcnow().strftime('%Y-%m-%d'),
+        'billing_address': invoice_data.get('billing_address') or ', '.join(filter(None, [
+            order.customer_name, order.customer_phone,
+            order.get_shipping_address().get('address_line1'),
+            order.get_shipping_address().get('address_line2'),
+            order.get_shipping_address().get('city'),
+            order.get_shipping_address().get('state'),
+            order.get_shipping_address().get('pincode')
+        ])),
+        'gst_rate_applied': Decimal(invoice_data.get('gst_rate_applied', '0.00')), 
+        'shipping_charge': Decimal(invoice_data.get('shipping_charge', '0.00')), 
+        'final_invoice_amount': Decimal(invoice_data.get('final_invoice_amount', '0.00')), 
+        'invoice_status': invoice_data.get('invoice_status', 'Generated'),
+        'cgst_amount': Decimal(invoice_data.get('cgst_amount', '0.00')), 
+        'sgst_amount': Decimal(invoice_data.get('sgst_amount', '0.00')),
+        'igst_amount': Decimal(invoice_data.get('igst_amount', '0.00')),
+        'ugst_amount': Decimal(invoice_data.get('ugst_amount', '0.00')),
+        'cess_amount': Decimal(invoice_data.get('cess_amount', '0.00')),
+    }
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+                            leftMargin=0.3*inch, rightMargin=0.3*inch,
+                            topMargin=0.3*inch, bottomMargin=0.3*inch)
+
+    # Register fonts (same as your original code)
+    try:
+        pdfmetrics.registerFont(TTFont('DejaVuSans', 'DejaVuSans.ttf'))
+        pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', 'DejaVuSans-Bold.ttf'))
+        font_name = 'DejaVuSans'
+        font_name_bold = 'DejaVuSans-Bold'
+    except Exception as e:
+        font_name = 'Helvetica'
+        font_name_bold = 'Helvetica-Bold'
+
+    styles = getSampleStyleSheet()
+    styles['Normal'].fontName = font_name
+    styles['Normal'].fontSize = 8
+    styles['Normal'].leading = 9
+    styles['Normal'].alignment = TA_LEFT
+    styles['Normal'].spaceAfter = 1
+    styles['Normal'].bulletText = ''
+
+    # Update styles like before (h1, h2, etc.) — skip retyping here for now
+
+    story = []
+    story += _get_single_invoice_flowables(order, invoice_data_safe, styles, font_name, font_name_bold)
+    story.append(Spacer(1, 0.5 * inch))
+    story += _get_single_invoice_flowables(order, invoice_data_safe, styles, font_name, font_name_bold)
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
+
 
 
 # --- User Profile & Orders ---

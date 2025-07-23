@@ -2,33 +2,51 @@ Dear {{ order.customer_name }},
 
 Thank you for your recent purchase from {{ OUR_BUSINESS_NAME }}!
 
-Your order #{{ order.order_id }} with us has been shipped.
+Your order #{{ order.id }} with us has been shipped.
 We have attached your official tax invoice for this order to this email.
 
 Order Details Summary:
 ----------------------
-Order ID: {{ order.order_id }}
-Order Date: {{ order.placed_on }}
-Total Amount Paid: ₹{{ order.total_amount | float | int }}
+Order ID: {{ order.id }}
+Order Date: {{ order.order_date | strftime('%Y-%m-%d %H:%M:%S') }}
+Total Amount Paid: ₹{{ order.total_amount | currency }}
 Status: {{ order.status }}
 
 Items Purchased:
 {% for item in order.items %}
-- {{ item.name }} (SKU: {{ item.sku }}) x {{ item.quantity }} = ₹{{ item.total_price | float | int }}
-  {% if item.size and item.size != 'Original' %}  Size: {{ item.size }}{% endif %}
-  {% if item.frame and item.frame != 'None' %}  Frame: {{ item.frame }}{% endif %}
-  {% if item.glass and item.glass != 'None' %}  Glass: {{ item.glass }}{% endif %}
+- {{ item.artwork.name }} (SKU: {{ item.artwork.sku }}) x {{ item.quantity }} = ₹{{ item.total_price_incl_gst | currency }}
+  {% set options = item.get_selected_options_dict() %}
+  {% if options %}
+    {% for key, value in options.items() %}
+      {{ key }}: {{ value }}
+    {% endfor %}
+  {% endif %}
 {% endfor %}
 
 Shipping Address:
 -----------------
-{{ order.customer_name }}
-{{ order.customer_address }}
-Pincode: {{ order.customer_pincode }}
-Phone: {{ order.customer_phone_camouflaged }}
+{{ order.shipping_address.full_name }}
+{{ order.shipping_address.address_line1 }}
+{% if order.shipping_address.address_line2 %}{{ order.shipping_address.address_line2 }}{% endif %}
+{{ order.shipping_address.city }}, {{ order.shipping_address.state }}
+Pincode: {{ order.shipping_address.pincode }}
+Phone: {{ order.shipping_address.phone }}
+
+{# NEW: Billing Address Block #}
+{% set invoice_details = order.get_invoice_details() %}
+{% if invoice_details.billing_address %}
+Billing Address:
+-----------------
+{{ invoice_details.billing_address.full_name }}
+{{ invoice_details.billing_address.address_line1 }}
+{% if invoice_details.billing_address.address_line2 %}{{ invoice_details.billing_address.address_line2 }}{% endif %}
+{{ invoice_details.billing_address.city }}, {{ invoice_details.billing_address.state }}
+Pincode: {{ invoice_details.billing_address.pincode }}
+Phone: {{ invoice_details.billing_address.phone }}
+{% endif %}
 
 You can track your order status and download your invoice anytime by logging into your account:
-{{ url_for('my_orders', _external=True) }}
+{{ url_for('user_orders', _external=True) }}
 
 If you have any questions or require further assistance, please do not hesitate to contact us.
 
