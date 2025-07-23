@@ -1534,7 +1534,8 @@ def order_summary(order_id):
                 # If email sent successfully, update the order status in the database
                 order.email_sent_status = True
                 db.session.commit() # Save the change to the database
-                flash('Order confirmation email sent successfully!', 'success')
+
+              # Hinding email confirmation by #. can acrivate if # removed <<<   flash('Order confirmation email sent successfully!', 'success')
             else:
                 # If sending failed, show a message
                 flash('Failed to send order confirmation email. Please contact support.', 'danger')
