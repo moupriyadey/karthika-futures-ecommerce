@@ -79,7 +79,8 @@ app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB limit for uploads
 # Get DATABASE from environment, fall back to SQLite for local development
 # This will now look for 'DATABASE' as set in your Render environment
-uri = os.environ.get('DATABASE') 
+uri = os.environ.get('DATABASE_URL')
+
 
 # Render's PostgreSQL URL might use 'postgres://', but SQLAlchemy prefers 'postgresql://'
 if uri and uri.startswith('postgres://'):
