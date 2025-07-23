@@ -73,11 +73,20 @@ app = Flask(__name__)
 app.jinja_env.filters['slugify'] = slugify
 # --- Configuration ---
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_very_secret_key_that_should_be_in_env')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///site.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB limit for uploads
+# Get DATABASE from environment, fall back to SQLite for local development
+# This will now look for 'DATABASE' as set in your Render environment
+uri = os.environ.get('DATABASE') 
+
+# Render's PostgreSQL URL might use 'postgres://', but SQLAlchemy prefers 'postgresql://'
+if uri and uri.startswith('postgres://'):
+    uri = uri.replace('postgres://', 'postgresql://', 1)
+
+# Use the 'uri' variable for SQLALCHEMY_DATABASE_URI
+app.config['SQLALCHEMY_DATABASE_URI'] = uri if uri else 'sqlite:///site.db'
 
 # Email Configuration
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
