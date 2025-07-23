@@ -183,7 +183,7 @@ class User(db.Model, UserMixin):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     email = Column(String(120), unique=True, nullable=False)
     phone = Column(String(20), unique=True, nullable=True) # Added phone
-    password_hash = Column(String(128), nullable=False)
+    password_hash = db.Column(db.Text, nullable=False)
     full_name = Column(String(100), nullable=True)
     role = Column(String(20), default='customer', nullable=False) # 'customer', 'admin'
     registration_date = Column(DateTime, default=datetime.utcnow)
