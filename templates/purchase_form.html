@@ -71,10 +71,10 @@
                         </div>
                         <div>
                             <label class="form-label">Phone Number</label>
-                            <input type="tel" class="form-control" name="phone"
-       pattern="[0-9]{10}" maxlength="10" minlength="10"
-       title="Enter a valid 10-digit phone number"
-       value="{{ form_data.phone or current_user_data.phone or '' }}"
+                            <input type="tel" class="form-control" name="phone" 
+       pattern="[0-9]{10}" maxlength="10" minlength="10" 
+       title="Enter a valid 10-digit phone number" 
+       value="9090909090">
        {% if not has_addresses or not selected_address %}required{% endif %}>
 
                         </div>
