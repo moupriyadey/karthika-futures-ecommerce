@@ -1468,14 +1468,27 @@ def contact():
 @app.route('/about')
 def about():
     return render_template('about.html')
-
-@app.route('/order_summary/<int:order_id>') # This line defines the web address
+@app.route('/order_summary/<order_id>') # This line defines the web address
 @login_required # This means only logged-in users can see this page
 def order_summary(order_id):
+    # --- START OF CHANGES ---
+    print(f"DEBUG: Entering order_summary for order_id: {order_id}")
+    print(f"DEBUG: Current user ID: {current_user.id}")
+
     # 1. Find the order in the database
-    #    We use order.id here, assuming your URL uses the database ID for the order
-    #    Make sure the order belongs to the current logged-in user
-    order = Order.query.filter_by(id=order_id, user_id=current_user.id).first_or_404()
+    #    Changed from .first_or_404() to .first() for more direct control and debugging
+    #    and added explicit handling if order is None.
+    order = Order.query.filter_by(id=order_id, user_id=current_user.id).first()
+
+    if not order:
+        print(f"DEBUG: Order NOT found for ID={order_id} and user ID={current_user.id}.")
+        flash('Order not found or you are not authorized to view it.', 'danger')
+        return redirect(url_for('user_orders')) # Redirect to a safe page if order isn't found
+    
+    # If order is found, print its status
+    print(f"DEBUG: Order found: ID={order.id}, email_sent_status: {order.email_sent_status}")
+
+    # --- END OF CHANGES ---
 
     # 2. Check if the email has already been sent for this order
     #    If 'email_sent_status' is False, send the email
@@ -1504,11 +1517,12 @@ def order_summary(order_id):
             # If any other error occurs during email sending
             flash(f'An error occurred while sending email: {e}', 'danger')
             current_app.logger.error(f"Error sending order confirmation email for Order ID {order.id}: {e}")
+    else: # Added for more explicit logging when email is already sent
+        print(f"DEBUG: Email already sent for Order ID: {order.id}")
+
 
     # 5. Finally, show the order summary page to the user
     return render_template('order_summary.html', order=order)
-
-
 @app.route('/payment_initiate/<order_id>/<amount>')
 @login_required
 def payment_initiate(order_id, amount):
