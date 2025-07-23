@@ -1,4 +1,7 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 import json
 import csv
 import uuid
@@ -88,6 +91,9 @@ if uri and uri.startswith('postgres://'):
 
 # Use the 'uri' variable for SQLALCHEMY_DATABASE_URI
 app.config['SQLALCHEMY_DATABASE_URI'] = uri if uri else 'sqlite:///site.db'
+
+# Debug print to confirm correct DB URI is being used
+print("Database URI in use:", app.config['SQLALCHEMY_DATABASE_URI'])
 
 # Email Configuration
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
