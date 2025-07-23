@@ -454,6 +454,7 @@ def format_datetime(value, format="%Y-%m-%d %H:%M:%S"):
     return str(value) # Or raise an error if you only expect datetime objects
 
 
+
 # --- Context Processors ---
 @app.context_processor
 def inject_global_data():
@@ -2964,6 +2965,11 @@ with app.app_context():
        'cess_amount' not in order_item_columns:
         # Removed the print statement for this warning
         pass # Keep this for schema check, but no print output
+
+@app.route("/check-db")
+def check_db():
+    uri = app.config.get("SQLALCHEMY_DATABASE_URI", "Not Set")
+    return f"Database URI in use: {uri}"
 
 
 # --- Run the App ---
