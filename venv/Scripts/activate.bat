@@ -8,7 +8,7 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-set VIRTUAL_ENV=C:\Users\subha\Documents\ORDER\venv
+set VIRTUAL_ENV=C:\Users\subha\Videos\KARTHIKAFUTURES\v32 full\venv
 
 if not defined PROMPT set PROMPT=$P$G
 

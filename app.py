@@ -1508,19 +1508,6 @@ def order_summary(order_id):
     # 5. Finally, show the order summary page to the user
     return render_template('order_summary.html', order=order)
 
-@app.route('/order-summary/<order_id>')
-@login_required
-def order_summary(order_id):
-    # Fix for LegacyAPIWarning
-    order = db.session.get(Order, order_id)
-    if not order:
-        flash('Order not found.', 'danger')
-        return redirect(url_for('user_orders'))
-
-    if order.user_id != current_user.id and not current_user.is_admin(): # Changed to call is_admin()
-        flash('You are not authorized to view this order.', 'danger')
-        return redirect(url_for('user_orders'))
-    return render_template('order_summary.html', order=order)
 
 @app.route('/payment_initiate/<order_id>/<amount>')
 @login_required
