@@ -148,16 +148,18 @@ def generate_order_id():
 
     # Format the ID as "OD" + padded 8 digits
     return f"OD{new_numeric_part:08d}"
-
-def send_email(to_email, subject, body, attachment_path=None, attachment_name=None):
-    """Sends an email with optional attachment."""
+def send_email(to_email, subject, body_plain=None, html_body=None, attachment_path=None, attachment_name=None):
+    """Sends an email with optional attachment and supports HTML body."""
     try:
-        msg = MIMEMultipart()
-        msg['From'] = app.config['MAIL_USERNAME']
+        msg = MIMEMultipart('alternative') # CHANGED THIS LINE
+        msg['From'] = current_app.config['MAIL_USERNAME'] # CHANGED THIS LINE
         msg['To'] = to_email
         msg['Subject'] = subject
-        
-        msg.attach(MIMEText(body, 'plain'))
+
+        if body_plain:
+            msg.attach(MIMEText(body_plain, 'plain'))
+        if html_body:
+            msg.attach(MIMEText(html_body, 'html')) # NEW: Attach HTML part
 
         if attachment_path and os.path.exists(attachment_path):
             with open(attachment_path, "rb") as f:
@@ -165,16 +167,17 @@ def send_email(to_email, subject, body, attachment_path=None, attachment_name=No
                 attach.add_header('Content-Disposition', 'attachment', filename=attachment_name or os.path.basename(attachment_path))
                 msg.attach(attach)
 
-        with smtplib.SMTP(app.config['MAIL_SERVER'], app.config['MAIL_PORT']) as smtp:
+        # Use current_app.config for SMTP settings
+        with smtplib.SMTP(current_app.config['MAIL_SERVER'], current_app.config['MAIL_PORT']) as smtp: # CHANGED THIS LINE
             smtp.starttls()
-            smtp.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
+            smtp.login(current_app.config['MAIL_USERNAME'], current_app.config['MAIL_PASSWORD'])
             smtp.send_message(msg)
-        print(f"Email sent successfully to {to_email}")
+        print(f"Email sent successfully to {to_email}") # You can keep this for local testing, or remove it.
         return True
     except Exception as e:
-        print(f"Failed to send email to {to_email}: {e}")
+        current_app.logger.error(f"Failed to send email to {to_email}: {e}") # CHANGED THIS LINE
         return False
-
+    
 # --- Database Models ---
 class User(db.Model, UserMixin):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -327,6 +330,7 @@ class Order(db.Model):
     remark = Column(Text, nullable=True) # Admin remarks
     cancellation_reason = Column(Text, nullable=True) # New field for cancellation reason
     payment_screenshot = db.Column(db.String(255), nullable=True)
+    email_sent_status = db.Column(db.Boolean, default=False, nullable=False)
 
 
     # Invoice details stored as JSON string
@@ -1464,6 +1468,45 @@ def contact():
 @app.route('/about')
 def about():
     return render_template('about.html')
+
+@app.route('/order_summary/<int:order_id>') # This line defines the web address
+@login_required # This means only logged-in users can see this page
+def order_summary(order_id):
+    # 1. Find the order in the database
+    #    We use order.id here, assuming your URL uses the database ID for the order
+    #    Make sure the order belongs to the current logged-in user
+    order = Order.query.filter_by(id=order_id, user_id=current_user.id).first_or_404()
+
+    # 2. Check if the email has already been sent for this order
+    #    If 'email_sent_status' is False, send the email
+    if not order.email_sent_status:
+        try:
+            # Prepare the email subject
+            subject = f"Order Confirmation - Your Order #{order.id} with {current_app.config.get('OUR_BUSINESS_NAME', 'Karthika Futures')}"
+
+            # Get the recipient's email (usually the logged-in user's email)
+            recipient_email = current_user.email 
+
+            # 3. Create the HTML content for the email
+            #    We use the new template you just created: 'email/order_confirmation.html'
+            email_html_body = render_template('email/order_confirmation.html', order=order)
+
+            # 4. Send the email using your updated send_email function
+            if send_email(to_email=recipient_email, subject=subject, html_body=email_html_body):
+                # If email sent successfully, update the order status in the database
+                order.email_sent_status = True
+                db.session.commit() # Save the change to the database
+                flash('Order confirmation email sent successfully!', 'success')
+            else:
+                # If sending failed, show a message
+                flash('Failed to send order confirmation email. Please contact support.', 'danger')
+        except Exception as e:
+            # If any other error occurs during email sending
+            flash(f'An error occurred while sending email: {e}', 'danger')
+            current_app.logger.error(f"Error sending order confirmation email for Order ID {order.id}: {e}")
+
+    # 5. Finally, show the order summary page to the user
+    return render_template('order_summary.html', order=order)
 
 @app.route('/order-summary/<order_id>')
 @login_required

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Order Confirmation - Karthika Futures</title>
+    <style>
+        /* Basic inline CSS for email compatibility */
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #ffffff; }
+        .header { background-color: #FF8C00; color: white; padding: 15px 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { padding: 20px; }
+        .footer { text-align: center; font-size: 0.9em; color: #777; margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #eee; padding: 10px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .total { font-weight: bold; text-align: right; }
+        .button {
+            display: inline-block;
+            background-color: #2E8B57; /* Secondary color */
+            color: white !important;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2 style="color: white; margin: 0;">Order Confirmation - Karthika Futures</h2>
+        </div>
+        <div class="content">
+            <p>Dear {{ order.customer.full_name if order.customer else 'Customer' }},</p>
+            <p>Thank you for your recent purchase with us! Your order has been successfully placed and is being processed.</p>
+            <p><strong>Order ID:</strong> {{ order.id }}</p>
+            <p><strong>Order Date:</strong> {{ order.order_date.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+            <p><strong>Total Amount:</strong> {{ order.total_amount | currency }}</p>
+
+            <h3>Order Details:</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in order.items %}
+                    <tr>
+                        <td>{{ item.artwork.name }}
+                            {% if item.get_selected_options_dict() %}
+                            <br><small>
+                                {% for key, value in item.get_selected_options_dict().items() %}
+                                    {{ key }}: {{ value }}
+                                {% endfor %}
+                            </small>
+                            {% endif %}
+                        </td>
+                        <td>{{ item.quantity }}</td>
+                        <td>{{ item.unit_price_before_gst | currency }}</td>
+                        <td>{{ (item.unit_price_before_gst * item.quantity) | currency }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3" class="total">Subtotal:</td>
+                        <td class="total">{{ order.total_amount - order.shipping_charge - order.total_gst - order.total_cess | currency }}</td>
+                    </tr>
+                    {% if order.total_gst %}
+                    <tr>
+                        <td colspan="3" class="total">GST:</td>
+                        <td class="total">{{ order.total_gst | currency }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if order.total_cess %}
+                    <tr>
+                        <td colspan="3" class="total">CESS:</td>
+                        <td class="total">{{ order.total_cess | currency }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if order.shipping_charge > 0 %}
+                    <tr>
+                        <td colspan="3" class="total">Shipping Charge:</td>
+                        <td class="total">{{ order.shipping_charge | currency }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <td colspan="3" class="total">Grand Total:</td>
+                        <td class="total">{{ order.total_amount | currency }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <p>Your order status is currently: <strong>{{ order.status }}</strong>.</p>
+            <p>We will send another email once your order has been shipped with tracking details.</p>
+            <p style="text-align: center;">
+                <a href="{{ url_for('order_summary', order_id=order.id, _external=True) }}" class="button">View Your Order</a>
+            </p>
+            <p>If you have any questions, please reply to this email or contact our support team.</p>
+            <p>Best regards,<br>{{ current_app.config['OUR_BUSINESS_NAME'] }} Team</p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{ current_app.config['OUR_BUSINESS_NAME'] }} {{ 'now' | strftime('%Y') }}</p> {# Corrected to get current year #}
+            <p>{{ current_app.config['OUR_BUSINESS_ADDRESS'] }}</p>
+        </div>
+    </div>
+</body>
+</html>

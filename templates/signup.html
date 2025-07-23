@@ -23,9 +23,12 @@
             </div>
             <div>
                 <label for="phone" class="block text-gray-700 text-sm font-semibold mb-2">Phone Number (Optional)</label>
-                <input type="tel" id="phone" name="phone" value="{{ form_data.phone if form_data.phone is defined else '' }}"
-                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
-                       placeholder="e.g., 9876543210">
+                <input type="tel" id="phone" name="phone"
+       pattern="[0-9]{10}" minlength="10" maxlength="10" title="Enter a valid 10-digit phone number"
+       value="{{ form_data.phone if form_data.phone is defined else '' }}"
+       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+       placeholder="e.g., 9876543210">
+
             </div>
             <div>
                 <label for="password" class="block text-gray-700 text-sm font-semibold mb-2">Password</label>
