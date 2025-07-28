@@ -6,6 +6,19 @@
 <div class="container-fluid py-4 main-content-area">
     <h2 class="mb-4 text-center">Manage Orders</h2>
 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="container mt-2">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
     {% include 'admin_navbar.html' %}
 
     <div class="card shadow-sm mb-4">
@@ -51,332 +64,84 @@
                 </div>
             </form>
 
-            <div class="table-responsive">
-                <table class="table table-hover table-striped">
-                    <thead>
-                        <tr>
-                            <th>Order ID</th>
-                            <th>Customer</th>
-                            <th>Date</th>
-                            <th>Total</th>
-                            <th>Status</th>
-                            <th>Cancellation Details</th> {# NEW COLUMN #}
-                            <th>Invoice</th>
-                            <th>Courier</th>
-                            <th>Tracking ID</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for order in orders %}
-                        <tr>
-                            <td>{{ order.id }}</td>
-                            <td>{{ order.customer_name }} ({{ order.customer_email }})</td>
-                            <td>{{ order.order_date.strftime('%Y-%m-%d %H:%M') }}</td>
-                            <td>₹{{ order.total_amount | floatformat(2) }}</td>
-                            <td>
-                                <span class="badge {% if order.status == 'Delivered' %}bg-success{% elif order.status == 'Shipped' %}bg-primary{% elif 'Pending' in order.status or 'Awaiting' in order.status %}bg-warning text-dark{% elif 'Cancelled' in order.status %}bg-danger{% else %}bg-secondary{% endif %}">{{ order.status }}</span>
-                            </td>
-                            <td> {# NEW CELL FOR CANCELLATION DETAILS #}
-                                {% if 'Cancelled' in order.status %}
-                                    <div class="text-muted small">
-                                        On: {{ order.cancellation_timestamp.strftime('%Y-%m-%d %H:%M') if order.cancellation_timestamp else 'N/A' }}<br>
-                                        By: {% if order.cancelled_by_admin %}<span class="badge bg-danger">Admin</span>{% elif order.cancelled_by_user %}<span class="badge bg-warning text-dark">User</span>{% else %}Unknown{% endif %}<br>
-                                        Reason: {{ order.cancellation_reason or 'No reason provided.' }}
-                                    </div>
-                                {% else %}
-                                    N/A
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% set invoice_det = order.get_invoice_details() %}
-                                {% if invoice_det.get('is_held_by_admin') %}
-                                    <span class="badge bg-danger">Held</span>
-                                {% elif invoice_det.get('invoice_status') == 'Sent' %}
-                                    <span class="badge bg-success">Sent</span>
-                                {% elif invoice_det.get('invoice_status') == 'Prepared' %}
-                                    <span class="badge bg-info">Prepared</span>
-                                {% elif invoice_det.get('invoice_status') == 'Email Failed' %}
-                                    <span class="badge bg-danger">Email Failed</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">{{ invoice_det.get('invoice_status', 'N/A') }}</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ order.courier or 'N/A' }}</td>
-                            <td>{{ order.tracking_number or 'N/A' }}</td>
-                            <td>
-                                <button type="button" class="btn btn-sm btn-primary edit-order-btn"
-                                        data-bs-toggle="modal" data-bs-target="#editOrderModal"
-                                        data-order-id="{{ order.id }}"
-                                        data-current-status="{{ order.status }}"
-                                        data-remark="{{ order.remark or '' }}"
-                                        data-courier="{{ order.courier or '' }}"
-                                        data-tracking-number="{{ order.tracking_number or '' }}"
-                                        data-cancellation-reason="{{ order.cancellation_reason or '' }}"> {# NEW DATA ATTRIBUTE #}
-                                    Edit
-                                </button>
-                                <a href="{{ url_for('admin_edit_invoice', order_id=order.id) }}" class="btn btn-sm btn-info me-1">Invoice</a>
-                                <button type="button" class="btn btn-sm btn-danger delete-order-btn" data-order-id="{{ order.id }}">Delete</button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+            <!-- New Form for deleting selected orders -->
+            <form method="POST" action="{{ url_for('delete_selected_orders') }}" id="bulkDeleteForm">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="selectAllOrders"></th>
+                                <th>Order ID</th>
+                                <th>Customer</th>
+                                <th>Date</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th>Cancellation Details</th>
+                                <th>Invoice</th>
+                                <th>Courier</th>
+                                <th>Tracking ID</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr>
+                                <td><input type="checkbox" name="selected_orders[]" value="{{ order.id }}"></td>
+                                <td style="max-width: 180px; white-space: nowrap; overflow-x: auto;" title="{{ order.id }}">{{ order.id }}</td>
+                                <td>{{ order.customer_name }} ({{ order.customer_email }})</td>
+                                <td>{{ order.order_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>₹{{ order.total_amount | floatformat(2) }}</td>
+                                <td>
+                                    <span class="badge {% if order.status == 'Delivered' %}bg-success{% elif order.status == 'Shipped' %}bg-primary{% elif 'Pending' in order.status or 'Awaiting' in order.status %}bg-warning text-dark{% elif 'Cancelled' in order.status %}bg-danger{% else %}bg-secondary{% endif %}">{{ order.status }}</span>
+                                </td>
+                                <td>
+                                    {% if 'Cancelled' in order.status %}
+                                        <div class="text-muted small">
+                                            On: {{ order.cancellation_timestamp.strftime('%Y-%m-%d %H:%M') if order.cancellation_timestamp else 'N/A' }}<br>
+                                            By: {% if order.cancelled_by_admin %}<span class="badge bg-danger">Admin</span>{% elif order.cancelled_by_user %}<span class="badge bg-warning text-dark">User</span>{% else %}Unknown{% endif %}<br>
+                                            Reason: {{ order.cancellation_reason or 'No reason provided.' }}
+                                        </div>
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% set invoice_det = order.get_invoice_details() %}
+                                    {% if invoice_det.get('is_held_by_admin') %}
+                                        <span class="badge bg-danger">Held</span>
+                                    {% elif invoice_det.get('invoice_status') == 'Sent' %}
+                                        <span class="badge bg-success">Sent</span>
+                                    {% elif invoice_det.get('invoice_status') == 'Prepared' %}
+                                        <span class="badge bg-info">Prepared</span>
+                                    {% elif invoice_det.get('invoice_status') == 'Email Failed' %}
+                                        <span class="badge bg-danger">Email Failed</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ invoice_det.get('invoice_status', 'N/A') }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ order.courier or 'N/A' }}</td>
+                                <td>{{ order.tracking_number or 'N/A' }}</td>
+                                <td>
+                                    <a href="{{ url_for('admin_order_details', order_id=order.id) }}" class="btn btn-sm btn-info me-1">View</a>
+                                    <button type="button" class="btn btn-sm btn-danger delete-order-btn" data-order-id="{{ order.id }}">Delete</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <button type="submit" class="btn btn-danger mt-2" onclick="return confirm('Are you sure you want to delete selected orders?')">Delete Selected Orders</button>
+            </form>
         </div>
     </div>
 </div>
-
-{# Edit Order Modal #}
-<div class="modal fade" id="editOrderModal" tabindex="-1" aria-labelledby="editOrderModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editOrderModalLabel">Edit Order Status & Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="editOrderForm">
-                    <input type="hidden" id="modal_order_id" name="order_id">
-                    <div class="mb-3">
-                        <label for="modal_status" class="form-label">Order Status</label>
-                        <select class="form-select" id="modal_status" name="status" required>
-                            <option value="Pending Payment">Pending Payment</option>
-                            <option value="Payment Submitted - Awaiting Verification">Payment Submitted - Awaiting Verification</option>
-                            <option value="Payment Verified – Preparing Order">Payment Verified – Preparing Order</option>
-                            <option value="Shipped">Shipped</option>
-                            <option value="Delivered">Delivered</option>
-                            <option value="Cancelled by User">Cancelled by User</option>
-                            <option value="Cancelled by Admin">Cancelled by Admin</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="modal_remark" class="form-label">Remark</label>
-                        <textarea class="form-control" id="modal_remark" name="remark" rows="3"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label for="modal_courier" class="form-label">Courier Name</label>
-                        <input type="text" class="form-control" id="modal_courier" name="courier">
-                    </div>
-                    <div class="mb-3">
-                        <label for="modal_tracking_number" class="form-label">Tracking Number</label>
-                        <input type="text" class="form-control" id="modal_tracking_number" name="tracking_number">
-                    </div>
-                    <div class="mb-3" id="cancellationReasonGroup" style="display: none;"> {# NEW: Cancellation Reason Input #}
-                        <label for="modal_cancellation_reason" class="form-label">Cancellation Reason</label>
-                        <textarea class="form-control" id="modal_cancellation_reason" name="cancellation_reason" rows="2"></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Save Changes</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Chart.js for Monthly Revenue (from admin_dashboard)
-        // This script block should ideally be in admin_dashboard.html, but keeping it here for now if shared.
-        const revenueChartElement = document.getElementById('revenueChart');
-        if (revenueChartElement) {
-            const ctx = revenueChartElement.getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: {{ revenue_labels | tojson }},
-                    datasets: [{
-                        label: 'Revenue (₹)',
-                        data: {{ revenue_values | tojson }},
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        fill: true,
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Revenue (₹)'
-                            }
-                        },
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Month'
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // Helper function to get CSRF token
-        function getHeaders() {
-            return {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': window.csrfToken
-            };
-        }
-
-        // Helper function to show custom alerts
-        function showCustomAlert(message, type = 'info') {
-            const container = document.getElementById('flash-messages-container');
-            if (!container) {
-                console.error("Flash messages container not found!");
-                alert(message); // Fallback to browser alert if container is missing
-                return;
-            }
-
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type} flash-message position-fixed top-0 end-0 m-3 shadow`;
-            alertDiv.style.zIndex = 9999;
-            alertDiv.textContent = message;
-            container.appendChild(alertDiv);
-            setTimeout(() => alertDiv.remove(), 5000);
-        }
-
-        // Edit Order Modal Logic
-        const editOrderModal = document.getElementById('editOrderModal');
-        const modalStatusSelect = editOrderModal.querySelector('#modal_status');
-        const cancellationReasonGroup = document.getElementById('cancellationReasonGroup');
-        const modalCancellationReason = document.getElementById('modal_cancellation_reason');
-
-        editOrderModal.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const orderId = button.getAttribute('data-order-id');
-            const currentStatus = button.getAttribute('data-current-status');
-            const remark = button.getAttribute('data-remark');
-            const courier = button.getAttribute('data-courier');
-            const trackingNumber = button.getAttribute('data-tracking-number');
-            const cancellationReason = button.getAttribute('data-cancellation-reason'); // NEW
-
-            const modalOrderId = editOrderModal.querySelector('#modal_order_id');
-            const modalRemark = editOrderModal.querySelector('#modal_remark');
-            const modalCourier = editOrderModal.querySelector('#modal_courier');
-            const modalTrackingNumber = editOrderModal.querySelector('#modal_tracking_number');
-
-            modalOrderId.value = orderId;
-            modalStatusSelect.value = currentStatus;
-            modalRemark.value = remark;
-            modalCourier.value = courier;
-            modalTrackingNumber.value = trackingNumber;
-            modalCancellationReason.value = cancellationReason; // NEW
-
-            // Show/hide cancellation reason field based on status
-            toggleCancellationReasonField(currentStatus);
-        });
-
-        // Event listener for status change in modal
-        modalStatusSelect.addEventListener('change', function() {
-            toggleCancellationReasonField(this.value);
-        });
-
-        function toggleCancellationReasonField(status) {
-            if (status.includes('Cancelled')) {
-                cancellationReasonGroup.style.display = 'block';
-                modalCancellationReason.setAttribute('required', 'true');
-            } else {
-                cancellationReasonGroup.style.display = 'none';
-                modalCancellationReason.removeAttribute('required');
-                modalCancellationReason.value = ''; // Clear value if not cancelled
-            }
-        }
-
-
-        const editOrderForm = document.getElementById('editOrderForm');
-        editOrderForm.addEventListener('submit', async function(event) {
-            event.preventDefault();
-
-            const orderId = document.getElementById('modal_order_id').value;
-            const status = document.getElementById('modal_status').value;
-            const remark = document.getElementById('modal_remark').value;
-            const courier = document.getElementById('modal_courier').value;
-            const tracking_number = document.getElementById('modal_tracking_number').value;
-            const cancellation_reason = document.getElementById('modal_cancellation_reason').value; // NEW
-
-            try {
-                const response = await fetch(`/admin/order/update_status/${orderId}`, {
-                    method: 'POST',
-                    headers: getHeaders(),
-                    body: JSON.stringify({ status, remark, courier, tracking_number, cancellation_reason }) // NEW: send cancellation_reason
-                });
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                    showCustomAlert(data.message, 'success');
-                    const modalInstance = bootstrap.Modal.getInstance(editOrderModal);
-                    modalInstance.hide();
-                    location.reload(); // Reload page to reflect changes
-                } else {
-                    showCustomAlert(data.message || 'Failed to update order.', 'danger');
-                }
-            } catch (error) {
-                console.error('Error updating order:', error);
-                showCustomAlert('An error occurred while updating the order.', 'danger');
-            }
-        });
-
-        // Delete Order Button Logic (for admin_orders_view.html)
-        document.querySelectorAll('.delete-order-btn').forEach(button => {
-            button.addEventListener('click', async function() {
-                const orderId = this.dataset.orderId;
-                if (confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
-                    try {
-                        const response = await fetch(`/delete_order/${orderId}`, {
-                            method: 'POST', // Ensure POST method for deletion
-                            headers: getHeaders()
-                        });
-                        const data = await response.json();
-
-                        if (response.ok && data.success) {
-                            showCustomAlert(data.message || 'Order deleted successfully.', 'success');
-                            location.reload(); // Reload page to reflect changes
-                        } else {
-                            showCustomAlert(data.message || 'Failed to delete order.', 'danger');
-                        }
-                    } catch (error) {
-                        console.error('Error deleting order:', error);
-                        showCustomAlert('An error occurred while deleting the order.', 'danger');
-                    }
-                }
-            });
-        });
-
-        // Verify Payment Button Logic (from admin_dashboard)
-        document.querySelectorAll('.verify-payment-btn').forEach(button => {
-            button.addEventListener('click', async function() {
-                const orderId = this.dataset.orderId;
-                if (confirm('Are you sure you want to mark this payment as verified?')) {
-                    try {
-                        const response = await fetch('/admin/verify-payment', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                                'X-CSRFToken': window.csrfToken
-                            },
-                            body: new URLSearchParams({ order_id: orderId }).toString()
-                        });
-                        const data = await response.json();
-                        if (response.ok && data.success) {
-                            showCustomAlert(data.message, 'success');
-                            location.reload();
-                        } else {
-                            showCustomAlert(data.message || 'Failed to verify payment.', 'danger');
-                        }
-                    } catch (error) {
-                        console.error('Error verifying payment:', error);
-                        showCustomAlert('An error occurred while verifying payment.', 'danger');
-                    }
-                }
-            });
+    document.getElementById('selectAllOrders')?.addEventListener('change', function () {
+        document.querySelectorAll('input[name="selected_orders[]"]').forEach(cb => {
+            cb.checked = this.checked;
         });
     });
 </script>

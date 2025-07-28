@@ -746,5 +746,15 @@ function checkEDD(pinInputId, resultId) {
     {% block extra_js %}{% endblock %}
 
   
+    <!-- Global Loading Placeholder -->
+<div id="loading-placeholder" style="display: none;">
+    <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-[9999]">
+        <div class="text-center text-white text-xl font-semibold animate-pulse">
+            ⏳ Uploading... Please wait<br>
+            🙏 Do not close or refresh the page
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

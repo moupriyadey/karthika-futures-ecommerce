@@ -1504,6 +1504,7 @@ def contact():
 @app.route('/about')
 def about():
     return render_template('about.html')
+
 @app.route('/order_summary/<order_id>') # This line defines the web address
 @login_required # This means only logged-in users can see this page
 def order_summary(order_id):
@@ -1514,7 +1515,11 @@ def order_summary(order_id):
     # 1. Find the order in the database
     #    Changed from .first_or_404() to .first() for more direct control and debugging
     #    and added explicit handling if order is None.
-    order = Order.query.filter_by(id=order_id, user_id=current_user.id).first()
+    if hasattr(current_user, 'is_admin') and current_user.is_admin:
+        order = Order.query.filter_by(id=order_id).first()
+    else:
+        order = Order.query.filter_by(id=order_id, user_id=current_user.id).first()
+
 
     if not order:
         print(f"DEBUG: Order NOT found for ID={order_id} and user ID={current_user.id}.")
@@ -1592,7 +1597,8 @@ def payment_initiate(order_id, amount):
 @app.route('/payment_submit/<order_id>', methods=['POST'])
 @login_required
 def payment_submit(order_id):
-    # Fix for LegacyAPIWarning
+    MAX_SCREENSHOT_SIZE = 1.5 * 1024 * 1024  # 1.5 MB
+
     order = db.session.get(Order, order_id)
     if not order:
         flash('Order not found.', 'danger')
@@ -1606,31 +1612,38 @@ def payment_submit(order_id):
         flash('This order is not pending payment or has already been processed.', 'warning')
         return redirect(url_for('order_summary', order_id=order.id))
 
-    transaction_id = request.form.get('transaction_id')
     payment_screenshot = request.files.get('payment_screenshot')
 
-    if not transaction_id:
-        flash('Transaction ID is required to confirm payment.', 'danger')
+    if not payment_screenshot:
+        flash('Payment screenshot is required to confirm payment.', 'danger')
         return redirect(url_for('payment_initiate', order_id=order.id, amount=order.total_amount))
 
-    # Update order status to awaiting verification
-    order.status = 'Payment Submitted - Awaiting Verification'
-    order.payment_status = 'submitted' # New payment status to indicate submission
-   
-
-    # Handle screenshot upload
-    if payment_screenshot and allowed_file(payment_screenshot.filename):
-        filename = secure_filename(payment_screenshot.filename)
-        unique_filename = str(uuid.uuid4()) + '_' + filename
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-        payment_screenshot.save(file_path)
-        order.payment_screenshot = f'uploads/{unique_filename}'
-    elif payment_screenshot and not allowed_file(payment_screenshot.filename):
+    if not allowed_file(payment_screenshot.filename):
         flash('Invalid file type for screenshot. Please upload an image.', 'warning')
-        # Do not return, allow the order status to update even without screenshot
-    
+        return redirect(url_for('payment_initiate', order_id=order.id, amount=order.total_amount))
+
+    # Check file size before saving
+    payment_screenshot.seek(0, os.SEEK_END)
+    file_size = payment_screenshot.tell()
+    payment_screenshot.seek(0)  # reset pointer
+
+    if file_size > MAX_SCREENSHOT_SIZE:
+        flash('Screenshot too large. Please upload an image smaller than 1.5 MB.', 'danger')
+        return redirect(url_for('payment_initiate', order_id=order.id, amount=order.total_amount))
+
+    # Save file
+    filename = secure_filename(payment_screenshot.filename)
+    unique_filename = str(uuid.uuid4()) + '_' + filename
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+    payment_screenshot.save(file_path)
+    order.payment_screenshot = f'uploads/{unique_filename}'
+
+    # Update order
+    order.status = 'Payment Submitted - Awaiting Verification'
+    order.payment_status = 'submitted'
+
     db.session.commit()
-    flash('Payment details submitted! Your order is now awaiting admin verification.', 'success')
+    flash('Success! Your order has been placed.', 'success')
     return redirect(url_for('order_summary', order_id=order.id))
 
 # NEW: Route for the Thank You page
@@ -1833,6 +1846,14 @@ def admin_delete_user(user_id):
         flash('User not found.', 'danger')
     return redirect(url_for('admin_users'))
 
+@app.route('/admin/order/<order_id>')
+@login_required
+@admin_required
+def admin_order_details(order_id):
+    order = Order.query.filter_by(id=order_id).first_or_404()
+    return render_template('admin_order_details.html', order=order)
+
+
 @app.route('/admin/categories')
 @login_required
 @admin_required
@@ -1896,6 +1917,24 @@ def admin_edit_category(category_id):
         flash('Category updated successfully!', 'success')
         return redirect(url_for('admin_categories'))
     return render_template('admin_edit_category.html', category=category)
+
+@app.route('/delete-selected-orders', methods=['POST'])
+@login_required
+
+def delete_selected_orders():
+    selected_ids = request.form.getlist('selected_orders[]')  # Use the [] version here too
+    if not selected_ids:
+        flash("No orders selected for deletion.", "warning")
+        return redirect(url_for('admin_orders_view'))
+
+    for order_id in selected_ids:
+        order = Order.query.filter_by(id=order_id).first()
+        if order:
+            db.session.delete(order)
+    db.session.commit()
+    flash(f"{len(selected_ids)} order(s) deleted successfully.", "success")
+    return redirect(url_for('admin_orders_view'))
+
 
 @app.route('/admin/delete-category/<category_id>', methods=['POST'])
 @login_required
@@ -2797,8 +2836,12 @@ def delete_address(address_id):
 @app.route('/user-orders')
 @login_required
 def user_orders():
-    orders = Order.query.filter_by(user_id=current_user.id).order_by(Order.order_date.desc()).all()
+    if current_user.is_admin():
+        orders = Order.query.order_by(Order.order_date.desc()).all()
+    else:
+        orders = Order.query.filter_by(user_id=current_user.id).order_by(Order.order_date.desc()).all()
     return render_template('user_orders.html', orders=orders)
+
 
 import os
 from werkzeug.utils import secure_filename
@@ -2813,16 +2856,15 @@ def allowed_file(filename):
 @login_required
 @csrf.exempt  # If you're using AJAX or ensure CSRF token included
 def edit_payment_screenshot(order_id):
-    # FIX START:
-    # 1. Changed 'order_id' to 'id' because the column in your Order model is named 'id'.
-    # 2. Changed 'user_email=session.get('user_email')' to 'user_id=current_user.id'
-    #    because Order model has 'user_id' foreign key, and current_user is available
-    #    due to @login_required decorator. This ensures the user can only modify their own orders.
-    order = Order.query.filter_by(id=order_id, user_id=current_user.id).first()
-    # FIX END
+    # Allow admin to edit any order, user can edit only their own
+    if current_user.is_admin():
+        order = Order.query.filter_by(id=order_id).first()
+    else:
+        order = Order.query.filter_by(id=order_id, user_id=current_user.id).first()
 
     if not order:
-        flash("Order not found or access denied.", "danger")
+        print(f"DEBUG: Order NOT found for ID={order_id}.")
+        flash('Order not found or you are not authorized to view it.', 'danger')
         return redirect(url_for('user_orders'))
 
     if 'screenshot' not in request.files:
@@ -2831,18 +2873,14 @@ def edit_payment_screenshot(order_id):
 
     file = request.files['screenshot']
     if file and allowed_file(file.filename):
-        # FIX START: Use order.id instead of order.order_id for filename
         filename = secure_filename(f"{order.id}_screenshot.{file.filename.rsplit('.', 1)[1].lower()}")
-        # FIX END
         filepath = os.path.join('static', 'payment_screenshots', filename)
 
-        # Ensure folder exists
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
         # Delete old screenshot if exists
         if order.payment_screenshot:
             try:
-                # Ensure the path is correctly constructed for deletion
                 old_screenshot_path = os.path.join('static', order.payment_screenshot)
                 if os.path.exists(old_screenshot_path):
                     os.remove(old_screenshot_path)
@@ -2850,9 +2888,7 @@ def edit_payment_screenshot(order_id):
                 print(f"Warning: Could not delete old screenshot: {e}")
 
         file.save(filepath)
-        # FIX START: Use order.payment_screenshot directly
         order.payment_screenshot = f'payment_screenshots/{filename}'
-        # FIX END
         db.session.commit()
 
         flash("Screenshot uploaded successfully.", "success")
@@ -2862,12 +2898,9 @@ def edit_payment_screenshot(order_id):
     return redirect(url_for('user_orders'))
 
 
-
-
 from flask import jsonify, request
 
 @app.route('/delete-order/<order_id>', methods=['POST', 'DELETE'])
-
 @login_required
 def delete_order(order_id):
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
@@ -2903,7 +2936,8 @@ def delete_order(order_id):
             return jsonify(success=False, message=f'Error deleting order: {e}'), 500
         flash(f'Error deleting order: {e}', 'danger')
 
-    return redirect(url_for('admin_dashboard' if current_user.is_admin() else 'user_orders'))
+    return redirect(url_for('admin_orders_view' if current_user.is_admin() else 'user_orders'))
+
 
 # --- Initialize DB and Migrate Data on First Run ---
 with app.app_context():
@@ -2981,6 +3015,9 @@ def check_db():
     uri = app.config.get("SQLALCHEMY_DATABASE_URI", "Not Set")
     return f"Database URI in use: {uri}"
 
+@app.route("/version")
+def version():
+    return "Karthika Futures | Build: 2025-07-28 10:45 AM"
 
 # --- Run the App ---
 if __name__ == '__main__':
