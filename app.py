@@ -96,7 +96,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = uri if uri else 'sqlite:///site.db'
 print("Database URI in use:", app.config['SQLALCHEMY_DATABASE_URI'])
 # In your Flask app setup (e.g., app.py or config.py)
 
-app.config['SQLALCHEMY_POOL_RECYCLE'] = 3600  # Tell app to reconnect every hour
+app.config['SQLALCHEMY_POOL_RECYCLE'] = 300  # Tell app to reconnect every hour
 app.config['SQLALCHEMY_POOL_PRE_PING'] = True # Tell app to 'hello, are you there?' before talking
 # Email Configuration
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
