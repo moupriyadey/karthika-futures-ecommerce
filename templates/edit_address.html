@@ -23,10 +23,10 @@
                             <input type="text" class="form-control" id="full_name" name="full_name" required value="{{ address.full_name }}">
                         </div>
                         <div class="mb-3">
-                            <label for="phone" class="form-label">Phone Number</label>
-                            <input type="tel" class="form-control" name="phone" pattern="[0-9]{10}" maxlength="10" minlength="10" required title="Enter a valid 10-digit phone number">
-                            <small class="form-text text-muted">Please enter a 10-digit phone number.</small>
-                        </div>
+    <label for="phone" class="form-label">Phone Number</label>
+    <input type="tel" class="form-control" id="phone" name="phone" pattern="[0-9]{10}" maxlength="10" minlength="10" required title="Enter a valid 10-digit phone number" value="{{ address.phone }}">
+    <small class="form-text text-muted">Please enter a 10-digit phone number.</small>
+</div>
                         <div class="mb-3">
                             <label for="address_line1" class="form-label">Address Line 1</label>
                             <input type="text" class="form-control" id="address_line1" name="address_line1" required value="{{ address.address_line1 }}">
@@ -37,7 +37,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="pincode" class="form-label">Pincode</label>
-                            <input type="text" class="form-control" name="pincode" pattern="[0-9]{6}" maxlength="6" minlength="6" required title="Enter a valid 6-digit pincode">
+                            <input type="text" class="form-control" id="pincode" name="pincode" pattern="[0-9]{6}" maxlength="6" minlength="6" required title="Enter a valid 6-digit pincode" value="{{ address.pincode }}">
                             <small class="form-text text-muted">Please enter a 6-digit pincode.</small>
                         </div>
                         <div class="mb-3">

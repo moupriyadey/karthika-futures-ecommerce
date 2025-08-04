@@ -26,6 +26,35 @@ function showCustomAlert(message, type = 'info', showCartLink = false) {
     setTimeout(() => alertDiv.remove(), 5000);
 }
 
+function toggleNewAddressForm() {
+    const newAddressForm = document.getElementById('newAddressForm');
+    const existingAddresses = document.getElementById('existingAddressesDisplay');
+    const noAddressesMessage = document.getElementById('noAddressesMessage');
+    const addNewAddressLink = document.getElementById('addNewAddressLink');
+
+    if (newAddressForm.classList.contains('hidden')) {
+        // Show the new address form
+        newAddressForm.classList.remove('hidden');
+        if (existingAddresses) {
+            existingAddresses.classList.add('hidden');
+        }
+        if (noAddressesMessage) {
+            noAddressesMessage.classList.add('hidden');
+        }
+        addNewAddressLink.textContent = '- Cancel Add Address';
+    } else {
+        // Hide the new address form
+        newAddressForm.classList.add('hidden');
+        if (existingAddresses) {
+            existingAddresses.classList.remove('hidden');
+        }
+        if (noAddressesMessage) {
+            noAddressesMessage.classList.remove('hidden');
+        }
+        addNewAddressLink.textContent = '+ Add New Address';
+    }
+}
+
 function getHeaders() {
     const headers = { 'Content-Type': 'application/json' };
     if (window.csrfToken) headers['X-CSRFToken'] = window.csrfToken;

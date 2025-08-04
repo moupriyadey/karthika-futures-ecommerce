@@ -94,7 +94,10 @@ app.config['SQLALCHEMY_DATABASE_URI'] = uri if uri else 'sqlite:///site.db'
 
 # Debug print to confirm correct DB URI is being used
 print("Database URI in use:", app.config['SQLALCHEMY_DATABASE_URI'])
+# In your Flask app setup (e.g., app.py or config.py)
 
+app.config['SQLALCHEMY_POOL_RECYCLE'] = 3600  # Tell app to reconnect every hour
+app.config['SQLALCHEMY_POOL_PRE_PING'] = True # Tell app to 'hello, are you there?' before talking
 # Email Configuration
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
@@ -860,57 +863,38 @@ def purchase_form():
             flash("No items to purchase.", "danger")
             return redirect(url_for('cart'))
 
-        selected_address_id = request.form.get('selected_address_id') or request.form.get('shipping_address')
-        full_name = request.form.get('full_name')
-        phone = request.form.get('phone')
-        address_line1 = request.form.get('address_line1')
-        address_line2 = request.form.get('address_line2')
-        city = request.form.get('city')
-        state = request.form.get('state')
-        pincode = request.form.get('pincode')
-        save_address = request.form.get('save_address') == 'on'
-        set_as_default = request.form.get('set_as_default') == 'on'
+        action_type = request.form.get('action_type')
 
-        if selected_address_id and selected_address_id != 'new':
-            shipping_address_obj = db.session.get(Address, selected_address_id)
-            if not shipping_address_obj or shipping_address_obj.user_id != current_user.id:
-                flash("Invalid address selection.", "danger")
-                return render_template('purchase_form.html', 
-                                       items_to_process=items_to_process, 
-                                       subtotal_before_gst=subtotal_before_gst,
-                                       total_gst=total_gst,
-                                       shipping_charge=shipping_charge,
-                                       final_total_amount=final_total_amount,
-                                       user_addresses=user_addresses,
-                                       prefill_address=prefill_address_dict,
-                                       form_data=request.form.to_dict(),
-                                       total_cgst_amount=total_cgst_amount,
-                                       total_sgst_amount=total_sgst_amount,
-                                       total_igst_amount=total_igst_amount,
-                                       total_ugst_amount=total_ugst_amount,
-                                       total_cess_amount=total_cess_amount,
-                                       has_addresses=bool(user_addresses),
-                                       current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
+        if action_type == 'add_new_address':
+            selected_address_id = request.form.get('selected_address_id') or request.form.get('shipping_address')
+            full_name = request.form.get('full_name')
+            phone = request.form.get('phone')
+            address_line1 = request.form.get('address_line1')
+            address_line2 = request.form.get('address_line2')
+            city = request.form.get('city')
+            state = request.form.get('state')
+            pincode = request.form.get('pincode')
+            save_address = request.form.get('save_address') == 'on'
+            set_as_default = request.form.get('set_as_default') == 'on'
 
-        if selected_address_id == 'new' or not shipping_address_obj:
             if not all([full_name, phone, address_line1, city, state, pincode]):
                 flash('Please fill in all required fields for the new address.', 'danger')
                 return render_template('purchase_form.html',
-                                       items_to_process=items_to_process,
-                                       subtotal_before_gst=subtotal_before_gst,
-                                       total_gst=total_gst,
-                                       shipping_charge=shipping_charge,
-                                       final_total_amount=final_total_amount,
-                                       user_addresses=user_addresses,
-                                       prefill_address=prefill_address_dict,
-                                       form_data=request.form.to_dict(),
-                                       total_cgst_amount=total_cgst_amount,
-                                       total_sgst_amount=total_sgst_amount,
-                                       total_igst_amount=total_igst_amount,
-                                       total_ugst_amount=total_ugst_amount,
-                                       total_cess_amount=total_cess_amount,
-                                       has_addresses=bool(user_addresses),
-                                       current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
+                                         items_to_process=items_to_process,
+                                         subtotal_before_gst=subtotal_before_gst,
+                                         total_gst=total_gst,
+                                         shipping_charge=shipping_charge,
+                                         final_total_amount=final_total_amount,
+                                         user_addresses=user_addresses,
+                                         prefill_address=prefill_address_dict,
+                                         form_data=request.form.to_dict(),
+                                         total_cgst_amount=total_cgst_amount,
+                                         total_sgst_amount=total_sgst_amount,
+                                         total_igst_amount=total_igst_amount,
+                                         total_ugst_amount=total_ugst_amount,
+                                         total_cess_amount=total_cess_amount,
+                                         has_addresses=bool(user_addresses),
+                                         current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
 
             new_address = Address(
                 user_id=current_user.id,
@@ -928,75 +912,116 @@ def purchase_form():
             session['pre_selected_address_id'] = new_address.id
             flash('New address added successfully! Please select it below before placing the order.', 'info')
             return redirect(url_for('purchase_form'))
+        
+        elif action_type == 'place_order':
+            selected_address_id = request.form.get('selected_address_id') or request.form.get('shipping_address')
+            
+            if not selected_address_id:
+                flash('Please select a shipping address.', 'danger')
+                return render_template('purchase_form.html',
+                                         items_to_process=items_to_process, 
+                                         subtotal_before_gst=subtotal_before_gst,
+                                         total_gst=total_gst,
+                                         shipping_charge=shipping_charge,
+                                         final_total_amount=final_total_amount,
+                                         user_addresses=user_addresses,
+                                         prefill_address=prefill_address_dict,
+                                         form_data=request.form.to_dict(),
+                                         total_cgst_amount=total_cgst_amount,
+                                         total_sgst_amount=total_sgst_amount,
+                                         total_igst_amount=total_igst_amount,
+                                         total_ugst_amount=total_ugst_amount,
+                                         total_cess_amount=total_cess_amount,
+                                         has_addresses=bool(user_addresses),
+                                         current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
 
-        try:
-            new_order = Order(
-                id=generate_order_id(),
-                user_id=current_user.id,
-                total_amount=final_total_amount,
-                status='Pending Payment',
-                payment_status='pending',
-                shipping_address_id=shipping_address_obj.id,
-                shipping_charge=shipping_charge
-            )
-            db.session.add(new_order)
-            db.session.flush()
+            shipping_address_obj = db.session.get(Address, selected_address_id)
+            if not shipping_address_obj or shipping_address_obj.user_id != current_user.id:
+                flash("Invalid address selection.", "danger")
+                return render_template('purchase_form.html',
+                                         items_to_process=items_to_process, 
+                                         subtotal_before_gst=subtotal_before_gst,
+                                         total_gst=total_gst,
+                                         shipping_charge=shipping_charge,
+                                         final_total_amount=final_total_amount,
+                                         user_addresses=user_addresses,
+                                         prefill_address=prefill_address_dict,
+                                         form_data=request.form.to_dict(),
+                                         total_cgst_amount=total_cgst_amount,
+                                         total_sgst_amount=total_sgst_amount,
+                                         total_igst_amount=total_igst_amount,
+                                         total_ugst_amount=total_ugst_amount,
+                                         total_cess_amount=total_cess_amount,
+                                         has_addresses=bool(user_addresses),
+                                         current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
 
-            for item in items_to_process:
-                order_item = OrderItem(
-                    order_id=new_order.id,
-                    artwork_id=item['artwork'].id,
-                    quantity=item['quantity'],
-                    unit_price_before_gst=item['unit_price_before_gst'],
-                    cgst_percentage_applied=item['cgst_percentage'],
-                    sgst_percentage_applied=item['sgst_percentage'],
-                    igst_percentage_applied=item['igst_percentage'],
-                    ugst_percentage_applied=item['ugst_percentage'],
-                    cess_percentage_applied=item['cess_percentage'],
-                    selected_options=json.dumps(item['selected_options'])
-                )
-                db.session.add(order_item)
-
-                artwork = db.session.get(Artwork, item['artwork'].id)
-                if artwork:
-                    artwork.stock -= item.get('quantity', 0)
-                    if artwork.stock < 0:
-                        artwork.stock = 0
-
-            db.session.commit()
-            session.pop('cart', None)
-            session.pop('direct_purchase_cart', None)
-            session.modified = True
-
-            # ✅ Send confirmation email with attached invoice
             try:
-                msg = Message(
-                    subject=f"Your Order #{new_order.id} Confirmation - Karthika Futures",
-                    recipients=[current_user.email]
+                new_order = Order(
+                    id=generate_order_id(),
+                    user_id=current_user.id,
+                    total_amount=final_total_amount,
+                    status='Pending Payment',
+                    payment_status='pending',
+                    shipping_address_id=shipping_address_obj.id,
+                    shipping_charge=shipping_charge
                 )
-                msg.body = f"Dear {current_user.full_name},\n\nThank you for your order #{new_order.id}.\n\nPlease find your invoice attached.\n\nKarthika Futures Team"
+                db.session.add(new_order)
+                db.session.flush()
 
-                pdf_buffer = generate_invoice_pdf_buffer(new_order)
-                if pdf_buffer:
-                    msg.attach(
-                        filename=f"invoice_{new_order.id}.pdf",
-                        content_type="application/pdf",
-                        data=pdf_buffer.read()
+                for item in items_to_process:
+                    order_item = OrderItem(
+                        order_id=new_order.id,
+                        artwork_id=item['artwork'].id,
+                        quantity=item['quantity'],
+                        unit_price_before_gst=item['unit_price_before_gst'],
+                        cgst_percentage_applied=item['cgst_percentage'],
+                        sgst_percentage_applied=item['sgst_percentage'],
+                        igst_percentage_applied=item['igst_percentage'],
+                        ugst_percentage_applied=item['ugst_percentage'],
+                        cess_percentage_applied=item['cess_percentage'],
+                        selected_options=json.dumps(item['selected_options'])
                     )
-                mail.send(msg)
+                    db.session.add(order_item)
+
+                    artwork = db.session.get(Artwork, item['artwork'].id)
+                    if artwork:
+                        artwork.stock -= item.get('quantity', 0)
+                        if artwork.stock < 0:
+                            artwork.stock = 0
+
+                db.session.commit()
+                session.pop('cart', None)
+                session.pop('direct_purchase_cart', None)
+                session.modified = True
+
+                # ✅ Send confirmation email with attached invoice
+                try:
+                    msg = Message(
+                        subject=f"Your Order #{new_order.id} Confirmation - Karthika Futures",
+                        recipients=[current_user.email]
+                    )
+                    msg.body = f"Dear {current_user.full_name},\n\nThank you for your order #{new_order.id}.\n\nPlease find your invoice attached.\n\nKarthika Futures Team"
+
+                    pdf_buffer = generate_invoice_pdf_buffer(new_order)
+                    if pdf_buffer:
+                        msg.attach(
+                            filename=f"invoice_{new_order.id}.pdf",
+                            content_type="application/pdf",
+                            data=pdf_buffer.read()
+                        )
+                    mail.send(msg)
+                except Exception as e:
+                    print(f"Error sending email: {e}")
+
+                flash('Order placed successfully! Please proceed to payment.', 'success')
+                return redirect(url_for('payment_initiate', order_id=new_order.id, amount=new_order.total_amount))
+
+            except IntegrityError:
+                db.session.rollback()
+                flash('An error occurred while creating your order. Please try again.', 'danger')
             except Exception as e:
-                print(f"Error sending email: {e}")
-
-            flash('Order placed successfully! Please proceed to payment.', 'success')
-            return redirect(url_for('payment_initiate', order_id=new_order.id, amount=new_order.total_amount))
-
-        except IntegrityError:
-            db.session.rollback()
-            flash('An error occurred while creating your order. Please try again.', 'danger')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'An unexpected error occurred: {e}', 'danger')
-
+                db.session.rollback()
+                flash(f'An unexpected error occurred: {e}', 'danger')
     # ----- Handle GET -----
     (items_to_process, subtotal_before_gst, total_cgst_amount, 
      total_sgst_amount, total_igst_amount, total_ugst_amount, total_cess_amount,
@@ -1032,6 +1057,33 @@ def purchase_form():
                            current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
 
 
+
+
+@app.route('/set-default-address/<uuid:address_id>', methods=['POST'])
+@login_required
+def set_default_address(address_id):
+    address_to_set = Address.query.filter_by(id=address_id, user_id=current_user.id).first()
+
+    if not address_to_set:
+        flash("Address not found or does not belong to you.", "danger")
+        return redirect(url_for('my_addresses'))
+
+    try:
+        # Unset the old default address for the user
+        current_default = Address.query.filter_by(user_id=current_user.id, is_default=True).first()
+        if current_default:
+            current_default.is_default = False
+        
+        # Set the new default address
+        address_to_set.is_default = True
+        db.session.commit()
+        
+        flash("Default address has been updated successfully.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"An error occurred while setting the default address: {e}", "danger")
+
+    return redirect(url_for('my_addresses'))
 # MODIFIED: Signup route to include OTP verification and next_url capture
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -1501,6 +1553,7 @@ def contact():
 @app.route('/about')
 def about():
     return render_template('about.html')
+
 @app.route('/order_summary/<order_id>') # This line defines the web address
 @login_required # This means only logged-in users can see this page
 def order_summary(order_id):
@@ -1511,7 +1564,11 @@ def order_summary(order_id):
     # 1. Find the order in the database
     #    Changed from .first_or_404() to .first() for more direct control and debugging
     #    and added explicit handling if order is None.
-    order = Order.query.filter_by(id=order_id, user_id=current_user.id).first()
+    if hasattr(current_user, 'is_admin') and current_user.is_admin:
+        order = Order.query.filter_by(id=order_id).first()
+    else:
+        order = Order.query.filter_by(id=order_id, user_id=current_user.id).first()
+
 
     if not order:
         print(f"DEBUG: Order NOT found for ID={order_id} and user ID={current_user.id}.")
@@ -1589,7 +1646,8 @@ def payment_initiate(order_id, amount):
 @app.route('/payment_submit/<order_id>', methods=['POST'])
 @login_required
 def payment_submit(order_id):
-    # Fix for LegacyAPIWarning
+    MAX_SCREENSHOT_SIZE = 1.5 * 1024 * 1024  # 1.5 MB
+
     order = db.session.get(Order, order_id)
     if not order:
         flash('Order not found.', 'danger')
@@ -1603,31 +1661,38 @@ def payment_submit(order_id):
         flash('This order is not pending payment or has already been processed.', 'warning')
         return redirect(url_for('order_summary', order_id=order.id))
 
-    transaction_id = request.form.get('transaction_id')
     payment_screenshot = request.files.get('payment_screenshot')
 
-    if not transaction_id:
-        flash('Transaction ID is required to confirm payment.', 'danger')
+    if not payment_screenshot:
+        flash('Payment screenshot is required to confirm payment.', 'danger')
         return redirect(url_for('payment_initiate', order_id=order.id, amount=order.total_amount))
 
-    # Update order status to awaiting verification
-    order.status = 'Payment Submitted - Awaiting Verification'
-    order.payment_status = 'submitted' # New payment status to indicate submission
-   
-
-    # Handle screenshot upload
-    if payment_screenshot and allowed_file(payment_screenshot.filename):
-        filename = secure_filename(payment_screenshot.filename)
-        unique_filename = str(uuid.uuid4()) + '_' + filename
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-        payment_screenshot.save(file_path)
-        order.payment_screenshot = f'uploads/{unique_filename}'
-    elif payment_screenshot and not allowed_file(payment_screenshot.filename):
+    if not allowed_file(payment_screenshot.filename):
         flash('Invalid file type for screenshot. Please upload an image.', 'warning')
-        # Do not return, allow the order status to update even without screenshot
-    
+        return redirect(url_for('payment_initiate', order_id=order.id, amount=order.total_amount))
+
+    # Check file size before saving
+    payment_screenshot.seek(0, os.SEEK_END)
+    file_size = payment_screenshot.tell()
+    payment_screenshot.seek(0)  # reset pointer
+
+    if file_size > MAX_SCREENSHOT_SIZE:
+        flash('Screenshot too large. Please upload an image smaller than 1.5 MB.', 'danger')
+        return redirect(url_for('payment_initiate', order_id=order.id, amount=order.total_amount))
+
+    # Save file
+    filename = secure_filename(payment_screenshot.filename)
+    unique_filename = str(uuid.uuid4()) + '_' + filename
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+    payment_screenshot.save(file_path)
+    order.payment_screenshot = f'uploads/{unique_filename}'
+
+    # Update order
+    order.status = 'Payment Submitted - Awaiting Verification'
+    order.payment_status = 'submitted'
+
     db.session.commit()
-    flash('Payment details submitted! Your order is now awaiting admin verification.', 'success')
+    flash('Success! Your order has been placed.', 'success')
     return redirect(url_for('order_summary', order_id=order.id))
 
 # NEW: Route for the Thank You page
@@ -1830,6 +1895,14 @@ def admin_delete_user(user_id):
         flash('User not found.', 'danger')
     return redirect(url_for('admin_users'))
 
+@app.route('/admin/order/<order_id>')
+@login_required
+@admin_required
+def admin_order_details(order_id):
+    order = Order.query.filter_by(id=order_id).first_or_404()
+    return render_template('admin_order_details.html', order=order)
+
+
 @app.route('/admin/categories')
 @login_required
 @admin_required
@@ -1893,6 +1966,24 @@ def admin_edit_category(category_id):
         flash('Category updated successfully!', 'success')
         return redirect(url_for('admin_categories'))
     return render_template('admin_edit_category.html', category=category)
+
+@app.route('/delete-selected-orders', methods=['POST'])
+@login_required
+
+def delete_selected_orders():
+    selected_ids = request.form.getlist('selected_orders[]')  # Use the [] version here too
+    if not selected_ids:
+        flash("No orders selected for deletion.", "warning")
+        return redirect(url_for('admin_orders_view'))
+
+    for order_id in selected_ids:
+        order = Order.query.filter_by(id=order_id).first()
+        if order:
+            db.session.delete(order)
+    db.session.commit()
+    flash(f"{len(selected_ids)} order(s) deleted successfully.", "success")
+    return redirect(url_for('admin_orders_view'))
+
 
 @app.route('/admin/delete-category/<category_id>', methods=['POST'])
 @login_required
@@ -2693,7 +2784,7 @@ def add_address():
 
     if not all([full_name, phone, address_line1, city, state, pincode]):
         flash('Please fill in all required address fields.', 'danger')
-        return redirect(url_for('user_profile'))
+        return redirect(url_for('purchase_form')) # Corrected redirect for validation failure
 
     if is_default:
         # Unset previous default address
@@ -2715,7 +2806,8 @@ def add_address():
     db.session.add(new_address)
     db.session.commit()
     flash('Address added successfully!', 'success')
-    return redirect(url_for('user_profile'))
+    return redirect(url_for('purchase_form')) # Corrected redirect for success
+
 
 @app.route('/my-addresses')
 @login_required
@@ -2769,10 +2861,13 @@ def edit_address(address_id):
 
 
 
-@app.route('/delete-address/<address_id>', methods=['POST'])
+@app.route('/delete-address/<address_id>', methods=['GET', 'POST'])
 @login_required
 def delete_address(address_id):
-    # Fix for LegacyAPIWarning
+    if request.method == 'GET':
+        flash('Invalid request method for deleting address.', 'warning')
+        return redirect(url_for('user_profile'))
+
     address = db.session.get(Address, address_id)
     if not address:
         flash('Address not found.', 'danger')
@@ -2781,9 +2876,13 @@ def delete_address(address_id):
     if address.user_id != current_user.id:
         flash('You are not authorized to delete this address.', 'danger')
         return redirect(url_for('user_profile'))
-    
+
     if address.is_default and len(current_user.addresses) > 1:
         flash('Cannot delete default address if other addresses exist. Please set another address as default first.', 'danger')
+        return redirect(url_for('user_profile'))
+
+    if db.session.query(Order).filter_by(shipping_address_id=address_id).count() > 0:
+        flash('Cannot delete address: it is linked to existing orders.', 'danger')
         return redirect(url_for('user_profile'))
 
     db.session.delete(address)
@@ -2791,11 +2890,16 @@ def delete_address(address_id):
     flash('Address deleted successfully!', 'success')
     return redirect(url_for('user_profile'))
 
+
 @app.route('/user-orders')
 @login_required
 def user_orders():
-    orders = Order.query.filter_by(user_id=current_user.id).order_by(Order.order_date.desc()).all()
+    if current_user.is_admin():
+        orders = Order.query.order_by(Order.order_date.desc()).all()
+    else:
+        orders = Order.query.filter_by(user_id=current_user.id).order_by(Order.order_date.desc()).all()
     return render_template('user_orders.html', orders=orders)
+
 
 import os
 from werkzeug.utils import secure_filename
@@ -2810,16 +2914,15 @@ def allowed_file(filename):
 @login_required
 @csrf.exempt  # If you're using AJAX or ensure CSRF token included
 def edit_payment_screenshot(order_id):
-    # FIX START:
-    # 1. Changed 'order_id' to 'id' because the column in your Order model is named 'id'.
-    # 2. Changed 'user_email=session.get('user_email')' to 'user_id=current_user.id'
-    #    because Order model has 'user_id' foreign key, and current_user is available
-    #    due to @login_required decorator. This ensures the user can only modify their own orders.
-    order = Order.query.filter_by(id=order_id, user_id=current_user.id).first()
-    # FIX END
+    # Allow admin to edit any order, user can edit only their own
+    if current_user.is_admin():
+        order = Order.query.filter_by(id=order_id).first()
+    else:
+        order = Order.query.filter_by(id=order_id, user_id=current_user.id).first()
 
     if not order:
-        flash("Order not found or access denied.", "danger")
+        print(f"DEBUG: Order NOT found for ID={order_id}.")
+        flash('Order not found or you are not authorized to view it.', 'danger')
         return redirect(url_for('user_orders'))
 
     if 'screenshot' not in request.files:
@@ -2828,18 +2931,14 @@ def edit_payment_screenshot(order_id):
 
     file = request.files['screenshot']
     if file and allowed_file(file.filename):
-        # FIX START: Use order.id instead of order.order_id for filename
         filename = secure_filename(f"{order.id}_screenshot.{file.filename.rsplit('.', 1)[1].lower()}")
-        # FIX END
         filepath = os.path.join('static', 'payment_screenshots', filename)
 
-        # Ensure folder exists
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
         # Delete old screenshot if exists
         if order.payment_screenshot:
             try:
-                # Ensure the path is correctly constructed for deletion
                 old_screenshot_path = os.path.join('static', order.payment_screenshot)
                 if os.path.exists(old_screenshot_path):
                     os.remove(old_screenshot_path)
@@ -2847,9 +2946,7 @@ def edit_payment_screenshot(order_id):
                 print(f"Warning: Could not delete old screenshot: {e}")
 
         file.save(filepath)
-        # FIX START: Use order.payment_screenshot directly
         order.payment_screenshot = f'payment_screenshots/{filename}'
-        # FIX END
         db.session.commit()
 
         flash("Screenshot uploaded successfully.", "success")
@@ -2859,12 +2956,9 @@ def edit_payment_screenshot(order_id):
     return redirect(url_for('user_orders'))
 
 
-
-
 from flask import jsonify, request
 
 @app.route('/delete-order/<order_id>', methods=['POST', 'DELETE'])
-
 @login_required
 def delete_order(order_id):
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
@@ -2900,7 +2994,8 @@ def delete_order(order_id):
             return jsonify(success=False, message=f'Error deleting order: {e}'), 500
         flash(f'Error deleting order: {e}', 'danger')
 
-    return redirect(url_for('admin_dashboard' if current_user.is_admin() else 'user_orders'))
+    return redirect(url_for('admin_orders_view' if current_user.is_admin() else 'user_orders'))
+
 
 # --- Initialize DB and Migrate Data on First Run ---
 with app.app_context():
@@ -2978,6 +3073,9 @@ def check_db():
     uri = app.config.get("SQLALCHEMY_DATABASE_URI", "Not Set")
     return f"Database URI in use: {uri}"
 
+@app.route("/version")
+def version():
+    return "Karthika Futures | Build: 2025-07-28 10:45 AM"
 
 # --- Run the App ---
 if __name__ == '__main__':

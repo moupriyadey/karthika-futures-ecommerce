@@ -2,26 +2,56 @@
 
 {% block title %}Complete Your Payment - Karthika Futures{% endblock %}
 
-{% block extra_css %}{% endblock %} {# Keep this block for any page-specific CSS if needed #}
-
 {% block content %}
-<div class="container mx-auto p-4 md:p-8 main-content-area">
-    <div class="bg-white p-6 rounded-lg shadow-lg max-w-2xl mx-auto">
-        <h2 class="text-3xl font-extrabold text-center text-gray-800 mb-6">Complete Your Payment</h2>
-        <p class="text-center text-gray-600 mb-6">
+<div class="container mx-auto px-4 py-6 md:p-8 main-content-area">
+    <div class="bg-white p-6 rounded-xl shadow-lg max-w-2xl mx-auto border border-gray-200">
+
+        <h2 class="text-3xl font-bold text-center text-gray-800 mb-4">Complete Your Payment</h2>
+
+        <p class="text-center text-gray-600 mb-4 leading-relaxed">
             Order <strong class="text-primary">#{{ order.id }}</strong> placed successfully.
-            Please pay <strong class="text-primary">{{ amount | currency }}</strong> via UPI to confirm.
+            Please pay <strong class="text-primary">{{ amount | currency }}</strong> via UPI to confirm your order.
+            <a href="javascript:void(0)" onclick="toggleHelp()" aria-expanded="false" title="Need help?" class="inline-block ml-1 text-blue-600 hover:text-blue-800">&#9432;</a>
         </p>
 
-        <!-- QR Code Section -->
-        <div class="bg-gray-50 p-6 rounded-xl shadow-inner text-center mb-6 border border-gray-200">
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">Scan this QR Code</h3>
-            <div id="qrcode" class="mx-auto p-2 rounded-lg border-4 border-white bg-white shadow-2xl" style="width: 220px; height: 220px;">
+        <!-- Help Box -->
+        <div id="help-box" class="text-sm text-gray-700 bg-yellow-50 border border-yellow-300 rounded-lg p-0 mb-6 max-w-xl mx-auto" style="display: none;">
+            <div class="p-4">
+                <strong class="block mb-2">How to Pay via UPI:</strong>
+                <ol class="list-decimal list-inside space-y-2">
+                    <li>Open any UPI app (GPay, PhonePe, Paytm, etc.)</li>
+                    <li>Scan the QR code shown below</li>
+                    <li>Enter the exact amount: <strong>{{ amount | currency }}</strong></li>
+                    <li>Complete the payment</li>
+                    <li>Upload the payment screenshot below</li>
+                </ol>
+
+                <p class="mt-4 font-medium">Using the same phone? Watch this:</p>
+                <div class="mt-2 text-center">
+                    <iframe width="280" height="158" src="https://www.youtube.com/embed/fbzz3l9UV5s?rel=0" title="Scan QR from gallery video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </div>
+
+                <p class="mt-4 font-medium">Visual Steps:</p>
+                <div class="text-center mt-2">
+                    <img src="{{ url_for('static', filename='images/upi_help/upi_steps.png') }}" alt="UPI Steps" class="rounded shadow border border-gray-300 w-full max-w-sm mx-auto">
+                </div>
+
+                <div class="mt-4 text-center">
+                    <button onclick="downloadQRCode()" class="text-sm text-blue-600 underline hover:text-blue-800" title="Download QR Code">
+                        🗕️ Download QR Code
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- QR Code -->
+        <div class="bg-gray-50 p-5 rounded-xl text-center shadow-inner mb-6 border border-gray-200">
+            <h3 class="text-xl font-semibold text-gray-800 mb-3">Scan this QR Code</h3>
+            <div id="qrcode" class="mx-auto bg-white p-2 border rounded-lg shadow" style="width: 220px; height: 220px;">
                 <p id="qrcode-fallback" class="text-red-500 text-sm mt-4 hidden">QR generation failed. Use UPI ID below.</p>
             </div>
-            <p class="mt-4 text-gray-700 text-sm font-semibold">UPI ID: <span class="text-primary">{{ our_upi_id }}</span></p>
+            <p class="mt-3 text-gray-700 text-sm font-semibold">UPI ID: <span class="text-primary">{{ our_upi_id }}</span></p>
 
-            <!-- UPI Logos -->
             <div class="flex justify-center items-center gap-3 mt-4 flex-wrap">
                 <img src="{{ url_for('static', filename='images/upi_logos/bhim.png') }}" alt="BHIM" class="h-8">
                 <img src="{{ url_for('static', filename='images/upi_logos/phonepe.png') }}" alt="PhonePe" class="h-8">
@@ -30,99 +60,150 @@
             </div>
         </div>
 
-        <!-- Form Section -->
+        <!-- Upload Form -->
         <form action="{{ url_for('payment_submit', order_id=order.id) }}" method="POST" enctype="multipart/form-data" class="space-y-5">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
             <div>
-                <label for="transaction_id" class="block text-sm font-semibold text-gray-700 mb-1 text-center">Transaction ID (12-digit UTR):</label>
-                <input type="text" id="transaction_id" name="transaction_id"
-                       class="form-control w-full text-center text-lg font-bold"
-                       inputmode="numeric" pattern="[0-9]{12}" minlength="12" maxlength="12"
-                       placeholder="Enter UTR/Ref No." required
-                       title="Enter a 12-digit UTR number">
-            </div>
-
-            <div>
-                <label for="payment_screenshot" class="block text-sm font-semibold text-gray-700 mb-1 text-center">
-                    Upload Payment Screenshot <span class="text-gray-500 text-xs">(Optional)</span>
+                <label for="payment_screenshot" class="block text-sm font-semibold text-gray-700 mb-2 text-center">
+                    Upload Payment Screenshot <span class="text-red-500">*</span>
                 </label>
-                <input type="file" id="payment_screenshot" name="payment_screenshot" accept="image/*" class="form-control">
-                <p class="text-xs text-gray-500 mt-1">Uploading helps us verify your payment faster.</p>
+                <input type="file" id="payment_screenshot" name="payment_screenshot" accept="image/*" class="form-control w-full" required>
+                <p class="text-xs text-gray-500 mt-1 text-center">Helps us verify your payment faster.</p>
             </div>
 
-            <button type="submit" class="w-full btn btn-primary py-2.5 text-lg rounded-md">Confirm Payment</button>
+            <button type="submit" class="w-full bg-primary text-white py-2.5 rounded-md text-lg hover:bg-orange-600 transition">
+                ✅ Confirm Payment
+            </button>
         </form>
 
+        <!-- Loading Overlay OUTSIDE the form -->
+        <div id="loading-overlay" style="display: none;" class="fixed inset-0 bg-white bg-opacity-90 z-[9999] flex flex-col items-center justify-center text-center">
+            <svg class="animate-spin h-10 w-10 text-orange-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+            <div class="text-lg font-semibold text-gray-800 mb-2">Uploading Screenshot...</div>
+            <div class="text-sm text-gray-500">Please wait. Don’t refresh or close this page.</div>
+        </div>
+
+        <div class="text-center mt-2">
+            <a href="https://wa.me/919123700057?text=Hello%20Karthika%20Futures%2C%20I've%20uploaded%20my%20payment%20screenshot." target="_blank" class="inline-flex items-center text-green-600 hover:underline text-sm font-medium">
+                <i class="fab fa-whatsapp mr-2 text-xl"></i> Send via WhatsApp (optional)
+            </a>
+        </div>
+
         <div class="text-center mt-6">
-            <a href="{{ url_for('user_orders') }}" class="btn btn-link text-sm">← Back to My Orders</a>
+            <a href="{{ url_for('index') }}" class="text-sm text-gray-600 hover:underline">← Back to Home</a>
         </div>
     </div>
 </div>
 {% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous">
+<style>
+.animate-spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.main-content-area { overflow: visible !important; }
+#help-box {
+  transition: all 0.4s ease;
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  margin-bottom: 0;
+}
+#help-box.show {
+  opacity: 1;
+  max-height: 2000px;
+  padding: 1rem;
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+}
+</style>
+{% endblock %}
 
 {% block extra_js %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Prevent back button from leaving the payment page (optional, but good for payment flows)
-        history.pushState(null, null, location.href);
-        window.addEventListener('popstate', function () {
-            history.go(1);
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.querySelector('form');
+    const loadingOverlay = document.getElementById('loading-overlay');
+
+    if (form && loadingOverlay) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            loadingOverlay.style.display = 'flex';
+            setTimeout(() => {
+                form.submit();
+            }, 150);
         });
+    }
 
-        const upiId = "{{ our_upi_id }}"; // Use Flask variable directly
-        const bankingName = "{{ our_banking_name }}"; // Use Flask variable directly
-        const orderId = "{{ order.id }}";
-        const amount = "{{ amount | round(2) }}"; // Ensure amount is rounded for UPI link
-        const encodedBankingName = encodeURIComponent(bankingName);
-        const upiLink = `upi://pay?pa=${upiId}&pn=${encodedBankingName}&am=${amount}&tn=${orderId}&cu=INR`;
+    const upiId = "{{ our_upi_id }}";
+    const bankingName = "{{ our_banking_name }}";
+    const orderId = "{{ order.id }}";
+    const amount = "{{ amount | round(2) }}";
+    const encodedBankingName = encodeURIComponent(bankingName);
+    const upiLink = `upi://pay?pa=${upiId}&pn=${encodedBankingName}&am=${amount}&tn=${orderId}&cu=INR`;
 
-        try {
-            const qrDiv = document.getElementById("qrcode");
-            const qrFallback = document.getElementById("qrcode-fallback"); // Get fallback element
-
-            if (qrDiv) { // Add null check for qrDiv
-                qrDiv.innerHTML = ""; // Clear existing content
-                new QRCode(qrDiv, {
-                    text: upiLink,
-                    width: 200, // Matched with CSS
-                    height: 200, // Matched with CSS
-                    colorDark: "#000",
-                    colorLight: "#fff",
-                    correctLevel: QRCode.CorrectLevel.H
-                });
-                if (qrFallback) { // Add null check for qrFallback
-                    qrFallback.style.display = "none";
-                }
-            } else {
-                console.error("QR code container (qrcode) not found.");
-                if (qrFallback) {
-                    qrFallback.textContent = "QR code generation failed: Container missing.";
-                    qrFallback.style.display = "block";
-                }
-            }
-        } catch (error) {
-            console.error("QR generation error:", error);
-            const qrDiv = document.getElementById("qrcode");
-            const qrFallback = document.getElementById("qrcode-fallback");
-            if (qrDiv) {
-                qrDiv.innerHTML = "QR code generation failed."; // Display message in QR div
-            }
-            if (qrFallback) { // Add null check for qrFallback
-                qrFallback.style.display = "block"; // Show fallback message
-            }
-        }
-
-        // Optional: Add an input filter for the transaction_id to only allow numbers
-        const transactionIdInput = document.getElementById('transaction_id');
-        if (transactionIdInput) {
-            transactionIdInput.addEventListener('input', function(e) {
-                // Remove any non-digit characters
-                e.target.value = e.target.value.replace(/\D/g, '');
+    try {
+        const qrDiv = document.getElementById("qrcode");
+        const qrFallback = document.getElementById("qrcode-fallback");
+        if (qrDiv) {
+            qrDiv.innerHTML = "";
+            new QRCode(qrDiv, {
+                text: upiLink,
+                width: 200,
+                height: 200,
+                colorDark: "#000",
+                colorLight: "#fff",
+                correctLevel: QRCode.CorrectLevel.H
             });
+            if (qrFallback) qrFallback.style.display = "none";
         }
-    });
+    } catch (error) {
+        console.error("QR generation error:", error);
+        document.getElementById("qrcode").innerHTML = "QR code generation failed.";
+        const qrFallback = document.getElementById("qrcode-fallback");
+        if (qrFallback) qrFallback.style.display = "block";
+    }
+});
+
+function toggleHelp() {
+    const helpBox = document.getElementById('help-box');
+    helpBox.classList.toggle('show');
+    helpBox.style.display = helpBox.classList.contains('show') ? 'block' : 'none';
+    if (helpBox.classList.contains('show')) {
+        helpBox.scrollIntoView({ behavior: "smooth", block: "center" });
+        document.addEventListener('click', outsideClickListener);
+    } else {
+        document.removeEventListener('click', outsideClickListener);
+    }
+    function outsideClickListener(e) {
+        const target = e.target;
+        const infoIcon = document.querySelector('[onclick="toggleHelp()"]');
+        if (!helpBox.contains(target) && target !== infoIcon) {
+            helpBox.classList.remove('show');
+            document.removeEventListener('click', outsideClickListener);
+        }
+    }
+}
+
+function downloadQRCode() {
+    const qrCanvas = document.querySelector('#qrcode canvas');
+    if (qrCanvas) {
+        const dataURL = qrCanvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = dataURL;
+        a.download = 'karthikafutures_qr.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    } else {
+        alert("QR code not available for download.");
+    }
+}
 </script>
 {% endblock %}

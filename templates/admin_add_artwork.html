@@ -154,12 +154,17 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const artworkData = {{ artwork_data | tojson }};
+        const artworkData = {};
         const quantityInput = document.getElementById('quantity');
-        const customOptionsContainer = document.getElementById('customOptionsContainer');
+        const customOptionsContainer = document.getElementById('custom-options-builder');
+
         const displayPriceElement = document.getElementById('displayPrice');
         const addToCartBtn = document.getElementById('addToCartBtn');
         const buyNowBtn = document.getElementById('buyNowBtn');
+
+        
+
+
 
         // Carousel Logic
         const carousel = document.getElementById('productImageCarousel');

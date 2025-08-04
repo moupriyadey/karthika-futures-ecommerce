@@ -70,12 +70,12 @@
                                    value="{{ form_data.full_name or current_user_data.full_name or '' }}"> {# Prefill #}
                         </div>
                         <div>
-                            <label class="form-label">Phone Number</label>
-                            <input type="tel" class="form-control" name="phone" 
-       pattern="[0-9]{10}" maxlength="10" minlength="10" 
-       title="Enter a valid 10-digit phone number" 
-       value="9090909090">
-       {% if not has_addresses or not selected_address %}required{% endif %}>
+                          <label class="form-label">Phone Number</label>
+<input type="tel" class="form-control" name="phone" 
+    pattern="[0-9]{10}" maxlength="10" minlength="10" 
+    title="Enter a valid 10-digit phone number" 
+    value="9090909090" 
+    {% if not has_addresses or not selected_address %}required{% endif %}>
 
                         </div>
                         <div class="md:col-span-2">

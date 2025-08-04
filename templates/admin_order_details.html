@@ -1,0 +1,122 @@
+{% extends "_base.html" %}
+{% block title %}Order {{ order.id }} - Admin View{% endblock %}
+
+{% block content %}
+<div class="container py-5 main-content-area">
+    <a href="{{ url_for('admin_orders_view') }}" class="btn btn-secondary mb-3">← Back to Orders</a>
+
+    <div class="card shadow-sm border-0 rounded-lg">
+        <div class="card-header bg-light">
+            <h4 class="mb-0">Order Details - {{ order.id }}</h4>
+        </div>
+        <div class="card-body">
+            <h5 class="mb-3">Customer Information</h5>
+            <p><strong>Name:</strong> {{ order.customer_name }}</p>
+            <p><strong>Email:</strong> {{ order.customer_email }}</p>
+            <p><strong>Phone:</strong> {{ order.customer_phone }}</p>
+
+            <hr>
+
+            <h5 class="mb-3">Shipping Address</h5>
+            {% if order.shipping_address %}
+                <p>{{ order.shipping_address.full_name }}<br>
+                {{ order.shipping_address.address_line1 }}<br>
+                {{ order.shipping_address.address_line2 }}<br>
+                {{ order.shipping_address.city }}, {{ order.shipping_address.state }} - {{ order.shipping_address.pincode }}<br>
+                Phone: {{ order.shipping_address.phone }}</p>
+            {% else %}
+                <p class="text-muted">No shipping address recorded.</p>
+            {% endif %}
+
+            <hr>
+
+            <h5 class="mb-3">Order Items</h5>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Artwork</th>
+                            <th>Qty</th>
+                            <th>Options</th>
+                            <th>Price (Before GST)</th>
+                            <th>GST</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in order.items %}
+                        <tr>
+                            <td>{{ item.artwork.name }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>
+                                {% for k, v in item.get_selected_options_dict().items() %}
+                                    <span class="badge bg-secondary">{{ k }}: {{ v }}</span>
+                                {% endfor %}
+                            </td>
+                            <td>₹{{ item.unit_price_before_gst | floatformat(2) }}</td>
+                            <td>
+                                CGST: ₹{{ item.cgst_amount | floatformat(2) }}<br>
+                                SGST: ₹{{ item.sgst_amount | floatformat(2) }}<br>
+                                IGST: ₹{{ item.igst_amount | floatformat(2) }}<br>
+                                CESS: ₹{{ item.cess_amount | floatformat(2) }}
+                            </td>
+                            <td>₹{{ item.total_price_incl_gst | floatformat(2) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <hr>
+
+            <h5 class="mb-3">Order Summary</h5>
+            <p><strong>Status:</strong> {{ order.status }}</p>
+            <p><strong>Order Date:</strong> {{ order.order_date | strftime }}</p>
+            <p><strong>Total Amount:</strong> ₹{{ order.total_amount | floatformat(2) }}</p>
+            {% if order.remark %}
+                <p><strong>Admin Remark:</strong> {{ order.remark }}</p>
+            {% endif %}
+            {% if order.courier %}
+                <p><strong>Courier:</strong> {{ order.courier }}</p>
+            {% endif %}
+            {% if order.tracking_number %}
+                <p><strong>Tracking Number:</strong> {{ order.tracking_number }}</p>
+            {% endif %}
+
+            {% if 'Cancelled' in order.status %}
+                <div class="alert alert-danger">
+                    <strong>Cancelled On:</strong> {{ order.cancellation_timestamp | strftime }}<br>
+                    <strong>Cancelled By:</strong>
+                    {% if order.cancelled_by_admin %}Admin
+                    {% elif order.cancelled_by_user %}User
+                    {% else %}Unknown{% endif %}<br>
+                    <strong>Reason:</strong> {{ order.cancellation_reason or 'No reason provided' }}
+                </div>
+            {% endif %}
+
+            <hr>
+
+            <h5 class="mb-3">Payment</h5>
+            <p><strong>Status:</strong> {{ order.payment_status }}</p>
+            {% if order.payment_screenshot %}
+                <div class="mb-2">
+                    <a href="{{ url_for('static', filename=order.payment_screenshot) }}" target="_blank">
+                        <img src="{{ url_for('static', filename=order.payment_screenshot) }}" alt="Payment Screenshot" class="img-fluid img-thumbnail" style="max-height: 250px;">
+                    </a>
+                </div>
+            {% else %}
+                <p class="text-muted">No payment screenshot uploaded.</p>
+            {% endif %}
+
+            <hr>
+
+            <h5 class="mb-3">Invoice</h5>
+            {% if order.get_invoice_details().invoice_status == 'Sent' %}
+                <a href="{{ url_for('admin_edit_invoice', order_id=order.id) }}" class="btn btn-sm btn-info">View Invoice</a>
+            {% else %}
+                <p class="text-muted">Invoice not prepared or sent.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

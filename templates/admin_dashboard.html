@@ -782,21 +782,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    fetch(`/update-order-status/${orderId}`, {
-  method: 'POST',
-  headers: {
-    'X-CSRFToken': window.csrfToken,
-    'X-Requested-With': 'XMLHttpRequest'
-  },
-  body: new URLSearchParams({
-    'status': newStatus,
-    'remark': remark,
-    'courier': courier,
-    'tracking_number': trackingNumber,
-    'cancellation_reason': cancellationReason,
-    'csrf_token': window.csrfToken
-  })
-});
+   
 
     // --- Monthly Revenue Chart ---
     const ctx = document.getElementById('monthlyRevenueChart').getContext('2d');
