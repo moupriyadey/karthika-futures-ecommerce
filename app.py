@@ -2250,23 +2250,23 @@ def admin_edit_artwork(artwork_id):
 from flask import flash, redirect, url_for
 from sqlalchemy.exc import IntegrityError  # Import IntegrityError
 
-# ... (other imports) ...
 
 @app.route('/admin/artwork/delete/<string:artwork_id>', methods=['POST'])
 @login_required
 @admin_required
 def admin_delete_artwork(artwork_id):
     # Find the artwork using a filter query to avoid the UUID/string type mismatch
-    # This will match the string artwork_id from the URL to the string type in the database
     artwork_to_delete = Artwork.query.filter_by(id=artwork_id).first_or_404()
 
     # Check for associated orders before attempting deletion
-    has_orders = OrderItem.query.filter_by(artwork_id=artwork_id).first()
+    # If the artwork is part of an order, we must not delete it
+    has_orders = OrderItem.query.filter_by(artwork_id=artwork_to_delete.id).first()
     
     if has_orders:
-        flash("Orders are connected with this item. Please remove orders before deleting.", 'danger')
+        flash("Cannot delete artwork: It is linked to existing orders. Please handle the orders first.", 'danger')
         return redirect(url_for('admin_artworks'))
     
+    # If no orders are found, proceed with the deletion
     try:
         db.session.delete(artwork_to_delete)
         db.session.commit()
@@ -2279,7 +2279,6 @@ def admin_delete_artwork(artwork_id):
         flash(f'An unexpected error occurred: {str(e)}', 'danger')
         
     return redirect(url_for('admin_artworks'))
-
 
 @app.route('/admin/edit-invoice/<order_id>', methods=['GET', 'POST'])
 @login_required
