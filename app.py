@@ -2246,25 +2246,40 @@ def admin_edit_artwork(artwork_id):
 
     return render_template('admin_edit_artwork.html', artwork=artwork, categories=categories, form_data=form_data)
 
-@app.route('/admin/delete-artwork/<artwork_id>', methods=['POST'])
+# In app.py
+from flask import flash, redirect, url_for
+from sqlalchemy.exc import IntegrityError  # Import IntegrityError
+
+# ... (other imports) ...
+
+@app.route('/admin/artwork/delete/<string:artwork_id>', methods=['POST'])
 @login_required
 @admin_required
 def admin_delete_artwork(artwork_id):
-    # Fix for LegacyAPIWarning
-    artwork = db.session.get(Artwork, artwork_id)
-    if artwork:
-        # Delete associated images from uploads folder
-        for img_path in artwork.get_images_list():
-            full_path = os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(img_path))
-            if os.path.exists(full_path):
-                os.remove(full_path)
-        
-        db.session.delete(artwork)
+    # Find the artwork using a filter query to avoid the UUID/string type mismatch
+    # This will match the string artwork_id from the URL to the string type in the database
+    artwork_to_delete = Artwork.query.filter_by(id=artwork_id).first_or_404()
+
+    # Check for associated orders before attempting deletion
+    has_orders = OrderItem.query.filter_by(artwork_id=artwork_id).first()
+    
+    if has_orders:
+        flash("Orders are connected with this item. Please remove orders before deleting.", 'danger')
+        return redirect(url_for('admin_artworks'))
+    
+    try:
+        db.session.delete(artwork_to_delete)
         db.session.commit()
-        flash(f'Artwork "{artwork.name}" deleted successfully.', 'success')
-    else:
-        flash('Artwork not found.', 'danger')
+        flash(f'Artwork "{artwork_to_delete.name}" deleted successfully.', 'success')
+    except IntegrityError as e:
+        db.session.rollback()
+        flash(f"Deletion failed due to a database constraint. Error: {str(e)}", 'danger')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'An unexpected error occurred: {str(e)}', 'danger')
+        
     return redirect(url_for('admin_artworks'))
+
 
 @app.route('/admin/edit-invoice/<order_id>', methods=['GET', 'POST'])
 @login_required
