@@ -7,55 +7,53 @@
     <div class="bg-white rounded-lg shadow-xl overflow-hidden flex flex-col lg:flex-row">
         <!-- Image Carousel Section -->
         <div class="w-full lg:w-1/2 p-4 border-b lg:border-b-0 lg:border-r border-gray-200 relative">
-            <div id="productImageCarousel" class="carousel relative overflow-hidden rounded-lg">
-                <div class="carousel-inner flex transition-transform duration-500 ease-in-out">
-                    {% for image in artwork.get_images_list() %}
-                    <div class="carousel-item w-full flex-shrink-0">
-                        <div class="aspect-[4/5] bg-white flex items-center justify-center">
-                            <img src="{{ url_for('static', filename=image) }}"
-                                 alt="{{ artwork.name }} Image {{ loop.index }}"
-                                 class="object-contain max-h-full max-w-full rounded-lg shadow-md cursor-pointer"
-                                 title="Click to view larger"
-                                 onclick="openFullImage('{{ url_for('static', filename=image) }}')">
-                        </div>
-                    </div>
-                    {% endfor %}
-                    {% if not artwork.get_images_list() %}
-                    <div class="carousel-item w-full flex-shrink-0">
-                        <div class="aspect-[4/5] bg-white flex items-center justify-center">
-                            <img src="{{ url_for('static', filename='images/placeholder.png') }}"
-                                 alt="Placeholder Image"
-                                 class="object-contain max-h-full max-w-full rounded-lg shadow-md"
-                                 title="Click to view larger"
-                                 onclick="openFullImage('{{ url_for('static', filename='images/placeholder.png') }}')">
-                        </div>
-                    </div>
-                    {% endif %}
+    <div id="productImageCarousel" class="carousel relative overflow-hidden rounded-lg">
+        <div class="carousel-inner flex transition-transform duration-500 ease-in-out">
+            {% for image in artwork.get_images_list() %}
+            <div class="carousel-item w-full flex-shrink-0">
+                <div class="aspect-[4/5] bg-white flex items-center justify-center">
+                    <img src="{{ image }}"
+                         alt="{{ artwork.name }} Image {{ loop.index }}"
+                         class="object-contain max-h-full max-w-full rounded-lg shadow-md cursor-pointer"
+                         title="Click to view larger"
+                         onclick="openFullImage('{{ image }}')">
                 </div>
-
-                <!-- Navigation Buttons -->
-                <button type="button" class="carousel-prev absolute top-1/2 left-4 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-75" aria-label="Previous image">
-                    <i class="fas fa-chevron-left text-gray-700"></i>
-                </button>
-                <button type="button" class="carousel-next absolute top-1/2 right-4 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-75" aria-label="Next image">
-                    <i class="fas fa-chevron-right text-gray-700"></i>
-                </button>
             </div>
-
-            <!-- Thumbnails -->
-            <div class="flex justify-center space-x-2 mt-4">
-                {% for image in artwork.get_images_list() %}
-                <img src="{{ url_for('static', filename=image) }}" alt="Thumbnail {{ loop.index }}"
-                     class="carousel-indicator w-16 h-16 object-cover rounded-md cursor-pointer border-2 border-transparent hover:border-primary transition-all duration-200"
-                     data-slide-to="{{ loop.index0 }}">
-                {% endfor %}
-                {% if not artwork.get_images_list() %}
-                <img src="{{ url_for('static', filename='images/placeholder.png') }}" alt="Thumbnail"
-                     class="carousel-indicator w-16 h-16 object-cover rounded-md cursor-pointer border-2 border-primary"
-                     data-slide-to="0">
-                {% endif %}
+            {% endfor %}
+            {% if not artwork.get_images_list() %}
+            <div class="carousel-item w-full flex-shrink-0">
+                <div class="aspect-[4/5] bg-white flex items-center justify-center">
+                    <img src="{{ url_for('static', filename='images/placeholder.png') }}"
+                         alt="Placeholder Image"
+                         class="object-contain max-h-full max-w-full rounded-lg shadow-md"
+                         title="Click to view larger"
+                         onclick="openFullImage('{{ url_for('static', filename='images/placeholder.png') }}')">
+                </div>
             </div>
+            {% endif %}
         </div>
+
+        <button type="button" class="carousel-prev absolute top-1/2 left-4 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-75" aria-label="Previous image">
+            <i class="fas fa-chevron-left text-gray-700"></i>
+        </button>
+        <button type="button" class="carousel-next absolute top-1/2 right-4 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-75" aria-label="Next image">
+            <i class="fas fa-chevron-right text-gray-700"></i>
+        </button>
+    </div>
+
+    <div class="flex justify-center space-x-2 mt-4">
+        {% for image in artwork.get_images_list() %}
+        <img src="{{ image }}" alt="Thumbnail {{ loop.index }}"
+             class="carousel-indicator w-16 h-16 object-cover rounded-md cursor-pointer border-2 border-transparent hover:border-primary transition-all duration-200"
+             data-slide-to="{{ loop.index0 }}">
+        {% endfor %}
+        {% if not artwork.get_images_list() %}
+        <img src="{{ url_for('static', filename='images/placeholder.png') }}" alt="Thumbnail"
+             class="carousel-indicator w-16 h-16 object-cover rounded-md cursor-pointer border-2 border-primary"
+             data-slide-to="0">
+        {% endif %}
+    </div>
+</div>
 
         <!-- Product Details Section -->
         <div class="w-full lg:w-1/2 p-6 flex flex-col justify-between">

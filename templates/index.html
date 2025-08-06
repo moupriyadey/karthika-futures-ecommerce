@@ -61,13 +61,12 @@
                                 <a href="{{ url_for('product_detail', sku=artwork.sku) }}">
                                     <div class="thumbnail-wrapper rounded-lg shadow-sm group">
                                         <img
-                                            src="{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}"
-                                            alt="{{ artwork.name }}"
-                                            class="d-block w-full object-contain transition-transform duration-300 group-hover:scale-105 cursor-pointer"
-                                            title="Click to view larger"
-                                            onclick="event.preventDefault(); openFullImage('{{ url_for('static', filename=artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png') }}'); event.stopPropagation();" {# FIX IS HERE #}
-                                            loading="lazy" {# Lazy loading for images #}
-                                        >
+  src="{{ artwork.get_images_list()[0] if artwork.get_images_list() else url_for('static', filename='images/placeholder.png') }}"
+  alt="{{ artwork.name }}"
+  class="d-block w-full object-contain transition-transform duration-300 group-hover:scale-105 cursor-pointer"
+  title="Click to view larger"
+  onclick="event.preventDefault(); openFullImage('{{ artwork.get_images_list()[0] if artwork.get_images_list() else url_for('static', filename='images/placeholder.png') }}'); event.stopPropagation();"
+  loading="lazy">
                                     </div>
                                 </a>
                                 <div class="p-4">

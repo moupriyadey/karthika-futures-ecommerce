@@ -33,7 +33,7 @@
             <div class="space-y-4">
                 {% for item in cart_items %}
                 <div class="flex items-start gap-4 p-4 bg-white rounded-lg shadow-sm">
-                    <img src="{{ url_for('static', filename=item.image_url) }}" alt="{{ item.artwork.name }}" class="w-20 h-20 object-cover rounded cursor-pointer popup-image">
+                    <img src="{{ item.image_url }}" alt="{{ item.artwork.name }}" class="w-20 h-20 object-cover rounded cursor-pointer popup-image">
                     <div class="flex-1">
                         <div class="flex justify-between items-start">
                             <div>

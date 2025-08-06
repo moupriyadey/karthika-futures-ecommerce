@@ -187,7 +187,7 @@
                 <div class="space-y-3">
                     {% for item in items_to_process %}
                     <div class="flex items-start gap-3 border rounded p-2">
-                        <img src="{{ url_for('static', filename=item.artwork.get_images_list()[0] if item.artwork.get_images_list() else 'images/placeholder.png') }}"
+                        <img src="{{ item.artwork.get_images_list()[0] if item.artwork.get_images_list() else url_for('static', filename='images/placeholder.png') }}"
                              alt="{{ item.artwork.name }}"
                              class="w-12 h-12 object-cover rounded cursor-pointer popup-image">
                         <div class="flex-1 text-sm">
