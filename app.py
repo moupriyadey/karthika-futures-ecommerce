@@ -1,6 +1,8 @@
 import os
 from dotenv import load_dotenv
 load_dotenv()
+import cloudinary
+import cloudinary.uploader
 
 import json
 import csv

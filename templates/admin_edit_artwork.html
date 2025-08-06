@@ -94,7 +94,7 @@
                     <div class="d-flex flex-wrap gap-2 mb-3" id="current-images-preview">
                         {% for image_path in artwork.get_images_list() %}
                         <div class="position-relative">
-                            <img src="{{ url_for('static', filename=image_path) }}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover; border-radius: 0.5rem;">
+                            <img src="{{ image_path }}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover; border-radius: 0.5rem;">
                             <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 rounded-circle p-1 remove-image-btn" data-image-path="{{ image_path }}" style="transform: translate(25%, -25%);">
                                 <i class="fas fa-times"></i>
                             </button>
