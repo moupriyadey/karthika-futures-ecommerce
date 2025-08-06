@@ -2019,7 +2019,13 @@ def admin_delete_category(category_id):
 @admin_required
 def admin_artworks():
     artworks = Artwork.query.all()
+
+    # ADD THE DEBUGGING CODE HERE
+    for artwork in artworks:
+        print(f"Artwork SKU: {artwork.sku}, Images: {artwork.images}, List: {artwork.get_images_list()}")
+    
     return render_template('admin_artworks.html', artworks=artworks)
+    
 
 @app.route('/admin/add-artwork', methods=['GET', 'POST'])
 @login_required
