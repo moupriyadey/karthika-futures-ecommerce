@@ -96,7 +96,7 @@
                 <h5 class="text-primary">Custom Options (e.g., Size, Frame)</h5>
                 <div id="custom-options-builder" class="mb-3 p-3 border rounded-3 bg-light">
                     <button type="button" class="btn btn-secondary btn-sm mb-3" id="add-option-group-btn"><i class="fas fa-plus me-2"></i>Add Option Group</button>
-                    <input type="hidden" name="custom_options" id="custom_options_json">
+                    <input type="hidden" name="custom_options_json" id="custom_options_json">
                     {% if form_data.custom_options is defined %}
                     <script>
                         const initialCustomOptionsData = {{ form_data.custom_options | tojson }};
@@ -108,7 +108,7 @@
                 <h5 class="text-primary">Artwork Images</h5>
                 <div class="mb-3">
                     <label for="images" class="form-label">Upload Images <span class="text-danger">*</span></label>
-                    <input type="file" class="form-control" id="images" name="artwork_images" accept="image/*" multiple required>
+                    <input type="file" class="form-control" id="images" name="images" accept="image/*" multiple required>
                 </div>
 
                 <div class="form-check mb-4">

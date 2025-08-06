@@ -96,8 +96,14 @@ app.config['SQLALCHEMY_DATABASE_URI'] = uri if uri else 'sqlite:///site.db'
 print("Database URI in use:", app.config['SQLALCHEMY_DATABASE_URI'])
 # In your Flask app setup (e.g., app.py or config.py)
 
-app.config['SQLALCHEMY_POOL_RECYCLE'] = 300  # Tell app to reconnect every hour
-app.config['SQLALCHEMY_POOL_PRE_PING'] = True # Tell app to 'hello, are you there?' before talking
+# app.config['SQLALCHEMY_POOL_RECYCLE'] = 300  # Tell app to reconnect every hour
+# app.config['SQLALCHEMY_POOL_PRE_PING'] = True # Tell app to 'hello, are you there?' before talking
+# Add this line to handle database connection pooling for Render
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "pool_pre_ping": True,
+    "pool_recycle": 299, # Set to slightly less than Render's default timeout (300s)
+}
+
 # Email Configuration
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
@@ -2251,34 +2257,54 @@ from flask import flash, redirect, url_for
 from sqlalchemy.exc import IntegrityError  # Import IntegrityError
 
 
+import os
+from flask import current_app
+# deletes physical file also
 @app.route('/admin/artwork/delete/<string:artwork_id>', methods=['POST'])
 @login_required
 @admin_required
 def admin_delete_artwork(artwork_id):
-    # Find the artwork using a filter query to avoid the UUID/string type mismatch
-    artwork_to_delete = Artwork.query.filter_by(id=artwork_id).first_or_404()
-
-    # Check for associated orders before attempting deletion
-    # If the artwork is part of an order, we must not delete it
-    has_orders = OrderItem.query.filter_by(artwork_id=artwork_to_delete.id).first()
-    
-    if has_orders:
-        flash("Cannot delete artwork: It is linked to existing orders. Please handle the orders first.", 'danger')
-        return redirect(url_for('admin_artworks'))
-    
-    # If no orders are found, proceed with the deletion
     try:
-        db.session.delete(artwork_to_delete)
+        artwork = db.session.get(Artwork, artwork_id)
+        if not artwork:
+            flash('Artwork not found.', 'danger')
+            return redirect(url_for('admin_artworks'))
+
+        # Check for associated orders before attempting deletion
+        has_orders = OrderItem.query.filter_by(artwork_id=artwork.id).first()
+        if has_orders:
+            flash("Cannot delete artwork: It is linked to existing orders. Please handle the orders first.", 'danger')
+            return redirect(url_for('admin_artworks'))
+
+        # Get the path to the uploads folder
+        uploads_dir = os.path.join(current_app.root_path, 'static', 'uploads')
+        
+        # Split the artwork.images string into individual filenames
+        image_filenames = artwork.images.split(',') if artwork.images else []
+
+        # Delete each image file
+        for filename in image_filenames:
+            image_path = os.path.join(uploads_dir, filename)
+            if os.path.exists(image_path):
+                os.remove(image_path)
+                print(f"Deleted image file: {image_path}")
+        
+        # Delete the artwork record from the database
+        db.session.delete(artwork)
         db.session.commit()
-        flash(f'Artwork "{artwork_to_delete.name}" deleted successfully.', 'success')
+        
+        flash(f'Artwork "{artwork.name}" and its images have been deleted successfully.', 'success')
+        return redirect(url_for('admin_artworks'))
+
     except IntegrityError as e:
         db.session.rollback()
         flash(f"Deletion failed due to a database constraint. Error: {str(e)}", 'danger')
+        return redirect(url_for('admin_artworks'))
     except Exception as e:
         db.session.rollback()
-        flash(f'An unexpected error occurred: {str(e)}', 'danger')
-        
-    return redirect(url_for('admin_artworks'))
+        print(f"Error deleting artwork: {e}")
+        flash('An unexpected error occurred while deleting the artwork.', 'danger')
+        return redirect(url_for('admin_artworks'))    
 
 @app.route('/admin/edit-invoice/<order_id>', methods=['GET', 'POST'])
 @login_required

@@ -4,145 +4,140 @@
 
 {% block content %}
 <div class="container-fluid py-4 main-content-area">
-    <h2 class="mb-4 text-center">Manage Artworks</h2>
+    <h2 class="mb-4 text-center">Manage Artworks</h2>
 
-    {% include 'admin_navbar.html' %}
+    {% include 'admin_navbar.html' %}
 
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-light py-3 rounded-top-lg d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Artworks List</h5>
-            <a href="{{ url_for('add_artwork') }}" class="btn btn-success">
-                <i class="fas fa-plus me-1"></i> Add New Artwork
-            </a>
-        </div>
-        <div class="card-body">
-            <form class="row g-3 mb-3" action="{{ url_for('admin_artworks_view') }}" method="GET">
-                <div class="col-md-6">
-                    <input type="text" class="form-control" name="search_query" placeholder="Search by SKU, Name, Description" value="{{ search_query }}">
-                </div>
-                <div class="col-md-4">
-                    <select class="form-select" name="category_id">
-                        <option value="">All Categories</option>
-                        {% for category in categories %}
-                        <option value="{{ category.id }}" {% if category.id == selected_category_id %}selected{% endif %}>{{ category.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">Apply Filter</button>
-                </div>
-            </form>
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light py-3 rounded-top-lg d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Artworks List</h5>
+            <a href="{{ url_for('admin_add_artwork') }}" class="btn btn-success">
+                <i class="fas fa-plus me-1"></i> Add New Artwork
+            </a>
+        </div>
+        <div class="card-body">
+            <form class="row g-3 mb-3" action="{{ url_for('admin_artworks_view') }}" method="GET">
+                <div class="col-md-6">
+                    <input type="text" class="form-control" name="search_query" placeholder="Search by SKU, Name, Description" value="{{ search_query }}">
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" name="category_id">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}" {% if category.id|string == selected_category_id|string %}selected{% endif %}>{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Apply Filter</button>
+                </div>
+            </form>
 
-            {% if artworks %}
-            <div class="table-responsive">
-                <table class="table table-hover table-striped">
-                    <thead>
-                        <tr>
-                            <th>Image</th>
-                            <th>SKU</th>
-                            <th>Name</th>
-                            <th>Category</th>
-                            <th>Price (₹)</th>
-                            <th>Stock</th>
-                            <th>Featured</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for artwork in artworks %}
-                        <tr>
-                            <td>
-                                {% set images_list = artwork.get_images_list() %}
-                                {% if images_list %}
-                                    {# Ensure the path is correct for url_for('static') #}
-                                    <img src="{{ url_for('static', filename=images_list[0]) }}" alt="{{ artwork.name }}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
-                                {% else %}
-                                    <img src="{{ url_for('static', filename='images/placeholder.png') }}" alt="No Image" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
-                                {% endif %}
-                            </td>
-                            <td>{{ artwork.sku }}</td>
-                            <td>{{ artwork.name }}</td>
-                            <td>{{ artwork.category.name if artwork.category else 'N/A' }}</td>
-                            <td>₹{{ artwork.original_price | floatformat(2) }}</td>
-                            <td>{{ artwork.stock }}</td>
-                            <td>
-                                {% if artwork.is_featured %}
-                                <i class="fas fa-check-circle text-success"></i>
-                                {% else %}
-                                <i class="fas fa-times-circle text-danger"></i>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <a href="{{ url_for('edit_artwork', sku=artwork.sku) }}" class="btn btn-sm btn-info me-2">Edit</a>
-                                <button type="button" class="btn btn-sm btn-danger delete-artwork-btn" data-sku="{{ artwork.sku }}">Delete</button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <p class="text-center">No artworks found. Add one above!</p>
-            {% endif %}
-        </div>
-    </div>
+            {% if artworks %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>SKU</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Price (₹)</th>
+                            <th>Stock</th>
+                            <th>Featured</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for artwork in artworks %}
+                        <tr>
+                            <td>
+                                {% set images_list = artwork.get_images_list() %}
+                                {% if images_list %}
+                                    <img src="{{ url_for('static', filename=images_list[0]) }}" alt="{{ artwork.name }}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
+                                {% else %}
+                                    <img src="{{ url_for('static', filename='images/placeholder.png') }}" alt="No Image" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
+                                {% endif %}
+                            </td>
+                            <td>{{ artwork.sku }}</td>
+                            <td>{{ artwork.name }}</td>
+                            <td>{{ artwork.category.name if artwork.category else 'N/A' }}</td>
+                            <td>₹{{ artwork.original_price | floatformat(2) }}</td>
+                            <td>{{ artwork.stock }}</td>
+                            <td>
+                                {% if artwork.is_featured %}
+                                <i class="fas fa-check-circle text-success"></i>
+                                {% else %}
+                                <i class="fas fa-times-circle text-danger"></i>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('admin_edit_artwork', artwork_id=artwork.id) }}" class="btn btn-sm btn-info me-2">Edit</a>
+                                <button type="button" class="btn btn-danger btn-sm delete-artwork-btn"
+                                        data-bs-toggle="modal" data-bs-target="#deleteArtworkModal"
+                                        data-artwork-id="{{ artwork.id }}"
+                                        data-artwork-name="{{ artwork.name }}">
+                                    <i class="fas fa-trash-alt"></i> Delete
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-center">No artworks found. Add one above!</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{# Delete Artwork Confirmation Modal - HTML block to be added #}
+<div class="modal fade" id="deleteArtworkModal" tabindex="-1" aria-labelledby="deleteArtworkModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteArtworkModalLabel">Confirm Artwork Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete the artwork "<strong id="artworkNameToDelete"></strong>"? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteArtworkForm" method="POST" action="">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">Delete Artwork</button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        console.log("admin_artworks_view.html: DOMContentLoaded event fired."); // Debugging log
+        console.log("admin_artworks_view.html: DOMContentLoaded event fired.");
 
-        // Helper function to get CSRF token
-        function getHeaders() {
-            return {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': window.csrfToken
-            };
-        }
+        const deleteArtworkModalElement = document.getElementById('deleteArtworkModal');
+        if (deleteArtworkModalElement) {
+            const deleteArtworkModal = new bootstrap.Modal(deleteArtworkModalElement);
+            const artworkNameToDelete = document.getElementById('artworkNameToDelete');
+            const deleteArtworkForm = document.getElementById('deleteArtworkForm');
 
-        // Helper function to show custom alerts
-        function showCustomAlert(message, type = 'info') {
-            const container = document.getElementById('flash-messages-container') || document.body;
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type} flash-message position-fixed top-0 end-0 m-3 shadow`;
-            alertDiv.style.zIndex = 9999;
-            alertDiv.textContent = message;
-            container.appendChild(alertDiv);
-            setTimeout(() => alertDiv.remove(), 5000);
-        }
-
-        // Delete Artwork Button Logic
-        document.querySelectorAll('.delete-artwork-btn').forEach(button => {
-            button.addEventListener('click', async function() {
-                console.log("Delete button clicked."); // Debugging log
-                const sku = this.dataset.sku;
-                if (confirm(`Are you sure you want to delete artwork with SKU: ${sku}? This action cannot be undone.`)) {
-                    try {
-                        const response = await fetch(`/delete_artwork/${sku}`, {
-                            method: 'POST', // Ensure POST method
-                            headers: getHeaders()
-                        });
-                        const data = await response.json();
-
-                        if (response.ok && data.success) {
-                            showCustomAlert(data.message || 'Artwork deleted successfully!', 'success');
-                            this.closest('tr').remove(); // Remove the row from the table
-                            // Optionally, check if table is empty and show "No artworks found" message
-                            if (document.querySelectorAll('.delete-artwork-btn').length === 0) {
-                                document.querySelector('tbody').innerHTML = '<tr><td colspan="8" class="text-center">No artworks found. Add one above!</td></tr>';
-                            }
-                        } else {
-                            showCustomAlert(data.message || 'Failed to delete artwork.', 'danger');
-                        }
-                    } catch (error) {
-                        console.error('Error deleting artwork:', error);
-                        showCustomAlert('An error occurred while deleting the artwork.', 'danger');
-                    }
-                }
+            document.querySelectorAll('.delete-artwork-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const artworkId = this.dataset.artworkId;
+                    const artworkName = this.dataset.artworkName;
+                    
+                    artworkNameToDelete.textContent = artworkName;
+                    // Correctly set the form action to match the Flask route
+                    deleteArtworkForm.action = `{{ url_for('admin_delete_artwork', artwork_id='PLACEHOLDER') }}`.replace('PLACEHOLDER', artworkId);
+                    deleteArtworkModal.show();
+                });
             });
-        });
+        }
     });
 </script>
 {% endblock %}
