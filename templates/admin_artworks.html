@@ -43,7 +43,7 @@
                     <td>
                        {% set images = artwork.get_images_list() %}
 {% if images %}
-    <img src="{{ url_for('static', filename=images[0]) }}" alt="{{ artwork.name }}" class="img-thumbnail" style="width: 70px; height: 70px; object-fit: cover; border-radius: 0.5rem;">
+    <img src="{{ images[0] }}" alt="{{ artwork.name }}" class="img-thumbnail" style="width: 70px; height: 70px; object-fit: cover; border-radius: 0.5rem;">
 {% else %}
     <img src="{{ url_for('static', filename='images/placeholder.png') }}" alt="Placeholder" class="img-thumbnail" style="width: 70px; height: 70px; object-fit: cover; border-radius: 0.5rem;">
 {% endif %}

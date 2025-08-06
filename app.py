@@ -92,7 +92,7 @@ if uri and uri.startswith('postgres://'):
     uri = uri.replace('postgres://', 'postgresql://', 1)
 
 # Use the 'uri' variable for SQLALCHEMY_DATABASE_URI
-app.config['SQLALCHEMY_DATABASE_URI'] = uri if uri else 'sqlite:///site.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or 'sqlite:///site.db'
 
 # Debug print to confirm correct DB URI is being used
 print("Database URI in use:", app.config['SQLALCHEMY_DATABASE_URI'])
@@ -113,6 +113,11 @@ app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = os.environ.get('EMAIL_USER', 'smarasada@gmail.com') # REPLACE WITH YOUR EMAIL
 app.config['MAIL_PASSWORD'] = os.environ.get('EMAIL_PASS', 'ujipgkporeybjtoy') # REPLACE WITH YOUR APP PASSWORD
 
+cloudinary.config(
+    cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME'),
+    api_key = os.getenv('CLOUDINARY_API_KEY'),
+    api_secret = os.getenv('CLOUDINARY_API_SECRET')
+)
 # Business Details (for invoices, etc.)
 app.config['OUR_BUSINESS_NAME'] = "Karthika Futures"
 app.config['OUR_BUSINESS_ADDRESS'] = "123 Divine Path, Spiritual City, Karnataka - 560001"
@@ -2099,15 +2104,13 @@ def admin_add_artwork():
         if 'images' in request.files:
             for file in request.files.getlist('images'):
                 if file and allowed_file(file.filename):
-                    filename = secure_filename(file.filename)
-                    unique_filename = str(uuid.uuid4()) + '_' + filename
-                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-                    file.save(file_path)
-                    image_paths.append('uploads/' + unique_filename)
+                    # Upload to Cloudinary and get the public URL
+                    upload_result = cloudinary.uploader.upload(file)
+                    image_paths.append(upload_result['secure_url'])
                 elif file.filename != '': # If file is present but not allowed
                     flash(f'Invalid file type for image: {file.filename}.', 'danger')
                     return render_template('admin_add_artwork.html', categories=categories, form_data=form_data)
-
+       
         new_artwork = Artwork(
             sku=sku,
             name=name,
@@ -2203,11 +2206,9 @@ def admin_edit_artwork(artwork_id):
         if 'new_images' in request.files:
             for file in request.files.getlist('new_images'):
                 if file and allowed_file(file.filename):
-                    filename = secure_filename(file.filename)
-                    unique_filename = str(uuid.uuid4()) + '_' + filename
-                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-                    file.save(file_path)
-                    new_image_paths.append('uploads/' + unique_filename)
+                    # Upload to Cloudinary and get the public URL
+                    upload_result = cloudinary.uploader.upload(file)
+                    new_image_paths.append(upload_result['secure_url'])
                 elif file.filename != '': # If file is present but not allowed
                     flash(f'Invalid file type for new image: {file.filename}.', 'danger')
                     form_data = request.form.to_dict()
@@ -2217,6 +2218,7 @@ def admin_edit_artwork(artwork_id):
         # Combine old images to keep and new images
         final_image_list = images_to_keep + new_image_paths
         artwork.set_images_list(final_image_list)
+
 
         # Update custom options
         if custom_options_json_str:
