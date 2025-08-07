@@ -461,6 +461,75 @@ class OrderItem(db.Model):
     def __repr__(self):
         return f"OrderItem('{self.artwork.name}', Quantity: {self.quantity}, Total: {self.total_price_incl_gst})"
 
+class ContactMessage(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), nullable=False)
+    subject = db.Column(db.String(200), nullable=True)
+    message = db.Column(db.Text, nullable=False)
+    submission_date = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<ContactMessage '{self.name} - {self.subject}'>"
+
+# Route to handle form submission
+@app.route('/contact', methods=['GET', 'POST'])
+def contact():
+    # This route now serves both the GET and POST requests
+    if request.method == 'POST':
+        # Get data from the form
+        name = request.form.get('name')
+        email = request.form.get('email')
+        subject = request.form.get('subject')
+        message_content = request.form.get('message')
+
+        # Create a new ContactMessage object and save it to the database
+        new_message = ContactMessage(
+            name=name,
+            email=email,
+            subject=subject,
+            message=message_content
+        )
+        try:
+            db.session.add(new_message)
+            db.session.commit()
+            flash('Thank you for your message! We will get back to you shortly.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash('There was an issue sending your message. Please try again.', 'danger')
+            app.logger.error(f"Error submitting contact form: {e}")
+
+        # Redirect the user back to the contact page
+        return redirect(url_for('contact'))
+
+    # Your original logic to render the template goes here for GET requests
+    # Make sure you have these variables defined in your app's context or configuration.
+    our_business_address = app.config.get('OUR_BUSINESS_ADDRESS', 'Annapoorna Appartment, New Alipur, Kolkata - 53')
+    our_business_email = app.config.get('MAIL_USERNAME', 'covcorres@gmail.com')
+    return render_template('contact.html', our_business_address=our_business_address, our_business_email=our_business_email)
+
+from functools import wraps
+from flask import abort
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # In a real app, you would check if the user is an admin.
+        # For this example, we'll assume a user with a specific ID is an admin.
+        # You should replace this with your actual admin logic.
+        if not current_user.is_authenticated or not current_user.is_admin():
+            abort(403)  # Forbidden
+        return f(*args, **kwargs)
+    return decorated_function
+# Route for the admin to view messages
+# This route is protected so only admins can access it
+@app.route('/admin/contact_messages')
+@login_required
+@admin_required
+def admin_contact_messages():
+    all_messages = ContactMessage.query.order_by(ContactMessage.submission_date.desc()).all()
+    return render_template('admin_contact_messages.html', messages=all_messages)
+
 # --- Flask-Login User Loader ---
 @login_manager.user_loader
 def load_user(user_id):
@@ -1440,33 +1509,41 @@ def reset_password():
 
     return render_template('reset_password.html')
 
-
+@app.route('/category/<category_slug>')
+def category_page(category_slug):
+    # This is a placeholder function to fix the BuildError.
+    # Replace this with your actual logic later.
+    # For now, let's assume you have a 'category_page.html' template.
+    return render_template('category_page.html', category_slug=category_slug)
 # app.py (Modified Excerpt)
 
 @app.route('/')
 def index():
+    # Fetch categories for the new horizontal layout
+    categories = Category.query.order_by(Category.name).all() 
+    # Find a representative artwork image for each category
+    for category in categories:
+        first_artwork = Artwork.query.filter_by(category_id=category.id).first()
+        if first_artwork:
+            images_list = first_artwork.get_images_list()
+            if images_list:
+                category.main_artwork_image = images_list[0]
+            else:
+                category.main_artwork_image = url_for('static', filename='images/placeholder.png')
+        else:
+            category.main_artwork_image = url_for('static', filename='images/placeholder.png')
+    # Fetch featured artworks (we'll keep this separate for now)
     featured_artworks = Artwork.query.filter_by(is_featured=True).limit(6).all()
-
-    # --- NEW LOGIC FOR CONTINUOUS CAROUSEL LOOP ---
-    featured_artworks_for_carousel = [] # Initialize the list to be passed to the template
-
+    
+    # Logic for continuous carousel loop (keeping it for now, though we'll use a different section)
+    featured_artworks_for_carousel = [] 
     if featured_artworks:
-        # Define how many initial items to duplicate at the end.
-        # This number should be at least the number of items visible in your carousel at once.
-        # For example, if 3 items are visible, duplicate at least 3. Let's use 3 as a default.
         num_duplicates = 3
-        
-        # Ensure we don't try to duplicate more items than are available
         if len(featured_artworks) < num_duplicates:
-            num_duplicates = len(featured_artworks) # Duplicate all if fewer than num_duplicates
-
-        # Create a slice of the first 'num_duplicates' items
+            num_duplicates = len(featured_artworks)
         items_to_duplicate = featured_artworks[:num_duplicates]
-        
-        # Combine the original list with the duplicated items
         featured_artworks_for_carousel = featured_artworks + items_to_duplicate
     else:
-        # If no featured artworks, the list remains empty
         featured_artworks_for_carousel = []
     # --- END NEW LOGIC ---
 
@@ -1495,9 +1572,11 @@ def index():
     ]
 
     # Pass the new 'featured_artworks_for_carousel' list to your template
-    return render_template('index.html', 
-                           featured_artworks=featured_artworks_for_carousel, 
-                           testimonials=testimonials)
+    return render_template(
+        'index.html',
+        categories=categories,  # This is the new line
+        featured_artworks=featured_artworks_for_carousel, 
+        testimonials=testimonials)
 
 # MODIFIED: all_products route to pass categorized artworks
 @app.route('/all-products')
@@ -1559,9 +1638,8 @@ def product_detail(sku):
     
     return render_template('product_detail.html', artwork=artwork, artwork_data=artwork_data)
 
-@app.route('/contact')
-def contact():
-    return render_template('contact.html')
+
+
 
 @app.route('/about')
 def about():

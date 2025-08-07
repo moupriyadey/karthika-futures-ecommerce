@@ -26,14 +26,15 @@
                         <div class="col-md-4">
                             <i class="fas fa-phone fa-2x text-primary mb-2"></i>
                             <h5>Call Us</h5>
-                            <p>+91 9330482697</p> {# Placeholder phone number #}
+                            <p>+91 8920283981</p> {# Placeholder phone number #}
                         </div>
                     </div>
 
                     <hr class="mb-4">
 
                     <h4 class="text-center mb-3">Send Us a Message</h4>
-                    <form action="#" method="POST"> {# Action can be updated to a Flask route for form submission #}
+                    <form action="{{ url_for('contact') }}" method="POST"> {# Action can be updated to a Flask route for form submission #}
+                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <div class="mb-3">
                             <label for="name" class="form-label">Your Name</label>
                             <input type="text" class="form-control" id="name" name="name" required>

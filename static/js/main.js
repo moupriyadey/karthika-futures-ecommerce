@@ -483,3 +483,19 @@ document.addEventListener('DOMContentLoaded', () => {
         window.updateCartCountDisplay?.();
     }
 });
+
+
+// At the bottom of your main.js file
+document.addEventListener('DOMContentLoaded', function() {
+    // This script handles the cascading fade-in animation for category blocks
+    const categoryBlocks = document.querySelectorAll('.category-block');
+    if (categoryBlocks.length > 0) {
+        categoryBlocks.forEach((block, index) => {
+            // Apply a small delay to each block for the cascading effect
+            const delay = index * 150; // 150ms delay for each subsequent block
+            setTimeout(() => {
+                block.classList.add('visible');
+            }, delay);
+        });
+    }
+});

@@ -1,0 +1,76 @@
+{% extends '_base.html' %}
+
+{% block title %}About Us - Karthika Futures{% endblock %}
+
+{% block content %}
+<style>
+    .about-section {
+        background-image: url("{{ url_for('static', filename='uploads/bg.jpg') }}");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+
+        /* Optional overlay and readability */
+        background-color: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(3px);
+
+        padding: 2rem;
+        border-radius: 1rem;
+        box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+
+    .about-text {
+        font-family: 'Georgia', serif;
+        font-size: 1.05rem;
+        line-height: 1.8;
+        color: #111;
+    }
+</style>
+
+
+<div class="min-h-screen pt-20 py-12 main-content-area">
+    <div class="container mx-auto px-4">
+        <div class="flex justify-start mb-6">
+            <a href="{{ url_for('index') }}" class="btn btn-secondary inline-flex items-center px-4 py-2 font-semibold text-sm rounded-lg shadow-sm transition-all duration-200">
+                <i class="fas fa-home mr-2"></i> Home
+            </a>
+        </div>
+
+        <div class="max-w-4xl mx-auto about-section">
+            <header class="text-center mb-10">
+                <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight tracking-wide font-serif">
+                    Our Mission: Shaping a <span class="text-[#FF9933]">Divine Future</span>
+                </h1>
+                <p class="mt-4 text-lg md:text-xl text-gray-800 font-light max-w-2xl mx-auto">
+                    Karthika Futures is more than a store; it is a movement. We are devoted to the noble cause of Sanatana Dharma Prachar.
+                </p>
+                <div class="mt-6 flex justify-center space-x-6 text-3xl md:text-4xl text-[#FF9933]">
+                    <i class="fas fa-om"></i>
+                    <i class="fas fa-hands-praying"></i>
+                    <i class="fas fa-bell"></i>
+                </div>
+            </header>
+
+            <section class="mb-10 about-text text-gray-900">
+                <p class="leading-relaxed max-w-3xl mx-auto">
+                    At <strong>Karthika Futures</strong>, we are driven by a profound and unwavering commitment to the principles of Sanatana Dharma. Our mission transcends commerce; we are a dedicated movement striving to empower the next generation with the core values of righteousness, discipline, and responsibility. We believe in nurturing a youth that not only protects their dependents but also embodies the strength and virtue needed to build a brighter future for Bharat.
+                </p>
+                <br>
+                <p class="leading-relaxed max-w-3xl mx-auto">
+                    Our journey is inspired by the divine wisdom of <strong>Lord Krishna</strong> and the visionary ideals of <strong>Swami Vivekananda</strong>. We aspire to cultivate a generation that abstains from harmful distractions, seeks the counsel of elders, and contributes positively to society. By following the path of Dharma, our ultimate goal is to work toward a <strong>Rama Rajya</strong>—a society founded on justice, prosperity, and peace.
+                </p>
+                <br>
+                <p class="leading-relaxed max-w-3xl mx-auto">
+                    Every purchase made on our site is a meaningful step in this direction. We are committed to providing premium quality products with sufficient quantity, ensuring your complete satisfaction. The profits generated are directly reinvested into our mission of Dharma Prachar. By choosing Karthika Futures, you become an essential partner in our sacred cause, helping us shape a generation that is both spiritually enlightened and socially responsible.
+                </p>
+            </section>
+
+            <div class="text-center mt-8">
+                <a href="{{ url_for('all_products') }}" class="btn btn-success px-8 py-4 text-lg font-bold shadow-lg transition-all duration-300 transform hover:scale-105 rounded-full">
+                    Shop Now & Support Our Cause
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
