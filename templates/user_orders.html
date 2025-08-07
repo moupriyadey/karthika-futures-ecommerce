@@ -3,25 +3,28 @@
 {% block title %}My Orders - Karthika Futures{% endblock %}
 
 {% block content %}
-{# Reduced overall page padding from p-4 md:p-8 to p-3 md:p-6 #}
+{% macro get_image_src(image_path) %}
+    {% if image_path.startswith('http') %}
+        {{ image_path }}
+    {% else %}
+        {{ url_for('static', filename=image_path) }}
+    {% endif %}
+{% endmacro %}
+
 <div class="container mx-auto p-3 md:p-6 main-content-area">
-    <h1 class="text-4xl font-extrabold text-center text-gray-800 mb-6">My Orders</h1> {# Reduced mb-8 to mb-6 #}
+    <h1 class="text-4xl font-extrabold text-center text-gray-800 mb-6">My Orders</h1>
 
     {% if orders %}
-    {# Reduced space-y-8 to space-y-6 for less vertical spacing between order cards #}
     <div class="space-y-6">
         {% for order in orders %}
-        {# Reduced p-4 md:p-6 to p-3 md:p-5 for individual order cards #}
         <div class="bg-white p-3 md:p-5 rounded-lg shadow-md border border-gray-200">
-            {# Order Header - Reduced mb-4 pb-4 to mb-3 pb-3 #}
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-3 pb-3 border-b border-gray-200">
                 <div>
-                    <h2 class="text-xl md:text-2xl font-bold text-gray-800 mb-0.5">Order #{{ order.id }}</h2> {# Reduced mb-1 to mb-0.5 #}
+                    <h2 class="text-xl md:text-2xl font-bold text-gray-800 mb-0.5">Order #{{ order.id }}</h2>
                     <p class="text-sm text-gray-600">Placed on: {{ order.order_date.strftime('%d %b %Y, %I:%M %p') }}</p>
                 </div>
-                <div class="mt-2 md:mt-0 text-right md:text-left"> {# Reduced mt-3 to mt-2 #}
-                    <p class="text-sm md:text-base font-semibold text-gray-700">Status: 
-                        {# FIX: Moved the closing quote for the class attribute outside the Jinja2 block #}
+                <div class="mt-2 md:mt-0 text-right md:text-left">
+                    <p class="text-sm md:text-base font-semibold text-gray-700">Status:
                         <span class="px-2 py-0.5 rounded-full text-xs font-semibold {% if order.status == 'Delivered' %}bg-green-100 text-green-800{% elif order.status == 'Shipped' %}bg-blue-100 text-blue-800{% elif 'Payment' in order.status %}bg-yellow-100 text-yellow-800{% elif 'Cancelled' in order.status %}bg-red-100 text-red-800{% else %}bg-gray-100 text-gray-800{% endif %}">
                             {{ order.status }}
                         </span>
@@ -30,82 +33,76 @@
                 </div>
             </div>
 
-            {# Order Items (Responsive Cards) - Reduced space-y-4 to space-y-3 #}
             <div class="space-y-3 mb-4">
-                <h3 class="text-lg font-semibold text-gray-800 mb-2">Items in this Order:</h3> {# Reduced mb-3 to mb-2 #}
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">Items in this Order:</h3>
                 {% for item in order.items %}
-                {# Reduced p-3 to p-2 for item cards #}
                 <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-2 bg-gray-50 rounded-lg shadow-sm border border-gray-100">
-                    {# Reduced image size from h-20 w-20 to h-16 w-16 #}
                     <img class="h-16 w-16 sm:h-20 sm:w-20 rounded object-cover flex-shrink-0 popup-image cursor-pointer"
-                         src="{{ url_for('static', filename=item.artwork.get_images_list()[0] if item.artwork.get_images_list() else 'images/placeholder.png') }}"
+                         src="{{ get_image_src(item.artwork.get_images_list()[0] if item.artwork.get_images_list() else 'images/placeholder.png') }}"
                          alt="{{ item.artwork.name }}"
-                         onclick="openFullImage('{{ url_for('static', filename=item.artwork.get_images_list()[0] if item.artwork.get_images_list() else 'images/placeholder.png') }}'); event.stopPropagation();"
+                         onclick="openFullImage('{{ get_image_src(item.artwork.get_images_list()[0] if item.artwork.get_images_list() else 'images/placeholder.png') }}'); event.stopPropagation();"
                          loading="lazy">
                     <div class="flex-grow flex flex-col sm:flex-row justify-between w-full">
-                        <div class="mb-1 sm:mb-0"> {# Reduced mb-2 to mb-1 #}
+                        <div class="mb-1 sm:mb-0">
                             <p class="font-semibold text-gray-900 text-base md:text-lg">{{ item.artwork.name }}</p>
                             <p class="text-xs text-gray-500">SKU: {{ item.artwork.sku }}</p>
                             {% if item.get_selected_options_dict() %}
-                                <div class="text-xs text-gray-600 mt-0.5"> {# Reduced mt-1 to mt-0.5 #}
-                                    {% for group, option in item.get_selected_options_dict().items() %}
-                                        <span>{{ group }}: {{ option }}</span>{% if not loop.last %}, {% endif %}
-                                    {% endfor %}
-                                </div>
+                            <div class="text-xs text-gray-600 mt-0.5">
+                                {% for group, option in item.get_selected_options_dict().items() %}
+                                <span>{{ group }}: {{ option }}</span>{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                            </div>
                             {% endif %}
                         </div>
                         <div class="text-left sm:text-right flex-shrink-0">
                             <p class="text-sm text-gray-600">Qty: <span class="font-medium">{{ item.quantity }}</span></p>
                             <p class="font-bold text-gray-900 text-base">{{ item.total_price_incl_gst | currency }}</p>
-                            <a href="{{ url_for('product_detail', sku=item.artwork.sku) }}" class="text-blue-600 hover:underline text-sm mt-0.5 inline-block">Buy Again</a> {# Reduced mt-1 to mt-0.5 #}
+                            <a href="{{ url_for('product_detail', sku=item.artwork.sku) }}" class="text-blue-600 hover:underline text-sm mt-0.5 inline-block">Buy Again</a>
                         </div>
                     </div>
                 </div>
                 {% endfor %}
             </div>
 
-            {# Order Totals Summary - Reduced p-4 to p-3 #}
             <div class="bg-gray-50 p-3 rounded-md shadow-sm text-sm w-full mb-4">
-                <h3 class="font-semibold text-lg text-gray-800 mb-1.5">Detailed Totals</h3> {# Reduced mb-2 to mb-1.5 #}
-                <div class="grid grid-cols-2 gap-y-0.5"> {# Reduced gap-y-1 to gap-y-0.5 #}
+                <h3 class="font-semibold text-lg text-gray-800 mb-1.5">Detailed Totals</h3>
+                <div class="grid grid-cols-2 gap-y-0.5">
                     <div class="text-gray-600">Subtotal (Excl. GST):</div>
                     <div class="text-gray-800 font-medium text-right">{{ order.items | sum(attribute='total_price_before_gst') | currency }}</div>
                     <div class="text-gray-600">Total GST:</div>
                     <div class="text-gray-800 font-medium text-right">{{ order.items | sum(attribute='total_gst_amount') | currency }}</div>
                     <div class="text-gray-600">Shipping Charge:</div>
                     <div class="text-gray-800 font-medium text-right">{{ order.shipping_charge | currency }}</div>
-                    <div class="text-gray-700 font-bold mt-1">Grand Total:</div> {# Reduced mt-2 to mt-1 #}
-                    <div class="text-primary text-lg font-bold mt-1 text-right">{{ order.total_amount | currency }}</div> {# Reduced mt-2 to mt-1 #}
+                    <div class="text-gray-700 font-bold mt-1">Grand Total:</div>
+                    <div class="text-primary text-lg font-bold mt-1 text-right">{{ order.total_amount | currency }}</div>
                 </div>
             </div>
 
-            {# Payment Screenshot Section (Collapsible) - Reduced mt-4 pt-4 to mt-3 pt-3 #}
             {% if order.payment_screenshot or order.status in ['Pending Payment', 'Payment Under Review'] %}
             <div class="mt-3 border-t border-gray-200 pt-3">
-                <button class="flex justify-between items-center w-full text-base font-semibold text-gray-800 py-1 px-0 bg-transparent border-0 focus:outline-none" type="button" data-bs-toggle="collapse" data-bs-target="#paymentDetails-{{ order.id }}" aria-expanded="false" aria-controls="paymentDetails-{{ order.id }}"> {# Reduced text-lg to text-base, py-2 to py-1 #}
+                <button class="flex justify-between items-center w-full text-base font-semibold text-gray-800 py-1 px-0 bg-transparent border-0 focus:outline-none" type="button" data-bs-toggle="collapse" data-bs-target="#paymentDetails-{{ order.id }}" aria-expanded="false" aria-controls="paymentDetails-{{ order.id }}">
                     Payment Details
-                    <i class="fas fa-chevron-down text-xs transition-transform duration-300"></i> {# Reduced text-sm to text-xs #}
+                    <i class="fas fa-chevron-down text-xs transition-transform duration-300"></i>
                 </button>
                 <div class="collapse" id="paymentDetails-{{ order.id }}">
                     {% if order.payment_screenshot %}
-                    <div class="mt-1.5 text-sm"> {# Reduced mt-2 to mt-1.5 #}
-                        <p class="font-semibold text-gray-700 mb-0.5">Submitted Screenshot:</p> {# Reduced mb-1 to mb-0.5 #}
-                        <div class="mt-0.5"> {# Reduced mt-1 to mt-0.5 #}
-                            <img src="{{ url_for('static', filename=order.payment_screenshot) }}" class="rounded-md border border-gray-300 shadow-sm max-h-32 w-auto cursor-pointer object-contain" onclick="openFullImage('{{ url_for('static', filename=order.payment_screenshot) }}');"> {# Reduced max-h-40 to max-h-32 #}
-                            <p class="text-xs text-gray-500 mt-0.5">Click to enlarge</p> {# Reduced mt-1 to mt-0.5 #}
+                    <div class="mt-1.5 text-sm">
+                        <p class="font-semibold text-gray-700 mb-0.5">Submitted Screenshot:</p>
+                        <div class="mt-0.5">
+                            <img src="{{ get_image_src(order.payment_screenshot) }}" class="rounded-md border border-gray-300 shadow-sm max-h-32 w-auto cursor-pointer object-contain" onclick="openFullImage('{{ get_image_src(order.payment_screenshot) }}');">
+                            <p class="text-xs text-gray-500 mt-0.5">Click to enlarge</p>
                         </div>
                     </div>
                     {% endif %}
 
                     {% if order.status in ['Pending Payment', 'Payment Under Review'] %}
-                    <!-- Screenshot Upload Form - Reduced mt-4 p-3 to mt-3 p-2 #}
                     <form action="{{ url_for('edit_payment_screenshot', order_id=order.id) }}" method="POST" enctype="multipart/form-data" class="mt-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <label for="screenshot-{{ order.id }}" class="block text-sm font-semibold text-blue-800 mb-1"> {# Reduced mb-2 to mb-1 #}
+                        <label for="screenshot-{{ order.id }}" class="block text-sm font-semibold text-blue-800 mb-1">
                             {% if order.payment_screenshot %}Replace Payment Screenshot:{% else %}Upload Payment Screenshot:{% endif %}
                         </label>
-                        <input type="file" name="screenshot" id="screenshot-{{ order.id }}" accept=".png,.jpg,.jpeg" class="block w-full border border-blue-300 rounded px-3 py-1 text-sm text-blue-900 bg-white file:mr-4 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200"> {# Reduced py-1.5 to py-1, file:py-2 to file:py-1.5, file:px-4 to file:px-3 #}
-                        <button type="submit" class="mt-2 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-semibold shadow-md transition duration-200"> {# Reduced mt-3 to mt-2, px-5 to px-4, py-2 to py-1.5 #}
+                        <input type="file" name="screenshot" id="screenshot-{{ order.id }}" accept=".png,.jpg,.jpeg" class="block w-full border border-blue-300 rounded px-3 py-1 text-sm text-blue-900 bg-white file:mr-4 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200">
+                        <button type="submit" class="mt-2 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-semibold shadow-md transition duration-200">
                             Upload Screenshot
                         </button>
                     </form>
@@ -114,18 +111,17 @@
             </div>
             {% endif %}
 
-            {# Action Buttons - Reduced mt-4 space-x-2 to mt-3 space-x-2 #}
             <div class="flex flex-col sm:flex-row justify-end mt-3 space-y-2 sm:space-y-0 sm:space-x-2">
-                <a href="{{ url_for('order_summary', order_id=order.id) }}" class="btn btn-info btn-sm flex-1 sm:flex-none text-center"> {# Reduced btn-md to btn-sm #}
-                    <i class="fas fa-info-circle mr-1"></i> View Details {# Reduced mr-2 to mr-1, changed text #}
+                <a href="{{ url_for('order_summary', order_id=order.id) }}" class="btn btn-info btn-sm flex-1 sm:flex-none text-center">
+                    <i class="fas fa-info-circle mr-1"></i> View Details
                 </a>
-                <a href="{{ url_for('payment_initiate', order_id=order.id, amount=order.total_amount) }}" class="btn btn-success btn-sm flex-1 sm:flex-none text-center {% if order.status != 'Pending Payment' %}hidden{% endif %}"> {# Reduced btn-md to btn-sm #}
-                    <i class="fas fa-money-bill-wave mr-1"></i> Make Payment {# Reduced mr-2 to mr-1 #}
+                <a href="{{ url_for('payment_initiate', order_id=order.id, amount=order.total_amount) }}" class="btn btn-success btn-sm flex-1 sm:flex-none text-center {% if order.status != 'Pending Payment' %}hidden{% endif %}">
+                    <i class="fas fa-money-bill-wave mr-1"></i> Make Payment
                 </a>
                 <form action="{{ url_for('delete_order', order_id=order.id) }}" method="POST" class="flex-1 sm:flex-none">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-secondary btn-sm w-full" onclick="return confirm('Are you sure you want to cancel/delete this order?');"> {# Reduced btn-md to btn-sm #}
-                        <i class="fas fa-times-circle mr-1"></i> Cancel Order {# Reduced mr-2 to mr-1 #}
+                    <button type="submit" class="btn btn-secondary btn-sm w-full" onclick="return confirm('Are you sure you want to cancel/delete this order?');">
+                        <i class="fas fa-times-circle mr-1"></i> Cancel Order
                     </button>
                 </form>
             </div>
@@ -133,35 +129,29 @@
         {% endfor %}
     </div>
     {% else %}
-    <div class="text-center py-10 bg-white rounded-lg shadow-md"> {# Reduced py-12 to py-10 #}
+    <div class="text-center py-10 bg-white rounded-lg shadow-md">
         <p class="text-xl text-gray-600 mb-4">You have not placed any orders yet.</p>
-        <a href="{{ url_for('all_products') }}" class="btn btn-primary px-5 py-2.5 text-lg"> {# Reduced px-6 py-3 to px-5 py-2.5 #}
-            <i class="fas fa-shopping-bag mr-1"></i> Start Shopping {# Reduced mr-2 to mr-1 #}
+        <a href="{{ url_for('all_products') }}" class="btn btn-primary px-5 py-2.5 text-lg">
+            <i class="fas fa-shopping-bag mr-1"></i> Start Shopping
         </a>
     </div>
     {% endif %}
 </div>
 
-{# Full Image Modal - Reusing the one from _base.html or creating a local one if not available globally #}
-{# Assuming openFullImage and closeFullImage functions are available globally from _base.html #}
 <div id="fullImageModal" class="fixed inset-0 bg-black bg-opacity-80 z-50 hidden justify-center items-center p-4">
     <div class="relative max-w-full max-h-full flex justify-center items-center">
         <img id="fullImagePreview" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-xl" src="" alt="">
         <div class="absolute inset-0 pointer-events-none watermark-grid"></div>
-        
-        {# Explicit Close Button #}
         <button onclick="closeFullImage()" class="absolute top-4 right-4 bg-white text-gray-800 rounded-full p-2 px-4 font-bold text-lg shadow-lg hover:bg-gray-200 transition-colors duration-200">
             <i class="fas fa-times"></i> Close
         </button>
     </div>
 </div>
-
 {% endblock %}
 
 {% block extra_js %}
-{{ super() }} {# Ensure _base.html's JS is included #}
+{{ super() }}
 <script>
-    // This script handles the collapse toggle for payment details
     document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(button => {
             button.addEventListener('click', function() {
@@ -169,8 +159,6 @@
                 const targetElement = document.querySelector(targetId);
                 const icon = this.querySelector('i');
 
-                // Toggle the 'show' class which Bootstrap uses for collapse state
-                // This also handles the icon rotation
                 if (targetElement.classList.contains('show')) {
                     icon.classList.remove('fa-chevron-up');
                     icon.classList.add('fa-chevron-down');
@@ -181,8 +169,6 @@
             });
         });
 
-        // Ensure the full image modal functions if openFullImage is not in _base.html
-        // If openFullImage is already in _base.html, this block can be removed.
         if (typeof openFullImage === 'undefined') {
             window.openFullImage = function(src) {
                 document.getElementById('fullImagePreview').src = src;
@@ -213,7 +199,6 @@
     });
 </script>
 <style>
-    /* Custom styles for the collapse icon rotation */
     .collapse.show + button .fa-chevron-down {
         transform: rotate(180deg);
     }
