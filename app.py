@@ -1787,8 +1787,7 @@ def payment_submit(order_id):
     except Exception as e:
         app.logger.error(f"Cloudinary upload failed for payment screenshot: {e}")
         flash('An error occurred during file upload. Please try again.', 'danger')
-        return redirect(url_for('payment_initiate', order_id=order.id, amount=order.total_amount))
-# NEW: Route for the Thank You page
+        return redirect(url_for('payment_initiate', order_id=order.id, amount=order.total_amount))# NEW: Route for the Thank You page
 # CHANGED: <int:order_id> to <string:order_id>
 @app.route('/thank-you/<string:order_id>') 
 @login_required # If only logged-in users can view their orders
