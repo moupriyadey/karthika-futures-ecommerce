@@ -27,7 +27,7 @@
 
                 <p class="mt-4 font-medium">Using the same phone? Watch this:</p>
                 <div class="mt-2 w-full max-w-xs aspect-video mx-auto">
-                    <iframe class="w-full h-full" src="https://www.youtube.com/embed/fbzz3l9UV5s?rel=0" title="Scan QR from gallery video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    <iframe class="w-full h-full" src="https://www.youtube.com/embed/8vR4D8X1m8s" title="Scan QR from gallery video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                 </div>
 
                 <p class="mt-4 font-medium">Visual Steps:</p>
@@ -129,11 +129,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (form && loadingOverlay) {
         form.addEventListener('submit', function (e) {
+            // Prevent the default form submission immediately
             e.preventDefault();
+            // Show the overlay
             loadingOverlay.style.display = 'flex';
+            // Wait a moment before submitting to ensure the UI updates
             setTimeout(() => {
                 form.submit();
-            }, 150);
+            }, 500); // 500ms delay to ensure the overlay is seen
         });
     }
 
