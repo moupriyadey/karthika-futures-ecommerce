@@ -1771,21 +1771,23 @@ def payment_submit(order_id):
         flash('Screenshot too large. Please upload an image smaller than 1.5 MB.', 'danger')
         return redirect(url_for('payment_initiate', order_id=order.id, amount=order.total_amount))
 
-    # Save file
-    filename = secure_filename(payment_screenshot.filename)
-    unique_filename = str(uuid.uuid4()) + '_' + filename
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-    payment_screenshot.save(file_path)
-    order.payment_screenshot = f'uploads/{unique_filename}'
-
-    # Update order
-    order.status = 'Payment Submitted - Awaiting Verification'
-    order.payment_status = 'submitted'
-
-    db.session.commit()
-    flash('Success! Your order has been placed.', 'success')
-    return redirect(url_for('order_summary', order_id=order.id))
-
+    # Upload file to Cloudinary and update order
+    try:
+        cloudinary_result = cloudinary.uploader.upload(payment_screenshot, folder="payment_screenshots")
+        if cloudinary_result:
+            order.payment_screenshot = cloudinary_result['secure_url']
+            order.status = 'Payment Submitted - Awaiting Verification'
+            order.payment_status = 'submitted'
+            db.session.commit()
+            flash('Success! Your order has been placed.', 'success')
+            return redirect(url_for('order_summary', order_id=order.id))
+        else:
+            flash('Failed to upload payment screenshot to Cloudinary. Please try again.', 'danger')
+            return redirect(url_for('payment_initiate', order_id=order.id, amount=order.total_amount))
+    except Exception as e:
+        app.logger.error(f"Cloudinary upload failed for payment screenshot: {e}")
+        flash('An error occurred during file upload. Please try again.', 'danger')
+        return redirect(url_for('payment_initiate', order_id=order.id, amount=order.total_amount))
 # NEW: Route for the Thank You page
 # CHANGED: <int:order_id> to <string:order_id>
 @app.route('/thank-you/<string:order_id>') 
