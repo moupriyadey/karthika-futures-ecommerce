@@ -313,6 +313,25 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log("main.js: DOMContentLoaded fired.");
     updateCartCountDisplay();
 
+    // IntersectionObserver for cascade effect on category blocks
+     // IntersectionObserver for cascade effect on category blocks
+    const cascadeItems = document.querySelectorAll('.cascade-item');
+    if (cascadeItems.length > 0) {
+        console.log("Found cascade items. Setting up IntersectionObserver.");
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                    observer.unobserve(entry.target); // Stop observing once the animation is triggered
+                }
+            });
+        }, { threshold: 0.2 });
+
+        cascadeItems.forEach(item => {
+            observer.observe(item);
+        });
+    }
+    
     // Initialize all carousels that need auto-scrolling and infinite looping
     const carouselsToInitialize = [
         'featured-artworks-carousel', // For index.html
@@ -485,17 +504,54 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-// At the bottom of your main.js file
+// NEW: JavaScript for the 3D Snapping Slider
 document.addEventListener('DOMContentLoaded', function() {
-    // This script handles the cascading fade-in animation for category blocks
-    const categoryBlocks = document.querySelectorAll('.category-block');
-    if (categoryBlocks.length > 0) {
-        categoryBlocks.forEach((block, index) => {
-            // Apply a small delay to each block for the cascading effect
-            const delay = index * 150; // 150ms delay for each subsequent block
-            setTimeout(() => {
-                block.classList.add('visible');
-            }, delay);
-        });
+    const slider = document.getElementById('snappingSlider');
+    if (!slider) return;
+
+    const cards = Array.from(slider.querySelectorAll('.slider-card'));
+    const nextBtn = document.getElementById('nextBtn');
+    const prevBtn = document.getElementById('prevBtn');
+
+    let activeCardIndex = cards.findIndex(card => card.classList.contains('active'));
+    let prevCardIndex = cards.findIndex(card => card.classList.contains('prev'));
+    let nextCardIndex = cards.findIndex(card => card.classList.contains('next'));
+
+    function updateCardClasses(direction) {
+        // First, apply the transition-in classes
+        if (direction === 'left') {
+            cards[activeCardIndex].classList.add('left');
+            cards[nextCardIndex].classList.add('left');
+        } else { // 'right'
+            cards[activeCardIndex].classList.add('right');
+            cards[prevCardIndex].classList.add('right');
+        }
+
+        // Wait for the transition to finish before updating final classes
+        setTimeout(() => {
+            // Remove all transition classes first
+            cards.forEach(card => card.className = 'slider-card');
+
+            if (direction === 'right') { // Move to previous
+                activeCardIndex = (activeCardIndex - 1 + cards.length) % cards.length;
+            } else { // Move to next
+                activeCardIndex = (activeCardIndex + 1) % cards.length;
+            }
+
+            prevCardIndex = (activeCardIndex - 1 + cards.length) % cards.length;
+            nextCardIndex = (activeCardIndex + 1) % cards.length;
+
+            cards[activeCardIndex].classList.add('active');
+            cards[prevCardIndex].classList.add('prev');
+            cards[nextCardIndex].classList.add('next');
+        }, 800); // This duration should match the CSS transition duration
     }
+
+    nextBtn.addEventListener('click', () => {
+        updateCardClasses('left');
+    });
+
+    prevBtn.addEventListener('click', () => {
+        updateCardClasses('right');
+    });
 });
