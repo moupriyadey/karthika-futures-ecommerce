@@ -4,29 +4,48 @@
 
 {% block content %}
 <main class="pt-20">
-    <section class="fade-section relative min-h-[100vh] sm:min-h-[90vh] flex items-center justify-center text-white overflow-hidden px-4">
-        
-        <video autoplay muted loop class="absolute inset-0 w-full h-full object-cover z-0">
-            <source src="{{ url_for('static', filename='videos/hero1.mp4') }}" type="video/mp4">
-            Your browser does not support the video tag.
-        </video>
+ <section class="fade-section relative min-h-[100vh] sm:min-h-[90vh] flex items-center justify-center text-white overflow-hidden px-4">
 
-        <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black opacity-75 z-10"></div>
-        
-        <div class="relative z-30 text-center p-4 max-w-4xl mx-auto flex flex-col items-center justify-center">
-            <h1 class="fade-item text-3xl sm:text-5xl md:text-7xl font-extrabold mb-4 leading-tight text-shadow-lg">
-                Art Meets Divinity
-            </h1>
-            <p class="fade-item text-base sm:text-lg md:text-2xl mb-6 font-light text-shadow-md">
-                The battlefield of Kurukshetra was too fierce. No one could narrate the horrible time.. Embark on a spiritual journey through timeless artworks inspired by the Mahabharata and Hindu mythology.
-            </p>
-            <div class="fade-item go-button-wrapper">
-                <a href="/all-products" class="btn btn-primary text-base sm:text-xl px-6 sm:px-8 py-3 sm:py-4 rounded-full go-button-inner hover:scale-105 transition-transform duration-300">
-                    Go
-                </a>
-            </div>
+    <!-- Background Video -->
+    <video id="heroVideo" autoplay muted loop playsinline
+    poster="{{ url_for('static', filename='images/video_placeholder.jpg') }}"
+    class="absolute inset-0 w-full h-full object-cover z-0">
+    <source src="{{ url_for('static', filename='videos/hero1.mp4') }}" type="video/mp4">
+    Your browser does not support the video tag.
+</video>
+
+
+    <!-- Overlay for Readability -->
+    <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black opacity-75 z-10"></div>
+
+    <!-- Floating Video Controls -->
+    <div id="videoControls" class="video-controls bg-black bg-opacity-40 px-2 py-1 rounded-full opacity-0 transition-opacity duration-300">
+        <button id="backBtn" class="video-btn" title="Back 10s">⏪</button>
+        <button id="playBtn" class="video-btn hidden" title="Play">▶</button>
+        <button id="pauseBtn" class="video-btn" title="Pause">⏸</button>
+        <button id="muteBtn" class="video-btn" title="Mute">🔇</button>
+        <button id="unmuteBtn" class="video-btn hidden" title="Unmute">🔊</button>
+        <button id="fullscreenBtn" class="video-btn" title="Fullscreen">⛶</button>
+        <button id="forwardBtn" class="video-btn" title="Forward 10s">⏩</button>
+    </div>
+
+    <!-- Text Content -->
+    <div class="relative z-30 text-center p-4 max-w-4xl mx-auto flex flex-col items-center justify-center">
+        <h1 class="fade-item text-3xl sm:text-5xl md:text-7xl font-extrabold mb-4 leading-tight text-shadow-lg">
+            Art Meets Divinity
+        </h1>
+        <p class="fade-item text-base sm:text-lg md:text-2xl mb-6 font-light text-shadow-md">
+            The battlefield of Kurukshetra was too fierce. No one could narrate the horrible time...
+            Embark on a spiritual journey through timeless artworks inspired by the Mahabharata and Hindu mythology.
+        </p>
+        <div class="fade-item go-button-wrapper">
+            <a href="/all-products" class="btn btn-primary text-base sm:text-xl px-6 sm:px-8 py-3 sm:py-4 rounded-full go-button-inner hover:scale-105 transition-transform duration-300">
+                Go
+            </a>
         </div>
-    </section>
+    </div>
+
+</section>
 
     <section class="fade-section py-16 bg-white">
         <div class="container mx-auto">
@@ -130,9 +149,7 @@
         style="min-height: 1000px;">
 
           <!-- Temple Background inside container -->
-          <div class="absolute inset-0 bg-cover bg-center opacity-20"
-            style="background-image: url('{{ url_for('static', filename='images/temple_bg.png') }}'); background-size: 100% auto;">
-          </div>
+          <div class="absolute inset-0 temple-bg"></div>
 
           <div class="relative z-10">
             <p class="text-lg sm:text-xl leading-relaxed mb-6">
@@ -253,10 +270,115 @@ document.addEventListener("DOMContentLoaded", function () {
         observer.observe(section);
     });
 });
+
+
+document.addEventListener("DOMContentLoaded", function () {
+    const video = document.getElementById("heroVideo");
+    const controls = document.getElementById("videoControls");
+
+    const playBtn = document.getElementById("playBtn");
+    const pauseBtn = document.getElementById("pauseBtn");
+    const muteBtn = document.getElementById("muteBtn");
+    const unmuteBtn = document.getElementById("unmuteBtn");
+    const fullscreenBtn = document.getElementById("fullscreenBtn");
+    const forwardBtn = document.getElementById("forwardBtn");
+    const backBtn = document.getElementById("backBtn");
+
+    let controlsTimeout;
+
+    function showControls() {
+        controls.classList.add("opacity-100");
+        controls.classList.remove("opacity-0");
+        clearTimeout(controlsTimeout);
+        controlsTimeout = setTimeout(() => {
+            controls.classList.add("opacity-0");
+            controls.classList.remove("opacity-100");
+        }, 3000);
+    }
+
+    document.addEventListener("mousemove", showControls);
+    document.addEventListener("touchstart", showControls);
+
+    // Play / Pause
+    pauseBtn.addEventListener("click", () => {
+        video.pause();
+        pauseBtn.classList.add("hidden");
+        playBtn.classList.remove("hidden");
+    });
+    playBtn.addEventListener("click", () => {
+        video.play();
+        playBtn.classList.add("hidden");
+        pauseBtn.classList.remove("hidden");
+    });
+
+    // Mute / Unmute
+    muteBtn.addEventListener("click", () => {
+        video.muted = true;
+        muteBtn.classList.add("hidden");
+        unmuteBtn.classList.remove("hidden");
+    });
+    unmuteBtn.addEventListener("click", () => {
+        video.muted = false;
+        unmuteBtn.classList.add("hidden");
+        muteBtn.classList.remove("hidden");
+    });
+
+    // Fullscreen
+    fullscreenBtn.addEventListener("click", () => {
+        if (video.requestFullscreen) {
+            video.requestFullscreen();
+        } else if (video.webkitRequestFullscreen) {
+            video.webkitRequestFullscreen();
+        } else if (video.msRequestFullscreen) {
+            video.msRequestFullscreen();
+        }
+    });
+
+    // Forward / Backward
+    forwardBtn.addEventListener("click", () => {
+        video.currentTime += 10;
+    });
+    backBtn.addEventListener("click", () => {
+        video.currentTime -= 10;
+    });
+
+    // Initially show controls
+    showControls();
+});
+
 </script>
 
 
 <style>
+.video-controls {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    display: flex;
+    gap: 6px;
+    z-index: 40;
+}
+
+.video-controls button {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: none;
+    padding: 6px; /* smaller than 10px */
+    font-size: 0.9rem;
+    border-radius: 50%;
+    transition: background 0.3s ease, transform 0.2s ease;
+    cursor: pointer;
+}
+
+.video-controls button:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+.video-controls button:focus {
+    outline: none;
+}
+
 
  /* Make sure the container clips its background */
 .bg-within {
@@ -282,6 +404,37 @@ document.addEventListener("DOMContentLoaded", function () {
     opacity: 1;
     transform: translateY(0);
 }
+
+@media (max-width: 640px) {
+    .video-controls {
+        gap: 3px; /* tighter spacing */
+        bottom: 6px;
+        left: 6px;
+        padding: 2px 4px;
+    }
+
+    .video-controls button {
+        padding: 4px;       /* smaller touch size */
+        font-size: 0.7rem;  /* smaller icon/text */
+    }
+}
+
+.temple-bg {
+    background-image: url('{{ url_for('static', filename='images/temple_bg.png') }}');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0.2; /* matches your old opacity */
+}
+
+/* Mobile-specific tweak so image fits fully */
+@media (max-width: 640px) {
+    .temple-bg {
+        background-size: contain; /* show full temple */
+        background-position: top center; /* focus on temple top */
+    }
+}
+
 </style>
 {% endblock %}
 
