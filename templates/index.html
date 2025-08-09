@@ -3,70 +3,50 @@
 {% block title %}Karthika Futures - Your Gateway to Divine Art{% endblock %}
 
 {% block content %}
-{# Added pt-20 to push content down below the navbar #}
 <main class="pt-20">
-    <section class="relative min-h-[100vh] sm:min-h-[90vh] flex items-center justify-center text-white overflow-hidden px-4">
+    <section class="fade-section relative min-h-[100vh] sm:min-h-[90vh] flex items-center justify-center text-white overflow-hidden px-4">
         
         <video autoplay muted loop class="absolute inset-0 w-full h-full object-cover z-0">
-    <source src="{{ url_for('static', filename='videos/hero1.mp4') }}" type="video/mp4">
-    Your browser does not support the video tag.
-</video>
+            <source src="{{ url_for('static', filename='videos/hero1.mp4') }}" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
 
         <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black opacity-75 z-10"></div>
         
-        {# START: Main content container for text and button #}
-        {# This div now holds both the text and the button, and has the highest z-index #}
         <div class="relative z-30 text-center p-4 max-w-4xl mx-auto flex flex-col items-center justify-center">
-            <h1 class="text-3xl sm:text-5xl md:text-7xl font-extrabold mb-4 animate-fade-in-up leading-tight text-shadow-lg">
-                karthika.com: Where Art Meets Divinity
+            <h1 class="fade-item text-3xl sm:text-5xl md:text-7xl font-extrabold mb-4 leading-tight text-shadow-lg">
+                Art Meets Divinity
             </h1>
-            <p class="text-base sm:text-lg md:text-2xl mb-6 font-light animate-fade-in-up animation-delay-300 text-shadow-md">
-                Embark on a spiritual journey through timeless artworks inspired by the Mahabharata and Hindu mythology.
+            <p class="fade-item text-base sm:text-lg md:text-2xl mb-6 font-light text-shadow-md">
+                The battlefield of Kurukshetra was too fierce. No one could narrate the horrible time.. Embark on a spiritual journey through timeless artworks inspired by the Mahabharata and Hindu mythology.
             </p>
-            {# Go Button Wrapper - Directly inside the z-30 container #}
-            {# Removed 'relative z-50' from here, as parent z-30 should be sufficient #}
-            <div class="go-button-wrapper animate-fade-in-up animation-delay-600">
+            <div class="fade-item go-button-wrapper">
                 <a href="/all-products" class="btn btn-primary text-base sm:text-xl px-6 sm:px-8 py-3 sm:py-4 rounded-full go-button-inner hover:scale-105 transition-transform duration-300">
                     Go
                 </a>
             </div>
         </div>
-        {# END: Main content container #}
-
     </section>
 
-    <section class="py-16 bg-gradient-to-br from-orange-50 to-yellow-100 text-gray-800">
-        <div class="container mx-auto text-center">
-            <h2 class="text-4xl font-extrabold mb-6 text-primary">Support Dharma Prachar</h2>
-            <p class="text-lg md:text-xl max-w-3xl mx-auto mb-8 leading-relaxed">
-                Every purchase from Karthika Futures contributes to the propagation of Dharma and ancient spiritual wisdom. Your support helps us spread the teachings of the Mahabharata and other sacred texts globally.
-            </p>
-            <a href="{{ url_for('contact') }}" class="btn btn-success text-xl px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
-                Learn More & Donate <i class="fas fa-heart ml-2"></i>
-            </a>
-        </div>
-    </section>
-
-    <section class="py-16 bg-white">
+    <section class="fade-section py-16 bg-white">
         <div class="container mx-auto">
-            <h2 class="text-4xl font-extrabold text-center text-gray-800 mb-10">Featured Divine Masterpieces</h2>
+            <h2 class="fade-item text-4xl font-extrabold text-center text-gray-800 mb-10">Featured Divine Masterpieces</h2>
             
-            {# START: Bootstrap Carousel for Featured Artworks #}
             <div id="featuredArtworksBootstrapCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="3000">
                 <div class="carousel-inner">
                     {% for artwork in featured_artworks %}
                     <div class="carousel-item {% if loop.first %}active{% endif %}">
-                        <div class="flex justify-center"> {# Center the single item in the carousel-item #}
-                            <div class="product-card bg-white rounded-lg shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl w-80 mx-auto">
+                        <div class="flex justify-center">
+                            <div class="fade-item product-card bg-white rounded-lg shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl w-80 mx-auto">
                                 <a href="{{ url_for('product_detail', sku=artwork.sku) }}">
                                     <div class="thumbnail-wrapper rounded-lg shadow-sm group">
                                         <img
-  src="{{ artwork.get_images_list()[0] if artwork.get_images_list() else url_for('static', filename='images/placeholder.png') }}"
-  alt="{{ artwork.name }}"
-  class="d-block w-full object-contain transition-transform duration-300 group-hover:scale-105 cursor-pointer"
-  title="Click to view larger"
-  onclick="event.preventDefault(); openFullImage('{{ artwork.get_images_list()[0] if artwork.get_images_list() else url_for('static', filename='images/placeholder.png') }}'); event.stopPropagation();"
-  loading="lazy">
+                                            src="{{ artwork.get_images_list()[0] if artwork.get_images_list() else url_for('static', filename='images/placeholder.png') }}"
+                                            alt="{{ artwork.name }}"
+                                            class="d-block w-full object-contain transition-transform duration-300 group-hover:scale-105 cursor-pointer"
+                                            title="Click to view larger"
+                                            onclick="event.preventDefault(); openFullImage('{{ artwork.get_images_list()[0] if artwork.get_images_list() else url_for('static', filename='images/placeholder.png') }}'); event.stopPropagation();"
+                                            loading="lazy">
                                     </div>
                                 </a>
                                 <div class="p-4">
@@ -100,7 +80,6 @@
                     {% endfor %}
                 </div>
 
-                {# Carousel Controls #}
                 <button class="carousel-control-prev" type="button" data-bs-target="#featuredArtworksBootstrapCarousel" data-bs-slide="prev">
                     <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                     <span class="visually-hidden">Previous</span>
@@ -110,40 +89,123 @@
                     <span class="visually-hidden">Next</span>
                 </button>
             </div>
-            {# END: Bootstrap Carousel for Featured Artworks #}
-
         </div>
     </section>
 
-    <section class="py-16 bg-gradient-to-br from-orange-50 to-yellow-100 text-gray-800">
+    <section class="fade-section py-16 bg-primary text-white text-center">
+        <div class="container mx-auto">
+            <h2 class="fade-item text-4xl font-extrabold mb-6">Discover Your Spiritual Connection</h2>
+            <p class="fade-item text-lg md:text-xl max-w-3xl mx-auto mb-8">
+                Each artwork at Karthika Futures is a gateway to ancient wisdom and inner peace. Find the piece that resonates with your soul.
+            </p>
+            <a href="{{ url_for('all_products') }}" class="fade-item btn bg-white text-primary text-xl px-8 py-4 rounded-full shadow-lg hover:bg-gray-100 transform hover:scale-105 transition-all duration-300">
+                Begin Your Journey <i class="fas fa-leaf ml-2"></i>
+            </a>
+        </div>
+    </section>
+    
+    <!-- Sacred Appeal Section -->
+    <section class="fade-section py-16 relative text-gray-900 text-center"
+         style="background: url('{{ url_for('static', filename='images/bg.jpg') }}') center/cover no-repeat;">
+
+      <div class="absolute inset-0 bg-yellow-50 bg-opacity-80"></div>
+      <div class="relative container mx-auto max-w-4xl">
+        <h2 class="fade-item text-3xl sm:text-4xl font-extrabold mb-6 text-primary">🕉️ यदा यदा हि धर्मस्य...</h2>
+        
+        <p class="fade-item text-lg sm:text-xl font-semibold mb-4">
+          <span class="text-orange-300">"यदा यदा हि धर्मस्य ग्लानिर्भवति भारत।<br>
+          अभ्युत्थानमधर्मस्य तदाऽअत्मानं सृजाम्यहम्॥"</span><br>
+          <em>(भगवद्गीता ४.७)</em>
+        </p>
+        
+        <p class="fade-item text-lg sm:text-xl font-semibold mb-6">
+          "Whenever righteousness declines and unrighteousness rises, O Arjuna, I manifest Myself."
+        </p>
+        
+        <p class="fade-item text-lg sm:text-xl mb-8 text-gray-700">
+          "जब-जब धर्म की हानि होती है और अधर्म बढ़ता है, तब-तब मैं स्वयं को अवतरित करता हूँ।"
+        </p>
+        
+        <div class="fade-item bg-white shadow-lg rounded-xl p-6 sm:p-8 border-4 border-yellow-200 relative overflow-hidden"
+        style="min-height: 1000px;">
+
+          <!-- Temple Background inside container -->
+          <div class="absolute inset-0 bg-cover bg-center opacity-20"
+            style="background-image: url('{{ url_for('static', filename='images/temple_bg.png') }}'); background-size: 100% auto;">
+          </div>
+
+          <div class="relative z-10">
+            <p class="text-lg sm:text-xl leading-relaxed mb-6">
+              🛕 Lord Padmanabha (Sri Hari) has incarnated countless times to restore Dharma.  
+              When Lord Rama descended, noble souls took birth as Vanaras to aid Him.  
+              When Lord Krishna appeared, the Devas took birth as Yadavas.  
+              In this Kaliyuga, where adharma spreads as drugs, hatred, and moral decay,  
+              Sri Kalki will come to destroy evil and protect the righteous ... and we have to be with his side.  
+            </p>
+            <p class="text-lg sm:text-xl leading-relaxed mb-4">
+              🌸 Our duty is clear — uphold <strong>Sanatana Dharma</strong>, protect women and children,  
+              respect elders, build a fearless and strong youth like Swami Vivekananda who said,  
+              <em>"A good soul will stay inside a strong body."</em> 🪔
+            </p>
+            <p class="text-lg sm:text-xl leading-relaxed mb-6">
+              🚩 Let us unite against adharma, reject intoxicants, embrace purity, and walk the path of Dharma.  
+              Every donation and purchase here is a step towards the Lord's side in His divine mission.
+            </p>
+            <div class="mt-6">
+              <a href="/all-products" class="fade-item btn btn-primary text-lg sm:text-xl px-8 py-4 rounded-full shadow-lg hover:scale-105 transition-all duration-300">
+                🙏 Support &amp; Join the Mission
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- End Sacred Appeal Section -->
+
+    <section class="fade-section py-16 bg-gradient-to-br from-orange-50 to-yellow-100 text-gray-800">
         <div class="container mx-auto text-center">
-            <h2 class="text-4xl font-extrabold mb-6 text-primary">Support Our Divine Mission</h2>
-            <p class="text-lg md:text-xl max-w-3xl mx-auto mb-8 leading-relaxed">
+            <h2 class="fade-item text-4xl font-extrabold mb-6 text-primary">Support Dharma Prachar</h2>
+            <p class="fade-item text-lg md:text-xl max-w-3xl mx-auto mb-8 leading-relaxed">
+                Every purchase from Karthika Futures contributes to the propagation of Dharma and ancient spiritual wisdom. Your support helps us spread the teachings of the Mahabharata and other sacred texts globally.
+            </p>
+            <a href="{{ url_for('contact') }}" class="fade-item btn btn-success text-xl px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+                More about Dharma Prachar <i class="fas fa-heart ml-2"></i>
+            </a>
+        </div>
+    </section>
+
+    <section class="fade-section py-16 bg-gradient-to-br from-orange-50 to-yellow-100 text-gray-800">
+        <div class="container mx-auto text-center">
+            <h2 class="fade-item text-4xl font-extrabold mb-6 text-primary">Support Our Divine Mission</h2>
+            <p class="fade-item text-lg md:text-xl max-w-3xl mx-auto mb-8 leading-relaxed">
                 Your generous contributions help us propagate Dharma and preserve ancient spiritual wisdom through art. Every donation makes a difference.
             </p>
-            <div class="inline-block p-4 bg-white rounded-xl shadow-2xl border-4 border-white transition-transform duration-300 hover:rotate-0">
+            <p class="fade-item text-lg md:text-xl max-w-3xl mx-auto mb-8 leading-relaxed">
+                Every purchase from Karthika Futures contributes to the propagation of Dharma and ancient spiritual wisdom. Your support helps us spread the teachings of the Mahabharata and other sacred texts globally.
+            </p>
+            <div class="fade-item inline-block p-4 bg-white rounded-xl shadow-2xl border-4 border-white transition-transform duration-300 hover:rotate-0">
                 <img src="{{ url_for('static', filename='uploads/qr_code.png') }}" alt="Donation QR Code"
                              class="w-48 h-48 object-contain rounded-lg border-8 border-gray-100 shadow-inner-lg embossed-qr-shadow">
             </div>
-            <p class="text-2xl font-bold text-gray-800 mt-6 mb-4">Scan to Donate via UPI</p>
-            <div class="flex justify-center space-x-6 mb-8">
+            <p class="fade-item text-2xl font-bold text-gray-800 mt-6 mb-4">Scan to Donate via UPI</p>
+            <div class="fade-item flex justify-center space-x-6 mb-8">
                 <img src="{{ url_for('static', filename='images/upi_logos/bhim.png') }}" alt="BHIM UPI" class="h-10 w-auto">
                 <img src="{{ url_for('static', filename='images/upi_logos/gpay.png') }}" alt="Google Pay" class="h-10 w-auto">
                 <img src="{{ url_for('static', filename='images/upi_logos/phonepe.png') }}" alt="PhonePe" class="h-10 w-auto">
                 <img src="{{ url_for('static', filename='images/upi_logos/paytm.png') }}" alt="Paytm" class="h-10 w-auto">
             </div>
-            <a href="{{ url_for('contact') }}" class="btn btn-primary text-xl px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+            <a href="{{ url_for('contact') }}" class="fade-item btn btn-primary text-xl px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
                 Contact for Other Donation Methods <i class="fas fa-hand-holding-heart ml-2"></i>
             </a>
         </div>
     </section>
 
-    <section class="py-16 bg-gradient-to-br from-yellow-50 to-orange-100 text-gray-800">
+    <section class="fade-section py-16 bg-gradient-to-br from-yellow-50 to-orange-100 text-gray-800">
         <div class="container mx-auto text-center">
-            <h2 class="text-4xl font-extrabold mb-10 text-primary">Voices of Devotion</h2>
+            <h2 class="fade-item text-4xl font-extrabold mb-10 text-primary">Voices of Devotion</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {% for testimonial in testimonials %}
-                <div class="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center text-center transform transition-transform duration-300 hover:scale-[1.02] hover:shadow-xl">
+                <div class="fade-item bg-white p-6 rounded-lg shadow-lg flex flex-col items-center text-center transform transition-transform duration-300 hover:scale-[1.02] hover:shadow-xl">
                     <img src="{{ url_for('static', filename=testimonial.image) }}" alt="{{ testimonial.name }}" class="w-24 h-24 rounded-full object-cover mb-4 border-4 border-primary shadow-md">
                     <p class="text-lg font-medium mb-3">"{{ testimonial.feedback }}"</p>
                     <div class="text-yellow-500 mb-2">
@@ -159,121 +221,67 @@
             </div>
         </div>
     </section>
-
-    <section class="py-16 bg-primary text-white text-center">
-        <div class="container mx-auto">
-            <h2 class="text-4xl font-extrabold mb-6">Discover Your Spiritual Connection</h2>
-            <p class="text-lg md:text-xl max-w-3xl mx-auto mb-8">
-                Each artwork at Karthika Futures is a gateway to ancient wisdom and inner peace. Find the piece that resonates with your soul.
-            </p>
-            <a href="{{ url_for('all_products') }}" class="btn bg-white text-primary text-xl px-8 py-4 rounded-full shadow-lg hover:bg-gray-100 transform hover:scale-105 transition-all duration-300">
-                Begin Your Journey <i class="fas fa-leaf ml-2"></i>
-            </a>
-        </div>
-    </section>
 </main>
 {% endblock %}
 
 {% block extra_js %}
-<div id="fullImageModal" class="fixed inset-0 bg-black bg-opacity-80 z-50 hidden justify-center items-center p-4">
-    <div class="relative max-w-full max-h-full flex justify-center items-center">
-        <img id="fullImagePreview" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-xl" src="" alt="">
-        <div class="absolute inset-0 pointer-events-none watermark-grid"></div>
-        
-        {# Explicit Close Button #}
-        <button onclick="closeFullImage()" class="absolute top-4 right-4 bg-white text-gray-800 rounded-full p-2 px-4 font-bold text-lg shadow-lg hover:bg-gray-200 transition-colors duration-200">
-            <i class="fas fa-times"></i> Close
-        </button>
-    </div>
-</div>
-
 <script>
-    function openFullImage(src) {
-        document.getElementById('fullImagePreview').src = src;
-        document.getElementById('fullImageModal').classList.remove('hidden');
-        document.getElementById('fullImageModal').classList.add('flex');
-        const modal = document.getElementById('fullImageModal');
-        const clickListener = function(event) {
-            if (event.target === this) {
-                closeFullImage();
+document.addEventListener("DOMContentLoaded", function () {
+    const fadeSections = document.querySelectorAll(".fade-section");
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+                const fadeItems = entry.target.querySelectorAll(".fade-item");
+                fadeItems.forEach((item, index) => {
+                    setTimeout(() => {
+                        item.classList.add("fade-visible");
+                    }, index * 150); // stagger delay
+                });
+                // observer.unobserve(entry.target); // keep commented for repeats
+            } else {
+                // Reset when out of view
+                const fadeItems = entry.target.querySelectorAll(".fade-item");
+                fadeItems.forEach((item) => {
+                    item.classList.remove("fade-visible");
+                });
             }
-        };
-        modal.addEventListener('click', clickListener);
-        modal._clickListener = clickListener;
-    }
+        });
+    }, { threshold: 0.15 });
 
-    function closeFullImage() {
-        document.getElementById('fullImageModal').classList.remove('flex');
-        document.getElementById('fullImageModal').classList.add('hidden');
-        document.getElementById('fullImagePreview').src = '';
-        const fullImageModal = document.getElementById('fullImageModal');
-        const oldListener = fullImageModal._clickListener;
-        if (oldListener) {
-            fullImageModal.removeEventListener('click', oldListener);
-            fullImageModal._clickListener = null;
-        }
-    }
+    fadeSections.forEach((section) => {
+        observer.observe(section);
+    });
+});
 </script>
+
+
 <style>
-    /* Custom styles for animations */
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
 
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
+ /* Make sure the container clips its background */
+.bg-within {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 1rem; /* match your rounded-xl */
+    overflow: hidden; /* ensures no overflow outside the rounded corners */
+}
 
-    .animate-fade-in-up {
-        animation: fadeInUp 1s ease-out forwards;
-        opacity: 0; /* Hidden by default */
-    }
 
-    .animation-delay-300 { animation-delay: 0.3s; }
-    .animation-delay-600 { animation-delay: 0.6s; }
+.fade-section {
+    opacity: 1; /* Keep section visible for layout */
+}
 
-    /* Hide scrollbar but allow scrolling */
-    .scrollbar-hide {
-        -ms-overflow-style: none;   /* IE and Edge */
-        scrollbar-width: none;  /* Firefox */
-    }
-    .scrollbar-hide::-webkit-scrollbar {
-        display: none; /* Chrome, Safari, Opera */
-    }
+.fade-item {
+    opacity: 0;
+    transform: translateY(25px);
+    transition: opacity 0.9s ease, transform 0.9s ease;
+}
 
-    /* Custom styles for the embossed QR code */
-    .embossed-qr-shadow {
-        box-shadow:
-            inset 0 2px 4px rgba(0,0,0,0.06), /* Inner shadow for embossed effect */
-            0 4px 8px rgba(0,0,0,0.1); /* Soft outer shadow */
-    }
-
-    /* Text shadow for hero section */
-    .text-shadow-lg {
-        text-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-    }
-    .text-shadow-md {
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    }
-
-    @media (max-width: 375px) {
-        h1 {
-            font-size: 1.75rem !important;
-            line-height: 2.2rem !important;
-        }
-        p {
-            font-size: 1rem !important;
-        }
-    }
-
-    /* Ensure modals are styled correctly if they appear on index.html */
-    .watermark-grid {
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Ctext x='0' y='20' font-size='20' fill='rgba(255,255,255,0.2)' font-family='Arial'%3EKarthikafutures%3C/text%3E%3C/svg%3E");
-        background-size: 140px 140px;
-        background-repeat: repeat;
-        opacity: 1;
-    }
+.fade-item.fade-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
 </style>
 {% endblock %}
+
