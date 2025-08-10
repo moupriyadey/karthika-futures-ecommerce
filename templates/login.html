@@ -4,7 +4,7 @@
 <div class="flex items-center justify-center min-h-screen -mt-16"> {# Negative margin to pull it up slightly under navbar #}
     <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md bg-opacity-95 border border-gray-200">
         <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">User Login</h2>
-        <form method="POST" action="{{ url_for('user_login', next=request.args.get('next', '')) }}" class="space-y-5">
+        <form method="POST" action="{{ url_for('user_login', next=request.args.get('next', '')) }}" class="space-y-5" id="loginForm">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"> 
             
             <div>
@@ -42,7 +42,7 @@
             </button>
         </form>
         <p class="text-center text-gray-600 mt-6">
-            Don't have an account? <a href="{{ url_for('signup') }}" class="text-blue-600 hover:underline font-semibold">Sign Up</a>
+            Don't have an account? <a id="signupLink" href="{{ url_for('signup') }}" class="text-blue-600 hover:underline font-semibold">Sign Up</a>
         </p>
         <p class="text-center text-gray-600 mt-3">
             <a href="{{ url_for('forgot_password') }}" class="text-blue-600 hover:underline font-semibold">Forgot Password?</a>
@@ -50,16 +50,25 @@
     </div>
 </div>
 
-{# START: JavaScript for Password Toggle #}
+{# START: JavaScript for Password Toggle and Validation #}
+<style>
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+}
+.animate-bounce {
+    animation: bounce 0.8s infinite;
+}
+</style>
+
 <script>
-    // Function to toggle password visibility
+    // Password toggle function
     function togglePasswordVisibility(fieldId, iconElement) {
         const passwordField = document.getElementById(fieldId);
         const iconContainer = iconElement.querySelector('svg');
 
         if (passwordField.type === "password") {
             passwordField.type = "text";
-            // Change to 'eye-slash' icon
             iconContainer.innerHTML = `
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.981 8.877a1.012 1.012 0 0 0 0 1.246c.94 2.18 3.121 4.225 5.25 5.568.188.12.393.216.602.285.311.103.642.17.981.195.27.022.54.022.81 0a20.806 20.806 0 0 0 1.255-.389c.79-.228 1.54-.485 2.274-.757C17.653 10.428 19.467 9.07 20.158 8.43a1.01 1.01 0 0 0 0-1.246c-.94-2.18-3.121-4.225-5.25-5.568A20.806 20.806 0 0 0 12 2.5c-4.638 0-8.573 3.007-9.963 7.178Z" />
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
@@ -68,13 +77,37 @@
             `;
         } else {
             passwordField.type = "password";
-            // Change back to 'eye' icon
             iconContainer.innerHTML = `
                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
             `;
         }
     }
+
+    // Email or phone validation
+    document.getElementById("loginForm").addEventListener("submit", function (e) {
+        const input = document.getElementById("login_identifier").value.trim();
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const phonePattern = /^\d{10}$/;
+
+        if (!(emailPattern.test(input) || phonePattern.test(input))) {
+            e.preventDefault();
+            alert("Please enter a valid email address or a 10-digit phone number.");
+            return false;
+        }
+    });
+
+    // Highlight sign-up if not registered
+    {% if not_registered %}
+    document.addEventListener("DOMContentLoaded", function () {
+        let signupLink = document.getElementById("signupLink");
+        signupLink.classList.add("bg-yellow-200", "px-2", "rounded");
+        let arrow = document.createElement("span");
+        arrow.innerHTML = "👈";
+        arrow.className = "ml-2 animate-bounce";
+        signupLink.parentElement.appendChild(arrow);
+    });
+    {% endif %}
 </script>
-{# END: JavaScript for Password Toggle #}
+{# END: JavaScript for Password Toggle and Validation #}
 {% endblock %}

@@ -6,7 +6,7 @@
 <div class="flex items-center justify-center min-h-screen pt-32">
     <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md bg-opacity-95 border border-gray-200">
         <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">Create Your Account</h2>
-        <form method="POST" action="{{ url_for('signup') }}" class="space-y-5">
+        <form id="signup-form" method="POST" action="{{ url_for('signup') }}" class="space-y-5">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             
             <div>
@@ -24,24 +24,42 @@
             <div>
                 <label for="phone" class="block text-gray-700 text-sm font-semibold mb-2">Phone Number (Optional)</label>
                 <input type="tel" id="phone" name="phone"
-       pattern="[0-9]{10}" minlength="10" maxlength="10" title="Enter a valid 10-digit phone number"
-       value="{{ form_data.phone if form_data.phone is defined else '' }}"
-       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
-       placeholder="e.g., 9876543210">
-
+                       pattern="[0-9]{10}" minlength="10" maxlength="10" title="Enter a valid 10-digit phone number"
+                       value="{{ form_data.phone if form_data.phone is defined else '' }}"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                       placeholder="e.g., 9876543210">
             </div>
-            <div>
+
+            <div class="relative">
                 <label for="password" class="block text-gray-700 text-sm font-semibold mb-2">Password</label>
                 <input type="password" id="password" name="password" required
-                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 pr-10"
                        placeholder="Enter your password">
+                <span class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
+                      style="top: calc(50% + 10px); transform: translateY(-50%);"
+                      onclick="togglePasswordVisibility('password', this)">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-gray-500" id="password_toggle_icon">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                    </svg>
+                </span>
             </div>
-            <div>
+            
+            <div class="relative">
                 <label for="confirm_password" class="block text-gray-700 text-sm font-semibold mb-2">Confirm Password</label>
                 <input type="password" id="confirm_password" name="confirm_password" required
-                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 pr-10"
                        placeholder="Confirm your password">
+                <span class="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
+                      style="top: calc(50% + 10px); transform: translateY(-50%);"
+                      onclick="togglePasswordVisibility('confirm_password', this)">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-gray-500" id="confirm_password_toggle_icon">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                    </svg>
+                </span>
             </div>
+            
             <button type="submit"
                     class="w-full bg-primary hover:bg-orange-700 text-white font-bold py-2.5 px-4 rounded-md transition duration-300 transform hover:scale-105 shadow-md">
                 Sign Up
@@ -52,4 +70,62 @@
         </p>
     </div>
 </div>
+
+<script>
+    function togglePasswordVisibility(fieldId, iconElement) {
+        const passwordField = document.getElementById(fieldId);
+        const iconContainer = iconElement.querySelector('svg');
+
+        if (passwordField.type === "password") {
+            passwordField.type = "text";
+            iconContainer.innerHTML = `
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.981 8.877a1.012 1.012 0 0 0 0 1.246c.94 2.18 3.121 4.225 5.25 5.568.188.12.393.216.602.285.311.103.642.17.981.195.27.022.54.022.81 0a20.806 20.806 0 0 0 1.255-.389c.79-.228 1.54-.485 2.274-.757C17.653 10.428 19.467 9.07 20.158 8.43a1.01 1.01 0 0 0 0-1.246c-.94-2.18-3.121-4.225-5.25-5.568A20.806 20.806 0 0 0 12 2.5c-4.638 0-8.573 3.007-9.963 7.178Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 12a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18" />
+            `;
+        } else {
+            passwordField.type = "password";
+            iconContainer.innerHTML = `
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+            `;
+        }
+    }
+
+    // Intercept form submission
+    document.getElementById('signup-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const form = e.target;
+        const formData = new FormData(form);
+        const url = form.action;
+
+        // Use fetch to send the form data
+        fetch(url, {
+            method: form.method,
+            body: formData
+        })
+        .then(response => {
+            // Check if the response is JSON or a redirect
+            if (response.headers.get('Content-Type').includes('application/json')) {
+                return response.json().then(data => {
+                    if (data.status === 'exists') {
+                        // If user exists, show alert and redirect with pre-filled email
+                        alert(data.message);
+                        const loginUrl = '{{ url_for("user_login") }}' + '?prefill_email=' + encodeURIComponent(data.email);
+                        window.location.href = loginUrl;
+                    }
+                });
+            } else {
+                // If not JSON, assume it's a redirect and let the browser follow it
+                window.location.href = response.url;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An unexpected error occurred. Please try again.');
+        });
+    });
+</script>
 {% endblock %}

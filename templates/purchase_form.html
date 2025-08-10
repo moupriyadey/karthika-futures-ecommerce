@@ -170,11 +170,17 @@
 </div>
 
 
+            
             {# PLACE ORDER BUTTON - MOVED HERE #}
-            <div class="d-grid gap-2 mt-4 relative"> {# Added relative for alert positioning #}
-                <button type="submit" class="btn btn-primary btn-lg" id="placeOrderButton" form="addressSelectionForm" name="action_type" value="place_order">
-                    Place Order
-                </button>
+<div class="d-grid gap-2 mt-4 relative"> {# Added relative for alert positioning #}
+    <div class="mb-3">
+        <div class="g-recaptcha" data-sitekey="{{ recaptcha_site_key }}"></div>
+    </div>
+    
+    <button type="submit" class="btn btn-primary btn-lg" id="placeOrderButton" form="addressSelectionForm" name="action_type" value="place_order">
+        Place Order
+    </button>
+
                 {# Floating alert - positioned relative to this button's parent div #}
                 <div id="noAddressAlert" class="absolute -bottom-10 left-1/2 transform -translate-x-1/2 bg-red-600 text-white text-sm px-3 py-1 rounded-md shadow-lg flex items-center space-x-1 whitespace-nowrap z-10 hidden">
                     <i class="fas fa-hand-point-left text-xs animate-pulse-hand"></i> {# Now points left #}
@@ -214,6 +220,7 @@
 
 {% block extra_js %}
 {{ super() }} {# Include parent's extra_js #}
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const newAddressFormDiv = document.getElementById('newAddressForm');
