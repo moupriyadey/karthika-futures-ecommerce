@@ -129,8 +129,6 @@ app.config['OUR_BUSINESS_ADDRESS'] = "123 Divine Path, Spiritual City, Karnataka
 app.config['OUR_GSTIN'] = "29ABCDE1234F1Z5" # Example GSTIN
 app.config['OUR_PAN'] = "ABCDE1234F" # Example PAN
 app.config['DEFAULT_GST_RATE'] = Decimal('18.00') # Default GST rate for products
-
-
 # app.config['DEFAULT_SHIPPING_CHARGE'] = Decimal('100.00') # This is now deprecated for per-artwork shipping
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -1174,17 +1172,18 @@ def set_default_address(address_id):
 
     return redirect(url_for('my_addresses'))
 # MODIFIED: Signup route to include OTP verification and next_url capture
-# ... (rest of your imports and code)
-
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
 
+    # Store the 'next' URL if provided in the query parameters (e.g., from @login_required)
     next_url = request.args.get('next')
     if next_url:
         session['redirect_after_auth'] = next_url
+    # If no 'next' param, try to use referrer, but avoid redirecting back to auth pages
     elif request.referrer and request.referrer != request.url:
+        # Check if referrer is not from an authentication page to avoid redirection loops
         if not any(auth_path in request.referrer for auth_path in ['/user-login', '/signup', '/verify_otp', '/forgot-password', '/verify_reset_otp', '/reset_password']):
             session['redirect_after_auth'] = request.referrer
     
@@ -1212,15 +1211,10 @@ def signup():
 
         existing_user_email = User.query.filter_by(email=email).first()
         if existing_user_email:
-            # New: Return a JSON response for an existing, verified account
             if existing_user_email.email_verified:
-                return jsonify({
-                    'status': 'exists',
-                    'message': 'An account with this email already exists. Please log in.',
-                    'email': existing_user_email.email
-                })
+                flash('An account with this email already exists. Please log in.', 'warning')
             else:
-                # Existing logic for unverified account
+                # Resend OTP if email not verified
                 otp_code = generate_otp()
                 new_otp = OTP(user_id=existing_user_email.id, otp_code=otp_code)
                 db.session.add(new_otp)
@@ -1229,17 +1223,14 @@ def signup():
                 session['otp_user_id'] = existing_user_email.id
                 flash('An account with this email exists but is not verified. A new OTP has been sent to your email.', 'info')
                 return redirect(url_for('verify_otp'))
-
+            return render_template('signup.html', form_data=form_data)
+        
         # Check if phone number already exists
         if phone:
             existing_user_phone = User.query.filter_by(phone=phone).first()
             if existing_user_phone:
-                # New: Return a JSON response for an existing phone number
-                return jsonify({
-                    'status': 'exists',
-                    'message': 'An account with this phone number already exists. Please log in.',
-                    'email': existing_user_phone.email
-                })
+                flash('An account with this phone number already exists. Please log in or use a different phone number.', 'warning')
+                return render_template('signup.html', form_data=form_data)
 
         # Create user but mark as unverified
         new_user = User(email=email, phone=phone, full_name=full_name, email_verified=False)
@@ -1255,13 +1246,15 @@ def signup():
 
         send_email(new_user.email, 'Karthika Futures - Verify Your Email', f'Your OTP for email verification is: {otp_code}. It is valid for 10 minutes.')
         
-        session['otp_user_id'] = new_user.id
-        session['prefill_login_phone'] = new_user.phone
+        session['otp_user_id'] = new_user.id # Store user ID in session for OTP verification
+        
+        session['prefill_login_phone'] = new_user.phone # Store phone for login prefill
 
         flash('A One-Time Password (OTP) has been sent to your email. Please verify to complete registration.', 'success')
         return redirect(url_for('verify_otp'))
 
     return render_template('signup.html', form_data=form_data)
+
 # NEW: Helper function to handle post-authentication redirection
 def _handle_post_auth_redirect():
     # Prioritize direct purchase flow (from 'Buy Now' button)
@@ -1343,61 +1336,56 @@ def resend_otp():
         return jsonify(success=False, message='Failed to send OTP. Please try again later.'), 500
 
 # MODIFIED: User Login route to check email verification
-# MODIFIED: User Login route to check if user exists
 @app.route('/user-login', methods=['GET', 'POST'])
 def user_login():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
 
-    # Store the 'next' URL as before
+    # Store the 'next' URL if provided in the query parameters (e.g., from @login_required)
     next_url = request.args.get('next')
     if next_url:
         session['redirect_after_auth'] = next_url
-    elif request.referrer and not any(auth_path in request.referrer for auth_path in ['/user-login', '/signup', '/verify_otp', '/forgot-password', '/verify_reset_otp', '/reset_password']):
-        session['redirect_after_auth'] = request.referrer
+    # If no 'next' param, try to use referrer, but avoid redirecting back to auth pages
+    elif request.referrer and request.referrer != request.url:
+        # Check if referrer is not from an authentication page to avoid redirection loops
+        if not any(auth_path in request.referrer for auth_path in ['/user-login', '/signup', '/verify_otp', '/forgot-password', '/verify_reset_otp', '/reset_password']):
+            session['redirect_after_auth'] = request.referrer
     
+    # Retrieve prefill data from session (will be removed after being read once)
     prefill_phone = session.pop('prefill_login_phone', None)
     prefill_email = session.pop('prefill_login_email', None)
 
-    form_data = {}
-    # 💡 This is a new variable to pass to the template
-    not_registered = False
+    form_data = {} # Initialize form_data for GET requests or failed POSTs
 
     if request.method == 'POST':
+        # Accept either email or phone for login
         login_identifier = request.form.get('login_identifier')
         password = request.form.get('password')
-        form_data = {'login_identifier': login_identifier}
+        form_data = {'login_identifier': login_identifier} # Pass back entered identifier on failure
 
+        # Query for user by either email OR phone number
         user = User.query.filter((User.email == login_identifier) | (User.phone == login_identifier)).first()
 
         if user and user.check_password(password):
             if not user.email_verified:
-                 # If email not verified, send OTP and redirect to verify_otp
+                # If email not verified, send OTP and redirect to verify_otp
                 otp_code = generate_otp()
                 new_otp = OTP(user_id=user.id, otp_code=otp_code)
                 db.session.add(new_otp)
                 db.session.commit()
-                
-                flash('Your email is not verified. An OTP has been sent to your email to verify your account.', 'warning')
+                send_email(user.email, 'Karthika Futures - Verify Your Email', f'Your OTP for email verification is: {otp_code}. It is valid for 10 minutes.')
                 session['otp_user_id'] = user.id
+                flash('Your email is not verified. An OTP has been sent to your email to verify your account.', 'warning')
                 return redirect(url_for('verify_otp'))
             
             login_user(user)
+            # Use the new helper function for redirection
             return _handle_post_auth_redirect()
         else:
-            # ❗ This is the key change: check if user exists
-            if not user:
-                flash('This account is not registered. Please sign up.', 'info')
-                # 💾 Store the identifier in the session to prefill the signup form
-                session['prefill_signup_identifier'] = login_identifier 
-                not_registered = True
-            else:
-                flash('Invalid login ID or password.', 'danger')
+            flash('Invalid login ID or password.', 'danger')
 
-    # Pass the new 'not_registered' flag to the template
-    return render_template('login.html', form_data=form_data, prefill_phone=prefill_phone, prefill_email=prefill_email, not_registered=not_registered)
-
-
+    # Pass prefill data AND form_data to the template for GET requests or failed POST requests
+    return render_template('login.html', form_data=form_data, prefill_phone=prefill_phone, prefill_email=prefill_email)
 
 
 @app.route('/logout')

@@ -1,0 +1,48 @@
+{% extends "_base.html" %}
+
+{% block title %}Add HSN Code{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card">
+        <div class="card-header">
+            <h3>Add New HSN Code</h3>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('add_hsn') }}">
+                {{ form.hidden_tag() }}
+                
+                <div class="mb-3">
+                    {{ form.hsn_code.label(class="form-label") }}
+                    {{ form.hsn_code(class="form-control") }}
+                </div>
+                <div class="mb-3">
+                    {{ form.description.label(class="form-label") }}
+                    {{ form.description(class="form-control") }}
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            {{ form.cgst_rate.label(class="form-label") }}
+                            {{ form.cgst_rate(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            {{ form.sgst_rate.label(class="form-label") }}
+                            {{ form.sgst_rate(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            {{ form.igst_rate.label(class="form-label") }}
+                            {{ form.igst_rate(class="form-control") }}
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Add HSN Code</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -115,68 +115,7 @@ function checkEDD(pinInputId, resultId) {
         }
 
         /* Custom Alert Styling (from main.js) */
-        .custom-alert {
-            position: fixed;
-            top: 90px; /* Custom Alert height form navbar  */
-            right: 20px;
-            z-index: 9999;
-            padding: 15px 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            animation: slideInRight 0.5s forwards, fadeOut 0.5s 4.5s forwards;
-            min-width: 250px;
-        }
-
-        .custom-alert-message {
-            margin-right: 15px;
-            font-weight: 500;
-        }
-
-        .custom-alert.alert-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 2px solid;
-            border-image: linear-gradient(to right, #28a745, #218838) 1;
-        }
-
-        .custom-alert.alert-danger {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 2px solid;
-            border-image: linear-gradient(to right, #dc3545, #c82333) 1;
-        }
-
-        .custom-alert.alert-info {
-            background-color: #d1ecf1;
-            color: #0c5460;
-            border: 2px solid;
-            border-image: linear-gradient(to right, #17a2b8, #138496) 1;
-        }
-
-        @keyframes slideInRight {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        @keyframes fadeOut {
-            from {
-                opacity: 1;
-            }
-            to {
-                opacity: 0;
-            }
-        }
-
-        /* Navbar Styling */
+               /* Navbar Styling */
         .navbar {
             background: linear-gradient(to right, var(--navbar-bg-start), var(--navbar-bg-end));
             border-bottom: 2px solid var(--navbar-border-color);

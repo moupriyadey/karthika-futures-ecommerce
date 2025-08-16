@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Manage HSN Codes{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Manage HSN Codes</h2>
+
+    <div class="card mb-4">
+        <div class="card-header">Add New HSN Code</div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('manage_hsn') }}">
+                <div class="mb-3">
+                    <label for="hsn_code" class="form-label">HSN Code</label>
+                    <input type="text" class="form-control" id="hsn_code" name="hsn_code" required>
+                </div>
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <input type="text" class="form-control" id="description" name="description" required>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="cgst_rate" class="form-label">CGST Rate (%)</label>
+                        <input type="number" step="0.01" class="form-control" id="cgst_rate" name="cgst_rate" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="sgst_rate" class="form-label">SGST Rate (%)</label>
+                        <input type="number" step="0.01" class="form-control" id="sgst_rate" name="sgst_rate" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="igst_rate" class="form-label">IGST Rate (%)</label>
+                        <input type="number" step="0.01" class="form-control" id="igst_rate" name="igst_rate" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Add HSN Code</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Existing HSN Codes</div>
+        <div class="card-body">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>HSN Code</th>
+                        <th>Description</th>
+                        <th>CGST %</th>
+                        <th>SGST %</th>
+                        <th>IGST %</th>
+                        </tr>
+                </thead>
+                <tbody>
+                    {% for hsn in hsn_codes %}
+                    <tr>
+                        <td>{{ hsn.code }}</td>
+                        <td>{{ hsn.description }}</td>
+                        <td>{{ hsn.cgst_rate }}</td>
+                        <td>{{ hsn.sgst_rate }}</td>
+                        <td>{{ hsn.igst_rate }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
