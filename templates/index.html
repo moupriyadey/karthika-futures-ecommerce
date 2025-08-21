@@ -47,10 +47,13 @@
 
 </section>
 
-    <section class="fade-section py-16 bg-white">
-        <div class="container mx-auto">
-            <h2 class="fade-item text-4xl font-extrabold text-center text-gray-800 mb-10">Featured Divine Masterpieces</h2>
-            
+    <section class="fade-section py-16 relative text-gray-900 text-center"
+    style="background: url('{{ url_for('static', filename='images/bg.jpg') }}') center/cover no-repeat;">
+    
+    <div class="container mx-auto">
+        <h2 class="fade-item text-4xl font-extrabold text-center text-gray-800 mb-10">Featured Divine Masterpieces</h2>
+        
+
             <div id="featuredArtworksBootstrapCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="3000">
                 <div class="carousel-inner">
                     {% for artwork in featured_artworks %}
@@ -71,22 +74,22 @@
                                 <div class="p-4">
                                     <h3 class="text-xl font-semibold text-gray-900 mb-2 truncate">{{ artwork.name }}</h3>
                                     <p class="text-gray-600 text-sm mb-3">{{ artwork.description[:100] }}{% if artwork.description|length > 100 %}...{% endif %}</p>
-                                    <div class="flex items-baseline justify-between mb-4">
+                                    <div class="flex items-baseline justify-between mb-1">
                                         <span class="text-2xl font-bold text-primary final-price">{{ artwork.selling_price_incl_gst | currency }}</span>
                                     </div>
-                                    <div class="flex items-center mb-3">
+                                    <div class="flex items-center mb-1">
                                         <div class="text-yellow-500">
                                             <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
                                         </div>
                                         <span class="text-sm text-gray-600 ml-2">(4.5/5)</span>
                                     </div>
                                     {% if artwork.shipping_charge is defined and artwork.shipping_charge == 0 %}
-                                    <p class="text-green-600 font-semibold text-sm mb-3"><i class="fas fa-truck mr-1"></i> Free Delivery</p>
-                                    {% else %}
-                                    <p class="text-gray-500 text-sm mb-3"><i class="fas fa-truck mr-1"></i> Shipping charges apply</p>
-                                    {% endif %}
+<p class="text-green-600 font-semibold text-sm mb-3 text-left"><i class="fas fa-truck mr-1"></i> Free Delivery</p>
+{% else %}
+<p class="text-gray-500 text-sm mb-1 text-left"><i class="fas fa-truck mr-1"></i> Shipping charges apply</p>
+{% endif %}
                                     <div class="flex justify-center">
-                                        <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary px-6 py-2">View Details</a>
+                                        <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary px-6 py-0">View Details</a>
                                     </div>
                                 </div>
                             </div>
@@ -111,17 +114,54 @@
         </div>
     </section>
 
-    <section class="fade-section py-16 bg-primary text-white text-center">
-        <div class="container mx-auto">
-            <h2 class="fade-item text-4xl font-extrabold mb-6">Discover Your Spiritual Connection</h2>
-            <p class="fade-item text-lg md:text-xl max-w-3xl mx-auto mb-8">
-                Each artwork at Karthika Futures is a gateway to ancient wisdom and inner peace. Find the piece that resonates with your soul.
-            </p>
-            <a href="{{ url_for('all_products') }}" class="fade-item btn bg-white text-primary text-xl px-8 py-4 rounded-full shadow-lg hover:bg-gray-100 transform hover:scale-105 transition-all duration-300">
-                Begin Your Journey <i class="fas fa-leaf ml-2"></i>
-            </a>
+
+    <!-- YouTube Heading on white background -->
+<div class="container my-4 text-center">
+  <h2 class="section-title text-2xl font-extrabold underline decoration-blue-600 underline-offset-4">
+    <a href="https://www.youtube.com/@KarthikaStories" target="_blank" class="text-blue-600 hover:no-underline">
+      <i class="fab fa-youtube text-red-600 mr-2"></i>@karthikafutures
+    </a>
+  </h2>
+</div>
+
+
+
+<!-- Golden background container with videos -->
+<section class="container my-5 fade-section pb-8 rounded-xl" style="background-color: #D6B760;">
+  <div class="row g-4 fade-item">
+    <div class="col-12 col-md-4">
+      <div class="ratio ratio-16x9">
+        <iframe src="https://www.youtube.com/embed/cBdKaw6WHNY?rel=0&autoplay=1&mute=1&controls=0&loop=1&playlist=cBdKaw6WHNY"
+                title="YouTube video" allow="autoplay; fullscreen" loading="lazy"></iframe>
+      </div>
+    </div>
+
+
+        <div class="col-12 col-md-4">
+            <div class="ratio ratio-16x9">
+                <iframe src="https://www.youtube.com/embed/yKAVLqwLtOo?rel=0&autoplay=1&mute=1&controls=0&loop=1&playlist=yKAVLqwLtOo" title="YouTube video" allow="autoplay; fullscreen" loading="lazy"></iframe>
+            </div>
         </div>
-    </section>
+        <div class="col-12 col-md-4">
+            <div class="ratio ratio-16x9">
+                <iframe src="https://www.youtube.com/embed/kGVV9l2sFg8?rel=0&autoplay=1&mute=1&controls=0&loop=1&playlist=kGVV9l2sFg8" title="YouTube video" allow="autoplay; fullscreen" loading="lazy"></iframe>
+            </div>
+        </div>
+    </div>
+  
+    <div class="container my-4 text-center">
+  <a href="https://www.youtube.com/@KarthikaStories" target="_blank" 
+     class="text-lg sm:text-xl font-semibold text-blue-600 hover:underline">
+    <i class="fab fa-youtube text-red-600 mr-2"></i>
+    @karthikastories — Watch sacred stories on our channel
+  </a>
+</div>
+
+
+</section>
+
+
+
     
     <!-- Sacred Appeal Section -->
     <section class="fade-section py-16 relative text-gray-900 text-center"
@@ -149,20 +189,26 @@
           "जब-जब धर्म की हानि होती है और अधर्म बढ़ता है, तब-तब मैं स्वयं को अवतरित करता हूँ।"
         </p>
         <p class="fade-item text-lg sm:text-xl mb-8 text-gray-700">
-          🪷🪷🪷🪷🪷🪷🪷🪷🪷🪷🪷🪷🪷🪷🪷🪷🪷🪷🪷🪷"
+          🪷🪷🪷🪷🪷🪷🪷🪷🪷🪷🪷🪷🪷🪷🪷🪷🪷🪷🪷🪷
         </p>
         <p class="fade-item text-lg sm:text-xl mb-8 text-gray-700">
-              Yes, Lord MahaVishnu 🙏🏼 will incarnate ⚡on Earth 🌎🪐..
+              "Yes, Lord MahaVishnu 🙏🏼 will incarnate ⚡on Earth 🌎🪐..
             </p>
             <p class="fade-item text-lg sm:text-xl mb-8 text-gray-700">
-              .. and the Lord will do his Karma to protect Dharma. 
+              .. and the Lord will do his Karma to protect Dharma". 
             </p>
             <p class="fade-item text-lg sm:text-xl mb-8 text-gray-700">
-              What we have to do... just onlookers???
+              What we have to do... just onlookers?
             </p>
             <p class="fade-item text-lg sm:text-xl mb-8 text-gray-700">
-              One must know the difference of Karma⚖️and Dharma. 
+              Know the difference between Karma and Dharma. Knowledge is everything. We must understand the distinct histories of the Mahabharata, MahaBhagavata, Bhagavad Gita, and Uddhava Gita🪔📖.
             </p>
+            <p class="fade-item text-lg sm:text-xl mb-8 text-gray-700">
+               ..At Karthika Futures, we spread this ✨divine wisdom.💫 
+            </p>
+            <p class="fade-item text-lg sm:text-xl mb-8 text-gray-700 font-bold">
+    "कर्म और धर्म का अंतर जानें. ज्ञान ही सब कुछ है. हमें महाभारत, महाभागवत, भगवद्गीता और उद्धव गीता के विशिष्ट इतिहास को समझना चाहिए. हम इस दिव्य ज्ञान का प्रसार करते हैं|
+</p>
         <div class="fade-item bg-white shadow-lg rounded-xl p-6 sm:p-8 border-4 border-yellow-200 relative overflow-hidden"
         style="min-height: 1000px;">
 
@@ -178,21 +224,21 @@
               Sri Kalki 🙏🏼🙏🏼  will come 🎠to destroy evil and protect⚔ the righteous ... and we have to be with his side.  
             </p>
             <p class="text-lg sm:text-xl leading-relaxed mb-4">
-              🌸 Our duty is clear — uphold <strong>Sanatana Dharma</strong>, protect women, children and  
-               elders. The time has come to build a fearless🔱 and strong youth to protect the values of Sanathana Dharma. 
+              🌸 Need to uphold <strong>Sanatana Dharma</strong>, protect women, children and  
+               elders. Time has come to build a fearless🔱 and strong youth to protect the values of Sanathana Dharma. 
                Everyone is responsible!!</p>
                
-               <p class="text-lg sm:text-xl leading-relaxed mb-6"> Swami Vivekananda once said,  
-              <em>"A good soul will stay inside a strong body."</em> 💪🏻
+               <p class="text-lg sm:text-xl leading-relaxed mb-6"> Swami Vivekananda said,  
+              <em>"A good soul will stay inside a strong💪🏻 body."</em> 
             </p>
             <p class="text-lg sm:text-xl leading-relaxed mb-6">
               🚩 Let us unite against adharma, reject intoxicants, embrace purity, and walk the path of Dharma.  
-              Every donation and purchase here is a step towards the Lord's side in His divine mission🛕🪔.
+              Every purchase here is a step towards the Lord's side in His divine mission🛕🪔.📝✏️
             </p>
             <div class="mt-6">
-              <a href="/all-products" class="fade-item btn btn-primary text-lg sm:text-xl px-8 py-4 rounded-full shadow-lg hover:scale-105 transition-all duration-300">
-                🙏 Support &amp; Join the Mission
-              </a>
+              <a href="{{ url_for('contact') }}" class="fade-item btn btn-primary text-lg sm:text-xl px-8 py-4 rounded-full shadow-lg hover:scale-105 transition-all duration-300">
+    🙏 Share your great suggestions.
+</a>
             </div>
           </div>
         </div>
@@ -200,44 +246,79 @@
     </section>
     <!-- End Sacred Appeal Section -->
 
-    <section class="fade-section py-16 bg-gradient-to-br from-orange-50 to-yellow-100 text-gray-800">
-        <div class="container mx-auto text-center">
-            <h2 class="fade-item text-4xl font-extrabold mb-6 text-primary">Support Dharma Prachar</h2>
-            <p class="fade-item text-lg md:text-xl max-w-3xl mx-auto mb-8 leading-relaxed">
-                Every purchase from Karthika Futures contributes to the propagation of Dharma and ancient spiritual wisdom. Your support helps us spread the teachings of the Mahabharata and other sacred texts globally.
+    
+    <section class="fade-section py-16 bg-primary text-white text-center">
+        <div class="container mx-auto">
+            <h2 class="fade-item text-4xl font-extrabold mb-6">Discover Your Spiritual Connection</h2>
+            <p class="fade-item text-lg md:text-xl max-w-3xl mx-auto mb-8">
+                Each artwork at Karthika Futures is a gateway to ancient wisdom and inner peace. Find the piece that resonates with your soul.
             </p>
-            <a href="{{ url_for('contact') }}" class="fade-item btn btn-success text-xl px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
-                More about Dharma Prachar <i class="fas fa-heart ml-2"></i>
+            <a href="{{ url_for('all_products') }}" class="fade-item btn bg-white text-primary text-xl px-8 py-4 rounded-full shadow-lg hover:bg-gray-100 transform hover:scale-105 transition-all duration-300">
+                Begin Your Journey <i class="fas fa-leaf ml-2"></i>
             </a>
         </div>
     </section>
 
-    <section class="fade-section py-16 bg-gradient-to-br from-orange-50 to-yellow-100 text-gray-800">
-        <div class="container mx-auto text-center">
-            <h2 class="fade-item text-4xl font-extrabold mb-6 text-primary">Support Our Divine Mission</h2>
-            <p class="fade-item text-lg md:text-xl max-w-3xl mx-auto mb-8 leading-relaxed">
-                Your generous contributions help us propagate Dharma and preserve ancient spiritual wisdom through art. Every donation makes a difference.
-            </p>
+    <section class="fade-section py-16 bg-gradient-to-br from-yellow-50 to-orange-50 text-gray-800">
+    <div class="container mx-auto text-center">
+        <h2 class="fade-item text-4xl font-extrabold mb-6 text-primary">Support Dharma Prachar</h2>
+
             <p class="fade-item text-lg md:text-xl max-w-3xl mx-auto mb-8 leading-relaxed">
                 Every purchase from Karthika Futures contributes to the propagation of Dharma and ancient spiritual wisdom. Your support helps us spread the teachings of the Mahabharata and other sacred texts globally.
             </p>
-            <div class="fade-item inline-block p-4 bg-white rounded-xl shadow-2xl border-4 border-white transition-transform duration-300 hover:rotate-0">
-                <img src="{{ url_for('static', filename='uploads/qr_code.png') }}" alt="Donation QR Code"
-                             class="w-48 h-48 object-contain rounded-lg border-8 border-gray-100 shadow-inner-lg embossed-qr-shadow">
-            </div>
-            <p class="fade-item text-2xl font-bold text-gray-800 mt-6 mb-4">Scan to Donate via UPI</p>
-            <div class="fade-item flex justify-center space-x-6 mb-8">
-                <img src="{{ url_for('static', filename='images/upi_logos/bhim.png') }}" alt="BHIM UPI" class="h-10 w-auto">
-                <img src="{{ url_for('static', filename='images/upi_logos/gpay.png') }}" alt="Google Pay" class="h-10 w-auto">
-                <img src="{{ url_for('static', filename='images/upi_logos/phonepe.png') }}" alt="PhonePe" class="h-10 w-auto">
-                <img src="{{ url_for('static', filename='images/upi_logos/paytm.png') }}" alt="Paytm" class="h-10 w-auto">
-            </div>
-            <a href="{{ url_for('contact') }}" class="fade-item btn btn-primary text-xl px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
-                Contact for Other Donation Methods <i class="fas fa-hand-holding-heart ml-2"></i>
-            </a>
+            <a href="{{ url_for('about') }}" class="fade-item btn btn-success text-xl px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+    More about Dharma Prachar <i class="fas fa-heart ml-2"></i>
+</a>
         </div>
     </section>
 
+    <section class="fade-section py-16 bg-gradient-to-br from-orange-50 to-yellow-100 text-gray-800">
+    <div class="container mx-auto text-center">
+        <h2 class="fade-item text-4xl font-extrabold mb-6 text-primary">Dakshina to Acharya Guru</h2>
+        
+        <p class="fade-item text-lg md:text-xl max-w-3xl mx-auto mb-4 leading-relaxed">
+            With deep respect and gratitude, we invite you to support our revered Acharya Prabhu. For decades, he has dedicated his life to teaching the profound wisdom of the Ramayana, Mahabharata, and MahaBhagavata—our most sacred Puranas.
+        </p>
+        <p class="fade-item text-lg md:text-xl max-w-3xl mx-auto mb-4 leading-relaxed">
+            Your support, a humble Dakshina, is vital for his vision: establishing more centers to keep these ancient teachings alive for future generations.
+        </p>
+        <p class="fade-item text-lg md:text-xl max-w-3xl mx-auto mb-4 leading-relaxed">
+            Every purchase of our art and every donation you make is a meaningful contribution to this mission. You are not just buying a product; you are helping to preserve and propagate the timeless values of Dharma for all.
+        </p>
+        <p class="fade-item text-lg md:text-xl max-w-3xl mx-auto mb-4 leading-relaxed">
+          🌸🌼🕉️🌼🌸  
+        </p>
+ 
+        <div class="my-8"></div>
+
+        <p class="fade-item text-lg md:text-xl max-w-3xl mx-auto mb-4 leading-relaxed">
+            रामायण, महाभारत और महाभागवत जैसे महान ग्रंथ हमारी विरासत के स्तंभ हैं. हमारे प्रिय आचार्य प्रभु ने इन ग्रंथों के ज्ञान को साझा करने के लिए अपना जीवन समर्पित कर दिया है।
+        </p>
+        <p class="fade-item text-lg md:text-xl max-w-3xl mx-auto mb-4 leading-relaxed">
+            हम आपसे विनम्रतापूर्वक समर्थन का अनुरोध करते हैं. आपकी एक साधारण दक्षिणा उनके मिशन को और भी शिक्षण केंद्र बनाने में मदद करती है, जिससे आध्यात्मिक ज्ञान की एक ऐसी विरासत का निर्माण होगा जो हमेशा बनी रहेगी।
+        </p>
+        <p class="fade-item text-lg md:text-xl max-w-3xl mx-auto mb-8 leading-relaxed">
+            आपके उदार योगदान से हम कला के माध्यम से इस कार्य को जारी रख सकते हैं. हर दान या खरीद के साथ, आप हमारी संस्कृति की प्राचीन आध्यात्मिक परंपराओं को संरक्षित करने में एक भागीदार बन जाते हैं।
+        </p>
+<p class="fade-item text-lg md:text-xl max-w-3xl mx-auto mb-4 leading-relaxed">
+          🪷🌼🙏🏼🌼🪷  
+        </p>
+        <div class="fade-item inline-block p-4 bg-white rounded-xl shadow-2xl border-4 border-white transition-transform duration-300 hover:rotate-0">
+            <img src="{{ url_for('static', filename='uploads/qr_code.png') }}" alt="Donation QR Code"
+                 class="w-48 h-48 object-contain rounded-lg border-8 border-gray-100 shadow-inner-lg embossed-qr-shadow">
+        </div>
+        <p class="fade-item text-2xl font-bold text-gray-800 mt-6 mb-4">Scan to Donate via UPI</p>
+        <div class="fade-item flex justify-center space-x-6 mb-8">
+            <img src="{{ url_for('static', filename='images/upi_logos/bhim.png') }}" alt="BHIM UPI" class="h-10 w-auto">
+            <img src="{{ url_for('static', filename='images/upi_logos/gpay.png') }}" alt="Google Pay" class="h-10 w-auto">
+            <img src="{{ url_for('static', filename='images/upi_logos/phonepe.png') }}" alt="PhonePe" class="h-10 w-auto">
+            <img src="{{ url_for('static', filename='images/upi_logos/paytm.png') }}" alt="Paytm" class="h-10 w-auto">
+        </div>
+        <a href="{{ url_for('contact') }}" class="fade-item btn btn-primary text-xl px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+            Contact for Other Donation Methods <i class="fas fa-hand-holding-heart ml-2"></i>
+        </a>
+    </div>
+</section>
     <section class="fade-section py-16 bg-gradient-to-br from-yellow-50 to-orange-100 text-gray-800">
         <div class="container mx-auto text-center">
             <h2 class="fade-item text-4xl font-extrabold mb-10 text-primary">Voices of Devotion</h2>

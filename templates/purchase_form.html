@@ -172,14 +172,28 @@
 
             {# PLACE ORDER BUTTON - MOVED HERE #}
             <div class="d-grid gap-2 mt-4 relative"> {# Added relative for alert positioning #}
-                <button type="submit" class="btn btn-primary btn-lg" id="placeOrderButton" form="addressSelectionForm" name="action_type" value="place_order">
+
+                <div class="g-recaptcha my-3" 
+                    data-sitekey="{{ config['RECAPTCHA_SITE_KEY'] }}" 
+                    data-callback="enablePlaceOrder"
+                    data-expired-callback="disablePlaceOrder"></div>
+
+                      <!-- Captcha Alert (between captcha and button) -->
+    <div id="captchaAlert" class="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-red-600 text-white text-sm px-3 py-1 rounded-md shadow-lg flex items-center space-x-1 whitespace-nowrap z-10 hidden">
+        <i class="fas fa-hand-point-down text-xs animate-pulse-hand"></i>
+        <span>Please click captcha first!</span>
+    </div>
+                
+                <button type="submit" class="btn btn-primary btn-lg" id="placeOrderButton" form="addressSelectionForm" name="action_type" value="place_order" disabled>
                     Place Order
                 </button>
+
                 {# Floating alert - positioned relative to this button's parent div #}
                 <div id="noAddressAlert" class="absolute -bottom-10 left-1/2 transform -translate-x-1/2 bg-red-600 text-white text-sm px-3 py-1 rounded-md shadow-lg flex items-center space-x-1 whitespace-nowrap z-10 hidden">
                     <i class="fas fa-hand-point-left text-xs animate-pulse-hand"></i> {# Now points left #}
                     <span>Please add an address!</span>
                 </div>
+
             </div>
 
             <div class="border-t pt-4">
@@ -215,11 +229,13 @@
 {% block extra_js %}
 {{ super() }} {# Include parent's extra_js #}
 <script>
+    let captchaVerified = false;
+
     document.addEventListener('DOMContentLoaded', function() {
         const newAddressFormDiv = document.getElementById('newAddressForm');
         const noAddressAlert = document.getElementById('noAddressAlert');
         const placeOrderButton = document.getElementById('placeOrderButton');
-        const hasAddresses = {{ has_addresses | tojson }}; // Flask variable passed from backend
+        const hasAddresses = {{ has_addresses | default(false) | tojson }}; // Flask variable passed from backend
         const addressRadios = document.querySelectorAll('input[name="selected_address_id_radio"]');
         const addressSelectionForm = document.getElementById('addressSelectionForm'); // The form for addresses
         const hiddenSelectedAddressIdInput = document.getElementById('hiddenSelectedAddressId');
@@ -249,7 +265,7 @@
                 // Set hidden input to 'new'
                 hiddenSelectedAddressIdInput.value = 'new';
                 // Enable place order button
-                placeOrderButton.disabled = false;
+                updatePlaceOrderButton();
                 // Hide alert
                 noAddressAlert.classList.add('hidden');
 
@@ -294,7 +310,7 @@
                 noAddressesMessage.classList.remove('hidden'); // Keep message visible
             }
             updateNewAddressFormRequired(true); // Make new address fields required
-            placeOrderButton.disabled = false; // Enable button as new form is active
+            updatePlaceOrderButton(); // Enable button as new form is active
             hiddenSelectedAddressIdInput.value = 'new'; // Set hidden input to 'new'
             
             // Show the subtle alert below the button
@@ -313,7 +329,7 @@
                 hiddenSelectedAddressIdInput.value = checkedRadio.value;
             } else {
                 // If no existing address is checked, disable button and show alert
-                placeOrderButton.disabled = true;
+                updatePlaceOrderButton();
                 noAddressAlert.classList.remove('hidden');
             }
         }
@@ -322,7 +338,7 @@
         addressRadios.forEach(radio => {
             radio.addEventListener('change', function() {
                 if (this.checked) {
-                    placeOrderButton.disabled = false; // Enable button if an address is selected
+                    updatePlaceOrderButton(); // Enable button if an address is selected
                     noAddressAlert.classList.add('hidden'); // Hide alert if an address is selected
                     hiddenSelectedAddressIdInput.value = this.value; // Update hidden input
                     newAddressFormDiv.classList.add('hidden'); // Hide new address form
@@ -347,7 +363,7 @@
 
 
         // If a new address was just added (from POST redirect), pre-select it
-        const newAddressAdded = {{ new_address_added | tojson }};
+        const newAddressAdded = {{ new_address_added | default(false) | tojson }};
         {% if new_address_added %}
             const preSelectedId = '{{ selected_address.id if selected_address else '' }}';
             if (preSelectedId) {
@@ -355,7 +371,7 @@
                 if (radioToSelect) {
                     radioToSelect.checked = true;
                     hiddenSelectedAddressIdInput.value = preSelectedId; // Set hidden input
-                    placeOrderButton.disabled = false; // Enable button
+                    updatePlaceOrderButton(); // Enable button
                     noAddressAlert.classList.add('hidden'); // Hide alert
                     newAddressFormDiv.classList.add('hidden'); // Ensure new form is hidden
                     updateNewAddressFormRequired(false);
@@ -371,8 +387,15 @@
 
         // Handle form submission for the main "Place Order" button
         placeOrderButton.addEventListener('click', function(event) {
-            // This button submits the addressSelectionForm
-            // The hiddenSelectedAddressIdInput value is already set by JS logic
+           // Stop if captcha not solved
+if (!captchaVerified) {
+    event.preventDefault(); // stop form
+    document.getElementById('captchaAlert').classList.remove('hidden'); // show warning
+    return; // do not continue
+} else {
+    document.getElementById('captchaAlert').classList.add('hidden'); // hide warning
+}
+
 
             // If new address form is visible, ensure its required fields are filled
             if (!newAddressFormDiv.classList.contains('hidden')) {
@@ -410,6 +433,31 @@
     function closePopup() {
         document.getElementById("imagePopup").classList.add("hidden");
     }
+
+   
+    function enablePlaceOrder() {
+    captchaVerified = true;
+    updatePlaceOrderButton();
+}
+function disablePlaceOrder() {
+    captchaVerified = false;
+    updatePlaceOrderButton();
+}
+
+function updatePlaceOrderButton() {
+    const placeOrderButton = document.getElementById('placeOrderButton');
+    const hiddenSelectedAddressIdInput = document.getElementById('hiddenSelectedAddressId');
+
+    // Enable only if both an address is selected AND captcha is solved
+    if (hiddenSelectedAddressIdInput.value !== '' && captchaVerified) {
+        placeOrderButton.disabled = false;
+    } else {
+        placeOrderButton.disabled = true;
+    }
+}
+
+
+
 </script>
 
 {# Image Popup HTML - moved here from main content block #}
@@ -437,4 +485,5 @@
         animation: pulse-hand 1.5s infinite;
     }
 </style>
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
 {% endblock %}
