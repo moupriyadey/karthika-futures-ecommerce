@@ -91,16 +91,10 @@ import socket
 hostname = socket.gethostname()
 flask_env = os.getenv("FLASK_ENV", "production")
 
-if flask_env == "development" or ("localhost" in hostname) or ("127.0.0.1" in hostname):
+# Use reCAPTCHA keys from environment variables (production only)
+app.config['RECAPTCHA_SITE_KEY'] = os.getenv("RECAPTCHA_SITE_KEY")
+app.config['RECAPTCHA_SECRET_KEY'] = os.getenv("RECAPTCHA_SECRET_KEY")
 
-
-    # ✅ Use Google test keys on localhost
-    app.config['RECAPTCHA_SITE_KEY'] = "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
-    app.config['RECAPTCHA_SECRET_KEY'] = "6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe"
-else:
-    # ✅ Use real keys in production
-    app.config['RECAPTCHA_SITE_KEY'] = os.getenv("RECAPTCHA_SITE_KEY")
-    app.config['RECAPTCHA_SECRET_KEY'] = os.getenv("RECAPTCHA_SECRET_KEY")
 # Get DATABASE from environment, fall back to SQLite for local development
 # This will now look for 'DATABASE' as set in your Render environment
 uri = os.environ.get('DATABASE_URL')
