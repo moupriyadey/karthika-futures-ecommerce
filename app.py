@@ -1067,7 +1067,16 @@ def purchase_form():
             print("Response JSON:", recaptcha_result)
 
             if not recaptcha_result.get('success'):
-                flash("reCAPTCHA verification failed. Please check the box.", "danger")
+                error_codes = recaptcha_result.get('error-codes', [])
+                if 'invalid-input-secret' in error_codes:
+                    flash("reCAPTCHA verification failed: Invalid secret key. Please check your configuration.", "danger")
+                elif 'hostname-mismatch' in error_codes:
+                    flash("reCAPTCHA verification failed: Domain mismatch. Is your domain correctly registered in the reCAPTCHA console?", "danger")
+                elif 'timeout-or-duplicate' in error_codes:
+                    flash("reCAPTCHA verification failed: Timed out. Please try again.", "danger")
+                else:
+                    flash(f"reCAPTCHA verification failed: {', '.join(error_codes)}. Please try again.", "danger")
+                
                 return render_template('purchase_form.html',
                                        items_to_process=items_to_process, 
                                        subtotal_before_gst=subtotal_before_gst,
