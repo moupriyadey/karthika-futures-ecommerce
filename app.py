@@ -7,9 +7,6 @@ import cloudinary.uploader
 import json
 import csv
 import uuid
-import requests
-import socket
-
 from datetime import datetime, timedelta # Ensure timedelta is imported here
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -85,16 +82,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB limit for uploads
-import socket
-
-# Detect environment (localhost or production)
-hostname = socket.gethostname()
-flask_env = os.getenv("FLASK_ENV", "production")
-
-# Use reCAPTCHA keys from environment variables (production only)
-app.config['RECAPTCHA_SITE_KEY'] = os.getenv("RECAPTCHA_SITE_KEY")
-app.config['RECAPTCHA_SECRET_KEY'] = os.getenv("RECAPTCHA_SECRET_KEY")
-
 # Get DATABASE from environment, fall back to SQLite for local development
 # This will now look for 'DATABASE' as set in your Render environment
 uri = os.environ.get('DATABASE_URL')
@@ -105,12 +92,7 @@ if uri and uri.startswith('postgres://'):
     uri = uri.replace('postgres://', 'postgresql://', 1)
 
 # Use the 'uri' variable for SQLALCHEMY_DATABASE_URI
-database_url = os.environ.get('DATABASE_URL')
-if not database_url:
-    raise ValueError("DATABASE_URL environment variable is not set. Cannot connect to the database.")
-if database_url.startswith('postgres://'):
-    database_url = database_url.replace('postgres://', 'postgresql://', 1)
-app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or 'sqlite:///site.db'
 
 # Debug print to confirm correct DB URI is being used
 print("Database URI in use:", app.config['SQLALCHEMY_DATABASE_URI'])
@@ -138,7 +120,7 @@ cloudinary.config(
 )
 # Business Details (for invoices, etc.)
 app.config['OUR_BUSINESS_NAME'] = "Karthika Futures"
-app.config['OUR_BUSINESS_ADDRESS'] = "Annapoorna Appartment, New Alipur, Kolkata - 53"
+app.config['OUR_BUSINESS_ADDRESS'] = "123 Divine Path, Spiritual City, Karnataka - 560001"
 app.config['OUR_GSTIN'] = "29ABCDE1234F1Z5" # Example GSTIN
 app.config['OUR_PAN'] = "ABCDE1234F" # Example PAN
 app.config['DEFAULT_GST_RATE'] = Decimal('18.00') # Default GST rate for products
@@ -920,6 +902,10 @@ def create_direct_order():
 
 # MODIFIED: Purchase form to handle both cart checkout and direct purchase
 # In app.py, locate your purchase_form route and update it.
+# If you don't have a purchase_form route, please let me know its actual name.
+
+# In app.py, locate your purchase_form route and update it.
+# app.py (Modified Excerpt for purchase_form route)
 
 @app.route('/purchase-form', methods=['GET', 'POST'])
 @login_required
@@ -976,22 +962,21 @@ def purchase_form():
             if not all([full_name, phone, address_line1, city, state, pincode]):
                 flash('Please fill in all required fields for the new address.', 'danger')
                 return render_template('purchase_form.html',
-                                       items_to_process=items_to_process,
-                                       subtotal_before_gst=subtotal_before_gst,
-                                       total_gst=total_gst,
-                                       shipping_charge=shipping_charge,
-                                       final_total_amount=final_total_amount,
-                                       user_addresses=user_addresses,
-                                       prefill_address=prefill_address_dict,
-                                       form_data=request.form.to_dict(),
-                                       total_cgst_amount=total_cgst_amount,
-                                       total_sgst_amount=total_sgst_amount,
-                                       total_igst_amount=total_igst_amount,
-                                       total_ugst_amount=total_ugst_amount,
-                                       total_cess_amount=total_cess_amount,
-                                       has_addresses=bool(user_addresses),
-                                       current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email},
-                                       config=app.config)
+                                         items_to_process=items_to_process,
+                                         subtotal_before_gst=subtotal_before_gst,
+                                         total_gst=total_gst,
+                                         shipping_charge=shipping_charge,
+                                         final_total_amount=final_total_amount,
+                                         user_addresses=user_addresses,
+                                         prefill_address=prefill_address_dict,
+                                         form_data=request.form.to_dict(),
+                                         total_cgst_amount=total_cgst_amount,
+                                         total_sgst_amount=total_sgst_amount,
+                                         total_igst_amount=total_igst_amount,
+                                         total_ugst_amount=total_ugst_amount,
+                                         total_cess_amount=total_cess_amount,
+                                         has_addresses=bool(user_addresses),
+                                         current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
 
             new_address = Address(
                 user_id=current_user.id,
@@ -1009,113 +994,48 @@ def purchase_form():
             session['pre_selected_address_id'] = new_address.id
             flash('New address added successfully! Please select it below before placing the order.', 'info')
             return redirect(url_for('purchase_form'))
-
+        
         elif action_type == 'place_order':
             selected_address_id = request.form.get('selected_address_id') or request.form.get('shipping_address')
             
             if not selected_address_id:
                 flash('Please select a shipping address.', 'danger')
                 return render_template('purchase_form.html',
-                                       items_to_process=items_to_process, 
-                                       subtotal_before_gst=subtotal_before_gst,
-                                       total_gst=total_gst,
-                                       shipping_charge=shipping_charge,
-                                       final_total_amount=final_total_amount,
-                                       user_addresses=user_addresses,
-                                       prefill_address=prefill_address_dict,
-                                       form_data=request.form.to_dict(),
-                                       total_cgst_amount=total_cgst_amount,
-                                       total_sgst_amount=total_sgst_amount,
-                                       total_igst_amount=total_igst_amount,
-                                       total_ugst_amount=total_ugst_amount,
-                                       total_cess_amount=total_cess_amount,
-                                       has_addresses=bool(user_addresses),
-                                       current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email},
-                                       config=app.config)
-
-            # --- reCAPTCHA Verification Start ---
-            recaptcha_secret = app.config['RECAPTCHA_SECRET_KEY']
-            recaptcha_response = request.form.get('g-recaptcha-response')
-
-            if not recaptcha_response:
-                flash("reCAPTCHA validation failed. Please try again.", "danger")
-                return render_template('purchase_form.html',
-                                       items_to_process=items_to_process, 
-                                       subtotal_before_gst=subtotal_before_gst,
-                                       total_gst=total_gst,
-                                       shipping_charge=shipping_charge,
-                                       final_total_amount=final_total_amount,
-                                       user_addresses=user_addresses,
-                                       prefill_address=prefill_address_dict,
-                                       form_data=request.form.to_dict(),
-                                       total_cgst_amount=total_cgst_amount,
-                                       total_sgst_amount=total_sgst_amount,
-                                       total_igst_amount=total_igst_amount,
-                                       total_ugst_amount=total_ugst_amount,
-                                       total_cess_amount=total_cess_amount,
-                                       has_addresses=bool(user_addresses),
-                                       current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email},
-                                       config=app.config)
-
-            recaptcha_data = {
-                'secret': recaptcha_secret,
-                'response': recaptcha_response
-            }
-            recaptcha_verification = requests.post('https://www.google.com/recaptcha/api/siteverify', data=recaptcha_data)
-            recaptcha_result = recaptcha_verification.json()
-            print("=== reCAPTCHA Debug ===")
-            print("Response JSON:", recaptcha_result)
-
-            if not recaptcha_result.get('success'):
-                error_codes = recaptcha_result.get('error-codes', [])
-                if 'invalid-input-secret' in error_codes:
-                    flash("reCAPTCHA verification failed: Invalid secret key. Please check your configuration.", "danger")
-                elif 'hostname-mismatch' in error_codes:
-                    flash("reCAPTCHA verification failed: Domain mismatch. Is your domain correctly registered in the reCAPTCHA console?", "danger")
-                elif 'timeout-or-duplicate' in error_codes:
-                    flash("reCAPTCHA verification failed: Timed out. Please try again.", "danger")
-                else:
-                    flash(f"reCAPTCHA verification failed: {', '.join(error_codes)}. Please try again.", "danger")
-                
-                return render_template('purchase_form.html',
-                                       items_to_process=items_to_process, 
-                                       subtotal_before_gst=subtotal_before_gst,
-                                       total_gst=total_gst,
-                                       shipping_charge=shipping_charge,
-                                       final_total_amount=final_total_amount,
-                                       user_addresses=user_addresses,
-                                       prefill_address=prefill_address_dict,
-                                       form_data=request.form.to_dict(),
-                                       total_cgst_amount=total_cgst_amount,
-                                       total_sgst_amount=total_sgst_amount,
-                                       total_igst_amount=total_igst_amount,
-                                       total_ugst_amount=total_ugst_amount,
-                                       total_cess_amount=total_cess_amount,
-                                       has_addresses=bool(user_addresses),
-                                       current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email},
-                                       config=app.config)
-            # --- reCAPTCHA Verification End ---
+                                         items_to_process=items_to_process, 
+                                         subtotal_before_gst=subtotal_before_gst,
+                                         total_gst=total_gst,
+                                         shipping_charge=shipping_charge,
+                                         final_total_amount=final_total_amount,
+                                         user_addresses=user_addresses,
+                                         prefill_address=prefill_address_dict,
+                                         form_data=request.form.to_dict(),
+                                         total_cgst_amount=total_cgst_amount,
+                                         total_sgst_amount=total_sgst_amount,
+                                         total_igst_amount=total_igst_amount,
+                                         total_ugst_amount=total_ugst_amount,
+                                         total_cess_amount=total_cess_amount,
+                                         has_addresses=bool(user_addresses),
+                                         current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
 
             shipping_address_obj = db.session.get(Address, selected_address_id)
             if not shipping_address_obj or shipping_address_obj.user_id != current_user.id:
                 flash("Invalid address selection.", "danger")
                 return render_template('purchase_form.html',
-                                       items_to_process=items_to_process, 
-                                       subtotal_before_gst=subtotal_before_gst,
-                                       total_gst=total_gst,
-                                       shipping_charge=shipping_charge,
-                                       final_total_amount=final_total_amount,
-                                       user_addresses=user_addresses,
-                                       prefill_address=prefill_address_dict,
-                                       form_data=request.form.to_dict(),
-                                       total_cgst_amount=total_cgst_amount,
-                                       total_sgst_amount=total_sgst_amount,
-                                       total_igst_amount=total_igst_amount,
-                                       total_ugst_amount=total_ugst_amount,
-                                       total_cess_amount=total_cess_amount,
-                                       has_addresses=bool(user_addresses),
-                                       current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email},
-                                       config=app.config)
+                                         items_to_process=items_to_process, 
+                                         subtotal_before_gst=subtotal_before_gst,
+                                         total_gst=total_gst,
+                                         shipping_charge=shipping_charge,
+                                         final_total_amount=final_total_amount,
+                                         user_addresses=user_addresses,
+                                         prefill_address=prefill_address_dict,
+                                         form_data=request.form.to_dict(),
+                                         total_cgst_amount=total_cgst_amount,
+                                         total_sgst_amount=total_sgst_amount,
+                                         total_igst_amount=total_igst_amount,
+                                         total_ugst_amount=total_ugst_amount,
+                                         total_cess_amount=total_cess_amount,
+                                         has_addresses=bool(user_addresses),
+                                         current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
 
             try:
                 new_order = Order(
@@ -1156,6 +1076,7 @@ def purchase_form():
                 session.pop('direct_purchase_cart', None)
                 session.modified = True
 
+                # ✅ Send confirmation email with attached invoice
                 try:
                     msg = Message(
                         subject=f"Your Order #{new_order.id} Confirmation - Karthika Futures",
@@ -1183,7 +1104,7 @@ def purchase_form():
             except Exception as e:
                 db.session.rollback()
                 flash(f'An unexpected error occurred: {e}', 'danger')
-    
+    # ----- Handle GET -----
     (items_to_process, subtotal_before_gst, total_cgst_amount, 
      total_sgst_amount, total_igst_amount, total_ugst_amount, total_cess_amount,
      total_gst, final_total_amount, shipping_charge) = get_cart_items_details()
@@ -1215,9 +1136,9 @@ def purchase_form():
                            total_cess_amount=total_cess_amount,
                            new_address_added=bool(pre_selected_id),
                            has_addresses=bool(user_addresses),
-                           config=app.config,
-                           current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email}
-)
+                           current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
+
+
 
 
 @app.route('/set-default-address/<uuid:address_id>', methods=['POST'])
@@ -1850,23 +1771,22 @@ def payment_submit(order_id):
         flash('Screenshot too large. Please upload an image smaller than 1.5 MB.', 'danger')
         return redirect(url_for('payment_initiate', order_id=order.id, amount=order.total_amount))
 
-    # Upload file to Cloudinary and update order
-    try:
-        cloudinary_result = cloudinary.uploader.upload(payment_screenshot, folder="payment_screenshots")
-        if cloudinary_result:
-            order.payment_screenshot = cloudinary_result['secure_url']
-            order.status = 'Payment Submitted - Awaiting Verification'
-            order.payment_status = 'submitted'
-            db.session.commit()
-            flash('Success! Your order has been placed.', 'success')
-            return redirect(url_for('order_summary', order_id=order.id))
-        else:
-            flash('Failed to upload payment screenshot to Cloudinary. Please try again.', 'danger')
-            return redirect(url_for('payment_initiate', order_id=order.id, amount=order.total_amount))
-    except Exception as e:
-        app.logger.error(f"Cloudinary upload failed for payment screenshot: {e}")
-        flash('An error occurred during file upload. Please try again.', 'danger')
-        return redirect(url_for('payment_initiate', order_id=order.id, amount=order.total_amount))# NEW: Route for the Thank You page
+    # Save file
+    filename = secure_filename(payment_screenshot.filename)
+    unique_filename = str(uuid.uuid4()) + '_' + filename
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+    payment_screenshot.save(file_path)
+    order.payment_screenshot = f'uploads/{unique_filename}'
+
+    # Update order
+    order.status = 'Payment Submitted - Awaiting Verification'
+    order.payment_status = 'submitted'
+
+    db.session.commit()
+    flash('Success! Your order has been placed.', 'success')
+    return redirect(url_for('order_summary', order_id=order.id))
+
+# NEW: Route for the Thank You page
 # CHANGED: <int:order_id> to <string:order_id>
 @app.route('/thank-you/<string:order_id>') 
 @login_required # If only logged-in users can view their orders
