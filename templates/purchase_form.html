@@ -336,22 +336,20 @@
 
         // Event listener for existing address radio buttons
         addressRadios.forEach(radio => {
-            radio.addEventListener('change', function() {
-                if (this.checked) {
-                    updatePlaceOrderButton(); // Enable button if an address is selected
-                    noAddressAlert.classList.add('hidden'); // Hide alert if an address is selected
-                    hiddenSelectedAddressIdInput.value = this.value; // Update hidden input
-                    newAddressFormDiv.classList.add('hidden'); // Hide new address form
-                    updateNewAddressFormRequired(false); // New address fields not required
-                    if (hasAddresses && document.getElementById('existingAddressesDisplay')) {
-                        document.getElementById('existingAddressesDisplay').classList.remove('hidden');
-                    }
-                    if (noAddressesMessage) {
-                        noAddressesMessage.classList.add('hidden');
-                    }
-                }
-            });
-        });
+    radio.addEventListener('change', function() {
+        hiddenSelectedAddressIdInput.value = this.value;  // always update hidden input
+        updatePlaceOrderButton();                          // always check button state
+        noAddressAlert.classList.add('hidden');            // hide alert
+        newAddressFormDiv.classList.add('hidden');         // hide new address form
+        updateNewAddressFormRequired(false);              // not required anymore
+        if (hasAddresses && document.getElementById('existingAddressesDisplay')) {
+            document.getElementById('existingAddressesDisplay').classList.remove('hidden');
+        }
+        if (noAddressesMessage) {
+            noAddressesMessage.classList.add('hidden');
+        }
+    });
+});
 
         // Event listener for "Add New Address" button within the new address form
         if (newAddressAddButton) {
