@@ -137,6 +137,34 @@
           <a href="{{ url_for('payment_initiate', order_id=order.id, amount=order.total_amount) }}" class="btn-primary w-full py-3 text-center text-sm font-semibold rounded-lg shadow-md transition-all duration-200 hover:bg-indigo-600">Proceed to Payment</a>
         {% else %}
           <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+            
+            <a href="javascript:history.back()" class="btn btn-secondary inline-flex items-center px-4 py-2 font-semibold text-sm rounded-lg shadow-sm transition-all duration-200">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                    Go Back
+            </a>
+
+      <!-- Place this at the end of your <body> on every page -->
+<button id="goBackBtn" onclick="history.back()" 
+    style="
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 10px 15px;
+        font-size: 14px;
+        cursor: pointer;
+        border: 3px solid #0f03fc;
+        border-radius: 5px;
+        background-color: #3bc949;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+        z-index: 9999;
+    ">
+    ⬅ Go Back
+</button>
+
+
+
             <a href="{{ url_for('all_products') }}" class="btn-secondary w-full py-3 text-center text-sm font-semibold rounded-lg border transition-all duration-200 hover:bg-gray-100">Continue Shopping</a>
             <a href="{{ url_for('user_orders') }}" class="btn-secondary w-full py-3 text-center text-sm font-semibold rounded-lg border transition-all duration-200 hover:bg-gray-100">Go to My Orders</a>
           </div>
@@ -146,7 +174,7 @@
 
     <div class="text-center py-8">
       <h3 class="text-2xl font-bold text-gray-800">Thank you for your purchase!</h3>
-      <p class="mt-2 text-lg text-gray-600">We appreciate your business and hope to see you again soon.</p>
+      <p class="mt-2 text-lg text-gray-600">We appreciate your interest and hope to see you again soon.</p>
     </div>
 
   </div>

@@ -3101,7 +3101,7 @@ def delete_order(order_id):
     if not current_user.is_admin() and order.status not in ['Pending Payment', 'Payment Failed', 'Cancelled by User', 'Cancelled by Admin']:
         if is_ajax:
             return jsonify(success=False, message='You are not allowed to delete this order.'), 403
-        flash('This order cannot be deleted.', 'danger')
+        flash('For cancellation of this Order, Call/Whatsapp: 8920283981', 'danger')
         return redirect(url_for('user_orders'))
 
     try:
