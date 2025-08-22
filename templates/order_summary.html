@@ -124,11 +124,11 @@
           </svg>
           <h4 class="text-lg font-semibold text-gray-700">Payment Screenshot</h4>
         </div>
-        <img src="{{ order.payment_screenshot }}"
-        alt="Payment Screenshot"
-             class="cursor-pointer border rounded-lg shadow-sm w-20 h-20 object-cover"
-             data-bs-toggle="modal"
-             data-bs-target="#screenshotModal">
+        <img src="{{ url_for('static', filename=order.payment_screenshot) }}"
+     alt="Payment Screenshot"
+     class="cursor-pointer border rounded-lg shadow-sm w-20 h-20 object-cover"
+     data-bs-toggle="modal"
+     data-bs-target="#screenshotModal">
       </div>
       {% endif %}
 
@@ -157,7 +157,7 @@
   <div class="modal-dialog modal-dialog-centered modal-xl">
     <div class="modal-content bg-dark">
       <div class="modal-body text-center">
-        <img src="{{ order.payment_screenshot }}" class="modal-img-preview" alt="Full Screenshot">
+        <img src="{{ url_for('static', filename=order.payment_screenshot) }}" class="modal-img-preview" alt="Full Screenshot">
       </div>
     </div>
   </div>
