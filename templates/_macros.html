@@ -1,0 +1,10 @@
+{# templates/_macros.html #}
+{% macro get_image_src(image_path) %}
+    {% if not image_path %}
+        {{ url_for('static', filename='images/placeholder.png') }}
+    {% elif image_path.startswith('http') %}
+        {{ image_path }}
+    {% else %}
+        {{ url_for('static', filename=image_path) }}
+    {% endif %}
+{% endmacro %}
