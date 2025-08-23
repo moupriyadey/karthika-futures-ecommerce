@@ -92,7 +92,12 @@ if uri and uri.startswith('postgres://'):
     uri = uri.replace('postgres://', 'postgresql://', 1)
 
 # Use the 'uri' variable for SQLALCHEMY_DATABASE_URI
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or 'sqlite:///site.db'
+database_url = os.environ.get('DATABASE_URL')
+if not database_url:
+    raise ValueError("DATABASE_URL environment variable is not set. Cannot connect to the database.")
+if database_url.startswith('postgres://'):
+    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 
 # Debug print to confirm correct DB URI is being used
 print("Database URI in use:", app.config['SQLALCHEMY_DATABASE_URI'])
@@ -1771,22 +1776,23 @@ def payment_submit(order_id):
         flash('Screenshot too large. Please upload an image smaller than 1.5 MB.', 'danger')
         return redirect(url_for('payment_initiate', order_id=order.id, amount=order.total_amount))
 
-    # Save file
-    filename = secure_filename(payment_screenshot.filename)
-    unique_filename = str(uuid.uuid4()) + '_' + filename
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-    payment_screenshot.save(file_path)
-    order.payment_screenshot = f'uploads/{unique_filename}'
-
-    # Update order
-    order.status = 'Payment Submitted - Awaiting Verification'
-    order.payment_status = 'submitted'
-
-    db.session.commit()
-    flash('Success! Your order has been placed.', 'success')
-    return redirect(url_for('order_summary', order_id=order.id))
-
-# NEW: Route for the Thank You page
+    # Upload file to Cloudinary and update order
+    try:
+        cloudinary_result = cloudinary.uploader.upload(payment_screenshot, folder="payment_screenshots")
+        if cloudinary_result:
+            order.payment_screenshot = cloudinary_result['secure_url']
+            order.status = 'Payment Submitted - Awaiting Verification'
+            order.payment_status = 'submitted'
+            db.session.commit()
+            flash('Success! Your order has been placed.', 'success')
+            return redirect(url_for('order_summary', order_id=order.id))
+        else:
+            flash('Failed to upload payment screenshot to Cloudinary. Please try again.', 'danger')
+            return redirect(url_for('payment_initiate', order_id=order.id, amount=order.total_amount))
+    except Exception as e:
+        app.logger.error(f"Cloudinary upload failed for payment screenshot: {e}")
+        flash('An error occurred during file upload. Please try again.', 'danger')
+        return redirect(url_for('payment_initiate', order_id=order.id, amount=order.total_amount))# NEW: Route for the Thank You page
 # CHANGED: <int:order_id> to <string:order_id>
 @app.route('/thank-you/<string:order_id>') 
 @login_required # If only logged-in users can view their orders
@@ -3101,7 +3107,7 @@ def delete_order(order_id):
     if not current_user.is_admin() and order.status not in ['Pending Payment', 'Payment Failed', 'Cancelled by User', 'Cancelled by Admin']:
         if is_ajax:
             return jsonify(success=False, message='You are not allowed to delete this order.'), 403
-        flash('For cancellation of this Order, Call/Whatsapp: 8920283981', 'danger')
+        flash('This order cannot be deleted.', 'danger')
         return redirect(url_for('user_orders'))
 
     try:
