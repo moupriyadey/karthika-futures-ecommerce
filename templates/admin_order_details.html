@@ -100,9 +100,9 @@
             <p><strong>Status:</strong> {{ order.payment_status }}</p>
             {% if order.payment_screenshot %}
                 <div class="mb-2">
-                    <a href="{{ url_for('static', filename=order.payment_screenshot) }}" target="_blank">
-                        <img src="{{ url_for('static', filename=order.payment_screenshot) }}" alt="Payment Screenshot" class="img-fluid img-thumbnail" style="max-height: 250px;">
-                    </a>
+                   <a href="{{ order.payment_screenshot }}" target="_blank">
+    <img src="{{ order.payment_screenshot }}" alt="Payment Screenshot" class="img-fluid img-thumbnail" style="max-height: 250px;">
+</a>
                 </div>
             {% else %}
                 <p class="text-muted">No payment screenshot uploaded.</p>
