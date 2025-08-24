@@ -62,7 +62,8 @@
                     <tbody>
                         {% for order in orders[:5] %} {# Displaying only top 5 recent orders #}
                         <tr>
-                            <td>{{ order.id[:8] }}...</td>
+                            <td>{{ order.id }}</td>
+
                             <td>{{ order.customer.full_name or order.customer.email }}</td>
                             <td>{{ order.order_date.strftime('%Y-%m-%d %H:%M') }}</td>
                             <td>{{ order.total_amount | currency }}</td>
