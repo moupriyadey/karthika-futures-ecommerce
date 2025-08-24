@@ -167,3 +167,191 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
 {% endblock %}
+
+{% block extra_css %}
+<style>
+  #confetti-canvas {
+    width: 100vw !important;
+  height: 100vh !important;
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1000000; /* behind overlay text */
+  }
+.fade-out {
+  animation: fadeOut 2s forwards; /* adjust duration */
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; visibility: hidden; }
+}
+
+  /* Celebration Overlay */
+  #celebration-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.3); /* semi-transparent */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    z-index: 999999;  /* text on top */
+    padding: 1rem;
+    text-align: center;
+    animation: fadeOut 1s ease 3s forwards;
+  }
+
+  #celebration-text {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #e76f51;
+    text-shadow: 1px 1px 4px rgba(0,0,0,0.3); /* better readability */
+    animation: zoomIn 0.8s ease;
+  }
+
+  .rain-fade-out {
+  animation: fadeOut 2s ease forwards;
+}
+
+/* Sacred Icon Rain */
+#rain-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 999999; /* keep above confetti, behind overlay text */
+}
+
+.rain-drop {
+  position: absolute;
+  top: -50px;
+  opacity: 0.9;
+  animation: fall linear infinite;
+}
+
+@keyframes fall {
+  0%   { transform: translateY(-50px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+}
+
+
+  @media (max-width: 640px) {
+    #celebration-text {
+      font-size: 1.8rem; /* scales on mobile */
+    }
+  }
+
+  @keyframes zoomIn {
+    0% { transform: scale(0.3); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes fadeOut {
+    to { opacity: 0; visibility: hidden; }
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  // Create overlay AND confetti canvas immediately
+  const overlay = document.createElement("div");
+  overlay.id = "celebration-overlay";
+  overlay.innerHTML = `
+  <div id="celebration-text">
+    ✨ 📦Your Order Confirmed✅✅ ✨
+    
+   <div style="margin-top:10px; font-size:1rem; font-weight:600;">
+  🕉️ 🙏🏼 <span style="background: linear-gradient(90deg, #008080, #00c896); 
+                         -webkit-background-clip: text; 
+                         -webkit-text-fill-color: transparent; 
+                         text-shadow: 1px 1px 2px rgba(0,0,0,0.15);">
+    Thank you for choosing Karthika Futures
+  </span> 🪔🌸
+</div>
+
+
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const confettiCanvas = document.createElement("canvas");
+  confettiCanvas.id = "confetti-canvas";
+  document.body.appendChild(confettiCanvas);
+
+  // Sacred Icon Rain
+const rainContainer = document.createElement("div");
+rainContainer.id = "rain-container";
+document.body.appendChild(rainContainer);
+
+const sacredIcons = ["🌸", "🌼", "✨","🌺","☀️", "🪷", "📦","🎁","🎉","🏵️", "🌟", "🟠", "✨", "🔅", "🔆"];
+
+for (let i = 0; i < 40; i++) {   // number of falling icons
+  const drop = document.createElement("div");
+  drop.className = "rain-drop";
+
+  // Random icon
+  drop.innerText = sacredIcons[Math.floor(Math.random() * sacredIcons.length)];
+
+  // Random horizontal position
+  drop.style.left = Math.random() * 100 + "vw";
+
+  // Random animation delay & duration
+  drop.style.animationDelay = Math.random() * 5 + "s";
+  drop.style.animationDuration = (5 + Math.random() * 5) + "s";
+
+  // Random size
+  drop.style.fontSize = (Math.random() * 20 + 15) + "px";
+
+  // Random color
+  drop.style.color = ["#e60073", "#ff9933", "#009933", "#6633cc", "#ffcc00"][Math.floor(Math.random() * 5)];
+
+  rainContainer.appendChild(drop);
+}
+
+
+  // Confetti instance
+  const confettiInstance = confetti.create(confettiCanvas, { resize: true, useWorker: true });
+
+  // Confetti rain
+  const duration = 5000; // duration in ms
+  const end = Date.now() + duration;
+
+  (function rain() {
+    const timeLeft = end - Date.now();
+    if (timeLeft <= 0) return;
+
+    confettiInstance({
+      particleCount: 7 + Math.random() * 7,
+      angle: 90,
+      spread: 50,
+      origin: { x: Math.random(), y: 0 },
+      gravity: 0.6 + Math.random() * 0.4,
+      scalar: 0.8 + Math.random() * 0.4,
+      drift: 0.1 - Math.random() * 0.2
+    });
+
+    requestAnimationFrame(rain);
+  })();
+
+  // Fade out overlay & confetti after duration
+setTimeout(() => {
+  overlay.classList.add("fade-out");
+  confettiCanvas.classList.add("rain-fade-out");
+  rainContainer.classList.add("rain-fade-out");
+}, duration);
+
+setTimeout(() => {
+  overlay.remove();
+  confettiCanvas.remove();
+  rainContainer.remove();
+}, duration + 2000);
+
+
+});
+</script>
+{% endblock %}

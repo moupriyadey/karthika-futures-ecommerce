@@ -7,6 +7,7 @@ import cloudinary.uploader
 import json
 import csv
 import uuid
+import requests
 from datetime import datetime, timedelta # Ensure timedelta is imported here
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -79,12 +80,14 @@ app.jinja_env.filters['slugify'] = slugify
 # --- Configuration ---
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_very_secret_key_that_should_be_in_env')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['RECAPTCHA_SECRET_KEY'] = os.environ.get('RECAPTCHA_SECRET_KEY')
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB limit for uploads
 # Get DATABASE from environment, fall back to SQLite for local development
 # This will now look for 'DATABASE' as set in your Render environment
 uri = os.environ.get('DATABASE_URL')
+
 
 
 # Render's PostgreSQL URL might use 'postgres://', but SQLAlchemy prefers 'postgresql://'
@@ -117,6 +120,7 @@ app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = os.environ.get('EMAIL_USER', 'smarasada@gmail.com') # REPLACE WITH YOUR EMAIL
 app.config['MAIL_PASSWORD'] = os.environ.get('EMAIL_PASS', 'ujipgkporeybjtoy') # REPLACE WITH YOUR APP PASSWORD
+
 
 cloudinary.config(
     cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME'),
@@ -1172,6 +1176,7 @@ def set_default_address(address_id):
 
     return redirect(url_for('my_addresses'))
 # MODIFIED: Signup route to include OTP verification and next_url capture
+# MODIFIED: Signup route to include OTP verification and next_url capture
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if current_user.is_authenticated:
@@ -1188,7 +1193,26 @@ def signup():
             session['redirect_after_auth'] = request.referrer
     
     form_data = {}
+    
     if request.method == 'POST':
+        # THIS IS THE CORRECT LOCATION FOR THE RECAPTCHA CODE
+        recaptcha_response = request.form.get('g-recaptcha-response')
+        
+        # Verify reCAPTCHA
+        recaptcha_verify_url = 'https://www.google.com/recaptcha/api/siteverify'
+        recaptcha_payload = {
+            'secret': app.config['RECAPTCHA_SECRET_KEY'],
+            'response': recaptcha_response
+        }
+        recaptcha_verification = requests.post(recaptcha_verify_url, data=recaptcha_payload)
+        recaptcha_result = recaptcha_verification.json()
+        
+        # Check if reCAPTCHA verification was successful
+        if not recaptcha_result.get('success'):
+            flash('reCAPTCHA verification failed. Please try again.', 'danger')
+            return render_template('signup.html', form_data=request.form)
+
+        # START OF YOUR ORIGINAL CODE
         email = request.form.get('email')
         phone = request.form.get('phone')
         password = request.form.get('password')
@@ -1255,6 +1279,7 @@ def signup():
 
     return render_template('signup.html', form_data=form_data)
 
+# ... (the rest of your code, including the helper function) ...
 # NEW: Helper function to handle post-authentication redirection
 def _handle_post_auth_redirect():
     # Prioritize direct purchase flow (from 'Buy Now' button)

@@ -60,10 +60,16 @@
                 </span>
             </div>
             
-            <button type="submit"
-                    class="w-full bg-primary hover:bg-orange-700 text-white font-bold py-2.5 px-4 rounded-md transition duration-300 transform hover:scale-105 shadow-md">
-                Sign Up
-            </button>
+            <div class="g-recaptcha" data-sitekey="6LeoTq4rAAAAAI6iQm9z604XN0xMAM4ASYJFOVqJ"></div>
+
+            <div class="text-center">
+                
+    <button type="submit" class="btn btn-primary" id="signup-button" style="width: 100%;">
+        <span class="btn-text">Sign Up</span>
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
+    </button>
+</div>
+
         </form>
         <p class="text-center text-gray-600 mt-6">
             Already have an account? <a href="{{ url_for('user_login') }}" class="text-blue-600 hover:underline font-semibold">Login here</a>
@@ -71,7 +77,108 @@
     </div>
 </div>
 
+<style>
+.btn-primary {
+        background-color: #3b82f6 !important;
+        border-color: #3b82f6 !important;
+        color: white !important;
+    }
+    .spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-left-color: #fff;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+</style>
 <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const signupForm = document.getElementById('signup-form');
+        const signupButton = document.getElementById('signup-button');
+        const buttonText = signupButton.querySelector('.btn-text');
+        const spinner = signupButton.querySelector('.spinner-border');
+
+        // Function to show the loading state
+        function showLoadingState() {
+            if (buttonText) {
+                buttonText.style.display = 'none';
+            }
+            if (spinner) {
+                spinner.style.display = 'inline-block';
+            }
+            signupButton.disabled = true;
+        }
+
+        // Function to reset the button state
+        function hideLoadingState() {
+            if (buttonText) {
+                buttonText.style.display = 'inline';
+            }
+            if (spinner) {
+                spinner.style.display = 'none';
+            }
+            signupButton.disabled = false;
+        }
+
+        // Intercept form submission
+        signupForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            showLoadingState();
+
+            const formData = new FormData(signupForm);
+            const url = signupForm.action;
+
+            fetch(url, {
+                method: signupForm.method,
+                body: formData
+            })
+            .then(response => {
+                // If there's a problem with the response, stop the spinner and show an error
+                if (!response.ok) {
+                    hideLoadingState();
+                    // You might want to handle specific error messages here
+                    return response.json().then(data => {
+                        console.error('Error:', data.message);
+                        alert(data.message || 'An unexpected error occurred. Please try again.');
+                    }).catch(() => {
+                        alert('An unexpected error occurred. Please try again.');
+                    });
+                }
+                
+                // If the response is a redirect, just follow it
+                if (response.redirected) {
+                    window.location.href = response.url;
+                } else {
+                    // Otherwise, parse the JSON
+                    return response.json().then(data => {
+                        if (data.status === 'exists') {
+                            alert(data.message);
+                            const loginUrl = '{{ url_for("user_login") }}' + '?prefill_email=' + encodeURIComponent(data.email);
+                            window.location.href = loginUrl;
+                        }
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                hideLoadingState();
+                alert('An unexpected error occurred. Please try again.');
+            });
+        });
+    });
+
+    // Your password visibility function remains the same
     function togglePasswordVisibility(fieldId, iconElement) {
         const passwordField = document.getElementById(fieldId);
         const iconContainer = iconElement.querySelector('svg');
@@ -92,40 +199,6 @@
             `;
         }
     }
-
-    // Intercept form submission
-    document.getElementById('signup-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const form = e.target;
-        const formData = new FormData(form);
-        const url = form.action;
-
-        // Use fetch to send the form data
-        fetch(url, {
-            method: form.method,
-            body: formData
-        })
-        .then(response => {
-            // Check if the response is JSON or a redirect
-            if (response.headers.get('Content-Type').includes('application/json')) {
-                return response.json().then(data => {
-                    if (data.status === 'exists') {
-                        // If user exists, show alert and redirect with pre-filled email
-                        alert(data.message);
-                        const loginUrl = '{{ url_for("user_login") }}' + '?prefill_email=' + encodeURIComponent(data.email);
-                        window.location.href = loginUrl;
-                    }
-                });
-            } else {
-                // If not JSON, assume it's a redirect and let the browser follow it
-                window.location.href = response.url;
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An unexpected error occurred. Please try again.');
-        });
-    });
 </script>
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
 {% endblock %}

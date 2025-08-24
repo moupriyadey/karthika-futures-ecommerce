@@ -69,8 +69,12 @@
                 <p class="text-xs text-gray-500 mt-1 text-center">Helps us process your order faster.</p>
             </div>
 
-            <button type="submit" class="w-full bg-primary text-white py-2.5 rounded-md text-lg hover:bg-orange-600 transition">
-                ✅ Confirm Payment
+            <button type="submit" id="confirm-btn" class="w-full bg-primary text-white py-2.5 rounded-md text-lg hover:bg-orange-600 transition flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
+                <span id="btn-text">✅ Confirm Payment</span>
+                <svg id="btn-spinner" class="hidden animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
             </button>
         </form>
 
@@ -94,7 +98,7 @@
         </div>
     </div>
 </div>
-{% endblock %}
+{% endblock %}  {# closes content #}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous">
@@ -117,6 +121,18 @@
     display: flex;
     flex-direction: column;
 }
+
+/* 🔥 Fullscreen loader styles FIXED here */
+#loading-overlay {
+    display: none; /* hidden by default */
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255,255,255,0.9);
+    z-index: 99999; /* above everything */
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
 </style>
 {% endblock %}
 
@@ -124,22 +140,47 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const form = document.querySelector('form');
+    // ✅ Target ONLY the payment form
+    const form = document.querySelector('form[action*="payment_submit"]');
     const loadingOverlay = document.getElementById('loading-overlay');
 
     if (form && loadingOverlay) {
+        // ✅ Capture phase + stopImmediatePropagation so our handler wins
         form.addEventListener('submit', function (e) {
-            // Prevent the default form submission immediately
+            // Guard against double submits
+            if (form.dataset.submitting === '1') return;
+
             e.preventDefault();
-            // Show the overlay
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+
+            form.dataset.submitting = '1';
+
+            // Disable the button
+            const confirmBtn = document.getElementById('confirm-btn');
+            if (confirmBtn) confirmBtn.disabled = true;
+
+            // Show button spinner + change text (with fallback if Tailwind 'hidden' is absent)
+            const btnText = document.getElementById('btn-text');
+            const btnSpinner = document.getElementById('btn-spinner');
+            if (btnText) btnText.textContent = "Processing...";
+            if (btnSpinner) {
+                btnSpinner.classList.remove('hidden');
+                btnSpinner.style.display = 'inline-block'; // fallback to ensure visibility
+            }
+
+            // Show the full-page overlay immediately
             loadingOverlay.style.display = 'flex';
-            // Wait a moment before submitting to ensure the UI updates
+
+            // ✅ Give the browser a paint window, then submit natively
             setTimeout(() => {
-                form.submit();
-            }, 500); // 500ms delay to ensure the overlay is seen
-        });
+                // Call the real native submit in case "submit" is shadowed
+                HTMLFormElement.prototype.submit.call(form);
+            }, 400); // 0.4s is enough for a visible flash
+        }, true); // <-- capture phase
     }
 
+    // --- QR generation (unchanged) ---
     const upiId = "{{ our_upi_id }}";
     const bankingName = "{{ our_banking_name }}";
     const orderId = "{{ order.id }}";
@@ -170,6 +211,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
+// --- Helpers (unchanged) ---
 function toggleHelp() {
     const helpBox = document.getElementById('help-box');
     helpBox.classList.toggle('show');
