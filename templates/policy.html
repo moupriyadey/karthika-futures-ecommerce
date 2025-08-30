@@ -1,0 +1,79 @@
+{% extends "_base.html" %}
+
+{% block title %}Policies - Karthika Futures{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="background-color:#fffaf0; border-radius:12px;">
+  <h1 class="text-center mb-5" style="color:#b34700; font-weight:800;">
+    🕉 Our Policies 🪔
+  </h1>
+
+  <!-- Shipping Policy -->
+  <div class="card mb-4 shadow-sm border-0">
+    <div class="card-body">
+      <h2 class="card-title" style="color:#993300;">🚚 Shipping Policy</h2>
+      <p>We carefully pack and dispatch each divine product with devotion. Orders are usually shipped within <b>2–4 working days</b> of confirmation.</p>
+      <ul>
+        <li>Delivery time depends on your location (typically 4–7 working days within India).</li>
+        <li>We will share a <b>courier tracking number</b> once shipped.</li>
+        <li>Shipping charges (if applicable) will be shown at checkout.</li>
+      </ul>
+      <p class="text-muted"><small>Note: Delivery delays due to courier issues, strikes, or natural causes are beyond our control but we will support you fully.</small></p>
+    </div>
+  </div>
+
+  <!-- Replacement & Refund Policy -->
+  <div class="card mb-4 shadow-sm border-0">
+    <div class="card-body">
+      <h2 class="card-title" style="color:#993300;">🔄 Replacement & Refund Policy</h2>
+      <p>We treat these sacred products with respect and pack them with utmost care. 🙏</p>
+
+      <h5>✨ Replacement Policy</h5>
+      <ul>
+        <li>If you receive a <b>damaged or defective product</b>, we will replace it with the same item at no cost.</li>
+        <li>Please share an <b>unedited unboxing video</b> within 48 hours of delivery (if open-box delivery is not performed).</li>
+        <li>Without this proof, we may not be able to process replacements.</li>
+      </ul>
+
+      <h5>✨ Refund Policy</h5>
+      <ul>
+        <li>Refunds are only given if replacement is not possible.</li>
+        <li>Refund will be processed to your original payment method.</li>
+        <li>No refunds for change of mind, wrong choice, or personal preferences.</li>
+      </ul>
+
+      <p class="text-muted"><small>Our humble request: Since these are <b>divine sacred items</b>, we encourage you to accept replacements instead of returns. Once a product is blessed and dispatched, it should reach a loving home and not return back. 🙏</small></p>
+    </div>
+  </div>
+
+  <!-- Privacy & Terms -->
+  <div class="card mb-4 shadow-sm border-0">
+    <div class="card-body">
+      <h2 class="card-title" style="color:#993300;">🔒 Privacy & Terms</h2>
+      <ul>
+        <li>All customer information (name, address, phone, email) is kept <b>safe and private</b>. We never share it with third parties except courier partners for delivery.</li>
+        <li>Payments are handled securely through trusted gateways/UPI.</li>
+        <li>Please use our site respectfully. Content, images, and designs are property of <b>Karthika Futures</b> and cannot be copied without permission.</li>
+      </ul>
+      <p class="text-muted"><small>By purchasing from our website, you agree to these policies in good faith and devotion. 🙏</small></p>
+    </div>
+  </div>
+</div>
+<button id="goBackBtn" onclick="history.back()" 
+    style="
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 10px 15px;
+        font-size: 14px;
+        cursor: pointer;
+        border: 1px solid #ffae00;
+        border-radius: 5px;
+        background-color: #3bc949;
+        box-shadow: 0 3px 8px rgba(247, 242, 242, 0.2);
+        z-index: 9999;
+    ">
+    ⬅ Go Back
+</button>
+
+{% endblock %}

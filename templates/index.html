@@ -9,9 +9,10 @@
     <!-- Background Video -->
     <video id="heroVideo" autoplay muted loop playsinline
     poster="{{ url_for('static', filename='images/video_placeholder.jpg') }}"
-    class="absolute inset-0 w-full h-full object-cover z-0">
+    class="absolute inset-0 w-full h-full object-cover z-0"
+    aria-label="A looping video showcasing divine Hindu art from the Mahabharata and Ramayana.">
     <source src="{{ url_for('static', filename='videos/hero1.mp4') }}" type="video/mp4">
-    Your browser does not support the video tag.
+    <p class="sr-only">A short video showing the wildeness of Kurukshetra of Mahabharata.</p>
 </video>
 
 
@@ -30,20 +31,22 @@
     </div>
 
     <!-- Text Content -->
-    <div class="relative z-30 text-center p-4 max-w-4xl mx-auto flex flex-col items-center justify-center">
-        <h1 class="fade-item text-3xl sm:text-5xl md:text-7xl font-extrabold mb-4 leading-tight text-shadow-lg">
-            Art Meets Divinity
-        </h1>
-        <p class="fade-item text-base sm:text-lg md:text-2xl mb-6 font-light text-shadow-md">
-            The battlefield of Kurukshetra was too fierce. No one could narrate the horrible time...
-            Embark on a spiritual journey through timeless artworks inspired by the Mahabharata and Hindu mythology.
-        </p>
-        <div class="fade-item go-button-wrapper">
-            <a href="/all-products" class="btn btn-primary text-base sm:text-xl px-6 sm:px-8 py-3 sm:py-4 rounded-full go-button-inner hover:scale-105 transition-transform duration-300">
-                Go
-            </a>
-        </div>
+<div class="relative z-30 text-center p-4 max-w-4xl mx-auto flex flex-col items-center justify-center">
+   
+<p class="text-base sm:text-lg md:text-2xl mb-6 font-light text-shadow-md appear-animation">
+
+       In 3102 BCE, the great Kurukshetra War unfolded—a divine clash between Dharma and Adharma. Guided by Lord Krishna’s wisdom, Arjuna stood against the mighty Adharma, and the battlefield became the turning point that marked the dawn of Kali Yuga. ✨ “Kurukshetra was not just a war—it was the ultimate test of Dharma.” ✨
+    </p>
+    <p class="text-base sm:text-lg md:text-2xl mb-6 font-light text-shadow-md appear-animation appear-animation-delay">
+        The echoes of that war still remind us that righteousness always prevails. Through our artworks at Karthika Futures, we preserve this eternal spirit, inviting you to bring the power of Dharma into your home and life.
+    </p>
+
+    <div class="fade-item go-button-wrapper">
+        <a href="/all-products" class="btn btn-primary text-base sm:text-xl px-6 sm:px-8 py-3 sm:py-4 rounded-full go-button-inner hover:scale-105 transition-transform duration-300">
+            Go
+        </a>
     </div>
+</div>
 
 </section>
 
@@ -127,24 +130,32 @@
 
 
 <!-- Golden background container with videos -->
-<section class="container my-5 fade-section pb-8 rounded-xl" style="background-color: #D6B760;">
+<section class="container my-5 fade-section pb-8 rounded-xl" style="background-color: #e6ca7c; box-shadow: -5px -5px 15px rgba(236, 241, 204, 0.945), 5px 5px 15px rgba(0, 0, 0, 0.1);">
   <div class="row g-4 fade-item">
     <div class="col-12 col-md-4">
       <div class="ratio ratio-16x9">
+
         <iframe src="https://www.youtube.com/embed/cBdKaw6WHNY?rel=0&autoplay=1&mute=1&controls=0&loop=1&playlist=cBdKaw6WHNY"
-                title="YouTube video" allow="autoplay; fullscreen" loading="lazy"></iframe>
-      </div>
+    title="YouTube video" allow="autoplay; fullscreen" loading="lazy"></iframe>
+
+       
+        
+          </div>
     </div>
 
 
         <div class="col-12 col-md-4">
             <div class="ratio ratio-16x9">
-                <iframe src="https://www.youtube.com/embed/yKAVLqwLtOo?rel=0&autoplay=1&mute=1&controls=0&loop=1&playlist=yKAVLqwLtOo" title="YouTube video" allow="autoplay; fullscreen" loading="lazy"></iframe>
-            </div>
+<iframe src="http://www.youtube.com/embed/yKAVLqwLtOo"
+    title="YouTube video" allow="autoplay; fullscreen" loading="lazy"></iframe>
+
+             </div>
         </div>
         <div class="col-12 col-md-4">
             <div class="ratio ratio-16x9">
-                <iframe src="https://www.youtube.com/embed/kGVV9l2sFg8?rel=0&autoplay=1&mute=1&controls=0&loop=1&playlist=kGVV9l2sFg8" title="YouTube video" allow="autoplay; fullscreen" loading="lazy"></iframe>
+                <iframe src="http://www.youtube.com/embed/kGVV9l2sFg8"
+    title="YouTube video" allow="autoplay; fullscreen" loading="lazy"></iframe>
+
             </div>
         </div>
     </div>
@@ -260,7 +271,7 @@
     </section>
 
     <section class="fade-section py-16 bg-gradient-to-br from-yellow-50 to-orange-50 text-gray-800">
-    <div class="container mx-auto text-center">
+    <div class="container mx-auto text-center" style="background-color: rgb(243, 247, 249);">
         <h2 class="fade-item text-4xl font-extrabold mb-6 text-primary">Support Dharma Prachar</h2>
 
             <p class="fade-item text-lg md:text-xl max-w-3xl mx-auto mb-8 leading-relaxed">
@@ -350,12 +361,37 @@
         <button onclick="closeFullImage(event)" class="absolute top-4 right-4 text-white text-2xl">&times;</button>
     </div>
 </div>
-
+<a href="#" id="goTopBtn" aria-label="Go to top of page" class="fixed-bottom-right z-50 text-white bg-primary p-3 rounded-full shadow-lg transition-opacity duration-300">
+    <i class="fas fa-arrow-up text-xl"></i>
+</a>
 </main>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+document.addEventListener("DOMContentLoaded", function () {
+    const goTopBtn = document.getElementById("goTopBtn");
+
+    // Show or hide the button based on scroll position
+    window.addEventListener("scroll", () => {
+        // Show the button when the user has scrolled down at least half the page height
+        if (window.scrollY > document.body.scrollHeight / 2) {
+            goTopBtn.classList.add("show");
+        } else {
+            goTopBtn.classList.remove("show");
+        }
+    });
+
+    // Smoothly scroll to the top when the button is clicked
+    goTopBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
+    });
+});
+
 document.addEventListener("DOMContentLoaded", function () {
     const fadeSections = document.querySelectorAll(".fade-section");
 
@@ -478,6 +514,42 @@ function closeFullImage(event) {
 
 
 <style>
+.fixed-bottom-right {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    opacity: 0;
+    visibility: hidden;
+    cursor: pointer;
+}
+
+.fixed-bottom-right.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Ensure Font Awesome is included for the arrow icon */
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css');
+
+@keyframes fadeInOut {
+    0%, 100% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    50% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.appear-animation {
+    animation: fadeInOut 18s ease-in-out forwards;
+}
+
+.appear-animation-delay {
+    animation-delay: 0s;
+}
+
 .watermark-overlay {
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><text x="100" y="50" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="rgba(0, 0, 0, 0.1)" text-anchor="middle" transform="rotate(-45 100 50)">karthikafutures</text></svg>');
     background-repeat: repeat;

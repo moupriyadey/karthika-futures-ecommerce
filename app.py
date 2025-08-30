@@ -129,10 +129,10 @@ cloudinary.config(
 )
 # Business Details (for invoices, etc.)
 app.config['OUR_BUSINESS_NAME'] = "Karthika Futures"
-app.config['OUR_BUSINESS_ADDRESS'] = "123 Divine Path, Spiritual City, Karnataka - 560001"
+app.config['OUR_BUSINESS_ADDRESS'] = "Annapoornna Appartmnet, New Alipore, Kolkata - 53"
 app.config['OUR_GSTIN'] = "29ABCDE1234F1Z5" # Example GSTIN
-app.config['OUR_PAN'] = "ABCDE1234F" # Example PAN
-app.config['DEFAULT_GST_RATE'] = Decimal('18.00') # Default GST rate for products
+app.config['OUR_PAN'] = "CTMPS6841J" # Example PAN
+app.config['DEFAULT_GST_RATE'] = Decimal('12.00') # Default GST rate for products
 # app.config['DEFAULT_SHIPPING_CHARGE'] = Decimal('100.00') # This is now deprecated for per-artwork shipping
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -3227,10 +3227,14 @@ with app.app_context():
         # Removed the print statement for this warning
         pass # Keep this for schema check, but no print output
 
-@app.route("/check-db")
-def check_db():
-    uri = app.config.get("SQLALCHEMY_DATABASE_URI", "Not Set")
-    return f"Database URI in use: {uri}"
+#@app.route("/checku-db")
+#def checku_db():
+    #uri = app.config.get("SQLALCHEMY_DATABASE_URI", "Not Set")
+    #return f"Database URI in use: {uri}"
+
+@app.route("/policy")
+def policy():
+    return render_template("policy.html")
 
 @app.route("/version")
 def version():

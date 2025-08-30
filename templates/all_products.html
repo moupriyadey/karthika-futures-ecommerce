@@ -36,11 +36,12 @@
                                         {# Updated: Retained h-48 for fixed height, but reverted image to object-contain for no cropping #}
                                         <div class="h-48 bg-white flex items-center justify-center overflow-hidden rounded-lg shadow-sm hover:shadow-md transition duration-300 group">
                                         
-                                            <img src="{{ artwork.get_images_list()[0] if artwork.get_images_list() else url_for('static', filename='images/placeholder.png') }}"
+                                            <img src="{{ artwork.get_images_list()[0] if artwork.get_images_list() else url_for('static', filename='images/placeholder.png') | replace('/upload/', '/upload/f_auto,q_auto,w_500,c_fill/') }}"
      alt="{{ artwork.name }}"
      class="object-contain max-h-full max-w-full transition-transform duration-300 group-hover:scale-105 cursor-pointer"
      title="Click to view larger"
      onclick="event.preventDefault(); openFullImage('{{ artwork.get_images_list()[0] if artwork.get_images_list() else url_for('static', filename='images/placeholder.png') }}');">
+    
                                         
                                         </div>
                                     </a>
