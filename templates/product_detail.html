@@ -7,56 +7,67 @@
   <div class="container mx-auto p-4 md:p-8">
     <div class="bg-white rounded-lg shadow-xl overflow-hidden flex flex-col lg:flex-row gap-8">
 
-      <!-- Left Column: Thumbnails + Main Image -->
-      <div class="w-full lg:w-2/3 flex flex-row lg:flex-row gap-4">
+      <div class="w-full lg:w-2/3 flex flex-row">
+        <div class="artwork-gallery-container w-full h-full">
 
-        <!-- Thumbnails (vertical on desktop) -->
-        <div class="hidden lg:flex flex-col space-y-3 max-h-[700px] overflow-y-auto">
-          {% for image in artwork.get_images_list() %}
-          <img src="{{ image }}" 
-               alt="Thumbnail {{ loop.index }}" 
-               class="w-20 h-20 object-cover rounded-lg cursor-pointer border-2 border-transparent hover:border-gradient-to-r from-purple-500 to-pink-500 transition duration-300"
-               onclick="document.getElementById('mainProductImage').src='{{ image }}'">
-          {% endfor %}
-          {% if not artwork.get_images_list() %}
-          <img src="{{ url_for('static', filename='images/placeholder.png') }}" 
-               alt="Thumbnail"
-               class="w-20 h-20 object-cover rounded-lg border-2 border-gradient-to-r from-purple-500 to-pink-500 cursor-default">
-          {% endif %}
+          <div class="artwork-thumbnails hidden lg:flex flex-col space-y-3 p-2">
+            {% for image in artwork.get_images_list() %}
+            <img src="{{ image }}" 
+                 alt="Thumbnail {{ loop.index }}" 
+                 class="w-20 h-20 object-cover rounded-lg cursor-pointer border-2 border-transparent hover:border-gradient-to-r from-purple-500 to-pink-500 transition duration-300"
+                 onclick="updateSwiperSlide({{ loop.index0 }})">
+            {% endfor %}
+            {% if not artwork.get_images_list() %}
+            <img src="{{ url_for('static', filename='images/placeholder.png') }}" 
+                 alt="Thumbnail"
+                 class="w-20 h-20 object-cover rounded-lg border-2 border-gradient-to-r from-purple-500 to-pink-500 cursor-default">
+            {% endif %}
+          </div>
+  
+          <div class="swiper mySwiper w-full h-full">
+            <div class="swiper-wrapper">
+              {% for image in artwork.get_images_list() %}
+              <div class="swiper-slide flex items-center justify-center">
+                <img src="{{ image }}" 
+                     alt="{{ artwork.name }}" 
+                     class="object-contain w-full h-auto max-h-[80vh] cursor-zoom-in"
+                     onclick="openFullImage(this.src)">
+              </div>
+              {% endfor %}
+              {% if not artwork.get_images_list() %}
+              <div class="swiper-slide flex items-center justify-center">
+                <img src="{{ url_for('static', filename='images/placeholder.png') }}" 
+                     alt="{{ artwork.name }}" 
+                     class="object-contain w-full h-auto max-h-[80vh] cursor-zoom-in"
+                     onclick="openFullImage(this.src)">
+              </div>
+              {% endif %}
+            </div>
+            <div class="swiper-pagination lg:hidden"></div>
+            <div class="swiper-button-next hidden sm:flex"></div>
+            <div class="swiper-button-prev hidden sm:flex"></div>
+          </div>
         </div>
-
-        <!-- Main Image -->
-        <div class="flex-1 flex items-center justify-center bg-white rounded-lg shadow-lg overflow-hidden">
-          <img id="mainProductImage" 
-               src="{{ artwork.get_images_list()[0] or url_for('static', filename='images/placeholder.png') }}" 
-               alt="{{ artwork.name }}" 
-               class="object-contain w-full max-h-[80vh] transition-transform duration-300 hover:scale-105 hover:shadow-2xl cursor-zoom-in"
-               onclick="openFullImage(this.src)">
-        </div>
-
       </div>
 
-      <!-- Right Column: Product Details -->
       <div class="w-full lg:w-1/3 flex flex-col justify-between p-4 lg:p-6 space-y-6">
 
-        <!-- Product Info -->
         <div>
           <h1 class="text-3xl font-extrabold text-gray-900 mb-2">{{ artwork.name }}</h1>
           <p class="text-sm text-gray-600 mb-2">SKU: {{ artwork.sku }}</p>
           {% if artwork.stock == 0 %}
-            <span class="inline-block bg-red-100 text-red-700 font-semibold px-3 py-1 rounded-full mb-4">Out of Stock</span>
+            <span class="inline-block bg-red-100 text-red-700 font-semibold px-3 py-1 rounded-full mb-3">Out of Stock</span>
           {% else %}
-            <span class="inline-block bg-green-100 text-green-700 font-semibold px-3 py-1 rounded-full mb-4">Available</span>
+            <span class="inline-block bg-green-100 text-green-700 font-semibold px-3 py-1 rounded-full mb-3">Available</span>
           {% endif %}
 
-          <div class="flex items-baseline mb-4">
+          <div class="flex items-baseline mb-3">
             <span class="text-3xl font-bold text-primary-dark mr-2" id="displayPrice">{{ artwork.selling_price_incl_gst | currency }}</span>
           </div>
 
-          <p class="text-gray-700 mb-6 leading-relaxed">{{ artwork.description }}</p>
+          <p class="text-gray-700 mb-4 leading-relaxed">{{ artwork.description }}</p>
 
-          <!-- Custom Options -->
-          <div id="customOptionsContainer" class="mb-6 space-y-4">
+          <div id="customOptionsContainer" class="mb-4 space-y-4">
             {% for group_name, options_dict in artwork.get_custom_options_dict().items() %}
             <div>
               <label for="{{ group_name | slugify }}" class="block text-gray-700 font-semibold mb-2">{{ group_name }}:</label>
@@ -75,18 +86,16 @@
             {% endfor %}
           </div>
 
-          <!-- Quantity -->
-          <div class="flex items-center mb-6">
+          <div class="flex items-center mb-4">
             <label for="quantity" class="text-gray-700 font-semibold mr-4">Quantity:</label>
             <input type="number" id="quantity" name="quantity" value="{% if artwork.stock > 0 %}1{% else %}0{% endif %}"
-                   min="1" max="{{ artwork.stock }}"
-                   class="form-input w-24 text-center rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
-                   {% if artwork.stock == 0 %}disabled{% endif %}>
+                    min="1" max="{{ artwork.stock }}"
+                    class="form-input w-24 text-center rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                    {% if artwork.stock == 0 %}disabled{% endif %}>
             <span class="text-sm ml-4 {% if artwork.stock > 0 %}text-gray-500{% else %}text-red-600 font-semibold{% endif %}">({{ artwork.stock }} in stock)</span>
           </div>
 
-          <!-- Check Delivery Date -->
-          <div class="mb-6">
+          <div class="mb-5">
             <label for="pinInputProduct" class="font-semibold">Check Delivery Date:</label>
             <div class="flex items-center gap-2 mt-1">
               <input type="text" id="pinInputProduct" maxlength="6" placeholder="Enter Pincode" class="form-input w-40 px-2 py-1 border rounded">
@@ -98,7 +107,6 @@
             <p id="eddProduct" class="mt-1 text-sm"></p>
           </div>
 
-          <!-- Action Buttons -->
           <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 mb-6">
             {% if artwork.stock > 0 %}
             <button type="button" id="addToCartBtn" 
@@ -116,7 +124,7 @@
             <button type="button" onclick="history.back()"
                     class="flex-1 py-3 text-lg font-semibold rounded-xl shadow-lg
                            bg-gray-300 text-gray-800 hover:bg-gray-400 transition-all duration-300 ease-in-out">
-                 Back
+                      Back
             </button>
             {% else %}
             <button class="flex-1 py-3 text-lg font-semibold rounded-xl shadow-lg
@@ -134,19 +142,20 @@
 {% endblock %}
 
 
-<!-- Fullscreen Preview Modal -->
 {% block extra_js %}
 <div id="fullImageModal" class="fixed inset-0 bg-black bg-opacity-80 z-50 hidden justify-center items-center">
   <button onclick="closeFullImage()"
-          class="absolute top-4 right-4 z-50 bg-white text-black rounded-full p-2 font-bold shadow-lg hover:bg-gray-200 transition-all duration-200">✕</button>
+            class="absolute top-4 right-4 z-50 bg-white text-black rounded-full p-2 font-bold shadow-lg hover:bg-gray-200 transition-all duration-200">✕</button>
 
   <div class="relative max-w-[90vw] max-h-[90vh] bg-white rounded-lg flex items-center justify-center">
     <img id="fullImagePreview"
-         class="max-w-full max-h-full object-contain rounded-lg"
-         src="" alt="">
+          class="max-w-full max-h-full object-contain rounded-lg"
+          src="" alt="">
     <div class="absolute inset-0 pointer-events-none watermark-grid rounded-lg"></div>
   </div>
 </div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
 
 <style>
   .watermark-grid {
@@ -154,6 +163,28 @@
     background-size: 140px 140px;
     background-repeat: repeat;
     opacity: 1;
+  }
+  /* Optional: Custom styles for Swiper pagination */
+  .swiper-pagination-bullet-active {
+    background: #9333ea !important;
+  }
+  
+  /* NEW: Grid layout for the artwork gallery */
+  .artwork-gallery-container {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 1rem;
+      align-items: start; /* Aligns thumbnails and main image at the top */
+  }
+  @media (max-width: 1023px) { /* Tailored for `lg` breakpoint */
+    .artwork-gallery-container {
+        display: block; /* Switches back to block layout on mobile/tablet */
+    }
+  }
+  .artwork-thumbnails {
+      /* Added a max height and overflow for a better user experience with many thumbnails */
+      max-height: 700px; 
+      overflow-y: auto;
   }
 </style>
 
@@ -170,10 +201,26 @@
   }
 </script>
 
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 
-<!-- Price Calculation & Add to Cart / Buy Now JS -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+  let swiper;
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // Swiper Initialization
+    swiper = new Swiper(".mySwiper", {
+      loop: true,
+      pagination: {
+        el: ".swiper-pagination",
+        clickable: true,
+      },
+      navigation: {
+        nextEl: ".swiper-button-next",
+        prevEl: ".swiper-button-prev",
+      },
+    });
+
+    // All your existing logic below this point
     const artworkData = {{ artwork_data | tojson }};
     const quantityInput = document.getElementById('quantity');
     const customOptionsContainer = document.getElementById('customOptionsContainer');
@@ -228,18 +275,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (quantity < 1 || quantity > artworkData.stock) return window.showCustomAlert(`Please enter a quantity between 1 and ${artworkData.stock}.`, 'danger');
 
         window.addToCart(
-    artworkData.sku,
-    artworkData.name,
-    artworkData.image_url, 
-    artworkData.current_unit_price_before_gst, // This is the base price per unit
-    artworkData.cgst_percentage,
-    artworkData.sgst_percentage,
-    artworkData.igst_percentage,
-    artworkData.ugst_percentage,
-    artworkData.cess_percentage, 
-    quantity, // Pass the quantity here
-    artworkData.selected_options
-);
+            artworkData.sku,
+            artworkData.name,
+            artworkData.image_url, 
+            artworkData.current_unit_price_before_gst, 
+            artworkData.cgst_percentage,
+            artworkData.sgst_percentage,
+            artworkData.igst_percentage,
+            artworkData.ugst_percentage,
+            artworkData.cess_percentage, 
+            quantity, 
+            artworkData.selected_options
+        );
     });
 
     buyNowBtn.addEventListener('click', function() {
@@ -261,6 +308,13 @@ document.addEventListener('DOMContentLoaded', function() {
             artworkData.shipping_charge
         );
     });
-});
+  });
+
+  // Function to change the swiper slide from a thumbnail click
+  window.updateSwiperSlide = function(index) {
+      if (swiper) {
+          swiper.slideToLoop(index);
+      }
+  };
 </script>
 {% endblock %}
