@@ -129,10 +129,10 @@ cloudinary.config(
 )
 # Business Details (for invoices, etc.)
 app.config['OUR_BUSINESS_NAME'] = "Karthika Futures"
-app.config['OUR_BUSINESS_ADDRESS'] = "Annapoornna Appartmnet, New Alipore, Kolkata - 53"
+app.config['OUR_BUSINESS_ADDRESS'] = "123 Divine Path, Spiritual City, Karnataka - 560001"
 app.config['OUR_GSTIN'] = "29ABCDE1234F1Z5" # Example GSTIN
-app.config['OUR_PAN'] = "CTMPS6841J" # Example PAN
-app.config['DEFAULT_GST_RATE'] = Decimal('12.00') # Default GST rate for products
+app.config['OUR_PAN'] = "ABCDE1234F" # Example PAN
+app.config['DEFAULT_GST_RATE'] = Decimal('18.00') # Default GST rate for products
 # app.config['DEFAULT_SHIPPING_CHARGE'] = Decimal('100.00') # This is now deprecated for per-artwork shipping
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -154,6 +154,13 @@ def allowed_file(filename):
 def generate_otp(length=6):
     """Generates a random numeric OTP."""
     return ''.join(random.choices(string.digits, k=length))
+
+def get_products_by_category(category_name):
+    with open('artworks.json', 'r') as f:
+        artworks = json.load(f)
+    # Filter artworks matching this category
+    return [art for art in artworks if art.get("category") == category_name]
+
 
 # NEW: SequenceCounter model for sequential IDs
 class SequenceCounter(db.Model):
@@ -1546,12 +1553,10 @@ def category_page(category_slug):
     # For now, let's assume you have a 'category_page.html' template.
     return render_template('category_page.html', category_slug=category_slug)
 # app.py (Modified Excerpt)
-
 @app.route('/')
 def index():
-    # Fetch categories for the new horizontal layout
+    # Existing category horizontal layout
     categories = Category.query.order_by(Category.name).all() 
-    # Find a representative artwork image for each category
     for category in categories:
         first_artwork = Artwork.query.filter_by(category_id=category.id).first()
         if first_artwork:
@@ -1562,51 +1567,36 @@ def index():
                 category.main_artwork_image = url_for('static', filename='images/placeholder.png')
         else:
             category.main_artwork_image = url_for('static', filename='images/placeholder.png')
-    # Fetch featured artworks (we'll keep this separate for now)
+
+    # Featured artworks for carousel
     featured_artworks = Artwork.query.filter_by(is_featured=True).limit(6).all()
-    
-    # Logic for continuous carousel loop (keeping it for now, though we'll use a different section)
-    featured_artworks_for_carousel = [] 
+    featured_artworks_for_carousel = []
     if featured_artworks:
-        num_duplicates = 3
-        if len(featured_artworks) < num_duplicates:
-            num_duplicates = len(featured_artworks)
+        num_duplicates = min(3, len(featured_artworks))
         items_to_duplicate = featured_artworks[:num_duplicates]
         featured_artworks_for_carousel = featured_artworks + items_to_duplicate
-    else:
-        featured_artworks_for_carousel = []
-    # --- END NEW LOGIC ---
 
+    # --- ✅ New: group artworks by category ---
+    categorized_artworks = {}
+    for category in categories:
+        artworks_in_category = Artwork.query.filter_by(category_id=category.id).all()
+        if artworks_in_category:
+            categorized_artworks[category.name] = artworks_in_category
+
+    # Testimonials (unchanged)
     testimonials = [
-        {
-            'name': 'Radha Devi',
-            'feedback': 'The artwork is truly divine and brings immense peace to my home. Highly recommend Karthika Futures!',
-            'rating': 5,
-            'image': 'images/testimonial1.jpg',
-            'product_sku': '89898'
-        },
-        {
-            'name': 'Krishna Murthy',
-            'feedback': 'Exceptional quality and prompt delivery. Each piece tells a story. A blessed experience!',
-            'rating': 5,
-            'image': 'images/testimonial2.jpg',
-            'product_sku': '232323'
-        },
-        {
-            'name': 'Priya Sharma',
-            'feedback': 'Beautiful collection! The details are intricate and the colors vibrant. My meditation space feels complete.',
-            'rating': 4,
-            'image': 'images/testimonial3.jpg',
-            'product_sku': '656565'
-        },
+        {"name": "Radha Devi","feedback": "The artwork is truly divine and brings immense peace to my home. Highly recommend Karthika Futures!","rating": 5,"image": "images/testimonial1.jpg","product_sku": "89898"},
+        {"name": "Krishna Murthy","feedback": "Exceptional quality and prompt delivery. Each piece tells a story. A blessed experience!","rating": 5,"image": "images/testimonial2.jpg","product_sku": "232323"},
+        {"name": "Priya Sharma","feedback": "Beautiful collection! The details are intricate and the colors vibrant. My meditation space feels complete.","rating": 4,"image": "images/testimonial3.jpg","product_sku": "656565"},
     ]
 
-    # Pass the new 'featured_artworks_for_carousel' list to your template
     return render_template(
         'index.html',
-        categories=categories,  # This is the new line
+        categories=categories,  
         featured_artworks=featured_artworks_for_carousel, 
-        testimonials=testimonials)
+        testimonials=testimonials,
+        categorized_artworks=categorized_artworks  # ✅ pass new dict to template
+    )
 
 # MODIFIED: all_products route to pass categorized artworks
 @app.route('/all-products')
@@ -3227,14 +3217,12 @@ with app.app_context():
         # Removed the print statement for this warning
         pass # Keep this for schema check, but no print output
 
-#@app.route("/checku-db")
-#def checku_db():
-    #uri = app.config.get("SQLALCHEMY_DATABASE_URI", "Not Set")
-    #return f"Database URI in use: {uri}"
+# Ecommerce update
 
-@app.route("/policy")
-def policy():
-    return render_template("policy.html")
+@app.route("/check-db")
+def check_db():
+    uri = app.config.get("SQLALCHEMY_DATABASE_URI", "Not Set")
+    return f"Database URI in use: {uri}"
 
 @app.route("/version")
 def version():

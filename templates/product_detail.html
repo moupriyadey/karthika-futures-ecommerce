@@ -3,154 +3,148 @@
 {% block title %}{{ artwork.name }} - Karthika Futures{% endblock %}
 
 {% block content %}
-<div class="container mx-auto p-4 md:p-8 main-content-area">
-    <div class="bg-white rounded-lg shadow-xl overflow-hidden flex flex-col lg:flex-row">
-        <!-- Image Carousel Section -->
-        <div class="w-full lg:w-1/2 p-4 border-b lg:border-b-0 lg:border-r border-gray-200 relative">
-    <div id="productImageCarousel" class="carousel relative overflow-hidden rounded-lg">
-        <div class="carousel-inner flex transition-transform duration-500 ease-in-out">
-            {% for image in artwork.get_images_list() %}
-            <div class="carousel-item w-full flex-shrink-0">
-                <div class="aspect-[4/5] bg-white flex items-center justify-center">
-                    <img src="{{ image }}"
-                         alt="{{ artwork.name }} Image {{ loop.index }}"
-                         class="object-contain max-h-full max-w-full rounded-lg shadow-md cursor-pointer"
-                         title="Click to view larger"
-                         onclick="openFullImage('{{ image }}')">
-                </div>
+<main class="pt-24">
+  <div class="container mx-auto p-4 md:p-8">
+    <div class="bg-white rounded-lg shadow-xl overflow-hidden flex flex-col lg:flex-row gap-8">
+
+      <!-- Left Column: Thumbnails + Main Image -->
+      <div class="w-full lg:w-2/3 flex flex-row lg:flex-row gap-4">
+
+        <!-- Thumbnails (vertical on desktop) -->
+        <div class="hidden lg:flex flex-col space-y-3 max-h-[700px] overflow-y-auto">
+          {% for image in artwork.get_images_list() %}
+          <img src="{{ image }}" 
+               alt="Thumbnail {{ loop.index }}" 
+               class="w-20 h-20 object-cover rounded-lg cursor-pointer border-2 border-transparent hover:border-gradient-to-r from-purple-500 to-pink-500 transition duration-300"
+               onclick="document.getElementById('mainProductImage').src='{{ image }}'">
+          {% endfor %}
+          {% if not artwork.get_images_list() %}
+          <img src="{{ url_for('static', filename='images/placeholder.png') }}" 
+               alt="Thumbnail"
+               class="w-20 h-20 object-cover rounded-lg border-2 border-gradient-to-r from-purple-500 to-pink-500 cursor-default">
+          {% endif %}
+        </div>
+
+        <!-- Main Image -->
+        <div class="flex-1 flex items-center justify-center bg-white rounded-lg shadow-lg overflow-hidden">
+          <img id="mainProductImage" 
+               src="{{ artwork.get_images_list()[0] or url_for('static', filename='images/placeholder.png') }}" 
+               alt="{{ artwork.name }}" 
+               class="object-contain w-full max-h-[80vh] transition-transform duration-300 hover:scale-105 hover:shadow-2xl cursor-zoom-in"
+               onclick="openFullImage(this.src)">
+        </div>
+
+      </div>
+
+      <!-- Right Column: Product Details -->
+      <div class="w-full lg:w-1/3 flex flex-col justify-between p-4 lg:p-6 space-y-6">
+
+        <!-- Product Info -->
+        <div>
+          <h1 class="text-3xl font-extrabold text-gray-900 mb-2">{{ artwork.name }}</h1>
+          <p class="text-sm text-gray-600 mb-2">SKU: {{ artwork.sku }}</p>
+          {% if artwork.stock == 0 %}
+            <span class="inline-block bg-red-100 text-red-700 font-semibold px-3 py-1 rounded-full mb-4">Out of Stock</span>
+          {% else %}
+            <span class="inline-block bg-green-100 text-green-700 font-semibold px-3 py-1 rounded-full mb-4">Available</span>
+          {% endif %}
+
+          <div class="flex items-baseline mb-4">
+            <span class="text-3xl font-bold text-primary-dark mr-2" id="displayPrice">{{ artwork.selling_price_incl_gst | currency }}</span>
+          </div>
+
+          <p class="text-gray-700 mb-6 leading-relaxed">{{ artwork.description }}</p>
+
+          <!-- Custom Options -->
+          <div id="customOptionsContainer" class="mb-6 space-y-4">
+            {% for group_name, options_dict in artwork.get_custom_options_dict().items() %}
+            <div>
+              <label for="{{ group_name | slugify }}" class="block text-gray-700 font-semibold mb-2">{{ group_name }}:</label>
+              <select id="{{ group_name | slugify }}" 
+                      name="option_{{ group_name | slugify }}" 
+                      class="form-select w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                      data-option-group="{{ group_name }}">
+                <option value="default" data-price-impact="0">Select {{ group_name }}...</option>
+                {% for option_name, price_impact in options_dict.items() %}
+                <option value="{{ option_name }}" data-price-impact="{{ price_impact }}">
+                    {{ option_name }} ({% if price_impact >= 0 %}+{% endif %}{{ price_impact | currency }})
+                </option>
+                {% endfor %}
+              </select>
             </div>
             {% endfor %}
-            {% if not artwork.get_images_list() %}
-            <div class="carousel-item w-full flex-shrink-0">
-                <div class="aspect-[4/5] bg-white flex items-center justify-center">
-                    <img src="{{ url_for('static', filename='images/placeholder.png') }}"
-                         alt="Placeholder Image"
-                         class="object-contain max-h-full max-w-full rounded-lg shadow-md"
-                         title="Click to view larger"
-                         onclick="openFullImage('{{ url_for('static', filename='images/placeholder.png') }}')">
-                </div>
+          </div>
+
+          <!-- Quantity -->
+          <div class="flex items-center mb-6">
+            <label for="quantity" class="text-gray-700 font-semibold mr-4">Quantity:</label>
+            <input type="number" id="quantity" name="quantity" value="{% if artwork.stock > 0 %}1{% else %}0{% endif %}"
+                   min="1" max="{{ artwork.stock }}"
+                   class="form-input w-24 text-center rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                   {% if artwork.stock == 0 %}disabled{% endif %}>
+            <span class="text-sm ml-4 {% if artwork.stock > 0 %}text-gray-500{% else %}text-red-600 font-semibold{% endif %}">({{ artwork.stock }} in stock)</span>
+          </div>
+
+          <!-- Check Delivery Date -->
+          <div class="mb-6">
+            <label for="pinInputProduct" class="font-semibold">Check Delivery Date:</label>
+            <div class="flex items-center gap-2 mt-1">
+              <input type="text" id="pinInputProduct" maxlength="6" placeholder="Enter Pincode" class="form-input w-40 px-2 py-1 border rounded">
+              <button type="button" onclick="checkEDD('pinInputProduct', 'eddProduct')" 
+                      class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition duration-300">
+                      Check
+              </button>
             </div>
+            <p id="eddProduct" class="mt-1 text-sm"></p>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 mb-6">
+            {% if artwork.stock > 0 %}
+            <button type="button" id="addToCartBtn" 
+                    class="flex-1 py-3 text-lg font-semibold rounded-xl shadow-lg
+                           bg-gradient-to-r from-purple-500 to-pink-500 text-white
+                           hover:from-purple-600 hover:to-pink-600 transition-all duration-300 ease-in-out">
+                <i class="fas fa-shopping-cart mr-2"></i> Add to Cart
+            </button>
+            <button type="button" id="buyNowBtn"
+                    class="flex-1 py-3 text-lg font-semibold rounded-xl shadow-lg
+                           bg-gradient-to-r from-green-400 to-green-600 text-white
+                           hover:from-green-500 hover:to-green-700 transition-all duration-300 ease-in-out">
+                <i class="fas fa-money-bill-wave mr-2"></i> Buy Now
+            </button>
+            <button type="button" onclick="history.back()"
+                    class="flex-1 py-3 text-lg font-semibold rounded-xl shadow-lg
+                           bg-gray-300 text-gray-800 hover:bg-gray-400 transition-all duration-300 ease-in-out">
+                 Back
+            </button>
+            {% else %}
+            <button class="flex-1 py-3 text-lg font-semibold rounded-xl shadow-lg
+                           bg-gray-300 text-gray-400 opacity-50 cursor-not-allowed" disabled>
+                <i class="fas fa-ban mr-2"></i> Out of Stock
+            </button>
             {% endif %}
+          </div>
+
         </div>
-
-        <button type="button" class="carousel-prev absolute top-1/2 left-4 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-75" aria-label="Previous image">
-            <i class="fas fa-chevron-left text-gray-700"></i>
-        </button>
-        <button type="button" class="carousel-next absolute top-1/2 right-4 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-75" aria-label="Next image">
-            <i class="fas fa-chevron-right text-gray-700"></i>
-        </button>
+      </div>
     </div>
-
-    <div class="flex justify-center space-x-2 mt-4">
-        {% for image in artwork.get_images_list() %}
-        <img src="{{ image }}" alt="Thumbnail {{ loop.index }}"
-             class="carousel-indicator w-16 h-16 object-cover rounded-md cursor-pointer border-2 border-transparent hover:border-primary transition-all duration-200"
-             data-slide-to="{{ loop.index0 }}">
-        {% endfor %}
-        {% if not artwork.get_images_list() %}
-        <img src="{{ url_for('static', filename='images/placeholder.png') }}" alt="Thumbnail"
-             class="carousel-indicator w-16 h-16 object-cover rounded-md cursor-pointer border-2 border-primary"
-             data-slide-to="0">
-        {% endif %}
-    </div>
-</div>
-
-        <!-- Product Details Section -->
-        <div class="w-full lg:w-1/2 p-6 flex flex-col justify-between">
-            <div>
-                <h1 class="text-3xl font-extrabold text-gray-900 mb-2">{{ artwork.name }}</h1>
-                <p class="text-sm text-gray-600 mb-2">SKU: {{ artwork.sku }}</p>
-                {% if artwork.stock == 0 %}
-                    <p class="text-sm text-red-600 font-semibold mb-4">Currently Out of Stock</p>
-                {% else %}
-                    <p class="text-sm text-green-600 mb-4">Available</p>
-                {% endif %}
-
-                <div class="flex items-baseline mb-4">
-                    <span class="text-3xl font-bold text-primary-dark mr-2" id="displayPrice">{{ artwork.selling_price_incl_gst | currency }}</span>
-                </div>
-
-                <p class="text-gray-700 mb-6 leading-relaxed">{{ artwork.description }}</p>
-
-                <!-- Custom Options - MODIFIED SECTION -->
-                <div id="customOptionsContainer" class="mb-6">
-                    {% for group_name, options_dict in artwork.get_custom_options_dict().items() %}
-                    <div class="mb-4">
-                        <label for="{{ group_name | slugify }}" class="block text-gray-700 font-semibold mb-2">{{ group_name }}:</label>
-                        <select id="{{ group_name | slugify }}" name="option_{{ group_name | slugify }}" class="form-select w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50" data-option-group="{{ group_name }}">
-                            <option value="default" data-price-impact="0">Select {{ group_name }}...</option> {# Added default option #}
-                            {% for option_name, price_impact in options_dict.items() %}
-                            <option value="{{ option_name }}" data-price-impact="{{ price_impact }}">
-                                {{ option_name }} ({% if price_impact >= 0 %}+{% endif %}{{ price_impact | currency }})
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    {% endfor %}
-                </div>
-                {# END MODIFIED SECTION #}
-
-                <div class="flex items-center mb-6">
-                    <label for="quantity" class="text-gray-700 font-semibold mr-4">Quantity:</label>
-                    <input 
-                        type="number"
-                        id="quantity"
-                        name="quantity"
-                        value="{% if artwork.stock > 0 %}1{% else %}0{% endif %}"
-                        min="1"
-                        max="{{ artwork.stock }}"
-                        class="form-input w-24 text-center rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
-                        {% if artwork.stock == 0 %}disabled{% endif %}>
-                    <span class="text-sm ml-4 {% if artwork.stock > 0 %}text-gray-500{% else %}text-red-600 font-semibold{% endif %}">({{ artwork.stock }} in stock)</span>
-                </div>
-            </div>
-
-            <div class="mt-4">
-    <label for="pinInputProduct" class="font-semibold">Check Delivery Date:</label>
-    <div class="flex items-center gap-2 mt-1">
-        <input type="text" id="pinInputProduct" maxlength="6" placeholder="Enter Pincode" class="form-input w-40 px-2 py-1 border rounded">
-        <button type="button" onclick="checkEDD('pinInputProduct', 'eddProduct')" class="bg-blue-600 text-white px-3 py-1 rounded text-sm">Check</button>
-    </div>
-    <p id="eddProduct" class="mt-1 text-sm"></p>
-</div>
-
-
-            <!-- Action Buttons -->
-            <div class="mt-auto pt-4 border-t border-gray-200">
-                <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
-                    {% if artwork.stock > 0 %}
-                    <button type="button" id="addToCartBtn" class="btn btn-primary flex-1 py-3 text-lg font-semibold rounded-lg shadow-md hover:shadow-lg transition duration-200 ease-in-out">
-                        <i class="fas fa-shopping-cart mr-2"></i> Add to Cart
-                    </button>
-                    <button type="button" id="buyNowBtn" class="bg-green-500 text-white flex-1 py-3 text-lg font-semibold rounded-lg shadow-md hover:shadow-lg transition duration-200 ease-in-out">
-                        <i class="fas fa-money-bill-wave mr-2"></i> Buy Now
-                    </button>
-
-                    <button type="button" onclick="history.back()" class="btn btn-secondary flex-1 py-3 text-lg font-semibold rounded-lg shadow-md hover:shadow-lg transition duration-200 ease-in-out">
-                         Back
-                    </button>
-
-                    {% else %}
-                    <button class="btn btn-secondary flex-1 py-3 text-lg font-semibold rounded-lg opacity-50 cursor-not-allowed" disabled>
-                        <i class="fas fa-ban mr-2"></i> Out of Stock
-                    </button>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+  </div>
+</main>
 {% endblock %}
 
 
-{% block extra_js %}
-
 <!-- Fullscreen Preview Modal -->
+{% block extra_js %}
 <div id="fullImageModal" class="fixed inset-0 bg-black bg-opacity-80 z-50 hidden justify-center items-center">
-  <div class="relative max-w-[90vw] max-h-[90vh]">
-    <img id="fullImagePreview" class="max-w-full max-h-full object-contain rounded-lg" src="" alt="">
-    <div class="absolute inset-0 pointer-events-none watermark-grid"></div>
-    <button onclick="closeFullImage()" class="absolute top-2 right-2 bg-white text-black rounded-full p-1 px-3 font-bold">✕</button>
+  <button onclick="closeFullImage()"
+          class="absolute top-4 right-4 z-50 bg-white text-black rounded-full p-2 font-bold shadow-lg hover:bg-gray-200 transition-all duration-200">✕</button>
+
+  <div class="relative max-w-[90vw] max-h-[90vh] bg-white rounded-lg flex items-center justify-center">
+    <img id="fullImagePreview"
+         class="max-w-full max-h-full object-contain rounded-lg"
+         src="" alt="">
+    <div class="absolute inset-0 pointer-events-none watermark-grid rounded-lg"></div>
   </div>
 </div>
 
@@ -169,7 +163,6 @@
     document.getElementById('fullImageModal').classList.remove('hidden');
     document.getElementById('fullImageModal').classList.add('flex');
   }
-
   function closeFullImage() {
     document.getElementById('fullImageModal').classList.remove('flex');
     document.getElementById('fullImageModal').classList.add('hidden');
@@ -178,188 +171,96 @@
 </script>
 
 
+<!-- Price Calculation & Add to Cart / Buy Now JS -->
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const artworkData = {{ artwork_data | tojson }};
-        console.log("DEBUG: artworkData loaded:", artworkData); // Log the entire artworkData object
-        const quantityInput = document.getElementById('quantity');
-        const customOptionsContainer = document.getElementById('customOptionsContainer');
-        const displayPriceElement = document.getElementById('displayPrice');
-        const addToCartBtn = document.getElementById('addToCartBtn');
-        const buyNowBtn = document.getElementById('buyNowBtn');
+document.addEventListener('DOMContentLoaded', function() {
+    const artworkData = {{ artwork_data | tojson }};
+    const quantityInput = document.getElementById('quantity');
+    const customOptionsContainer = document.getElementById('customOptionsContainer');
+    const displayPriceElement = document.getElementById('displayPrice');
+    const addToCartBtn = document.getElementById('addToCartBtn');
+    const buyNowBtn = document.getElementById('buyNowBtn');
 
-        // Carousel Logic (unchanged)
-        const carousel = document.getElementById('productImageCarousel');
-        const carouselInner = carousel.querySelector('.carousel-inner');
-        const carouselItems = carousel.querySelectorAll('.carousel-item');
-        const prevBtn = carousel.querySelector('.carousel-prev');
-        const nextBtn = carousel.querySelector('.carousel-next');
-        const indicators = document.querySelectorAll('.carousel-indicator');
-        let currentIndex = 0;
+    function updatePrice() {
+        let currentPrice = artworkData.original_price;
+        const selectedOptions = {};
+        const quantity = parseInt(quantityInput.value);
 
-        function updateCarousel() {
-            carouselInner.style.transform = `translateX(-${currentIndex * 100}%)`;
-            indicators.forEach((indicator, index) => {
-                if (index === currentIndex) {
-                    indicator.classList.add('border-primary');
-                    indicator.classList.remove('border-transparent');
-                } else {
-                    indicator.classList.remove('border-primary');
-                    indicator.classList.add('border-transparent');
+        customOptionsContainer.querySelectorAll('select[data-option-group]').forEach(select => {
+            const selectedOption = select.options[select.selectedIndex];
+            const groupName = select.dataset.optionGroup;
+            if (selectedOption.value !== "default") {
+                const priceImpact = parseFloat(selectedOption.dataset.priceImpact);
+                if (!isNaN(priceImpact)) {
+                    currentPrice += priceImpact;
+                    selectedOptions[groupName] = selectedOption.value;
                 }
-            });
+            }
+        });
+
+        let totalGstRate = 0;
+        if (artworkData.gst_type === 'intra_state') {
+            totalGstRate = artworkData.cgst_percentage + artworkData.sgst_percentage;
+        } else if (artworkData.gst_type === 'inter_state') {
+            totalGstRate = artworkData.igst_percentage;
+        } else if (artworkData.gst_type === 'union_territory') {
+            totalGstRate = artworkData.cgst_percentage + artworkData.ugst_percentage;
         }
+        totalGstRate += artworkData.cess_percentage;
 
-        prevBtn.addEventListener('click', () => {
-            currentIndex = (currentIndex > 0) ? currentIndex - 1 : carouselItems.length - 1;
-            updateCarousel();
-        });
+        const totalPriceBeforeGst = currentPrice * quantity;
+        const gstAmount = (totalPriceBeforeGst * totalGstRate) / 100;
+        let finalPrice = totalPriceBeforeGst + gstAmount + (artworkData.shipping_charge * quantity);
 
-        nextBtn.addEventListener('click', () => {
-            currentIndex = (currentIndex < carouselItems.length - 1) ? currentIndex + 1 : 0;
-            updateCarousel();
-        });
+        displayPriceElement.textContent = `₹${finalPrice.toFixed(2)}`;
 
-        indicators.forEach(indicator => {
-            indicator.addEventListener('click', (e) => {
-                currentIndex = parseInt(e.target.dataset.slideTo);
-                updateCarousel();
-            });
-        });
+        artworkData.current_unit_price_before_gst = currentPrice;
+        artworkData.selected_options = selectedOptions;
+    }
 
-        updateCarousel(); // Initialize carousel position and indicator
+    quantityInput.addEventListener('change', updatePrice);
+    quantityInput.addEventListener('input', updatePrice);
+    customOptionsContainer.querySelectorAll('select[data-option-group]').forEach(select => select.addEventListener('change', updatePrice));
+    updatePrice();
 
-        // Function to calculate and update price - ENHANCED DEBUGGING
-        function updatePrice() {
-            console.log("DEBUG: updatePrice function started.");
-            console.log("DEBUG: Initial artworkData.original_price:", artworkData.original_price);
-            let currentPrice = artworkData.original_price;
-            const selectedOptions = {};
-            const quantity = parseInt(quantityInput.value);
-            console.log("DEBUG: Current quantity:", quantity);
+    addToCartBtn.addEventListener('click', function() {
+        const quantity = parseInt(quantityInput.value);
+        if (quantity < 1 || quantity > artworkData.stock) return window.showCustomAlert(`Please enter a quantity between 1 and ${artworkData.stock}.`, 'danger');
 
-            // Add price impact from selected options
-            customOptionsContainer.querySelectorAll('select[data-option-group]').forEach(select => { // Target only selects with data-option-group
-                const selectedOption = select.options[select.selectedIndex];
-                const groupName = select.dataset.optionGroup; // Get the group name
-                console.log(`DEBUG: Processing option group: "${groupName}", selected option value: "${selectedOption.value}"`);
-
-                if (selectedOption.value !== "default") { // Only process if a non-default option is selected
-                    const priceImpact = parseFloat(selectedOption.dataset.priceImpact);
-                    console.log(`DEBUG: Option "${selectedOption.value}" for group "${groupName}" has price impact: ${selectedOption.dataset.priceImpact} (parsed as ${priceImpact})`);
-                    
-                    if (!isNaN(priceImpact)) {
-                        currentPrice += priceImpact;
-                        selectedOptions[groupName] = selectedOption.value;
-                    } else {
-                        console.warn(`WARNING: priceImpact for option "${selectedOption.value}" in group "${groupName}" is NaN. Check data-price-impact attribute.`);
-                    }
-                } else {
-                    console.log(`DEBUG: Default option selected for group: "${groupName}". No price impact added.`);
-                }
-            });
-            console.log("DEBUG: Price after options applied (unit price before GST):", currentPrice);
-
-            // Calculate GST
-            let totalGstRate = 0;
-            if (artworkData.gst_type === 'intra_state') {
-                totalGstRate = artworkData.cgst_percentage + artworkData.sgst_percentage;
-            } else if (artworkData.gst_type === 'inter_state') {
-                totalGstRate = artworkData.igst_percentage;
-            } else if (artworkData.gst_type === 'union_territory') {
-                totalGstRate = artworkData.cgst_percentage + artworkData.ugst_percentage;
-            }
-            totalGstRate += artworkData.cess_percentage; // Include CESS
-            console.log("DEBUG: Total GST Rate:", totalGstRate);
-
-            // Calculate total price before GST for the given quantity
-            const totalPriceBeforeGstForQuantity = currentPrice * quantity;
-            console.log("DEBUG: Total price before GST for quantity:", totalPriceBeforeGstForQuantity);
-
-            const gstAmount = (totalPriceBeforeGstForQuantity * totalGstRate) / 100;
-            console.log("DEBUG: GST Amount:", gstAmount);
-            
-            let finalPrice = totalPriceBeforeGstForQuantity + gstAmount;
-            console.log("DEBUG: Price after GST:", finalPrice);
-
-            // Calculate total shipping charge based on quantity and artwork's shipping_charge
-            // Assuming artworkData.shipping_charge is the charge per item/slab.
-            // Your app.py has `total_shipping_charge += item_shipping_charge * quantity;`
-            // So, let's assume shipping_charge in artworkData is per item.
-            finalPrice += artworkData.shipping_charge * quantity; 
-            console.log("DEBUG: Final price after shipping charge (multiplied by quantity):", finalPrice);
-
-            // Format and display the price
-            displayPriceElement.textContent = `₹${finalPrice.toFixed(2)}`;
-            console.log("DEBUG: Display price updated to:", displayPriceElement.textContent);
-
-            // Update artworkData for Add to Cart/Buy Now buttons
-            artworkData.current_unit_price_before_gst = currentPrice; // This is still unit price before GST
-            artworkData.selected_options = selectedOptions;
-            console.log("DEBUG: artworkData.current_unit_price_before_gst updated to:", artworkData.current_unit_price_before_gst);
-            console.log("DEBUG: artworkData.selected_options updated to:", artworkData.selected_options);
-        }
-
-        // Event listeners for quantity and custom options
-        quantityInput.addEventListener('change', updatePrice);
-        quantityInput.addEventListener('input', updatePrice); 
-        customOptionsContainer.querySelectorAll('select[data-option-group]').forEach(select => { // Target only selects with data-option-group
-            select.addEventListener('change', updatePrice);
-        });
-
-        // Initial price calculation on page load
-        updatePrice();
-
-        // Add to Cart functionality - NOW CALLS GLOBAL FUNCTION
-        addToCartBtn.addEventListener('click', function() {
-            console.log("DEBUG: Add to Cart button clicked.");
-            const quantity = parseInt(quantityInput.value);
-            if (quantity < 1 || quantity > artworkData.stock) {
-                window.showCustomAlert(`Please enter a quantity between 1 and ${artworkData.stock}.`, 'danger');
-                return;
-            }
-
-            // Call the global addToCart function from main.js
-            window.addToCart(
-                artworkData.sku,
-                artworkData.name,
-                artworkData.image_url, 
-                artworkData.current_unit_price_before_gst,
-                artworkData.cgst_percentage,
-                artworkData.sgst_percentage,
-                artworkData.igst_percentage,
-                artworkData.ugst_percentage,
-                artworkData.cess_percentage, 
-                quantity,
-                artworkData.selected_options
-            );
-        });
-
-        // Buy Now functionality - NOW CALLS GLOBAL FUNCTION
-        buyNowBtn.addEventListener('click', function() {
-            console.log("DEBUG: Buy Now button clicked.");
-            const quantity = parseInt(quantityInput.value);
-            if (quantity < 1 || quantity > artworkData.stock) {
-                window.showCustomAlert(`Please enter a quantity between 1 and ${artworkData.stock}.`, 'danger');
-                return;
-            }
-
-            // Call the global buyNow function from main.js
-            window.buyNow(
-                artworkData.sku,
-                artworkData.name,
-                artworkData.image_url,
-                artworkData.selected_options,
-                quantity,
-                artworkData.current_unit_price_before_gst,
-                artworkData.cgst_percentage,
-                artworkData.sgst_percentage,
-                artworkData.igst_percentage,
-                artworkData.ugst_percentage,
-                artworkData.cess_percentage, 
-                artworkData.shipping_charge
-            );
-        });
+        window.addToCart(
+    artworkData.sku,
+    artworkData.name,
+    artworkData.image_url, 
+    artworkData.current_unit_price_before_gst, // This is the base price per unit
+    artworkData.cgst_percentage,
+    artworkData.sgst_percentage,
+    artworkData.igst_percentage,
+    artworkData.ugst_percentage,
+    artworkData.cess_percentage, 
+    quantity, // Pass the quantity here
+    artworkData.selected_options
+);
     });
+
+    buyNowBtn.addEventListener('click', function() {
+        const quantity = parseInt(quantityInput.value);
+        if (quantity < 1 || quantity > artworkData.stock) return window.showCustomAlert(`Please enter a quantity between 1 and ${artworkData.stock}.`, 'danger');
+
+        window.buyNow(
+            artworkData.sku,
+            artworkData.name,
+            artworkData.image_url,
+            artworkData.selected_options,
+            quantity,
+            artworkData.current_unit_price_before_gst,
+            artworkData.cgst_percentage,
+            artworkData.sgst_percentage,
+            artworkData.igst_percentage,
+            artworkData.ugst_percentage,
+            artworkData.cess_percentage, 
+            artworkData.shipping_charge
+        );
+    });
+});
 </script>
 {% endblock %}
