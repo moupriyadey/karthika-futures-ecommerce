@@ -18,9 +18,9 @@
         <!-- Circle with the specific category image -->
         <div class="w-24 h-24 mx-auto rounded-full bg-white shadow-lg overflow-hidden 
                     transform transition duration-300 group-hover:scale-110 flex items-center justify-center">
-          <img src="{{ url_for('static', filename=category.image) }}"
-               alt="{{ category.name }}"
-               class="w-full h-full object-cover object-center">
+          <img src="{{ category.image }}"
+     alt="{{ category.name }}"
+     class="w-full h-full object-cover object-center">
         </div>
 
         <!-- Category name -->
