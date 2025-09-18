@@ -8,6 +8,8 @@
             <p class="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">{{ category.description }}</p>
         </div>
 
+       
+
         <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {% for artwork in artworks %}
             <div class="product-card bg-white rounded-lg shadow-md overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl flex flex-col relative">
@@ -70,6 +72,8 @@
             {% endfor %}
         </div>
         
+         {% include '_key_features_banner.html' %}
+
         {% if not artworks %}
         <div class="flex flex-col items-center justify-center p-8 bg-white rounded-lg shadow-md mt-8">
             <h4 class="text-2xl font-bold text-gray-800 mb-2">Coming Soon!</h4>
