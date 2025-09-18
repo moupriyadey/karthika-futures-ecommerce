@@ -4,114 +4,121 @@
 
 {% block content %}
 <div class="container-fluid py-4 main-content-area">
-    <h2 class="mb-4 text-center">Manage Artworks</h2>
+    <h2 class="mb-4 text-center">Manage Artworks</h2>
 
-    {% include 'admin_navbar.html' %}
+    {% include 'admin_navbar.html' %}
 
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-light py-3 rounded-top-lg d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Artworks List</h5>
-            <a href="{{ url_for('admin_add_artwork') }}" class="btn btn-success">
-                <i class="fas fa-plus me-1"></i> Add New Artwork
-            </a>
-        </div>
-        <div class="card-body">
-            <form class="row g-3 mb-3" action="{{ url_for('admin_artworks_view') }}" method="GET">
-                <div class="col-md-6">
-                    <input type="text" class="form-control" name="search_query" placeholder="Search by SKU, Name, Description" value="{{ search_query }}">
-                </div>
-                <div class="col-md-4">
-                    <select class="form-select" name="category_id">
-                        <option value="">All Categories</option>
-                        {% for category in categories %}
-                        <option value="{{ category.id }}" {% if category.id|string == selected_category_id|string %}selected{% endif %}>{{ category.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">Apply Filter</button>
-                </div>
-            </form>
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light py-3 rounded-top-lg d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Artworks List</h5>
+            <a href="{{ url_for('admin_add_artwork') }}" class="btn btn-success">
+                <i class="fas fa-plus me-1"></i> Add New Artwork
+            </a>
+        </div>
+        <div class="card-body">
+            <form class="row g-3 mb-3" action="{{ url_for('admin_artworks_view') }}" method="GET">
+                <div class="col-md-6">
+                    <input type="text" class="form-control" name="search_query" placeholder="Search by SKU, Name, Description" value="{{ search_query }}">
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" name="category_id">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}" {% if category.id|string == selected_category_id|string %}selected{% endif %}>{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Apply Filter</button>
+                </div>
+            </form>
 
-            {% if artworks %}
-            <div class="table-responsive">
-                <table class="table table-hover table-striped">
-                    <thead>
-                        <tr>
-                            <th>Image</th>
-                            <th>SKU</th>
-                            <th>Name</th>
-                            <th>Category</th>
-                            <th>Price (₹)</th>
-                            <th>Stock</th>
-                            <th>Featured</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for artwork in artworks %}
-                        <tr>
-                            <td>
-                                {% set images_list = artwork.get_images_list() %}
-                                {% if images_list %}
-                                    <img src="{{ url_for('static', filename=images_list[0]) }}" alt="{{ artwork.name }}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
-                                {% else %}
-                                    <img src="{{ url_for('static', filename='images/placeholder.png') }}" alt="No Image" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
-                                {% endif %}
-                            </td>
-                            <td>{{ artwork.sku }}</td>
-                            <td>{{ artwork.name }}</td>
-                            <td>{{ artwork.category.name if artwork.category else 'N/A' }}</td>
-                            <td>₹{{ artwork.original_price | floatformat(2) }}</td>
-                            <td>{{ artwork.stock }}</td>
-                            <td>
-                                {% if artwork.is_featured %}
-                                <i class="fas fa-check-circle text-success"></i>
-                                {% else %}
-                                <i class="fas fa-times-circle text-danger"></i>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <a href="{{ url_for('admin_edit_artwork', artwork_id=artwork.id) }}" class="btn btn-sm btn-info me-2">Edit</a>
-                                <button type="button" class="btn btn-danger btn-sm delete-artwork-btn"
-                                        data-bs-toggle="modal" data-bs-target="#deleteArtworkModal"
-                                        data-artwork-id="{{ artwork.id }}"
-                                        data-artwork-name="{{ artwork.name }}">
-                                    <i class="fas fa-trash-alt"></i> Delete
-                                </button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <p class="text-center">No artworks found. Add one above!</p>
-            {% endif %}
-        </div>
-    </div>
+            {% if artworks %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>SKU</th>
+                            <th>Name</th>
+                            <th>Order</th>
+                            <th>Category</th>
+                            <th>Price (₹)</th>
+                            <th>Stock</th>
+                            <th>Featured</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for artwork in artworks %}
+                        <tr data-artwork-id="{{ artwork.id }}">
+                            <td>
+                                {% set images_list = artwork.get_images_list() %}
+                                {% if images_list %}
+                                    <img src="{{ url_for('static', filename=images_list[0]) }}" alt="{{ artwork.name }}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
+                                {% else %}
+                                    <img src="{{ url_for('static', filename='images/placeholder.png') }}" alt="No Image" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
+                                {% endif %}
+                            </td>
+                            <td>{{ artwork.sku }}</td>
+                            <td>{{ artwork.name }}</td>
+                            <td>
+                                <form action="{{ url_for('admin_update_artwork_order', artwork_id=artwork.id) }}" method="POST" class="d-flex align-items-center">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="number" name="display_order" class="form-control form-control-sm me-2" style="width: 80px;" value="{{ artwork.display_order }}" onchange="this.form.submit()">
+                                </form>
+                            </td>
+                            <td>{{ artwork.category.name if artwork.category else 'N/A' }}</td>
+                            <td>₹{{ artwork.original_price | floatformat(2) }}</td>
+                            <td>{{ artwork.stock }}</td>
+                            <td>
+                                {% if artwork.is_featured %}
+                                <i class="fas fa-check-circle text-success"></i>
+                                {% else %}
+                                <i class="fas fa-times-circle text-danger"></i>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('admin_edit_artwork', artwork_id=artwork.id) }}" class="btn btn-sm btn-info me-2">Edit</a>
+                                <button type="button" class="btn btn-danger btn-sm delete-artwork-btn"
+                                        data-bs-toggle="modal" data-bs-target="#deleteArtworkModal"
+                                        data-artwork-id="{{ artwork.id }}"
+                                        data-artwork-name="{{ artwork.name }}">
+                                    <i class="fas fa-trash-alt"></i> Delete
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-center">No artworks found. Add one above!</p>
+            {% endif %}
+        </div>
+    </div>
 </div>
 
 {# Delete Artwork Confirmation Modal - HTML block to be added #}
 <div class="modal fade" id="deleteArtworkModal" tabindex="-1" aria-labelledby="deleteArtworkModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deleteArtworkModalLabel">Confirm Artwork Deletion</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                Are you sure you want to delete the artwork "<strong id="artworkNameToDelete"></strong>"? This action cannot be undone.
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form id="deleteArtworkForm" method="POST" action="">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-danger">Delete Artwork</button>
-                </form>
-            </div>
-        </div>
-    </div>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteArtworkModalLabel">Confirm Artwork Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete the artwork "<strong id="artworkNameToDelete"></strong>"? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteArtworkForm" method="POST" action="">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">Delete Artwork</button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 

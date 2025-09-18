@@ -272,6 +272,7 @@ class Artwork(db.Model):
     name = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
     original_price = Column(Numeric(10, 2), nullable=False) # Price before any options or GST
+    display_order = db.Column(db.Integer, default=999) # Add this line
     
     # New GST fields
     cgst_percentage = Column(Numeric(5, 2), default=Decimal('0.00'), nullable=False)
@@ -1546,57 +1547,37 @@ def reset_password():
 
     return render_template('reset_password.html')
 
-@app.route('/category/<category_slug>')
-def category_page(category_slug):
-    # This is a placeholder function to fix the BuildError.
-    # Replace this with your actual logic later.
-    # For now, let's assume you have a 'category_page.html' template.
-    return render_template('category_page.html', category_slug=category_slug)
-# app.py (Modified Excerpt)
+
+# --- Routes ---
 @app.route('/')
 def index():
-    # Existing category horizontal layout
-    categories = Category.query.order_by(Category.name).all() 
-    for category in categories:
-        first_artwork = Artwork.query.filter_by(category_id=category.id).first()
-        if first_artwork:
-            images_list = first_artwork.get_images_list()
-            if images_list:
-                category.main_artwork_image = images_list[0]
-            else:
-                category.main_artwork_image = url_for('static', filename='images/placeholder.png')
-        else:
-            category.main_artwork_image = url_for('static', filename='images/placeholder.png')
+    categories = Category.query.all()
+    # Fetch all artworks, you can filter this as needed
+    all_artworks = Artwork.query.order_by(Artwork.display_order).all()
+    
+    # Categorize artworks
+    categorized_artworks = defaultdict(list)
+    for art in all_artworks:
+        if art.category: # Ensure the artwork has a category
+            categorized_artworks[art.category.name].append(art)
 
-    # Featured artworks for carousel
-    featured_artworks = Artwork.query.filter_by(is_featured=True).limit(6).all()
-    featured_artworks_for_carousel = []
-    if featured_artworks:
-        num_duplicates = min(3, len(featured_artworks))
-        items_to_duplicate = featured_artworks[:num_duplicates]
-        featured_artworks_for_carousel = featured_artworks + items_to_duplicate
+    return render_template('index.html', 
+                           categories=categories, 
+                           categorized_artworks=categorized_artworks,
+                           all_artworks=all_artworks)
 
-    # --- ✅ New: group artworks by category ---
-    categorized_artworks = {}
-    for category in categories:
-        artworks_in_category = Artwork.query.filter_by(category_id=category.id).all()
-        if artworks_in_category:
-            categorized_artworks[category.name] = artworks_in_category
-
-    # Testimonials (unchanged)
-    testimonials = [
-        {"name": "Radha Devi","feedback": "The artwork is truly divine and brings immense peace to my home. Highly recommend Karthika Futures!","rating": 5,"image": "images/testimonial1.jpg","product_sku": "89898"},
-        {"name": "Krishna Murthy","feedback": "Exceptional quality and prompt delivery. Each piece tells a story. A blessed experience!","rating": 5,"image": "images/testimonial2.jpg","product_sku": "232323"},
-        {"name": "Priya Sharma","feedback": "Beautiful collection! The details are intricate and the colors vibrant. My meditation space feels complete.","rating": 4,"image": "images/testimonial3.jpg","product_sku": "656565"},
-    ]
-
-    return render_template(
-        'index.html',
-        categories=categories,  
-        featured_artworks=featured_artworks_for_carousel, 
-        testimonials=testimonials,
-        categorized_artworks=categorized_artworks  # ✅ pass new dict to template
-    )
+# NEW: Route for category pages
+# NEW: Route for category pages
+@app.route('/category/<category_slug>')
+def category_page(category_slug):
+    # The `slugify` filter is already available in your app, we use it to query
+    category = Category.query.filter(func.lower(Category.name) == func.lower(category_slug.replace('-', ' '))).first_or_404()
+    
+    artworks_in_category = Artwork.query.filter_by(category_id=category.id).order_by(Artwork.display_order).all()
+    
+    return render_template('category_page.html', 
+                           category=category, 
+                           artworks=artworks_in_category)
 
 # MODIFIED: all_products route to pass categorized artworks
 @app.route('/all-products')
@@ -2364,6 +2345,24 @@ def admin_edit_artwork(artwork_id):
 # In app.py
 from flask import flash, redirect, url_for
 from sqlalchemy.exc import IntegrityError  # Import IntegrityError
+
+# NEW: Route to update artwork display order
+@app.route('/admin/artwork/order/<int:artwork_id>', methods=['POST'])
+@login_required
+def admin_update_artwork_order(artwork_id):
+    if not current_user.is_admin:
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('admin_artworks_view'))
+    
+    artwork = Artwork.query.get_or_404(artwork_id)
+    new_order = request.form.get('display_order', type=int)
+
+    if new_order is not None:
+        artwork.display_order = new_order
+        db.session.commit()
+        flash('Artwork display order updated successfully!', 'success')
+    
+    return redirect(url_for('admin_artworks_view'))
 
 
 import os

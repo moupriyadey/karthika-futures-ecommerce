@@ -12,8 +12,8 @@
 
     <div class="flex overflow-x-auto space-x-6 scrollbar-hide">
       {% for category in categories %}
-      <a href="#{{ category.name|lower|replace(' ', '-') }}"
-         class="flex-shrink-0 w-28 text-center group">
+      <a href="{{ url_for('category_page', category_slug=category.name|slugify) }}"
+        class="flex-shrink-0 w-28 text-center group">
          
         <!-- Circle with the specific category image -->
         <div class="w-32 h-32 mx-auto rounded-full bg-white shadow-lg overflow-hidden 

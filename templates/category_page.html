@@ -1,6 +1,115 @@
 {% extends '_base.html' %}
 
 {% block content %}
-    <h1>Welcome to the {{ category_slug }} category page!</h1>
-    <p>This is a placeholder page. The route is now working correctly.</p>
+<main class="pt-20">
+    <div class="container mx-auto px-4 py-8">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-primary mb-2">{{ category.name }}</h1>
+            <p class="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">{{ category.description }}</p>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {% for artwork in artworks %}
+            <div class="product-card bg-white rounded-lg shadow-md overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl flex flex-col relative">
+                
+                {% if artwork.stock > 0 and artwork.stock <= 5 %}
+                <div class="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg z-10">
+                    Only {{ artwork.stock }} left!
+                </div>
+                {% endif %}
+
+                <a href="{{ url_for('product_detail', sku=artwork.sku) }}">
+                    <div class="h-48 w-full p-2 flex items-center justify-center">
+                        <img src="{{ artwork.get_images_list()[0] if artwork.get_images_list() else url_for('static', filename='images/placeholder.png') }}" 
+                             alt="{{ artwork.name }}" 
+                             class="object-contain max-h-full max-w-full transition-transform duration-300 hover:scale-105">
+                    </div>
+                </a>
+
+                <div class="p-2 flex flex-col justify-between text-center">
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-900 mb-1 truncate">{{ artwork.name }}</h3>
+                        
+                        <div class="flex items-baseline justify-center mb-1">
+                            <span class="text-base font-bold text-primary">{{ artwork.selling_price_incl_gst | currency }}</span>
+                        </div>
+
+                        <div class="flex items-center justify-center mb-1">
+                            <div class="text-yellow-500 text-xs">
+                                <i class="fas fa-star"></i><i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i><i class="fas fa-star"></i>
+                                <i class="fas fa-star-half-alt"></i>
+                            </div>
+                            <span class="text-xs text-gray-600 ml-1">(4.5/5)</span>
+                        </div>
+                        
+                        {% if artwork.shipping_charge == 0 %}
+                        <p class="text-green-600 font-semibold text-xs mb-1">
+                            <i class="fas fa-truck mr-1"></i> Free Delivery
+                        </p>
+                        {% else %}
+                        <p class="text-gray-500 font-semibold text-xs mb-1">
+                            <i class="fas fa-truck mr-1"></i> Shipping: {{ artwork.shipping_charge | currency }}
+                        </p>
+                        {% endif %}
+                    </div>
+
+                    <div class="flex justify-center mt-2">
+                        {% if artwork.stock > 0 %}
+                        <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary px-3 py-1 text-center text-xs w-full">
+                            View Details
+                        </a>
+                        {% else %}
+                        <button class="btn btn-secondary px-3 py-1 opacity-60 cursor-not-allowed text-xs w-full" disabled>
+                            Out of Stock
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if not artworks %}
+        <div class="flex flex-col items-center justify-center p-8 bg-white rounded-lg shadow-md mt-8">
+            <h4 class="text-2xl font-bold text-gray-800 mb-2">Coming Soon!</h4>
+            <p class="text-lg text-gray-600">We are still adding new items to this category. Please check back later!</p>
+        </div>
+        {% endif %}
+    </div>
+</main>
+{% if sale_end_time %}
+    <div class="fixed bottom-0 w-full bg-blue-600 text-white text-center py-2 shadow-lg z-50">
+        <span class="font-semibold">Limited Time Offer! </span> Sale ends in <span id="countdown-timer" class="font-bold"></span>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const saleEndTime = new Date("{{ sale_end_time }}");
+        const countdownElement = document.getElementById('countdown-timer');
+
+        if (countdownElement) {
+            const updateCountdown = () => {
+                const now = new Date();
+                const timeLeft = saleEndTime - now;
+
+                if (timeLeft <= 0) {
+                    countdownElement.textContent = "EXPIRED!";
+                } else {
+                    const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+                    const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+                    countdownElement.textContent = `${hours}h ${minutes}m ${seconds}s`;
+                }
+            };
+
+            updateCountdown();
+            setInterval(updateCountdown, 1000);
+        }
+    });
+</script>
 {% endblock %}
