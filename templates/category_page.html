@@ -1,17 +1,25 @@
 {% extends '_base.html' %}
 
 {% block content %}
-<main class="pt-40">
+<main class="pt-28">  {# adjusted so navbar + marquee don’t overlap #}
     {% if sale_end_time %}
-    <div class="bg-primary text-white text-center py-2 overflow-hidden whitespace-nowrap">
-        <span class="inline-block animate-marquee font-semibold text-lg md:text-xl">
-            LIMITED TIME OFFER ON 'SRI RAM' WALLFRAME! Sale ends in <span id="marquee-countdown-timer" class="font-bold"></span>
-        ORDER SOON...</span>
+    <!-- 🔹 Top Marquee Offer Bar -->
+    <div class="offer-marquee-bar bg-gradient-to-r from-purple-700 via-pink-600 to-red-500 text-white fixed top-16 w-full z-50 shadow-md">
+        <div class="overflow-hidden whitespace-nowrap py-2">
+            <span class="inline-block animate-marquee font-bold tracking-wide text-sm sm:text-base md:text-lg">
+                🎉 LIMITED TIME OFFER ON <span class="underline">‘SRI RAM’</span> WALLFRAME! &nbsp;&nbsp;|&nbsp;&nbsp; 
+                ⏳ Sale ends in <span id="marquee-countdown-timer" class="font-extrabold"></span> &nbsp;&nbsp;|&nbsp;&nbsp; 
+                🚚 Free Delivery on Orders Above ₹999 &nbsp;&nbsp;|&nbsp;&nbsp; ORDER SOON!
+            </span>
+        </div>
     </div>
+    <!-- Padding so content not hidden by fixed bar -->
+    <div class="pt-20"></div>
     {% endif %}
 
-    <div class="container mx-auto px-4 py-8">
-        <div class="text-center mb-8">
+    <!-- 🔹 Category Section -->
+    <div class="container mx-auto px-4 py-6">
+        <div class="text-center mb-6">
             <h1 class="text-4xl sm:text-5xl font-extrabold text-primary mb-2">{{ category.name }}</h1>
             <p class="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">{{ category.description }}</p>
         </div>
@@ -88,10 +96,24 @@
         {% endif %}
     </div>
 </main>
+
 {% if sale_end_time %}
-    <div class="fixed bottom-0 w-full bg-blue-600 text-white text-center py-2 shadow-lg z-50">
-        <span class="font-semibold">Limited Time Offer! </span> Sale ends in <span id="countdown-timer" class="font-bold"></span>
+<!-- 🔹 Bottom Countdown Bar -->
+<div id="bottom-offer-bar" class="social-curve fixed bottom-0 w-full bg-gradient-to-r from-blue-700 via-indigo-600 to-purple-700 shadow-lg z-50 py-2 transition-transform duration-500">
+    <div class="container-fluid">
+        <ul class="social-icon list-inline m-0 text-center">
+            <li class="list-inline-item font-semibold text-white text-sm sm:text-base md:text-lg">
+                ⏰ Hurry! Limited Time Offer
+            </li>
+            <li class="list-inline-item text-yellow-300 font-bold text-sm sm:text-base md:text-lg">
+                Sale ends in <span id="countdown-timer"></span>
+            </li>
+            <li class="list-inline-item text-white font-semibold italic text-sm sm:text-base md:text-lg">
+                🛒 Don’t Miss Out!
+            </li>
+        </ul>
     </div>
+</div>
 {% endif %}
 {% endblock %}
 
@@ -107,7 +129,7 @@
             const timeLeft = saleEndTime - now;
 
             if (timeLeft <= 0) {
-                const expiredText = "EXPIRED!";
+                const expiredText = "OFFER ENDED";
                 if (countdownElement) countdownElement.textContent = expiredText;
                 if (marqueeCountdownElement) marqueeCountdownElement.textContent = expiredText;
             } else {
@@ -125,9 +147,24 @@
             updateCountdown();
             setInterval(updateCountdown, 1000);
         }
+
+        // 🔹 Auto-hide bottom offer bar on scroll
+        let lastScrollTop = 0;
+        const bottomBar = document.getElementById("bottom-offer-bar");
+        if (bottomBar) {
+            window.addEventListener("scroll", () => {
+                let scrollTop = window.scrollY || document.documentElement.scrollTop;
+                if (scrollTop > lastScrollTop) {
+                    bottomBar.style.transform = "translateY(100%)"; // hide on scroll down
+                } else {
+                    bottomBar.style.transform = "translateY(0)"; // show on scroll up
+                }
+                lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+            });
+        }
     });
 
-    // New script for the key features banner carousel
+    // 🔹 Script for the key features banner carousel
     document.addEventListener('DOMContentLoaded', () => {
         const carousel = document.getElementById('features-carousel');
         if (!carousel) return;
@@ -152,18 +189,37 @@
         setInterval(scrollNext, 3000); 
     });
 </script>
-<style>
-    @keyframes marquee {
-        0% {
-            transform: translateX(100%);
-        }
-        100% {
-            transform: translateX(-100%);
-        }
-    }
 
-    .animate-marquee {
-        animation: marquee 12s linear infinite;
-    }
+<style>
+/* 🔹 Marquee Animation */
+@keyframes marquee {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+}
+.animate-marquee {
+    animation: marquee 16s linear infinite;
+}
+
+/* 🔹 Top Marquee Bar */
+.offer-marquee-bar {
+    font-family: 'Poppins', sans-serif;
+    letter-spacing: 0.5px;
+}
+
+/* 🔹 Bottom Countdown Bar */
+.social-icon li {
+    display: inline-block;
+    margin: 0 12px;
+}
+
+.social-curve {
+    font-family: 'Poppins', sans-serif;
+    animation: fadeInUp 0.8s ease-in-out;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
 </style>
 {% endblock %}
