@@ -1567,7 +1567,8 @@ def index():
                            all_artworks=all_artworks)
 
 # NEW: Route for category pages
-# NEW: Route for category pages
+from datetime import datetime, timedelta
+
 @app.route('/category/<category_slug>')
 def category_page(category_slug):
     # The `slugify` filter is already available in your app, we use it to query
@@ -1575,9 +1576,14 @@ def category_page(category_slug):
     
     artworks_in_category = Artwork.query.filter_by(category_id=category.id).order_by(Artwork.display_order).all()
     
+    # Add this line to define the sale end time, e.g., 2 hours from now
+    sale_end_time = datetime.now() + timedelta(hours=6)
+    
     return render_template('category_page.html', 
                            category=category, 
-                           artworks=artworks_in_category)
+                           artworks=artworks_in_category,
+                           sale_end_time=sale_end_time)
+
 
 # MODIFIED: all_products route to pass categorized artworks
 @app.route('/all-products')

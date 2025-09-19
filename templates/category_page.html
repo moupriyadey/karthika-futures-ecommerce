@@ -1,14 +1,20 @@
 {% extends '_base.html' %}
 
 {% block content %}
-<main class="pt-20">
+<main class="pt-40">
+    {% if sale_end_time %}
+    <div class="bg-primary text-white text-center py-2 overflow-hidden whitespace-nowrap">
+        <span class="inline-block animate-marquee font-semibold text-lg md:text-xl">
+            LIMITED TIME OFFER ON 'SRI RAM' WALLFRAME! Sale ends in <span id="marquee-countdown-timer" class="font-bold"></span>
+        ORDER SOON...</span>
+    </div>
+    {% endif %}
+
     <div class="container mx-auto px-4 py-8">
         <div class="text-center mb-8">
             <h1 class="text-4xl sm:text-5xl font-extrabold text-primary mb-2">{{ category.name }}</h1>
             <p class="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">{{ category.description }}</p>
         </div>
-
-       
 
         <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {% for artwork in artworks %}
@@ -72,7 +78,7 @@
             {% endfor %}
         </div>
         
-         {% include '_key_features_banner.html' %}
+        {% include '_key_features_banner.html' %}
 
         {% if not artworks %}
         <div class="flex flex-col items-center justify-center p-8 bg-white rounded-lg shadow-md mt-8">
@@ -94,26 +100,70 @@
     document.addEventListener('DOMContentLoaded', function() {
         const saleEndTime = new Date("{{ sale_end_time }}");
         const countdownElement = document.getElementById('countdown-timer');
+        const marqueeCountdownElement = document.getElementById('marquee-countdown-timer');
 
-        if (countdownElement) {
-            const updateCountdown = () => {
-                const now = new Date();
-                const timeLeft = saleEndTime - now;
+        const updateCountdown = () => {
+            const now = new Date();
+            const timeLeft = saleEndTime - now;
 
-                if (timeLeft <= 0) {
-                    countdownElement.textContent = "EXPIRED!";
-                } else {
-                    const hours = Math.floor(timeLeft / (1000 * 60 * 60));
-                    const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-                    const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+            if (timeLeft <= 0) {
+                const expiredText = "EXPIRED!";
+                if (countdownElement) countdownElement.textContent = expiredText;
+                if (marqueeCountdownElement) marqueeCountdownElement.textContent = expiredText;
+            } else {
+                const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+                const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
 
-                    countdownElement.textContent = `${hours}h ${minutes}m ${seconds}s`;
-                }
-            };
+                const countdownText = `${hours}h ${minutes}m ${seconds}s`;
+                if (countdownElement) countdownElement.textContent = countdownText;
+                if (marqueeCountdownElement) marqueeCountdownElement.textContent = countdownText;
+            }
+        };
 
+        if (countdownElement || marqueeCountdownElement) {
             updateCountdown();
             setInterval(updateCountdown, 1000);
         }
     });
+
+    // New script for the key features banner carousel
+    document.addEventListener('DOMContentLoaded', () => {
+        const carousel = document.getElementById('features-carousel');
+        if (!carousel) return;
+
+        let currentIndex = 0;
+        const totalItems = carousel.children.length;
+
+        function scrollNext() {
+            currentIndex++;
+            if (currentIndex >= totalItems) {
+                currentIndex = 0;
+            }
+            
+            const scrollPosition = carousel.children[currentIndex].offsetLeft;
+            
+            carousel.scrollTo({
+                left: scrollPosition,
+                behavior: 'smooth'
+            });
+        }
+        
+        setInterval(scrollNext, 3000); 
+    });
 </script>
+<style>
+    @keyframes marquee {
+        0% {
+            transform: translateX(100%);
+        }
+        100% {
+            transform: translateX(-100%);
+        }
+    }
+
+    .animate-marquee {
+        animation: marquee 12s linear infinite;
+    }
+</style>
 {% endblock %}
