@@ -147,6 +147,7 @@ login_manager.login_message_category = 'info'
 csrf = CSRFProtect(app)
 
 # --- Helper Functions ---
+
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
@@ -1554,6 +1555,10 @@ def index():
     categories = Category.query.all()
     # Fetch all artworks, you can filter this as needed
     all_artworks = Artwork.query.order_by(Artwork.display_order).all()
+    print(f"Number of artworks fetched: {len(all_artworks)}")
+    
+    # This is the single line change: take the first 10 artworks
+    featured_artworks = all_artworks[:10]
     
     # Categorize artworks
     categorized_artworks = defaultdict(list)
@@ -1564,7 +1569,8 @@ def index():
     return render_template('index.html', 
                            categories=categories, 
                            categorized_artworks=categorized_artworks,
-                           all_artworks=all_artworks)
+                           all_artworks=all_artworks,
+                           featured_artworks=featured_artworks)
 
 # NEW: Route for category pages
 from datetime import datetime, timedelta

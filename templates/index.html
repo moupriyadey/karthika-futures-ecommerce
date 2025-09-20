@@ -7,30 +7,39 @@
 
 <!-- Explore Categories -->
 <section class="py-6 bg-gradient-to-r from-purple-600 to-pink-500">
-  <div class="container mx-auto px-4">
+  <div class="container mx-auto px-4 relative">
     <h2 class="text-2xl font-bold text-white mb-4">Explore Categories</h2>
 
-    <div class="flex overflow-x-auto space-x-6 scrollbar-hide">
-      {% for category in categories %}
-      <a href="{{ url_for('category_page', category_slug=category.name|slugify) }}"
-        class="flex-shrink-0 w-28 text-center group">
-         
-        <!-- Circle with the specific category image -->
-        <div class="w-32 h-32 mx-auto rounded-full bg-white shadow-lg overflow-hidden 
-                    transform transition duration-300 group-hover:scale-110 flex items-center justify-center">
-          <img src="{{ url_for('static', filename=category.image) if category.image else url_for('static', filename='images/placeholder.png') }}"
-    alt="{{ category.name }}"
-    class="w-full h-full object-cover object-center">
-        </div>
+    <div class="swiper mySwiperCategories">
+      <div class="swiper-wrapper">
+        {% for category in categories %}
+        <div class="swiper-slide flex justify-center">
+          <a href="{{ url_for('category_page', category_slug=category.name|slugify) }}"
+             class="flex flex-col items-center text-center group relative category-link">
+            <div class="w-32 h-32 mx-auto rounded-full bg-white shadow-lg overflow-hidden 
+                        transform transition duration-300 group-hover:scale-110 flex items-center justify-center">
+              
+                        <img src="{{ url_for('static', filename=category.image) if category.image else url_for('static', filename='images/placeholder.png') }}"
+                   alt="{{ category.name }}"
+                   class="w-full h-full object-cover object-center">
+            </div>
 
-        <!-- Category name -->
-        <p class="mt-2 text-white font-semibold">{{ category.name }}</p>
-        <p class="text-xs text-gray-200">Divine collection</p>
-      </a>
-      {% endfor %}
+            <h3 class="mt-4 text-white text-lg font-semibold group-hover:text-amber-300 transition-colors duration-300">
+              {{ category.name }}
+            </h3>
+            
+            <div class="category-spinner hidden"></div>
+          </a>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="swiper-button-next text-white hover:text-amber-300 transition-colors duration-300"></div>
+      <div class="swiper-button-prev text-white hover:text-amber-300 transition-colors duration-300"></div>
+      <div class="swiper-pagination text-white mt-4"></div>
     </div>
   </div>
 </section>
+
 
 <!-- Optional: smooth scroll -->
 <style>
@@ -112,87 +121,66 @@
 </section>
 {% endfor %}
 
-
-   <section class="fade-section relative text-gray-900 text-center py-16"
-         style="background: url('{{ url_for('static', filename='images/bg.jpg') }}') center/cover no-repeat;">
-    
-    <!-- Optional semi-transparent overlay for better text contrast -->
-    <div class="absolute inset-0 bg-black opacity-25"></div>
-
-    <div class="container mx-auto relative z-10">
-        <h2 class="fade-item text-4xl sm:text-5xl font-extrabold text-gray-100 mb-12 drop-shadow-lg">
-            Most Searched Items
-        </h2>
-
-        <div id="featuredArtworksBootstrapCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="3000">
-            <div class="carousel-inner">
-                {% for artwork in featured_artworks %}
-                <div class="carousel-item {% if loop.first %}active{% endif %}">
-                    <div class="flex justify-center">
-                        <div class="fade-item product-card bg-white rounded-2xl shadow-xl overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-2xl w-72 sm:w-80 mx-4 my-6">
-                            <a href="{{ url_for('product_detail', sku=artwork.sku) }}">
-                                <div class="thumbnail-wrapper p-4 bg-gray-50 rounded-t-2xl shadow-inner flex items-center justify-center group">
-                                    <img src="{{ artwork.get_images_list()[0] if artwork.get_images_list() else url_for('static', filename='images/placeholder.png') }}"
-                                         alt="{{ artwork.name }}"
-                                         class="w-full h-64 object-contain transition-transform duration-300 group-hover:scale-105 cursor-pointer rounded-lg"
-                                         title="Click to view larger"
-                                         onclick="event.preventDefault(); openFullImage('{{ artwork.get_images_list()[0] if artwork.get_images_list() else url_for('static', filename='images/placeholder.png') }}'); event.stopPropagation();"
-                                         loading="lazy">
-                                </div>
-                            </a>
-                            <div class="p-5 flex flex-col justify-between">
-                                <h3 class="text-xl sm:text-2xl font-semibold text-gray-900 mb-2 truncate">{{ artwork.name }}</h3>
-                                <p class="text-gray-600 text-sm sm:text-base mb-3">{{ artwork.description[:120] }}{% if artwork.description|length > 120 %}...{% endif %}</p>
-                                
-                                <div class="flex items-baseline justify-between mb-2">
-                                    <span class="text-2xl font-bold text-primary final-price">{{ artwork.selling_price_incl_gst | currency }}</span>
-                                </div>
-
-                                <div class="flex items-center mb-2">
-                                    <div class="text-yellow-500">
-                                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
-                                    </div>
-                                    <span class="text-sm text-gray-600 ml-2">(4.5/5)</span>
-                                </div>
-
-                                {% if artwork.shipping_charge is defined and artwork.shipping_charge == 0 %}
-                                <p class="text-green-600 font-semibold text-sm mb-3 text-left">
-                                    <i class="fas fa-truck mr-1"></i> Free Delivery
-                                </p>
-                                {% else %}
-                                <p class="text-gray-500 text-sm mb-3 text-left">
-                                    <i class="fas fa-truck mr-1"></i> Shipping charges apply
-                                </p>
-                                {% endif %}
-
-                                <div class="flex justify-center">
-                                    <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary px-6 py-2 sm:py-3 w-full hover:shadow-lg transition-shadow">
-                                        View Details
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+<section class="fade-section py-6 bg-white rounded-lg shadow-md mb-8">
+  <div class="container mx-auto px-4">
+    <h2 class="fade-item text-4xl sm:text-5xl font-extrabold text-primary mb-12 text-center drop-shadow-lg">
+      Most Searched Items
+    </h2>
+    <div class="swiper mySwiperFeatured">
+      <div class="swiper-wrapper">
+        {% for artwork in featured_artworks %}
+        <div class="swiper-slide w-full flex justify-center">
+          <div class="fade-item product-card bg-white rounded-2xl shadow-xl overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-2xl w-72 sm:w-80 mx-4 my-6">
+            <a href="{{ url_for('product_detail', sku=artwork.sku) }}">
+              <div class="thumbnail-wrapper p-4 bg-gray-50 rounded-t-2xl shadow-inner flex items-center justify-center group">
+                <img src="{{ artwork.get_images_list()[0] if artwork.get_images_list() else url_for('static', filename='images/placeholder.png') }}"
+                     alt="{{ artwork.name }}"
+                     class="w-full h-64 object-contain transition-transform duration-300 group-hover:scale-105 cursor-pointer rounded-lg"
+                     title="Click to view larger"
+                     onclick="event.preventDefault(); openFullImage('{{ artwork.get_images_list()[0] if artwork.get_images_list() else url_for('static', filename='images/placeholder.png') }}'); event.stopPropagation();"
+                     loading="lazy">
+              </div>
+            </a>
+            <div class="p-5 flex flex-col justify-between">
+              <h3 class="text-xl sm:text-2xl font-semibold text-gray-900 mb-2 truncate">{{ artwork.name }}</h3>
+              <p class="text-gray-600 text-sm sm:text-base mb-3">{{ artwork.description[:120] }}{% if artwork.description|length > 120 %}...{% endif %}</p>
+              <div class="flex items-baseline justify-between mb-2">
+                <span class="text-2xl font-bold text-primary final-price">{{ artwork.selling_price_incl_gst | currency }}</span>
+              </div>
+              <div class="flex items-center mb-2">
+                <div class="text-yellow-500">
+                  <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
                 </div>
-                {% else %}
-                <div class="carousel-item active">
-                    <p class="text-center text-gray-100 w-full py-10">No featured artworks available at the moment.</p>
-                </div>
-                {% endfor %}
+                <span class="text-sm text-gray-600 ml-2">(4.5/5)</span>
+              </div>
+              {% if artwork.shipping_charge is defined and artwork.shipping_charge == 0 %}
+              <p class="text-green-600 font-semibold text-sm mb-3 text-left">
+                <i class="fas fa-truck mr-1"></i> Free Delivery
+              </p>
+              {% else %}
+              <p class="text-gray-500 text-sm mb-3 text-left">
+                <i class="fas fa-truck mr-1"></i> Shipping charges apply
+              </p>
+              {% endif %}
+              <div class="flex justify-center">
+                <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary px-6 py-2 sm:py-3 w-full hover:shadow-lg transition-shadow">
+                  View Details
+                </a>
+              </div>
             </div>
-
-            <button class="carousel-control-prev" type="button" data-bs-target="#featuredArtworksBootstrapCarousel" data-bs-slide="prev">
-                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                <span class="visually-hidden">Previous</span>
-            </button>
-            <button class="carousel-control-next" type="button" data-bs-target="#featuredArtworksBootstrapCarousel" data-bs-slide="next">
-                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                <span class="visually-hidden">Next</span>
-            </button>
+          </div>
         </div>
+        {% else %}
+        <div class="swiper-slide w-full flex justify-center">
+          <p class="text-center text-gray-800 w-full py-10">No featured artworks available at the moment.</p>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="swiper-pagination mt-4"></div>
     </div>
+  </div>
 </section>
-
+   
 
     <!-- YouTube Heading on white background -->
 <div class="container my-4 text-center">
@@ -331,221 +319,247 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-    const fadeSections = document.querySelectorAll(".fade-section");
-
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-                const fadeItems = entry.target.querySelectorAll(".fade-item");
-                fadeItems.forEach((item, index) => {
-                    setTimeout(() => {
-                        item.classList.add("fade-visible");
-                    }, index * 150); // stagger delay
-                });
-                // observer.unobserve(entry.target); // keep commented for repeats
-            } else {
-                // Reset when out of view
-                const fadeItems = entry.target.querySelectorAll(".fade-item");
-                fadeItems.forEach((item) => {
-                    item.classList.remove("fade-visible");
-                });
-            }
+    function hideAllSpinners() {
+        const spinners = document.querySelectorAll('.category-spinner');
+        spinners.forEach(spinner => {
+            spinner.classList.add('hidden');
         });
-    }, { threshold: 0.15 });
-
-    fadeSections.forEach((section) => {
-        observer.observe(section);
-    });
-});
-
-
-document.addEventListener("DOMContentLoaded", function () {
-    const video = document.getElementById("heroVideo");
-    const controls = document.getElementById("videoControls");
-
-    const playBtn = document.getElementById("playBtn");
-    const pauseBtn = document.getElementById("pauseBtn");
-    const muteBtn = document.getElementById("muteBtn");
-    const unmuteBtn = document.getElementById("unmuteBtn");
-    const fullscreenBtn = document.getElementById("fullscreenBtn");
-    const forwardBtn = document.getElementById("forwardBtn");
-    const backBtn = document.getElementById("backBtn");
-
-    let controlsTimeout;
-
-    function showControls() {
-        controls.classList.add("opacity-100");
-        controls.classList.remove("opacity-0");
-        clearTimeout(controlsTimeout);
-        controlsTimeout = setTimeout(() => {
-            controls.classList.add("opacity-0");
-            controls.classList.remove("opacity-100");
-        }, 3000);
     }
 
-    document.addEventListener("mousemove", showControls);
-    document.addEventListener("touchstart", showControls);
+    document.addEventListener("DOMContentLoaded", function () {
+        hideAllSpinners(); // Hide spinners on initial page load
 
-    // Play / Pause
-    pauseBtn.addEventListener("click", () => {
-        video.pause();
-        pauseBtn.classList.add("hidden");
-        playBtn.classList.remove("hidden");
-    });
-    playBtn.addEventListener("click", () => {
-        video.play();
-        playBtn.classList.add("hidden");
-        pauseBtn.classList.remove("hidden");
+        const fadeSections = document.querySelectorAll(".fade-section");
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    const fadeItems = entry.target.querySelectorAll(".fade-item");
+                    fadeItems.forEach((item, index) => {
+                        setTimeout(() => {
+                            item.classList.add("fade-visible");
+                        }, index * 150); // stagger delay
+                    });
+                } else {
+                    const fadeItems = entry.target.querySelectorAll(".fade-item");
+                    fadeItems.forEach((item) => {
+                        item.classList.remove("fade-visible");
+                    });
+                }
+            });
+        }, { threshold: 0.15 });
+
+        fadeSections.forEach((section) => {
+            observer.observe(section);
+        });
     });
 
-    // Mute / Unmute
-    muteBtn.addEventListener("click", () => {
-        video.muted = true;
-        muteBtn.classList.add("hidden");
-        unmuteBtn.classList.remove("hidden");
-    });
-    unmuteBtn.addEventListener("click", () => {
-        video.muted = false;
-        unmuteBtn.classList.add("hidden");
-        muteBtn.classList.remove("hidden");
-    });
-
-    // Fullscreen
-    fullscreenBtn.addEventListener("click", () => {
-        if (video.requestFullscreen) {
-            video.requestFullscreen();
-        } else if (video.webkitRequestFullscreen) {
-            video.webkitRequestFullscreen();
-        } else if (video.msRequestFullscreen) {
-            video.msRequestFullscreen();
+    // Handle the "pageshow" event for bfcache
+    window.addEventListener('pageshow', function(event) {
+        if (event.persisted) {
+            // Page was restored from the bfcache
+            hideAllSpinners();
         }
     });
 
-    // Forward / Backward
-    forwardBtn.addEventListener("click", () => {
-        video.currentTime += 10;
-    });
-    backBtn.addEventListener("click", () => {
-        video.currentTime -= 10;
-    });
-
-    // Initially show controls
-    showControls();
-});
-
-function openFullImage(imageUrl) {
-    const popup = document.getElementById("fullImageView");
-    const popupImage = document.getElementById("fullImage");
-    popupImage.src = imageUrl;
-    popup.classList.remove("hidden");
-    document.body.style.overflow = 'hidden'; // Prevents scrolling behind popup
-}
-
-function closeFullImage(event) {
-    if (event) {
-        event.stopPropagation();
+    function openFullImage(imageUrl) {
+        const popup = document.getElementById("fullImageView");
+        const popupImage = document.getElementById("fullImage");
+        popupImage.src = imageUrl;
+        popup.classList.remove("hidden");
+        document.body.style.overflow = 'hidden';
     }
-    document.getElementById("fullImageView").classList.add("hidden");
-    document.body.style.overflow = 'auto'; // Re-enables scrolling
-}
+
+    function closeFullImage(event) {
+        if (event) {
+            event.stopPropagation();
+        }
+        document.getElementById("fullImageView").classList.add("hidden");
+        document.body.style.overflow = 'auto';
+    }
+
+    // Initialize the Categories Carousel
+    const swiperCategories = new Swiper(".mySwiperCategories", {
+        slidesPerView: 1,
+        spaceBetween: 20,
+        loop: true,
+        autoplay: {
+            delay: 2300,
+            disableOnInteraction: false,
+        },
+        breakpoints: {
+            640: {
+                slidesPerView: 2,
+                spaceBetween: 20,
+            },
+            768: {
+                slidesPerView: 3,
+                spaceBetween: 30,
+            },
+            1024: {
+                slidesPerView: 4,
+                spaceBetween: 40,
+            },
+        },
+    });
+
+    var swiperFeatured = new Swiper(".mySwiperFeatured", {
+        slidesPerView: 1,
+        spaceBetween: 20,
+        loop: true,
+        autoplay: {
+            delay: 5000,
+            disableOnInteraction: false,
+        },
+        pagination: {
+            el: ".swiper-pagination",
+            clickable: true,
+        },
+        navigation: {
+            nextEl: ".swiper-button-next",
+            prevEl: ".swiper-button-prev",
+        },
+        breakpoints: {
+            768: {
+                slidesPerView: 3,
+                spaceBetween: 30,
+            },
+            1024: {
+                slidesPerView: 5,
+                spaceBetween: 40,
+            }
+        }
+    });
+
+    const categoryLinks = document.querySelectorAll('.category-link');
+    categoryLinks.forEach(link => {
+        link.addEventListener('click', function(event) {
+            const spinner = this.querySelector('.category-spinner');
+            if (spinner) {
+                spinner.classList.remove('hidden');
+            }
+        });
+    });
 </script>
-
-
 <style>
-.watermark-overlay {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><text x="100" y="50" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="rgba(0, 0, 0, 0.1)" text-anchor="middle" transform="rotate(-45 100 50)">karthikafutures</text></svg>');
-    background-repeat: repeat;
-    background-size: 200px 100px;
+    /* Spinner for Category Images */
+.category-link {
+    position: relative;
+}
+
+.category-spinner {
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top: 4px solid #FFD700; /* Gold color */
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     z-index: 10;
 }
 
-.video-controls {
-    position: absolute;
-    bottom: 10px;
-    left: 10px;
-    display: flex;
-    gap: 6px;
-    z-index: 40;
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
-.video-controls button {
-    background: rgba(255, 255, 255, 0.15);
-    color: white;
-    border: none;
-    padding: 6px; /* smaller than 10px */
-    font-size: 0.9rem;
-    border-radius: 50%;
-    transition: background 0.3s ease, transform 0.2s ease;
-    cursor: pointer;
+/* Ensure the link container is positioned */
+.category-link {
+    position: relative;
 }
+    .watermark-overlay {
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><text x="100" y="50" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="rgba(0, 0, 0, 0.1)" text-anchor="middle" transform="rotate(-45 100 50)">karthikafutures</text></svg>');
+        background-repeat: repeat;
+        background-size: 200px 100px;
+        z-index: 10;
+    }
 
-.video-controls button:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: scale(1.1);
-}
-
-.video-controls button:focus {
-    outline: none;
-}
-
-
- /* Make sure the container clips its background */
-.bg-within {
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    border-radius: 1rem; /* match your rounded-xl */
-    overflow: hidden; /* ensures no overflow outside the rounded corners */
-}
-
-
-.fade-section {
-    opacity: 1; /* Keep section visible for layout */
-}
-
-.fade-item {
-    opacity: 0;
-    transform: translateY(25px);
-    transition: opacity 0.9s ease, transform 0.9s ease;
-}
-
-.fade-item.fade-visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-@media (max-width: 640px) {
     .video-controls {
-        gap: 3px; /* tighter spacing */
-        bottom: 6px;
-        left: 6px;
-        padding: 2px 4px;
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        display: flex;
+        gap: 6px;
+        z-index: 40;
     }
 
     .video-controls button {
-        padding: 4px;       /* smaller touch size */
-        font-size: 0.7rem;  /* smaller icon/text */
+        background: rgba(255, 255, 255, 0.15);
+        color: white;
+        border: none;
+        padding: 6px;
+        font-size: 0.9rem;
+        border-radius: 50%;
+        transition: background 0.3s ease, transform 0.2s ease;
+        cursor: pointer;
     }
-}
 
-.temple-bg {
-    background-image: url('{{ url_for('static', filename='images/temple_bg.png') }}');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    opacity: 0.2; /* matches your old opacity */
-}
+    .video-controls button:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: scale(1.1);
+    }
 
-/* Mobile-specific tweak so image fits fully */
-@media (max-width: 640px) {
+    .video-controls button:focus {
+        outline: none;
+    }
+
+    .bg-within {
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        border-radius: 1rem;
+        overflow: hidden;
+    }
+
+    .fade-section {
+        opacity: 1;
+    }
+
+    .fade-item {
+        opacity: 0;
+        transform: translateY(25px);
+        transition: opacity 0.9s ease, transform 0.9s ease;
+    }
+
+    .fade-item.fade-visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    @media (max-width: 640px) {
+        .video-controls {
+            gap: 3px;
+            bottom: 6px;
+            left: 6px;
+            padding: 2px 4px;
+        }
+
+        .video-controls button {
+            padding: 4px;
+            font-size: 0.7rem;
+        }
+    }
+
     .temple-bg {
-        background-size: contain; /* show full temple */
-        background-position: top center; /* focus on temple top */
+        background-image: url('{{ url_for('static', filename='images/temple_bg.png') }}');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        opacity: 0.2;
     }
-}
 
+    @media (max-width: 640px) {
+        .temple-bg {
+            background-size: contain;
+            background-position: top center;
+        }
+    }
 </style>
 {% endblock %}
-
