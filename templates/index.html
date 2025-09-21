@@ -5,7 +5,6 @@
 {% block content %}
 <main class="pt-20">
 
-<!-- Explore Categories -->
 <section class="py-6 bg-gradient-to-r from-purple-600 to-pink-500">
   <div class="container mx-auto px-4 relative">
     <h2 class="text-2xl font-bold text-white mb-4">Explore Categories</h2>
@@ -19,9 +18,9 @@
             <div class="w-32 h-32 mx-auto rounded-full bg-white shadow-lg overflow-hidden 
                         transform transition duration-300 group-hover:scale-110 flex items-center justify-center">
               
-                        <img src="{{ url_for('static', filename=category.image) if category.image else url_for('static', filename='images/placeholder.png') }}"
-                   alt="{{ category.name }}"
-                   class="w-full h-full object-cover object-center">
+                          <img src="{{ url_for('static', filename=category.image) if category.image else url_for('static', filename='images/placeholder.png') }}"
+                       alt="{{ category.name }}"
+                       class="w-full h-full object-cover object-center">
             </div>
 
             <h3 class="mt-4 text-white text-lg font-semibold group-hover:text-amber-300 transition-colors duration-300">
@@ -41,81 +40,77 @@
 </section>
 
 
-<!-- Optional: smooth scroll -->
 <style>
   html {
     scroll-behavior: smooth;
   }
 </style>
 
-<!-- Category Sections -->
 {% for category, products in categorized_artworks.items() %}
 <section id="{{ category|lower|replace(' ', '-') }}" class="py-8 mb-8 bg-white rounded-lg shadow-md">
   <div class="container mx-auto px-4">
     <h2 class="text-3xl font-bold text-gray-800 mb-6">{{ category|upper }}</h2>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-      {% for product in products %}
+    <div class="swiper mySwiper-{{ category|lower|replace(' ', '-') }}">
+      <div class="swiper-wrapper">
+      
+        {% for product in products %}
 
-      <div class="product-card bg-white rounded-lg shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl flex flex-col">
+<div class="swiper-slide w-full flex justify-center">
+    <div class="product-card bg-white rounded-lg shadow-md overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl flex flex-col relative">
         <a href="{{ url_for('product_detail', sku=product.sku) }}">
-          <div class="h-48 bg-white flex items-center justify-center overflow-hidden rounded-lg shadow-sm hover:shadow-md transition duration-300 group pt-1 sm:pt-2 md:pt-3">
-            <img src="{{ product.get_images_list()[0] if product.get_images_list() else url_for('static', filename='images/placeholder.png') }}"
-                 alt="{{ product.name }}"
-                 class="object-contain max-h-full max-w-full transition-transform duration-300 group-hover:scale-105 cursor-pointer"
-                 title="Click to view larger"
-                 onclick="event.preventDefault(); openFullImage('{{ product.get_images_list()[0] if product.get_images_list() else url_for('static', filename='images/placeholder.png') }}');">
-          </div>
+            <div class="h-48 w-full p-2 flex items-center justify-center">
+                <img src="{{ product.get_images_list()[0] if product.get_images_list() else url_for('static', filename='images/placeholder.png') }}" 
+                     alt="{{ product.name }}" 
+                     class="object-contain max-h-full max-w-full transition-transform duration-300 hover:scale-105">
+            </div>
         </a>
-
-        <div class="p-3 flex-1 flex flex-col justify-between">
-          <div>
-            <h3 class="text-xl font-semibold text-gray-900 mb-1 truncate">{{ product.name }}</h3>
-            <p class="text-gray-600 text-sm mb-1">
-              {{ product.description[:100] }}{% if product.description|length > 100 %}...{% endif %}
-            </p>
-
-            <div class="flex items-baseline justify-between mb-2">
-              <span class="text-2xl font-bold text-primary final-price">
-                {{ product.selling_price_incl_gst | currency }}
-              </span>
+        <div class="p-2 flex flex-col justify-between text-center">
+            <div>
+                <h3 class="text-sm font-semibold text-gray-900 mb-1 truncate">{{ product.name }}</h3>
+                <div class="flex items-baseline justify-center mb-1">
+                    <span class="text-base font-bold text-primary">{{ product.selling_price_incl_gst | currency }}</span>
+                </div>
+                <div class="flex items-center justify-center mb-1">
+                    <div class="text-yellow-500 text-xs">
+                        <i class="fas fa-star"></i><i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i><i class="fas fa-star"></i>
+                        <i class="fas fa-star-half-alt"></i>
+                    </div>
+                    <span class="text-xs text-gray-600 ml-1">(4.5/5)</span>
+                </div>
+                {% if product.shipping_charge == 0 %}
+                <p class="text-green-600 font-semibold text-xs mb-1">
+                    <i class="fas fa-truck mr-1"></i> Free Delivery
+                </p>
+                {% else %}
+                <p class="text-gray-500 font-semibold text-xs mb-1">
+                    <i class="fas fa-truck mr-1"></i> Shipping: {{ product.shipping_charge | currency }}
+                </p>
+                {% endif %}
             </div>
-
-            <div class="flex items-center mb-1">
-              <div class="text-yellow-500">
-                <i class="fas fa-star"></i><i class="fas fa-star"></i>
-                <i class="fas fa-star"></i><i class="fas fa-star"></i>
-                <i class="fas fa-star-half-alt"></i>
-              </div>
-              <span class="text-sm text-gray-600 ml-2">(4.5/5)</span>
+            <div class="flex justify-center mt-2">
+                {% if product.stock > 0 %}
+                <a href="{{ url_for('product_detail', sku=product.sku) }}" class="btn btn-primary px-3 py-1 text-center text-xs w-full">
+                    View Details
+                </a>
+                {% else %}
+                <button class="btn btn-secondary px-3 py-1 opacity-60 cursor-not-allowed text-xs w-full" disabled>
+                    Out of Stock
+                </button>
+                {% endif %}
             </div>
-
-            {% if product.shipping_charge == 0 %}
-              <p class="text-green-600 font-semibold text-sm mb-1">
-                <i class="fas fa-truck mr-1"></i> Free Delivery
-              </p>
-            {% else %}
-              <p class="text-gray-500 text-sm mb-1">
-                <i class="fas fa-truck mr-1"></i> Shipping: {{ product.shipping_charge | currency }}
-              </p>
-            {% endif %}
-          </div>
-
-          <div class="flex justify-center mt-auto">
-            {% if product.stock > 0 %}
-              <a href="{{ url_for('product_detail', sku=product.sku) }}" class="btn btn-primary px-6 py-2 w-full text-center">
-                View Details
-              </a>
-            {% else %}
-              <button class="btn btn-secondary px-6 py-2 w-full opacity-60 cursor-not-allowed" disabled>
-                Out of Stock
-              </button>
-            {% endif %}
-          </div>
         </div>
-      </div>
+    </div>
+</div>
 
-      {% endfor %}
+{% endfor %}
+
+
+      </div>
+      <div class="swiper-button-next text-gray-800"></div>
+      <div class="swiper-button-prev text-gray-800"></div>
+      <div class="swiper-pagination mt-4"></div>
     </div>
   </div>
 </section>
@@ -180,10 +175,9 @@
     </div>
   </div>
 </section>
-   
+    
 
-    <!-- YouTube Heading on white background -->
-<div class="container my-4 text-center">
+    <div class="container my-4 text-center">
   <h2 class="section-title text-2xl font-extrabold underline decoration-blue-600 underline-offset-4">
     <a href="https://www.youtube.com/@KarthikaStories" target="_blank" class="text-blue-600 hover:no-underline">
       <i class="fab fa-youtube text-red-600 mr-2"></i>@karthikafutures
@@ -204,11 +198,6 @@
 </section>
 
 
-
-    
-    <!-- Sacred Appeal Section -->
-    
-    <!-- End Sacred Appeal Section -->
 
     
     <section class="fade-section py-16 bg-primary text-white text-center">
@@ -382,6 +371,7 @@
         document.body.style.overflow = 'auto';
     }
 
+    // Initialize the Categories Carousel with Coverflow effect
     // Initialize the Categories Carousel
     const swiperCategories = new Swiper(".mySwiperCategories", {
         slidesPerView: 1,
@@ -407,45 +397,122 @@
         },
     });
 
+
+    // Initialize Swiper for each product category section
+    const categoryCarousels = document.querySelectorAll("[class*='mySwiper-']");
+    categoryCarousels.forEach(carousel => {
+        const swiperInstance = new Swiper(carousel, {
+            effect: "coverflow",
+            grabCursor: true,
+            centeredSlides: true,
+            loop: true,
+            slidesPerView: "auto",
+            
+            coverflowEffect: {
+                rotate: 0,
+                stretch: 80,
+                depth: 200,
+                modifier: 1,
+                slideShadows: false,
+            },
+            
+            autoplay: {
+                delay: 3000,
+                disableOnInteraction: false,
+            },
+            speed: 1000,
+            
+            pagination: {
+                el: carousel.querySelector(".swiper-pagination"),
+                clickable: true,
+            },
+            navigation: {
+                nextEl: carousel.querySelector(".swiper-button-next"),
+                prevEl: carousel.querySelector(".swiper-button-prev"),
+            },
+            
+            breakpoints: {
+                0: {
+                    slidesPerView: 1.5,
+                    coverflowEffect: {
+                        stretch: 40,
+                        depth: 100,
+                    }
+                },
+                768: {
+                    slidesPerView: 2.5,
+                    coverflowEffect: {
+                        stretch: 60,
+                        depth: 150,
+                    }
+                },
+                1024: {
+                    slidesPerView: 3,
+                    coverflowEffect: {
+                        stretch: 80,
+                        depth: 200,
+                    }
+                },
+            },
+        });
+    });
+
     var swiperFeatured = new Swiper(".mySwiperFeatured", {
-        slidesPerView: 1,
-        spaceBetween: 20,
+        effect: "coverflow",
+        grabCursor: true,
+        centeredSlides: true,
         loop: true,
+        slidesPerView: "auto",
+        
+        coverflowEffect: {
+            rotate: 0,
+            stretch: 80,
+            depth: 200,
+            modifier: 1,
+            slideShadows: false,
+        },
+        
         autoplay: {
-            delay: 5000,
+            delay: 3000,
             disableOnInteraction: false,
         },
+        speed: 1000,
+
         pagination: {
             el: ".swiper-pagination",
             clickable: true,
         },
-        navigation: {
-            nextEl: ".swiper-button-next",
-            prevEl: ".swiper-button-prev",
-        },
+        
         breakpoints: {
+            0: {
+                slidesPerView: 1.5,
+                coverflowEffect: {
+                    stretch: 40,
+                    depth: 100,
+                }
+            },
             768: {
-                slidesPerView: 3,
-                spaceBetween: 30,
+                slidesPerView: 2.5,
+                coverflowEffect: {
+                    stretch: 60,
+                    depth: 150,
+                }
             },
             1024: {
-                slidesPerView: 5,
-                spaceBetween: 40,
-            }
-        }
-    });
-
-    const categoryLinks = document.querySelectorAll('.category-link');
-    categoryLinks.forEach(link => {
-        link.addEventListener('click', function(event) {
-            const spinner = this.querySelector('.category-spinner');
-            if (spinner) {
-                spinner.classList.remove('hidden');
-            }
-        });
+                slidesPerView: 3,
+                coverflowEffect: {
+                    stretch: 80,
+                    depth: 200,
+                }
+            },
+        },
     });
 </script>
 <style>
+    /* Add this to your style.css if the issue persists */
+.swiper-slide {
+    width: auto !important;
+}
     /* Spinner for Category Images */
 .category-link {
     position: relative;
