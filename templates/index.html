@@ -125,42 +125,48 @@
       <div class="swiper-wrapper">
         {% for artwork in featured_artworks %}
         <div class="swiper-slide w-full flex justify-center">
-          <div class="fade-item product-card bg-white rounded-2xl shadow-xl overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-2xl w-72 sm:w-80 mx-4 my-6">
+          <div class="fade-item product-card bg-white rounded-lg shadow-md overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl flex flex-col relative">
             <a href="{{ url_for('product_detail', sku=artwork.sku) }}">
-              <div class="thumbnail-wrapper p-4 bg-gray-50 rounded-t-2xl shadow-inner flex items-center justify-center group">
+              <div class="h-48 w-full p-2 flex items-center justify-center">
                 <img src="{{ artwork.get_images_list()[0] if artwork.get_images_list() else url_for('static', filename='images/placeholder.png') }}"
                      alt="{{ artwork.name }}"
-                     class="w-full h-64 object-contain transition-transform duration-300 group-hover:scale-105 cursor-pointer rounded-lg"
-                     title="Click to view larger"
-                     onclick="event.preventDefault(); openFullImage('{{ artwork.get_images_list()[0] if artwork.get_images_list() else url_for('static', filename='images/placeholder.png') }}'); event.stopPropagation();"
-                     loading="lazy">
+                     class="object-contain max-h-full max-w-full transition-transform duration-300 hover:scale-105">
               </div>
             </a>
-            <div class="p-5 flex flex-col justify-between">
-              <h3 class="text-xl sm:text-2xl font-semibold text-gray-900 mb-2 truncate">{{ artwork.name }}</h3>
-              <p class="text-gray-600 text-sm sm:text-base mb-3">{{ artwork.description[:120] }}{% if artwork.description|length > 120 %}...{% endif %}</p>
-              <div class="flex items-baseline justify-between mb-2">
-                <span class="text-2xl font-bold text-primary final-price">{{ artwork.selling_price_incl_gst | currency }}</span>
-              </div>
-              <div class="flex items-center mb-2">
-                <div class="text-yellow-500">
-                  <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
+            <div class="p-2 flex flex-col justify-between text-center">
+              <div>
+                <h3 class="text-sm font-semibold text-gray-900 mb-1 truncate">{{ artwork.name }}</h3>
+                <div class="flex items-baseline justify-center mb-1">
+                  <span class="text-base font-bold text-primary">{{ artwork.selling_price_incl_gst | currency }}</span>
                 </div>
-                <span class="text-sm text-gray-600 ml-2">(4.5/5)</span>
+                <div class="flex items-center justify-center mb-1">
+                  <div class="text-yellow-500 text-xs">
+                    <i class="fas fa-star"></i><i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i><i class="fas fa-star"></i>
+                    <i class="fas fa-star-half-alt"></i>
+                  </div>
+                  <span class="text-xs text-gray-600 ml-1">(4.5/5)</span>
+                </div>
+                {% if artwork.shipping_charge == 0 %}
+                <p class="text-green-600 font-semibold text-xs mb-1">
+                  <i class="fas fa-truck mr-1"></i> Free Delivery
+                </p>
+                {% else %}
+                <p class="text-gray-500 font-semibold text-xs mb-1">
+                  <i class="fas fa-truck mr-1"></i> Shipping: {{ artwork.shipping_charge | currency }}
+                </p>
+                {% endif %}
               </div>
-              {% if artwork.shipping_charge is defined and artwork.shipping_charge == 0 %}
-              <p class="text-green-600 font-semibold text-sm mb-3 text-left">
-                <i class="fas fa-truck mr-1"></i> Free Delivery
-              </p>
-              {% else %}
-              <p class="text-gray-500 text-sm mb-3 text-left">
-                <i class="fas fa-truck mr-1"></i> Shipping charges apply
-              </p>
-              {% endif %}
-              <div class="flex justify-center">
-                <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary px-6 py-2 sm:py-3 w-full hover:shadow-lg transition-shadow">
+              <div class="flex justify-center mt-2">
+                {% if artwork.stock > 0 %}
+                <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary px-3 py-1 text-center text-xs w-full">
                   View Details
                 </a>
+                {% else %}
+                <button class="btn btn-secondary px-3 py-1 opacity-60 cursor-not-allowed text-xs w-full" disabled>
+                  Out of Stock
+                </button>
+                {% endif %}
               </div>
             </div>
           </div>
@@ -171,11 +177,12 @@
         </div>
         {% endfor %}
       </div>
+      <div class="swiper-button-next text-gray-800"></div>
+      <div class="swiper-button-prev text-gray-800"></div>
       <div class="swiper-pagination mt-4"></div>
     </div>
   </div>
-</section>
-    
+</section>  
 
     <div class="container my-4 text-center">
   <h2 class="section-title text-2xl font-extrabold underline decoration-blue-600 underline-offset-4">
@@ -457,62 +464,64 @@
         });
     });
 
-    var swiperFeatured = new Swiper(".mySwiperFeatured", {
-        effect: "coverflow",
-        grabCursor: true,
-        centeredSlides: true,
-        loop: true,
-        slidesPerView: "auto",
-        
-        coverflowEffect: {
-            rotate: 0,
-            stretch: 80,
-            depth: 200,
-            modifier: 1,
-            slideShadows: false,
-        },
-        
-        autoplay: {
-            delay: 3000,
-            disableOnInteraction: false,
-        },
-        speed: 1000,
+   var swiperFeatured = new Swiper(".mySwiperFeatured", {
+    effect: "coverflow",
+    grabCursor: true,
+    centeredSlides: true,
+    loop: true,
+    slidesPerView: "auto",
+    
+    coverflowEffect: {
+        rotate: 0,
+        stretch: 80,
+        depth: 200,
+        modifier: 1,
+        slideShadows: false,
+    },
+    
+    autoplay: {
+        delay: 3000,
+        disableOnInteraction: false,
+    },
+    speed: 1000,
 
-        pagination: {
-            el: ".swiper-pagination",
-            clickable: true,
+    pagination: {
+        el: ".swiper-pagination",
+        clickable: true,
+    },
+    
+    breakpoints: {
+        0: {
+            slidesPerView: 1.5,
+            coverflowEffect: {
+                stretch: 40,
+                depth: 100,
+            }
         },
-        
-        breakpoints: {
-            0: {
-                slidesPerView: 1.5,
-                coverflowEffect: {
-                    stretch: 40,
-                    depth: 100,
-                }
-            },
-            768: {
-                slidesPerView: 2.5,
-                coverflowEffect: {
-                    stretch: 60,
-                    depth: 150,
-                }
-            },
-            1024: {
-                slidesPerView: 3,
-                coverflowEffect: {
-                    stretch: 80,
-                    depth: 200,
-                }
-            },
+        768: {
+            slidesPerView: 2.5,
+            coverflowEffect: {
+                stretch: 60,
+                depth: 150,
+            }
         },
-    });
+        1024: {
+            slidesPerView: 3,
+            coverflowEffect: {
+                stretch: 80,
+                depth: 200,
+            }
+        },
+    },
+});
 </script>
 <style>
-    /* Add this to your style.css if the issue persists */
+    /* Add this to your style.css if the issue persists 
 .swiper-slide {
-    width: auto !important;
+    width: auto !important;   
 }
+     .......*/
+     
     /* Spinner for Category Images */
 .category-link {
     position: relative;
