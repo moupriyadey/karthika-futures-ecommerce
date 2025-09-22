@@ -173,7 +173,8 @@
             {# PLACE ORDER BUTTON - MOVED HERE #}
             <div class="d-grid gap-2 mt-4 relative"> {# Added relative for alert positioning #}
                 <button type="submit" class="btn btn-primary btn-lg" id="placeOrderButton" form="addressSelectionForm" name="action_type" value="place_order">
-                    Place Order
+                    <span class="btn-text">Place Order</span>
+                    <span class="spinner hidden"></span>
                 </button>
                 {# Floating alert - positioned relative to this button's parent div #}
                 <div id="noAddressAlert" class="absolute -bottom-10 left-1/2 transform -translate-x-1/2 bg-red-600 text-white text-sm px-3 py-1 rounded-md shadow-lg flex items-center space-x-1 whitespace-nowrap z-10 hidden">
@@ -370,33 +371,50 @@
         {% endif %}
 
         // Handle form submission for the main "Place Order" button
-        placeOrderButton.addEventListener('click', function(event) {
-            // This button submits the addressSelectionForm
-            // The hiddenSelectedAddressIdInput value is already set by JS logic
+// Handle form submission for the main "Place Order" button
+placeOrderButton.addEventListener('click', function(event) {
+    // This button submits the addressSelectionForm
+    // The hiddenSelectedAddressIdInput value is already set by JS logic
 
-            // If new address form is visible, ensure its required fields are filled
-            if (!newAddressFormDiv.classList.contains('hidden')) {
-                const newAddressInputs = newAddressFormDiv.querySelectorAll('input[name="full_name"], input[name="phone"], input[name="address_line1"], input[name="pincode"], input[name="city"], input[name="state"]');
-                let allRequiredFilled = true;
-                newAddressInputs.forEach(input => {
-                    if (input.required && !input.value.trim()) {
-                        allRequiredFilled = false;
-                        input.focus(); // Focus on the first empty required field
-                    }
-                });
-                if (!allRequiredFilled) {
-                    flashMessage('Please fill in all required fields for the new address.', 'danger');
-                    event.preventDefault(); // Prevent form submission
-                    return;
-                }
-            } else if (hiddenSelectedAddressIdInput.value === '') { // No address selected at all
-                flashMessage('Please select an existing address or add a new one.', 'danger');
-                noAddressAlert.classList.remove('hidden'); // Show alert
-                event.preventDefault(); // Prevent form submission
-                return;
+    // If new address form is visible, ensure its required fields are filled
+    if (!newAddressFormDiv.classList.contains('hidden')) {
+        const newAddressInputs = newAddressFormDiv.querySelectorAll('input[name="full_name"], input[name="phone"], input[name="address_line1"], input[name="pincode"], input[name="city"], input[name="state"]');
+        let allRequiredFilled = true;
+        newAddressInputs.forEach(input => {
+            if (input.required && !input.value.trim()) {
+                allRequiredFilled = false;
+                input.focus(); // Focus on the first empty required field
             }
-            // If all checks pass, the form will submit normally
         });
+        if (!allRequiredFilled) {
+            flashMessage('Please fill in all required fields for the new address.', 'danger');
+            event.preventDefault(); // Prevent form submission if validation fails
+            return;
+        }
+    } else if (hiddenSelectedAddressIdInput.value === '') { // No address selected at all
+        flashMessage('Please select an existing address or add a new one.', 'danger');
+        noAddressAlert.classList.remove('hidden'); // Show alert
+        event.preventDefault(); // Prevent form submission
+        return;
+    }
+
+    // All validation passed. Show the spinner and let the form submit naturally.
+    this.classList.add('loading');
+    
+    // IMPORTANT: No 'event.preventDefault()' here.
+    // The browser's default behavior will now submit the form
+    // and initiate the redirection. The spinner will be visible
+    // while the page loads.
+});
+
+// Add a pageshow event listener to reset the button if the user navigates back
+window.addEventListener('pageshow', function (event) {
+    const placeOrderButton = document.getElementById('placeOrderButton');
+    if (placeOrderButton) {
+        placeOrderButton.classList.remove('loading');
+    }
+});
+
 
         // Popup image functionality (existing code)
         document.querySelectorAll(".popup-image").forEach(img => {
@@ -424,6 +442,28 @@
 </div>
 
 <style>
+.spinner {
+    display: none;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.5);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: auto;
+}
+
+.loading .btn-text {
+    display: none;
+}
+
+.loading .spinner {
+    display: inline-block;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
     /* Animation for the pointing hand icon */
     @keyframes pulse-hand {
         0%, 100% {

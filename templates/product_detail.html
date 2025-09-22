@@ -134,18 +134,24 @@
         <!-- Buttons -->
         <div class="flex flex-col lg:flex-col space-y-2 lg:space-y-3">
           {% if artwork.stock > 0 %}
+          ------------------
           <button type="button" id="addToCartBtn" 
-                  class="w-full py-3 text-lg font-semibold rounded-xl shadow-lg
-                         bg-gradient-to-r from-purple-500 to-pink-500 text-white
-                         hover:from-purple-600 hover:to-pink-600 transition-all duration-300 ease-in-out">
-              <i class="fas fa-shopping-cart mr-2"></i> Add to Cart
-          </button>
-          <button type="button" id="buyNowBtn"
-                  class="w-full py-3 text-lg font-semibold rounded-xl shadow-lg
-                         bg-gradient-to-r from-green-400 to-green-600 text-white
-                         hover:from-green-500 hover:to-green-700 transition-all duration-300 ease-in-out">
-              <i class="fas fa-money-bill-wave mr-2"></i> Buy Now
-          </button>
+    class="w-full py-3 text-lg font-semibold rounded-xl shadow-lg
+           bg-gradient-to-r from-purple-500 to-pink-500 text-white
+           hover:from-purple-600 hover:to-pink-600 transition-all duration-300 ease-in-out">
+    <span class="btn-text"><i class="fas fa-shopping-cart mr-2"></i> Add to Cart</span>
+    <span class="spinner hidden"></span>
+</button>
+
+<button type="button" id="buyNowBtn"
+    class="w-full py-3 text-lg font-semibold rounded-xl shadow-lg
+           bg-gradient-to-r from-green-400 to-green-600 text-white
+           hover:from-green-500 hover:to-green-700 transition-all duration-300 ease-in-out">
+    <span class="btn-text"><i class="fas fa-money-bill-wave mr-2"></i> Buy Now</span>
+    <span class="spinner hidden"></span>
+</button>
+
+
           <button type="button" onclick="history.back()"
                   class="w-full py-3 text-lg font-semibold rounded-xl shadow-lg
                          bg-gray-300 text-gray-800 hover:bg-gray-400 transition-all duration-300 ease-in-out">
@@ -182,6 +188,31 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
 
 <style>
+<style>
+/* ... your existing styles ... */
+
+.spinner {
+    display: none;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.5);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: auto;
+}
+
+.loading .btn-text {
+    display: none;
+}
+.loading .spinner {
+    display: inline-block;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
   .watermark-grid {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Ctext x='0' y='20' font-size='20' fill='rgba(255,255,255,0.2)' font-family='Arial'%3EKarthikafutures%3C/text%3E%3C/svg%3E");
     background-size: 140px 140px;
@@ -252,9 +283,25 @@
 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 
 <script>
-  let swiper;
+let swiper;
 
-  document.addEventListener('DOMContentLoaded', function() {
+// This event runs when the page is first loaded AND when navigating back.
+// We use it to reset the button states.
+window.addEventListener('pageshow', function (event) {
+    const addToCartBtn = document.getElementById('addToCartBtn');
+    const buyNowBtn = document.getElementById('buyNowBtn');
+
+    if (addToCartBtn) {
+        addToCartBtn.classList.remove('loading');
+        addToCartBtn.disabled = false;
+    }
+    if (buyNowBtn) {
+        buyNowBtn.classList.remove('loading');
+        buyNowBtn.disabled = false;
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
     swiper = new Swiper(".mySwiper", {
       loop: true,
       pagination: {
@@ -319,49 +366,69 @@
     updatePrice();
 
     addToCartBtn.addEventListener('click', function() {
-        const quantity = parseInt(quantityInput.value);
-        if (quantity < 1 || quantity > artworkData.stock) return window.showCustomAlert(`Please enter a quantity between 1 and ${artworkData.stock}.`, 'danger');
+        this.classList.add('loading');
+        this.disabled = true;
 
-        window.addToCart(
-            artworkData.sku,
-            artworkData.name,
-            artworkData.image_url, 
-            artworkData.current_unit_price_before_gst, 
-            artworkData.cgst_percentage,
-            artworkData.sgst_percentage,
-            artworkData.igst_percentage,
-            artworkData.ugst_percentage,
-            artworkData.cess_percentage, 
-            quantity, 
-            artworkData.selected_options
-        );
+        const quantity = parseInt(quantityInput.value);
+        if (quantity < 1 || quantity > artworkData.stock) {
+            this.classList.remove('loading');
+            this.disabled = false;
+            return window.showCustomAlert(`Please enter a quantity between 1 and ${artworkData.stock}.`, 'danger');
+        }
+
+        // Use a timeout to ensure the spinner is visible before the function call
+        setTimeout(() => {
+            window.addToCart(
+                artworkData.sku,
+                artworkData.name,
+                artworkData.image_url, 
+                artworkData.current_unit_price_before_gst, 
+                artworkData.cgst_percentage,
+                artworkData.sgst_percentage,
+                artworkData.igst_percentage,
+                artworkData.ugst_percentage,
+                artworkData.cess_percentage, 
+                quantity, 
+                artworkData.selected_options
+            );
+        }, 0);
     });
 
     buyNowBtn.addEventListener('click', function() {
+        this.classList.add('loading');
+        this.disabled = true;
+
         const quantity = parseInt(quantityInput.value);
-        if (quantity < 1 || quantity > artworkData.stock) return window.showCustomAlert(`Please enter a quantity between 1 and ${artworkData.stock}.`, 'danger');
+        if (quantity < 1 || quantity > artworkData.stock) {
+            this.classList.remove('loading');
+            this.disabled = false;
+            return window.showCustomAlert(`Please enter a quantity between 1 and ${artworkData.stock}.`, 'danger');
+        }
 
-        window.buyNow(
-            artworkData.sku,
-            artworkData.name,
-            artworkData.image_url,
-            artworkData.selected_options,
-            quantity,
-            artworkData.current_unit_price_before_gst,
-            artworkData.cgst_percentage,
-            artworkData.sgst_percentage,
-            artworkData.igst_percentage,
-            artworkData.ugst_percentage,
-            artworkData.cess_percentage, 
-            artworkData.shipping_charge
-        );
+        // Use a timeout to ensure the spinner is visible before redirecting
+        setTimeout(() => {
+            window.buyNow(
+                artworkData.sku,
+                artworkData.name,
+                artworkData.image_url,
+                artworkData.selected_options,
+                quantity,
+                artworkData.current_unit_price_before_gst,
+                artworkData.cgst_percentage,
+                artworkData.sgst_percentage,
+                artworkData.igst_percentage,
+                artworkData.ugst_percentage,
+                artworkData.cess_percentage, 
+                artworkData.shipping_charge
+            );
+        }, 0);
     });
-  });
+});
 
-  window.updateSwiperSlide = function(index) {
-      if (swiper) {
-          swiper.slideToLoop(index);
-      }
-  };
+window.updateSwiperSlide = function(index) {
+    if (swiper) {
+        swiper.slideToLoop(index);
+    }
+};
 </script>
 {% endblock %}

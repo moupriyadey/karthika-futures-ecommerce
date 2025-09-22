@@ -1,7 +1,7 @@
 {% extends '_base.html' %}
 
 {% block content %}
-<main class="pt-28">  {# adjusted so navbar + marquee don’t overlap #}
+<main class="pt-3">  {# adjusted so navbar + marquee don’t overlap #}
     {% if sale_end_time %}
     <!-- 🔹 Top Marquee Offer Bar -->
     <div class="offer-marquee-bar bg-gradient-to-r from-purple-700 via-pink-600 to-red-500 text-white fixed top-16 w-full z-50 shadow-md">
@@ -25,6 +25,7 @@
         </div>
 
         <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+
             {% for artwork in artworks %}
             <div class="product-card bg-white rounded-lg shadow-md overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl flex flex-col relative">
                 
@@ -115,6 +116,26 @@
     </div>
 </div>
 {% endif %}
+<button id="goBackBtn" onclick="history.back()" 
+    style="
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 8px 14px;
+        font-size: 13px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        border-radius: 9999px; /* fully rounded */
+        background: rgba(255, 255, 255, 0.3); /* transparent white */
+        backdrop-filter: blur(6px); /* glass effect */
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        background-clip: padding-box;
+        color: #1f2937; /* dark gray text */
+        z-index: 9999;
+    ">
+    🔙Back
+</button>
+
 {% endblock %}
 
 {% block extra_js %}

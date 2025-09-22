@@ -24,7 +24,10 @@
                     <span>Grand Total:</span>
                     <span class="text-primary">{{ grand_total | currency }}</span>
                 </div>
-                <a href="{{ url_for('purchase_form') }}" class="btn btn-primary w-full mt-4 py-3 text-lg text-center rounded-md">Proceed to Checkout</a>
+                <a href="{{ url_for('purchase_form') }}" id="checkoutBtn" class="btn btn-primary w-full mt-4 py-3 text-lg text-center rounded-md">
+    <span class="btn-text">Proceed to Checkout</span>
+    <span class="spinner hidden"></span>
+</a>
 <a href="javascript:history.back()" class="btn btn-secondary w-full py-3 text-lg text-center rounded-md mt-2">
     </i> Back
 </a>
@@ -134,5 +137,58 @@ document.addEventListener('DOMContentLoaded', function() {
 function closePopup() {
     document.getElementById("imagePopup").classList.add("hidden");
 }
+
+    // This runs when the page is loaded and when navigating back.
+    window.addEventListener('pageshow', function (event) {
+        const checkoutBtn = document.getElementById('checkoutBtn');
+        if (checkoutBtn) {
+            checkoutBtn.classList.remove('loading');
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const checkoutBtn = document.getElementById('checkoutBtn');
+
+        if (checkoutBtn) {
+            checkoutBtn.addEventListener('click', function(event) {
+                // Prevent the default link behavior
+                event.preventDefault(); 
+                
+                // Show the spinner
+                this.classList.add('loading');
+                
+                // Use a timeout to ensure the spinner is visible before redirecting
+                setTimeout(() => {
+                    window.location.href = this.href;
+                }, 0);
+            });
+        }
+    });
+
 </script>
 {% endblock %}
+<style>
+/* ... your existing styles ... */
+
+.spinner {
+    display: none;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.5);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: auto;
+}
+
+.loading .btn-text {
+    display: none;
+}
+.loading .spinner {
+    display: inline-block;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+</style>

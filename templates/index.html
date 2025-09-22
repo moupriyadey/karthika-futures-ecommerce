@@ -34,7 +34,7 @@
       </div>
       <div class="swiper-button-next text-white hover:text-amber-300 transition-colors duration-300"></div>
       <div class="swiper-button-prev text-white hover:text-amber-300 transition-colors duration-300"></div>
-      <div class="swiper-pagination text-white mt-4"></div>
+      
     </div>
   </div>
 </section>
@@ -49,7 +49,11 @@
 {% for category, products in categorized_artworks.items() %}
 <section id="{{ category|lower|replace(' ', '-') }}" class="py-8 mb-8 bg-white rounded-lg shadow-md">
   <div class="container mx-auto px-4">
-    <h2 class="text-3xl font-bold text-gray-800 mb-6">{{ category|upper }}</h2>
+    <a href="{{ url_for('category_page', category_slug=category|slugify) }}" class="block text-center mb-6">
+  <h2 class="text-3xl font-bold gradient-link">
+    {{ category|upper }}
+  </h2>
+</a>
 
     <div class="swiper mySwiper-{{ category|lower|replace(' ', '-') }}">
       <div class="swiper-wrapper">
@@ -110,9 +114,11 @@
       </div>
       <div class="swiper-button-next text-gray-800"></div>
       <div class="swiper-button-prev text-gray-800"></div>
-      <div class="swiper-pagination mt-4"></div>
+      
+
     </div>
   </div>
+    </div>
 </section>
 {% endfor %}
 
@@ -162,6 +168,7 @@
                 <a href="{{ url_for('product_detail', sku=artwork.sku) }}" class="btn btn-primary px-3 py-1 text-center text-xs w-full">
                   View Details
                 </a>
+                
                 {% else %}
                 <button class="btn btn-secondary px-3 py-1 opacity-60 cursor-not-allowed text-xs w-full" disabled>
                   Out of Stock
@@ -179,7 +186,7 @@
       </div>
       <div class="swiper-button-next text-gray-800"></div>
       <div class="swiper-button-prev text-gray-800"></div>
-      <div class="swiper-pagination mt-4"></div>
+      
     </div>
   </div>
 </section>  
@@ -429,10 +436,7 @@
             },
             speed: 1000,
             
-            pagination: {
-                el: carousel.querySelector(".swiper-pagination"),
-                clickable: true,
-            },
+            pagination: false,
             navigation: {
                 nextEl: carousel.querySelector(".swiper-button-next"),
                 prevEl: carousel.querySelector(".swiper-button-prev"),
@@ -485,10 +489,7 @@
     },
     speed: 1000,
 
-    pagination: {
-        el: ".swiper-pagination",
-        clickable: true,
-    },
+    
     
     breakpoints: {
         0: {
@@ -521,7 +522,40 @@
     width: auto !important;   
 }
      .......*/
-     
+
+
+/* Gradient text */
+.gradient-link {
+  background: linear-gradient(to right, #6f33fa, #fa8e29); /* violet → blue */
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+/* Blinking blue underline */
+.gradient-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -4px; /* space between text and underline */
+  width: 100%;
+  height: 2px;
+  background-color: #3b82f6; /* Tailwind blue-600 */
+  animation: blink-underline 1.2s infinite;
+}
+
+@keyframes blink-underline {
+  0%, 50%, 100% {
+    opacity: 1;
+  }
+  25%, 75% {
+    opacity: 0;
+  }
+}
+
     /* Spinner for Category Images */
 .category-link {
     position: relative;
