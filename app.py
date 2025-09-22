@@ -2062,7 +2062,7 @@ def admin_edit_category(category_id):
                 # Delete old image if exists
                 if category.image and os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(category.image))):
                     os.remove(os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(category.image)))
-                category.image = 'uploads/' + unique_filename
+                category.image = 'images/categories/' + unique_filename
             elif file and not allowed_file(file.filename):
                 flash('Invalid image file type.', 'danger')
                 return render_template('admin_edit_category.html', category=category)
