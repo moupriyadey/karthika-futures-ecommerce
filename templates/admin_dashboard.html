@@ -335,7 +335,7 @@
                     <div id="monthlyRevenueChartContainer">
                         <canvas id="monthlyRevenueChart"></canvas>
                     </div>
-                </div>
+                </div>  
 
                 <!-- Low Stock Alerts -->
                 <div class="bg-white p-4 rounded-lg border border-gray-200 shadow mb-6">
@@ -377,11 +377,11 @@
                                 <thead>
                                     <tr>
                                         <th>Order ID</th>
-                                        <th>Customer</th>
-                                        <th>Date</th>
-                                        <th>Total</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
+                                        <th>Customer</th>
+                                        <th>Date</th>
+                                        <th>Total</th>
+                                        <th>GSTIN</th>                                  <th>Status</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -391,10 +391,20 @@
 
                                         <td>{{ order.customer_name }} ({{ order.customer_email }})</td>
                                         <td>{{ order.order_date.strftime('%Y-%m-%d %H:%M') }}</td>
-                                        <td>{{ order.total_amount | currency }}</td>
-                                        <td>
-                                            <span class="badge {% if order.status == 'Pending Payment' %}bg-secondary{% elif order.status == 'Payment Submitted - Awaiting Verification' %}bg-warning{% elif order.status == 'Payment Verified – Preparing Order' %}bg-info{% elif order.status == 'Shipped' %}bg-primary{% elif order.status == 'Delivered' %}bg-success{% elif 'Cancelled' in order.status %}bg-danger{% else %}bg-light text-dark{% endif %}">{{ order.status }}</span>
-                                        </td>
+                                        ...
+                                <td>{{ order.total_amount | currency }}</td>
+                                                                <td>
+                                    {% if order.customer_gstin %}
+                                        {{ order.customer_gstin }}
+                                    {% else %}
+                                        N/A (B2C)
+                                    {% endif %}
+                                </td>
+                                                                
+                                <td>
+                                    <span class="badge {% if order.status == 'Pending Payment' %}bg-secondary{% elif order.status == 'Payment Submitted - Awaiting Verification' %}bg-warning{% elif order.status == 'Payment Verified – Preparing Order' %}bg-info{% elif order.status == 'Shipped' %}bg-primary{% elif order.status == 'Delivered' %}bg-success{% elif 'Cancelled' in order.status %}bg-danger{% else %}bg-light text-dark{% endif %}">{{ order.status }}</span>
+                                </td>
+...
                                         <td>
                                             <a href="{{ url_for('order_summary', order_id=order.id) }}" class="btn btn-info btn-sm me-2"><i class="fas fa-eye"></i> View</a>
                                             {% if order.status == 'Payment Submitted - Awaiting Verification' %}
@@ -430,6 +440,56 @@
             <div class="tab-pane fade" id="orders" role="tabpanel" aria-labelledby="orders-tab">
                 <h3 class="text-2xl font-semibold text-gray-700 mb-4">Manage All Orders</h3>
 
+            <div class="bg-gray-100 p-4 rounded-lg shadow-inner mb-6">
+    <form method="GET" action="{{ url_for('admin_orders_view') }}" class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+        
+        <!-- B2B/B2C Filter -->
+        <div>
+            <label for="filter_b2b" class="block text-sm font-medium text-gray-700">Invoice Type</label>
+            <select id="filter_b2b" name="filter_b2b" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                <option value="all" {% if applied_filters.filter_b2b == 'all' %}selected{% endif %}>All Orders</option>
+                <option value="b2b" {% if applied_filters.filter_b2b == 'b2b' %}selected{% endif %}>B2B Invoices</option>
+                <option value="b2c" {% if applied_filters.filter_b2b == 'b2c' %}selected{% endif %}>B2C Invoices</option>
+            </select>
+        </div>
+
+        <!-- Start Date Filter -->
+        <div>
+            <label for="start_date" class="block text-sm font-medium text-gray-700">Start Date</label>
+            <input type="date" id="start_date" name="start_date" 
+                   value="{{ applied_filters.start_date or '' }}"
+                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+        </div>
+
+        <!-- End Date Filter -->
+        <div>
+            <label for="end_date" class="block text-sm font-medium text-gray-700">End Date</label>
+            <input type="date" id="end_date" name="end_date" 
+                   value="{{ applied_filters.end_date or '' }}"
+                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+        </div>
+
+        <!-- Customer Name Filter -->
+        <div class="md:col-span-2">
+            <label for="customer_name" class="block text-sm font-medium text-gray-700">Customer Name Search</label>
+            <input type="text" id="customer_name" name="customer_name" placeholder="Search by name..."
+                   value="{{ applied_filters.customer_name or '' }}"
+                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+        </div>
+
+        <!-- Submission Buttons -->
+        <div class="md:col-span-5 flex justify-end space-x-2 mt-2">
+            <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Apply Filters
+            </button>
+            <a href="{{ url_for('admin_orders_view') }}" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Reset
+            </a>
+        </div>
+    </form>
+</div>
+
+
                 <!-- Search and Filter Form -->
                 <form class="mb-4" method="GET" action="{{ url_for('admin_dashboard') }}">
                     <input type="hidden" name="tab" value="#orders"> {# Keep tab active after filter #}
@@ -463,13 +523,13 @@
                     <table class="table table-hover table-striped">
                         <thead>
                             <tr>
-                                <th>Order ID</th>
-                                <th>Customer</th>
-                                <th>Date</th>
-                                <th>Total</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
+                                        <th>Order ID</th>
+                                        <th>Customer</th>
+                                        <th>Date</th>
+                                        <th>Total</th>
+                                        <th>GSTIN</th>                                          <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
                         </thead>
                         <tbody>
                             {% for order in orders %}
@@ -479,6 +539,14 @@
                                 <td>{{ order.customer_name }} ({{ order.customer_email }})</td>
                                 <td>{{ order.order_date.strftime('%Y-%m-%d %H:%M') }}</td>
                                 <td>{{ order.total_amount | currency }}</td>
+                                <td>
+                                    {% if order.customer_gstin %}
+                                        {{ order.customer_gstin }}
+                                    {% else %}
+                                        N/A (B2C)
+                                    {% endif %}
+                                </td>
+                                
                                 <td>
                                     <span class="badge {% if order.status == 'Pending Payment' %}bg-secondary{% elif order.status == 'Payment Submitted - Awaiting Verification' %}bg-warning{% elif order.status == 'Payment Verified – Preparing Order' %}bg-info{% elif order.status == 'Shipped' %}bg-primary{% elif order.status == 'Delivered' %}bg-success{% elif 'Cancelled' in order.status %}bg-danger{% else %}bg-light text-dark{% endif %}">{{ order.status }}</span>
                                 </td>

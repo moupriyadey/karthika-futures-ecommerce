@@ -134,13 +134,13 @@
         <!-- Buttons -->
         <div class="flex flex-col lg:flex-col space-y-2 lg:space-y-3">
           {% if artwork.stock > 0 %}
-          ------------------
+          
           <button type="button" id="addToCartBtn" 
     class="w-full py-3 text-lg font-semibold rounded-xl shadow-lg
            bg-gradient-to-r from-purple-500 to-pink-500 text-white
            hover:from-purple-600 hover:to-pink-600 transition-all duration-300 ease-in-out">
     <span class="btn-text"><i class="fas fa-shopping-cart mr-2"></i> Add to Cart</span>
-    <span class="spinner hidden"></span>
+    <span class="spinner"></span>
 </button>
 
 <button type="button" id="buyNowBtn"
@@ -148,7 +148,7 @@
            bg-gradient-to-r from-green-400 to-green-600 text-white
            hover:from-green-500 hover:to-green-700 transition-all duration-300 ease-in-out">
     <span class="btn-text"><i class="fas fa-money-bill-wave mr-2"></i> Buy Now</span>
-    <span class="spinner hidden"></span>
+    <span class="spinner"></span>
 </button>
 
 
@@ -188,7 +188,6 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
 
 <style>
-<style>
 /* ... your existing styles ... */
 
 .spinner {
@@ -207,7 +206,11 @@
 }
 .loading .spinner {
     display: inline-block;
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
 }
+
 
 @keyframes spin {
     to { transform: rotate(360deg); }
@@ -391,7 +394,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 quantity, 
                 artworkData.selected_options
             );
-        }, 0);
+        }, 50);
     });
 
     buyNowBtn.addEventListener('click', function() {
@@ -421,7 +424,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 artworkData.cess_percentage, 
                 artworkData.shipping_charge
             );
-        }, 0);
+        }, 50);
     });
 });
 

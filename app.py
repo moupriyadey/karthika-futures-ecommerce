@@ -28,7 +28,7 @@ from markupsafe import Markup
 
 # SQLAlchemy Imports
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Numeric, ForeignKey, func 
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Numeric, ForeignKey, func, or_ 
 from sqlalchemy.orm import relationship
 from sqlalchemy.exc import IntegrityError 
 
@@ -129,8 +129,8 @@ cloudinary.config(
 )
 # Business Details (for invoices, etc.)
 app.config['OUR_BUSINESS_NAME'] = "Karthika Futures"
-app.config['OUR_BUSINESS_ADDRESS'] = "123 Divine Path, Spiritual City, Karnataka - 560001"
-app.config['OUR_GSTIN'] = "29ABCDE1234F1Z5" # Example GSTIN
+app.config['OUR_BUSINESS_ADDRESS'] = "Annapurnna Appartment, New Alipore, Kolkata - 700052"
+app.config['OUR_GSTIN'] = "29RUPA1234F1Z5" # Example GSTIN
 app.config['OUR_PAN'] = "ABCDE1234F" # Example PAN
 app.config['DEFAULT_GST_RATE'] = Decimal('18.00') # Default GST rate for products
 # app.config['DEFAULT_SHIPPING_CHARGE'] = Decimal('100.00') # This is now deprecated for per-artwork shipping
@@ -270,6 +270,8 @@ class Category(db.Model):
 class Artwork(db.Model):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     sku = Column(String(50), unique=True, nullable=False)
+    hsn_code = Column(String(20), nullable=True) # NEW LINE
+    hsn_description = Column(String(255), nullable=True)
     name = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
     original_price = Column(Numeric(10, 2), nullable=False) # Price before any options or GST
@@ -362,6 +364,8 @@ class Order(db.Model):
     user_id = Column(String(36), ForeignKey('user.id'), nullable=False)
     order_date = Column(DateTime, default=datetime.utcnow)
     total_amount = Column(Numeric(10, 2), nullable=False)
+    customer_gstin = db.Column(db.String(15), nullable=True)  # <-- 15 number GSTIN of Customer for B2B invoice
+    gst_number = Column(String(15), nullable=True) 
     status = Column(String(50), default='Pending Payment', nullable=False) # e.g., Pending Payment, Payment Submitted - Awaiting Verification, Payment Verified – Preparing Order, Shipped, Delivered, Cancelled by User, Cancelled by Admin
     payment_status = Column(String(50), default='pending', nullable=False) # e.g., pending, completed, failed
     shipping_address_id = Column(String(36), ForeignKey('address.id'), nullable=True) # Can be null for direct purchase if address not saved
@@ -918,11 +922,6 @@ def create_direct_order():
         session.modified = True
         return jsonify(success=True, message='Please log in or sign up to complete your purchase.', redirect_url=url_for('user_login', next=url_for('purchase_form')))
 
-# MODIFIED: Purchase form to handle both cart checkout and direct purchase
-# In app.py, locate your purchase_form route and update it.
-# If you don't have a purchase_form route, please let me know its actual name.
-
-# In app.py, locate your purchase_form route and update it.
 # app.py (Modified Excerpt for purchase_form route)
 
 @app.route('/purchase-form', methods=['GET', 'POST'])
@@ -962,6 +961,14 @@ def purchase_form():
         if not items_to_process:
             flash("No items to purchase.", "danger")
             return redirect(url_for('cart'))
+
+        # ✅ Retrieve GST number for both add_new_address and place_order
+        gst_number = request.form.get('gst_number', '').strip().upper()
+        print("DEBUG purchase_form: gst_number received ->", repr(gst_number), " action_type ->", request.form.get('action_type'))
+
+        if gst_number and len(gst_number) != 15:
+            flash('Please enter a valid 15-digit GSTIN or leave the field empty.', 'danger')
+            return redirect(url_for('purchase_form'))
 
         action_type = request.form.get('action_type')
 
@@ -1007,6 +1014,9 @@ def purchase_form():
                 pincode=pincode,
                 is_default=set_as_default
             )
+            if new_address.is_default:
+                # Minimal change: unset any other default addresses for this user
+                Address.query.filter_by(user_id=current_user.id, is_default=True).update({"is_default": False})
             db.session.add(new_address)
             db.session.commit()
             session['pre_selected_address_id'] = new_address.id
@@ -1063,7 +1073,9 @@ def purchase_form():
                     status='Pending Payment',
                     payment_status='pending',
                     shipping_address_id=shipping_address_obj.id,
-                    shipping_charge=shipping_charge
+                    shipping_charge=shipping_charge,
+                    customer_gstin=gst_number if gst_number else None,   # optional
+                    gst_number=gst_number if gst_number else None        # ✅ this line ensures Neon stores GSTIN
                 )
                 db.session.add(new_order)
                 db.session.flush()
@@ -1122,6 +1134,7 @@ def purchase_form():
             except Exception as e:
                 db.session.rollback()
                 flash(f'An unexpected error occurred: {e}', 'danger')
+
     # ----- Handle GET -----
     (items_to_process, subtotal_before_gst, total_cgst_amount, 
      total_sgst_amount, total_igst_amount, total_ugst_amount, total_cess_amount,
@@ -1801,7 +1814,7 @@ def payment_submit(order_id):
         app.logger.error(f"Cloudinary upload failed for payment screenshot: {e}")
         flash('An error occurred during file upload. Please try again.', 'danger')
         return redirect(url_for('payment_initiate', order_id=order.id, amount=order.total_amount))# NEW: Route for the Thank You page
-# CHANGED: <int:order_id> to <string:order_id>
+# CHANGED: <order_id> to <string:order_id>
 @app.route('/thank-you/<string:order_id>') 
 @login_required # If only logged-in users can view their orders
 def thank_you_page(order_id):
@@ -1863,22 +1876,70 @@ def admin_dashboard():
         (Order.invoice_details.like('%"is_held_by_admin": true%')) # Check JSON string for held invoices
     ).order_by(Order.order_date.desc()).all()
 
-    # All orders with search and filter
+   # All orders with search and filter (Combined with NEW B2B, Date, and Customer Name filters)
     search_query = request.args.get('search', '')
     filter_status = request.args.get('filter_status', '')
+
+    # NEW: Additional Filters for B2B/B2C, Date Range, and Shipping Name
+    filter_b2b = request.args.get('filter_b2b', 'all') 
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    customer_name = request.args.get('customer_name', '').strip()
     
+    # Base query for all orders, typically ordered by latest first
     orders_query = Order.query.order_by(Order.order_date.desc())
 
+    # Apply existing filters (Search Query and Status)
     if search_query:
+        # Existing logic for searching Order ID, User Name, or Email
         orders_query = orders_query.join(User).filter(
             (Order.id.ilike(f'%{search_query}%')) |
-            (User.full_name.ilike(f'%{search_query}%')) | # Corrected variable name
+            (User.full_name.ilike(f'%{search_query}%')) |
             (User.email.ilike(f'%{search_query}%'))
         )
     if filter_status:
         orders_query = orders_query.filter_by(status=filter_status)
-    
+
+    # --- START: NEW FILTERING LOGIC (B2B/B2C, Date, Customer Name) ---
+    # 1. Apply B2B/B2C filter
+    if filter_b2b == 'b2b':
+        # B2B: customer_gstin is not null/empty
+        orders_query = orders_query.filter(Order.customer_gstin.isnot(None), Order.customer_gstin != '')
+    elif filter_b2b == 'b2c':
+        # B2C: customer_gstin is null/empty
+        # This uses the 'or_' we imported in Step 1!
+        orders_query = orders_query.filter(
+            or_(Order.customer_gstin.is_(None), Order.customer_gstin == '')
+        )
+
+    # 2. Apply Date Range filter
+    try:
+        if start_date_str:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+            orders_query = orders_query.filter(Order.order_date >= start_date)
+        if end_date_str:
+            # Add one day to include the entire end date in the filter
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1)
+            orders_query = orders_query.filter(Order.order_date < end_date)
+    except ValueError:
+        flash("Invalid date format provided for filtering.", 'warning')
+
+    # 3. Apply Customer Name filter (using shipping_name)
+    if customer_name:
+        search_term = f"%{customer_name}%"
+        orders_query = orders_query.filter(Order.shipping_name.ilike(search_term))
+
+    # Fetch the final list of orders
     orders = orders_query.all()
+
+    # Pass the applied filters back to the template to persist filter values in the form
+    applied_filters = {
+        'filter_b2b': filter_b2b,
+        'start_date': start_date_str,
+        'end_date': end_date_str,
+        'customer_name': customer_name
+    }
+    # --- END: NEW FILTERING LOGIC ---
 
     # Low stock and out of stock artworks
     low_stock_artworks = Artwork.query.filter(Artwork.stock > 0, Artwork.stock <= 10).all()
@@ -1913,7 +1974,8 @@ def admin_dashboard():
                            low_stock_artworks=low_stock_artworks,
                            out_of_stock_artworks=out_of_stock_artworks,
                            revenue_labels=revenue_labels,
-                           revenue_values=revenue_values)
+                           revenue_values=revenue_values,
+                           applied_filters=applied_filters)
 
 @app.route('/admin/verify-payment', methods=['POST'])
 @login_required
@@ -2007,6 +2069,81 @@ def admin_order_details(order_id):
     order = Order.query.filter_by(id=order_id).first_or_404()
     return render_template('admin_order_details.html', order=order)
 
+# ... (Keep all existing code above this line)
+
+# --- Administration Routes ---
+
+# Assumes you have an Order model defined, and your existing login_required and admin_required decorators
+# ... (Keep all existing code above this line)
+
+# --- Administration Routes ---
+
+# Assumes you have an Order model defined, and your existing login_required and admin_required decorators
+@app.route('/admin/orders', methods=['GET'])
+@login_required
+@admin_required
+def admin_orders_view():
+    """
+    Handles the admin view for listing and filtering orders.
+    It processes GET parameters for filtering (e.g., business type, status, dates).
+    """
+    # Import traceback here if you want detailed error logging
+    import traceback
+    
+    # Check if necessary models and objects are defined.
+    # If this causes a NameError, the app will still crash before the try/except block.
+    # The error is likely occurring within the try block during query execution.
+    
+    try:
+        # 1. Start with the base query for all orders
+        # --- POTENTIAL ERROR SOURCE: Check if Order model and db are correctly imported/accessible ---
+        query = Order.query.order_by(Order.order_date.desc())
+        
+        # 2. Extract and apply filters from the request.form/request.args (since it's a GET form)
+        
+        # Example filter 1: Business Type (B2B or B2C)
+        business_type = request.args.get('business_type', 'all')
+        if business_type and business_type != 'all':
+            # Assuming you have a 'is_b2b' field on the User or Order model
+            # --- POTENTIAL ERROR SOURCE: Check User model and its relationship to Order ---
+            if business_type == 'b2b':
+                query = query.join(User).filter(User.is_b2b == True)
+            elif business_type == 'b2c':
+                query = query.join(User).filter(User.is_b2b == False)
+
+        # Example filter 2: Order Status
+        status = request.args.get('status', 'all')
+        if status and status != 'all':
+            # --- POTENTIAL ERROR SOURCE: Check if Order.status is correct column name ---
+            query = query.filter(Order.status == status)
+
+        # Example filter 3: Date Range (You'll need more logic for 'start_date' and 'end_date')
+        # ...
+
+        # 3. Pagination (Highly recommended for large lists of orders)
+        page = request.args.get('page', 1, type=int)
+        per_page = 25 # Define how many items per page
+        
+        # --- POTENTIAL ERROR SOURCE: Query execution happens here ---
+        orders = query.paginate(page=page, per_page=per_page, error_out=False)
+        
+        # 4. Render the template
+        return render_template('admin_orders.html', 
+                               orders=orders.items, 
+                               pagination=orders,
+                               current_business_type=business_type,
+                               current_status=status)
+
+    except Exception as e:
+        # Log the full traceback for detailed error analysis
+        current_app.logger.error(f"Error in admin_orders_view: {e}")
+        current_app.logger.error(f"FULL TRACEBACK: \n{traceback.format_exc()}") # Enhanced Logging
+        
+        flash('An error occurred while fetching orders. See console logs for details.', 'danger')
+        # Fallback to the main dashboard if there's an error
+        return redirect(url_for('admin_dashboard'))
+
+# ... (Keep all existing code below this line)
 
 @app.route('/admin/categories')
 @login_required
@@ -2208,6 +2345,8 @@ def admin_add_artwork():
             name=name,
             description=description,
             original_price=original_price,
+            hsn_code=request.form.get('hsn_code'), # NEW
+            hsn_description=request.form.get('hsn_description'), # NEW
             cgst_percentage=cgst_percentage,
             sgst_percentage=sgst_percentage,
             igst_percentage=igst_percentage,
@@ -2276,6 +2415,8 @@ def admin_edit_artwork(artwork_id):
         artwork.is_featured = is_featured
         artwork.description = description
         artwork.gst_type = gst_type # NEW
+        artwork.hsn_code = request.form.get('hsn_code') # NEW
+        artwork.hsn_description = request.form.get('hsn_description') # NEW
 
         try:
             artwork.original_price = Decimal(original_price)
@@ -2426,79 +2567,95 @@ def admin_delete_artwork(artwork_id):
         flash('An unexpected error occurred while deleting the artwork.', 'danger')
         return redirect(url_for('admin_artworks'))    
 
-@app.route('/admin/edit-invoice/<order_id>', methods=['GET', 'POST'])
-@login_required
-@admin_required
-def admin_edit_invoice(order_id):
-    order = Order.query.get_or_404(order_id)
-    
-    if request.method == 'POST':
-        # Collect all invoice details from the form
-        invoice_details = {
-            'business_name': request.form.get('business_name'),
-            'gst_number': request.form.get('gst_number'),
-            'pan_number': request.form.get('pan_number'),
-            'business_address': request.form.get('business_address'),
-            'invoice_number': request.form.get('invoice_number'),
-            'invoice_date': request.form.get('invoice_date'),
-            'billing_address': request.form.get('billing_address'), # This field is not in the HTML, but kept for completeness if you add it
-            # Convert Decimal types to string before storing in JSON
-            'gst_rate_applied': str(Decimal(request.form.get('gst_rate', '0.00'))), 
-            'shipping_charge': str(Decimal(request.form.get('shipping_charge', '0.00'))), 
-            'final_invoice_amount': str(Decimal(request.form.get('total_amount', '0.00'))), 
-            'invoice_status': request.form.get('invoice_status', 'Generated'), # Default if not explicitly set
-            'is_held_by_admin': 'is_held_by_admin' in request.form, # Checkbox
-            'cgst_amount': str(Decimal(request.form.get('cgst_amount', '0.00'))), 
-            'sgst_amount': str(Decimal(request.form.get('sgst_amount', '0.00'))),
-            'igst_amount': str(Decimal(request.form.get('igst_amount', '0.00'))),
-            'ugst_amount': str(Decimal(request.form.get('ugst_amount', '0.00'))),
-            'cess_amount': str(Decimal(request.form.get('cess_amount', '0.00'))) # NEW
-        }
-        
-        order.set_invoice_details(invoice_details)
-        # Ensure that when updating order.shipping_charge and order.total_amount,
-        # they are converted back to Decimal from the string in invoice_details
-        order.shipping_charge = Decimal(invoice_details['shipping_charge']) 
-        order.total_amount = Decimal(invoice_details['final_invoice_amount']) 
-        db.session.commit()
-        flash('Invoice details updated successfully!', 'success')
-        return redirect(url_for('admin_dashboard')) # Or admin_orders_view if you create one
-    
-    # For GET request, parse invoice_details and convert date strings back to datetime objects
-    invoice_data = order.get_invoice_details()
-    if 'invoice_date' in invoice_data and invoice_data['invoice_date']:
-        try:
-            invoice_data['invoice_date'] = datetime.strptime(invoice_data['invoice_date'], '%Y-%m-%d')
-        except ValueError:
-            invoice_data['invoice_date'] = None # Handle potential format issues
-    if 'due_date' in invoice_data and invoice_data['due_date']:
-        try:
-            invoice_data['due_date'] = datetime.strptime(invoice_data['due_date'], '%Y-%m-%d')
-        except ValueError:
-            invoice_data['due_date'] = None # Handle potential format issues
+import os
+from dotenv import load_dotenv
+load_dotenv()
+import cloudinary
+import cloudinary.uploader
 
-    return render_template('admin_edit_invoice.html', order=order, invoice_data=invoice_data)
+import json
+import csv
+import uuid
+import requests
+from datetime import datetime, timedelta # Ensure timedelta is imported here
+from functools import wraps
+from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename # Added this import
+from slugify import slugify
 
+from flask import Flask, render_template, redirect, url_for, flash, request, session, jsonify, make_response, send_file
+from flask import current_app
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from collections import defaultdict
+from decimal import Decimal, InvalidOperation
+import random
+import qrcode
+import io
+import base64
+import string 
+from markupsafe import Markup
+
+# SQLAlchemy Imports
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Numeric, ForeignKey, func, or_ 
+from sqlalchemy.orm import relationship
+from sqlalchemy.exc import IntegrityError 
+
+from flask_migrate import Migrate
+
+
+# Email Sending
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
+
+# CSRF protection
+from flask_wtf.csrf import CSRFProtect, generate_csrf
+
+# PDF generation
+try:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import inch
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+    from reportlab.lib.colors import HexColor
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    SimpleDocTemplate = SimpleDocTemplate
+except ImportError:
+    SimpleDocTemplate = None
 
 # Helper function to generate the flowables for a single invoice copy
 def _get_single_invoice_flowables(order, invoice_data_safe, styles, font_name, font_name_bold):
     story_elements = []
 
+    # Retrieve B2B fields from the safe invoice data
+    is_b2b = invoice_data_safe.get('is_b2b', False)
+    customer_gstin = invoice_data_safe.get('customer_gstin', '')
+
+    # Conditionally set the invoice title
+    if is_b2b:
+        invoice_title = "TAX INVOICE (B2B)"
+    else:
+        invoice_title = "RETAIL INVOICE (B2C)"
+
     # Header
     story_elements.append(Paragraph(invoice_data_safe['business_name'], styles['h1']))
     story_elements.append(Paragraph(invoice_data_safe['business_address'], styles['Normal']))
     story_elements.append(Paragraph(f"GSTIN: {invoice_data_safe['gst_number']} | PAN: {invoice_data_safe['pan_number']}", styles['Normal']))
-    story_elements.append(Spacer(1, 0.05 * inch)) # Reduced space
+    story_elements.append(Spacer(1, 0.05 * inch))
 
     # Invoice Title and Details
-    story_elements.append(Paragraph("TAX INVOICE", styles['h2']))
+    story_elements.append(Paragraph(invoice_title, styles['h2'])) # Use the new invoice_title variable
     
     # Use a two-column table for Invoice No and Date for better alignment
     invoice_header_data = [
         [Paragraph(f"<b>Invoice No:</b> {invoice_data_safe['invoice_number']}", styles['BoldBodyText']),
          Paragraph(f"<b>Invoice Date:</b> {invoice_data_safe['invoice_date_dt'].strftime('%d-%m-%Y')}", styles['RightAlign'])]
     ]
-    invoice_header_table = Table(invoice_header_data, colWidths=[3.25*inch, 3.25*inch]) # Still using 3.25*inch for each, but total width is 6.5 inch
+    invoice_header_table = Table(invoice_header_data, colWidths=[3.25*inch, 3.25*inch])
     invoice_header_table.setStyle(TableStyle([
         ('VALIGN', (0,0), (-1,-1), 'TOP'),
         ('LEFTPADDING', (0,0), (-1,-1), 0),
@@ -2507,90 +2664,127 @@ def _get_single_invoice_flowables(order, invoice_data_safe, styles, font_name, f
         ('BOTTOMPADDING', (0,0), (-1,-1), 0),
     ]))
     story_elements.append(invoice_header_table)
-    story_elements.append(Spacer(1, 0.05 * inch)) # Reduced space
+    story_elements.append(Spacer(1, 0.05 * inch))
 
-    # Billing Address
-    story_elements.append(Paragraph("<b>Bill To:</b>", styles['BoldBodyText']))
-    # Split the consolidated address into lines for better formatting
-    billing_address_lines = invoice_data_safe['billing_address'].split(', ')
-    # Filter out empty strings that might result from missing address parts
-    billing_address_paragraphs = [Paragraph(line, styles['Normal']) for line in filter(None, billing_address_lines)]
-    story_elements.extend(billing_address_paragraphs)
-    story_elements.append(Spacer(1, 0.05 * inch)) # Reduced space
+    # --- NEW ADDRESS BLOCK ---
+    # Customer Name and Phone Number
+    story_elements.append(Paragraph(f"<b>Bill To:</b> {order.customer_name} ({order.customer_phone if order.customer_phone else 'N/A'})", styles['BoldBodyText']))
+    story_elements.append(Spacer(1, 0.05 * inch))
+
+    # Address Table (Shipping and Billing)
+    shipping_address = order.get_shipping_address()
+    shipping_address_text = (
+        f"{shipping_address.get('address_line1', '')}, {shipping_address.get('address_line2', '')}, "
+        f"{shipping_address.get('city', '')}, {shipping_address.get('state', '')} "
+        f"<b>{shipping_address.get('pincode', '')}</b>"
+    )
+
+    # Use a two-column table for shipping and billing addresses
+    address_data = [
+        [
+            Paragraph("<b>Shipping Address:</b>", styles['BoldBodyText']),
+            Paragraph("<b>Billing Address:</b>", styles['BoldBodyText'])
+        ],
+        [
+            Paragraph(shipping_address_text, styles['Normal']),
+            Paragraph(invoice_data_safe.get('billing_address', 'N/A'), styles['Normal'])
+        ]
+    ]
+
+    # Conditionally add the customer GSTIN if it's a B2B invoice
+    if is_b2b and customer_gstin:
+        address_data.append([Paragraph(f"Customer GSTIN:", styles['BoldBodyText']), Paragraph(customer_gstin, styles['Normal'])])
+    
+    address_table = Table(address_data, colWidths=[3.75*inch, 3.75*inch])
+    address_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+    ]))
+    story_elements.append(address_table)
+    story_elements.append(Spacer(1, 0.05 * inch))
 
     # Order Items Table
     data = [
         [
             Paragraph('SKU', styles['BoldBodyText']),
             Paragraph('Artwork Name', styles['BoldBodyText']),
+            Paragraph('HSN Code', styles['BoldBodyText']), # NEW: HSN Code header
             Paragraph('Options', styles['BoldBodyText']),
             Paragraph('Unit Price (Excl. GST)', styles['BoldBodyText']),
             Paragraph('Qty', styles['BoldBodyText']),
-            Paragraph('Taxable Value', styles['BoldBodyText']), # NEW
+            Paragraph('Taxable Value', styles['BoldBodyText']),
             Paragraph('CGST', styles['BoldBodyText']),
             Paragraph('SGST', styles['BoldBodyText']),
             Paragraph('IGST', styles['BoldBodyText']),
             Paragraph('UGST', styles['BoldBodyText']),
-            Paragraph('CESS', styles['BoldBodyText']), # NEW
+            Paragraph('CESS', styles['BoldBodyText']),
             Paragraph('Total (Incl. GST)', styles['BoldBodyText'])
         ]
     ]
     
+    total_taxable_value = Decimal('0.00')
     total_cgst_items = Decimal('0.00')
     total_sgst_items = Decimal('0.00')
     total_igst_items = Decimal('0.00')
     total_ugst_items = Decimal('0.00')
-    total_cess_items = Decimal('0.00') # NEW
+    total_cess_items = Decimal('0.00')
+    
     for item in order.items:
         options_str = ", ".join([f"{k}: {v}" for k, v in item.get_selected_options_dict().items()])
         
         # Ensure Decimal values are converted to string for display in PDF
         unit_price_excl_gst_display = f"₹{item.unit_price_before_gst:,.2f}"
-        taxable_value_display = f"₹{item.total_price_before_gst:,.2f}" # NEW
+        taxable_value_display = f"₹{item.total_price_before_gst:,.2f}"
         
         # Conditional display for GST components
         cgst_display = f"₹{item.cgst_amount:,.2f} ({item.cgst_percentage_applied}%)" if item.cgst_amount > Decimal('0.00') else ""
         sgst_display = f"₹{item.sgst_amount:,.2f} ({item.sgst_percentage_applied}%)" if item.sgst_amount > Decimal('0.00') else ""
         igst_display = f"₹{item.igst_amount:,.2f} ({item.igst_percentage_applied}%)" if item.igst_amount > Decimal('0.00') else ""
         ugst_display = f"₹{item.ugst_amount:,.2f} ({item.ugst_percentage_applied}%)" if item.ugst_amount > Decimal('0.00') else ""
-        cess_display = f"₹{item.cess_amount:,.2f} ({item.cess_percentage_applied}%)" if item.cess_amount > Decimal('0.00') else "" # NEW
+        cess_display = f"₹{item.cess_amount:,.2f} ({item.cess_percentage_applied}%)" if item.cess_amount > Decimal('0.00') else ""
         
         total_incl_gst_display = f"₹{item.total_price_incl_gst:,.2f}"
 
         data.append([
             Paragraph(item.artwork.sku, styles['TableCell']),
             Paragraph(item.artwork.name, styles['TableCellLeft']),
+            Paragraph(f"{item.artwork.hsn_code or ''}<br/><font size=\"8\">{item.artwork.hsn_description or ''}</font>", styles['TableCell']),
             Paragraph(options_str, styles['TableCellLeft']),
             Paragraph(unit_price_excl_gst_display, styles['TableCellRight']),
             Paragraph(str(item.quantity), styles['TableCell']),
-            Paragraph(taxable_value_display, styles['TableCellRight']), # NEW
+            Paragraph(taxable_value_display, styles['TableCellRight']),
             Paragraph(cgst_display, styles['TableCellRight']),
             Paragraph(sgst_display, styles['TableCellRight']),
             Paragraph(igst_display, styles['TableCellRight']),
             Paragraph(ugst_display, styles['TableCellRight']),
-            Paragraph(cess_display, styles['TableCellRight']), # NEW
+            Paragraph(cess_display, styles['TableCellRight']),
             Paragraph(total_incl_gst_display, styles['TableCellRight'])
         ])
+        total_taxable_value += item.total_price_before_gst
         total_cgst_items += item.cgst_amount
         total_sgst_items += item.sgst_amount
         total_igst_items += item.igst_amount
         total_ugst_items += item.ugst_amount
-        total_cess_items += item.cess_amount # NEW
+        total_cess_items += item.cess_amount
 
-    # Adjusted colWidths to better fit content and distribute space for 12 columns
+    # Adjusted colWidths to better fit content and distribute space for 13 columns
     # Total width is A4[0] - 2*0.3 inches (margins) = 7.67 inches. Let's make it 7.5 inches for easier division.
     col_widths = [
         0.5*inch, # SKU
-        1.0*inch, # Artwork Name
-        0.9*inch, # Options
-        0.8*inch, # Unit Price (Excl. GST)
+        0.8*inch, # Artwork Name
+        0.7*inch, # HSN Code (NEW)
+        0.7*inch, # Options
+        0.6*inch, # Unit Price (Excl. GST)
         0.3*inch, # Qty
-        0.8*inch, # Taxable Value (NEW)
+        0.8*inch, # Taxable Value
         0.6*inch, # CGST
         0.6*inch, # SGST
         0.6*inch, # IGST
         0.6*inch, # UGST
-        0.5*inch, # CESS (NEW)
+        0.5*inch, # CESS
         0.8*inch  # Total (Incl. GST)
     ]
     table = Table(data, colWidths=col_widths)
@@ -2599,10 +2793,11 @@ def _get_single_invoice_flowables(order, invoice_data_safe, styles, font_name, f
         ('TEXTCOLOR', (0, 0), (-1, 0), HexColor('#FFFFFF')),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('ALIGN', (1, 0), (1, -1), 'LEFT'), # Align artwork name left
-        ('ALIGN', (2, 0), (2, -1), 'LEFT'), # Align options left
-        ('ALIGN', (3, 0), (3, -1), 'RIGHT'), # Align unit price right
-        ('ALIGN', (4, 0), (4, -1), 'CENTER'), # Align quantity center
-        ('ALIGN', (5, 0), (-1, -1), 'RIGHT'), # Align Taxable Value, GST and total amounts right
+        ('ALIGN', (2, 0), (2, -1), 'CENTER'), # NEW: Align HSN Code center
+        ('ALIGN', (3, 0), (3, -1), 'LEFT'), # Align options left
+        ('ALIGN', (4, 0), (4, -1), 'RIGHT'), # Align unit price right
+        ('ALIGN', (5, 0), (5, -1), 'CENTER'), # Align quantity center
+        ('ALIGN', (6, 0), (-1, -1), 'RIGHT'), # Align Taxable Value, GST and total amounts right
         ('FONTNAME', (0, 0), (-1, 0), font_name_bold), # Use registered bold font
         ('BOTTOMPADDING', (0, 0), (-1, 0), 4), # Reduced padding
         ('BACKGROUND', (0, 1), (-1, -1), HexColor('#FAF9F6')), # Light background for rows
@@ -2616,10 +2811,10 @@ def _get_single_invoice_flowables(order, invoice_data_safe, styles, font_name, f
     ]))
     story_elements.append(table)
     story_elements.append(Spacer(1, 0.05 * inch)) # Reduced space
-
     # Summary Table
     summary_data = []
-    summary_data.append([Paragraph('Subtotal (Excl. GST):', styles['RightAlign']), Paragraph(f"₹{order.total_amount - order.shipping_charge - total_cgst_items - total_sgst_items - total_igst_items - total_ugst_items - total_cess_items:,.2f}", styles['RightAlign'])]) # Adjusted calculation
+    # REFINED: Use the pre-calculated total_taxable_value for clarity
+    summary_data.append([Paragraph('Subtotal (Excl. GST):', styles['RightAlign']), Paragraph(f"₹{total_taxable_value:,.2f}", styles['RightAlign'])])
     if total_cgst_items > Decimal('0.00'):
         summary_data.append([Paragraph('CGST:', styles['RightAlign']), Paragraph(f"₹{total_cgst_items:,.2f}", styles['RightAlign'])])
     if total_sgst_items > Decimal('0.00'):
@@ -2628,7 +2823,7 @@ def _get_single_invoice_flowables(order, invoice_data_safe, styles, font_name, f
         summary_data.append([Paragraph('IGST:', styles['RightAlign']), Paragraph(f"₹{total_igst_items:,.2f}", styles['RightAlign'])])
     if total_ugst_items > Decimal('0.00'):
         summary_data.append([Paragraph('UGST:', styles['RightAlign']), Paragraph(f"₹{total_ugst_items:,.2f}", styles['RightAlign'])])
-    if total_cess_items > Decimal('0.00'): # NEW: Conditional CESS display
+    if total_cess_items > Decimal('0.00'):
         summary_data.append([Paragraph('CESS:', styles['RightAlign']), Paragraph(f"₹{total_cess_items:,.2f}", styles['RightAlign'])])
     
     summary_data.append([Paragraph('Shipping Charge:', styles['RightAlign']), Paragraph(f"₹{order.shipping_charge:,.2f}", styles['RightAlign'])])
@@ -2681,10 +2876,68 @@ def _get_single_invoice_flowables(order, invoice_data_safe, styles, font_name, f
     # Footer
     story_elements.append(Paragraph("Thank you for your purchase and devotion!", styles['Normal']))
     story_elements.append(Paragraph(f"Invoice Status: <b>{invoice_data_safe['invoice_status']}</b>", styles['BoldBodyText']))
+    story_elements.append(Paragraph("This is a computer-generated invoice and does not require a signature.", styles['Normal']))
     story_elements.append(Spacer(1, 0.05 * inch)) # Reduced space
     story_elements.append(Paragraph(f"Contact: {order.customer_phone if order.customer_phone else 'N/A'} | {order.customer_email if order.customer_email else 'N/A'}", styles['Footer']))
 
     return story_elements
+
+@app.route('/admin/edit-invoice/<order_id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_edit_invoice(order_id):
+    order = Order.query.get_or_404(order_id)
+    
+    if request.method == 'POST':
+        # Collect all invoice details from the form
+        invoice_details = {
+            'business_name': request.form.get('business_name'),
+            'gst_number': request.form.get('gst_number'),
+            'pan_number': request.form.get('pan_number'),
+            'business_address': request.form.get('business_address'),
+            'invoice_number': request.form.get('invoice_number'),
+            'invoice_date': request.form.get('invoice_date'),
+            'billing_address': request.form.get('billing_address'), # This field is not in the HTML, but kept for completeness if you add it
+            # Convert Decimal types to string before storing in JSON
+            'gst_rate_applied': str(Decimal(request.form.get('gst_rate', '0.00'))), 
+            'shipping_charge': str(Decimal(request.form.get('shipping_charge', '0.00'))), 
+            'final_invoice_amount': str(Decimal(request.form.get('total_amount', '0.00'))), 
+            'invoice_status': request.form.get('invoice_status', 'Generated'), # Default if not explicitly set
+            'is_held_by_admin': 'is_held_by_admin' in request.form, # Checkbox
+            'cgst_amount': str(Decimal(request.form.get('cgst_amount', '0.00'))), 
+            'sgst_amount': str(Decimal(request.form.get('sgst_amount', '0.00'))),
+            'igst_amount': str(Decimal(request.form.get('igst_amount', '0.00'))),
+            'ugst_amount': str(Decimal(request.form.get('ugst_amount', '0.00'))),
+            'cess_amount': str(Decimal(request.form.get('cess_amount', '0.00'))), # NEW
+            # NEW: Add B2B fields to the dictionary
+            'is_b2b': 'is_b2b' in request.form,
+            'customer_gstin': request.form.get('customer_gstin', '').upper()
+        }
+        
+        order.set_invoice_details(invoice_details)
+        # Ensure that when updating order.shipping_charge and order.total_amount,
+        # they are converted back to Decimal from the string in invoice_details
+        order.shipping_charge = Decimal(invoice_details['shipping_charge']) 
+        order.total_amount = Decimal(invoice_details['final_invoice_amount']) 
+        db.session.commit()
+        flash('Invoice details updated successfully!', 'success')
+        return redirect(url_for('admin_dashboard')) # Or admin_orders_view if you create one
+    
+    # For GET request, parse invoice_details and convert date strings back to datetime objects
+    invoice_data = order.get_invoice_details()
+    invoice_data['customer_gstin'] = invoice_data.get('customer_gstin') or order.customer_gstin or ''
+    if 'invoice_date' in invoice_data and invoice_data['invoice_date']:
+        try:
+            invoice_data['invoice_date'] = datetime.strptime(invoice_data['invoice_date'], '%Y-%m-%d')
+        except ValueError:
+            invoice_data['invoice_date'] = None # Handle potential format issues
+    if 'due_date' in invoice_data and invoice_data['due_date']:
+        try:
+            invoice_data['due_date'] = datetime.strptime(invoice_data['due_date'], '%Y-%m-%d')
+        except ValueError:
+            invoice_data['due_date'] = None # Handle potential format issues
+
+    return render_template('admin_edit_invoice.html', order=order, invoice_data=invoice_data)
 
 
 @app.route('/generate_invoice_pdf/<order_id>')
@@ -2697,9 +2950,10 @@ def generate_invoice_pdf(order_id):
 
     order = Order.query.get_or_404(order_id)
     invoice_data = order.get_invoice_details()
-
+    
     # Ensure all necessary invoice_data fields are present, provide defaults if not
     invoice_data_safe = {
+        
         'business_name': invoice_data.get('business_name') or app.config['OUR_BUSINESS_NAME'],
         'gst_number': invoice_data.get('gst_number') or app.config['OUR_GSTIN'],
         'pan_number': invoice_data.get('pan_number') or app.config['OUR_PAN'],
@@ -2715,8 +2969,12 @@ def generate_invoice_pdf(order_id):
         'sgst_amount': Decimal(invoice_data.get('sgst_amount', '0.00')),
         'igst_amount': Decimal(invoice_data.get('igst_amount', '0.00')),
         'ugst_amount': Decimal(invoice_data.get('ugst_amount', '0.00')),
-        'cess_amount': Decimal(invoice_data.get('cess_amount', '0.00')), # NEW
+        'cess_amount': Decimal(invoice_data.get('cess_amount', '0.00')),
+        # NEW: Add B2B fields to the safe dictionary
+        'is_b2b': invoice_data.get('is_b2b', False),
+        'customer_gstin': invoice_data.get('customer_gstin', '')
     }
+
 
     # Convert date string to datetime object for formatting in PDF
     if isinstance(invoice_data_safe['invoice_date'], str):
@@ -2854,8 +3112,11 @@ def generate_invoice_pdf_buffer(order):
         return None
 
     invoice_data = order.get_invoice_details()
+    
 
+    
     invoice_data_safe = {
+        
         'business_name': invoice_data.get('business_name') or app.config['OUR_BUSINESS_NAME'],
         'gst_number': invoice_data.get('gst_number') or app.config['OUR_GSTIN'],
         'pan_number': invoice_data.get('pan_number') or app.config['OUR_PAN'],
@@ -2879,7 +3140,21 @@ def generate_invoice_pdf_buffer(order):
         'igst_amount': Decimal(invoice_data.get('igst_amount', '0.00')),
         'ugst_amount': Decimal(invoice_data.get('ugst_amount', '0.00')),
         'cess_amount': Decimal(invoice_data.get('cess_amount', '0.00')),
+        'is_b2b': invoice_data.get('is_b2b', False),
+        'customer_gstin': invoice_data.get('customer_gstin', '')
     }
+
+    # Added check to ensure date is a datetime object
+    if 'invoice_date' in invoice_data_safe and invoice_data_safe['invoice_date']:
+        if isinstance(invoice_data_safe['invoice_date'], str):
+            try:
+                invoice_data_safe['invoice_date_dt'] = datetime.strptime(invoice_data_safe['invoice_date'], '%Y-%m-%d')
+            except ValueError:
+                invoice_data_safe['invoice_date_dt'] = datetime.utcnow()
+        else:
+            invoice_data_safe['invoice_date_dt'] = invoice_data_safe['invoice_date']
+    else:
+        invoice_data_safe['invoice_date_dt'] = datetime.utcnow()
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4,
@@ -2904,7 +3179,65 @@ def generate_invoice_pdf_buffer(order):
     styles['Normal'].spaceAfter = 1
     styles['Normal'].bulletText = ''
 
-    # Update styles like before (h1, h2, etc.) — skip retyping here for now
+    # Re-define styles here as well to ensure they are consistent
+    styles['h1'].fontName = font_name_bold
+    styles['h1'].fontSize = 14
+    styles['h1'].leading = 16
+    styles['h1'].alignment = TA_CENTER
+    styles['h1'].spaceAfter = 3
+    styles['h1'].bulletText = ''
+
+    styles['h2'].fontName = font_name_bold
+    styles['h2'].fontSize = 12
+    styles['h2'].leading = 14
+    styles['h2'].alignment = TA_LEFT
+    styles['h2'].spaceAfter = 4
+    styles['h2'].bulletText = ''
+
+    if 'RightAlign' not in styles:
+        styles.add(ParagraphStyle(name='RightAlign', parent=styles['Normal']))
+    styles['RightAlign'].alignment = TA_RIGHT
+    styles['RightAlign'].fontName = font_name
+    styles['RightAlign'].bulletText = ''
+
+    if 'BoldBodyText' not in styles:
+        styles.add(ParagraphStyle(name='BoldBodyText', parent=styles['Normal']))
+    styles['BoldBodyText'].fontName = font_name_bold
+    styles['BoldBodyText'].spaceAfter = 1
+    styles['BoldBodyText'].bulletText = ''
+
+    if 'Footer' not in styles:
+        styles.add(ParagraphStyle(name='Footer', parent=styles['Normal']))
+    styles['Footer'].fontSize = 6
+    styles['Footer'].leading = 7
+    styles['Footer'].alignment = TA_CENTER
+    styles['Footer'].spaceBefore = 5
+    styles['Footer'].fontName = font_name
+    styles['Footer'].bulletText = ''
+
+    if 'TableCell' not in styles:
+        styles.add(ParagraphStyle(name='TableCell', parent=styles['Normal']))
+    styles['TableCell'].alignment = TA_CENTER
+    styles['TableCell'].fontName = font_name
+    styles['TableCell'].fontSize = 7
+    styles['TableCell'].leading = 8
+    styles['TableCell'].bulletText = ''
+
+    if 'TableCellLeft' not in styles:
+        styles.add(ParagraphStyle(name='TableCellLeft', parent=styles['Normal']))
+    styles['TableCellLeft'].alignment = TA_LEFT
+    styles['TableCellLeft'].fontName = font_name
+    styles['TableCellLeft'].fontSize = 7
+    styles['TableCellLeft'].leading = 8
+    styles['TableCellLeft'].bulletText = ''
+
+    if 'TableCellRight' not in styles:
+        styles.add(ParagraphStyle(name='TableCellRight', parent=styles['Normal']))
+    styles['TableCellRight'].alignment = TA_RIGHT
+    styles['TableCellRight'].fontName = font_name
+    styles['TableCellRight'].fontSize = 7
+    styles['TableCellRight'].leading = 8
+    styles['TableCellRight'].bulletText = ''
 
     story = []
     story += _get_single_invoice_flowables(order, invoice_data_safe, styles, font_name, font_name_bold)
@@ -2914,8 +3247,6 @@ def generate_invoice_pdf_buffer(order):
     doc.build(story)
     buffer.seek(0)
     return buffer
-
-
 
 # --- User Profile & Orders ---
 @app.route('/user-profile')
@@ -2963,6 +3294,9 @@ def add_address():
         pincode=pincode,
         is_default=is_default
     )
+    if new_address.is_default:
+        # Minimal change: unset any other default addresses for this user
+        Address.query.filter_by(user_id=current_user.id, is_default=True).update({"is_default": False})
     db.session.add(new_address)
     db.session.commit()
     flash('Address added successfully!', 'success')

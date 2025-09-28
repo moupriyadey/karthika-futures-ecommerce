@@ -19,6 +19,14 @@
                     <input type="text" class="form-control" id="sku" name="sku" required value="{{ artwork.sku }}" readonly>
                     <small class="form-text text-muted">SKU cannot be changed.</small>
                 </div>
+                <div class="col-md-3">
+    <label for="hsn_code" class="form-label">HSN Code <span class="text-danger">*</span></label>
+    <input type="text" class="form-control" id="hsn_code" name="hsn_code" required value="{{ form_data.hsn_code if form_data.hsn_code is defined else artwork.hsn_code if artwork is defined else '' }}">
+</div>
+<div class="col-md-3">
+    <label for="hsn_description" class="form-label">HSN Description</label>
+    <input type="text" class="form-control" id="hsn_description" name="hsn_description" value="{{ form_data.hsn_description if form_data.hsn_description is defined else artwork.hsn_description if artwork is defined else '' }}">
+</div>
                 <div class="mb-3">
                     <label for="name" class="form-label">Artwork Name</label>
                     <input type="text" class="form-control" id="name" name="name" required value="{{ form_data.name if form_data.name is defined else artwork.name }}">
@@ -28,6 +36,7 @@
                     <textarea class="form-control" id="description" name="description" rows="5">{{ form_data.description if form_data.description is defined else artwork.description }}</textarea>
                 </div>
                 
+
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="original_price" class="form-label">Original Price (Before GST)</label>

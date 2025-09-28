@@ -117,7 +117,7 @@
             <h2 class="text-xl md:text-2xl font-semibold text-gray-800 mb-4 md:mb-6 border-b pb-2">Cart Summary</h2>
             <div class="space-y-2 mb-4">
                 <div class="flex justify-between text-sm text-gray-700">
-                    <span>Subtotal (Excl. GST):</span>
+                    <span>Subtotal (Incl. GST):</span>
                     <span class="font-semibold">{{ subtotal_before_gst | currency }}</span>
                 </div>
                 {% if total_cgst_amount > 0 %}
@@ -167,7 +167,21 @@
         <button type="button" onclick="checkEDD('pinInputCheckout', 'eddCheckout')" class="bg-blue-600 text-white px-3 py-1 rounded text-sm">Check</button>
     </div>
     <p id="eddCheckout" class="mt-1 text-sm"></p>
+
+   </div>
+
+    <!-- GSTIN (optional) -->
+<div class="mb-4">
+    <p class="text-xs text-gray-500 mt-1">Enter your GSTIN (Optional).</p>
+    <input type="text" id="gst_number" name="gst_number"
+           form="addressSelectionForm"
+           maxlength="15"
+           class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
+           placeholder="15-digit GSTIN (Optional)"
+           value="{{ form_data.get('gst_number', '') }}">
 </div>
+
+
 
 
             {# PLACE ORDER BUTTON - MOVED HERE #}
