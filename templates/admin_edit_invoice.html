@@ -4,6 +4,19 @@
 
 {% block content %}
 <div class="min-h-screen bg-gray-50 p-4 md:p-8 main-content-area">
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="max-w-4xl mx-auto mb-4">
+          {% for category, message in messages %}
+          <div class="text-center p-3 rounded-lg border-2 
+                      {% if category == 'success' %}bg-green-100 text-green-800 border-green-200{% elif category == 'danger' %}bg-red-100 text-red-800 border-red-200{% else %}bg-blue-100 text-blue-800 border-blue-200{% endif %}">
+            {{ message }}
+          </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
     <h2 class="text-3xl font-bold text-center text-gray-900 mb-8 tracking-tight">Edit & Print Invoice for Order #{{ order.id }}</h2>
 
     <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg max-w-4xl mx-auto border border-gray-100">
@@ -71,14 +84,11 @@
                 document.addEventListener('DOMContentLoaded', function() {
                     const b2bCheckbox = document.getElementById('is_b2b');
                     const customerGstinField = document.getElementById('customer-gstin-field');
-                    // Select the container using the closest class for robustness
                     const customerBusinessDetailsContainer = document.querySelector('.p-5.rounded-lg.border-2'); 
 
                     function updateB2BHighlight() {
-                        // Remove existing highlight classes
                         customerBusinessDetailsContainer.classList.remove('bg-yellow-50', 'border-yellow-300', 'shadow-inner', 'bg-gray-50', 'border-gray-200');
                         
-                        // Apply highlight based on status
                         if (b2bCheckbox.checked) {
                             customerGstinField.style.display = 'block';
                             customerBusinessDetailsContainer.classList.add('bg-yellow-50', 'border-yellow-300', 'shadow-inner');
@@ -168,13 +178,134 @@
             <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg shadow-md transition duration-150 ease-in-out tracking-wide">
                 <i class="fas fa-save me-2"></i> Update Invoice Details
             </button>
+            
         </form>
         
-        <div class="mt-6 border-t pt-6 text-center">
-            <a href="{{ url_for('generate_invoice_pdf', order_id=order.id) }}" class="inline-flex items-center bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-8 rounded-lg shadow-md transition duration-150 ease-in-out" target="_blank">
-                <i class="fas fa-print me-2"></i> Print Invoice
+        <div class="mt-4">
+            <a href="{{ url_for('generate_invoice_pdf', order_id=order.id) }}" 
+                class="w-full inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg shadow-md transition duration-150 ease-in-out tracking-wide" 
+                target="_blank">
+                <i class="fas fa-print me-2"></i> VIEW/PRINT LIVE INVOICE PDF
             </a>
         </div>
+        
+        <div class="mt-6 p-6 bg-gray-100 rounded-lg shadow-inner border border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Invoice PDF Automation & Management</h3>
+            
+            <div class="flex flex-col sm:flex-row gap-4 items-center">
+                
+                <button 
+                    id="generate-invoice-btn"
+                    data-url="{{ url_for('generate_invoice_pdf', order_id=order.id) }}"
+                    class="w-full sm:w-auto flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-semibold shadow-md transition duration-150 ease-in-out">
+                    ⚡ Generate PDF, Upload to Cloudinary & Save Link
+                </button>
+
+                {% if order.invoice_file_url %}
+                <a href="{{ order.invoice_file_url }}" 
+                    class="w-full sm:w-auto flex-shrink-0 text-center bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-semibold transition duration-150 ease-in-out" 
+                    target="_blank">
+                    <i class="fas fa-file-pdf me-2"></i> Open Saved Link
+                </a>
+                {% else %}
+                <span class="w-full sm:w-auto flex-shrink-0 text-center text-sm text-gray-500 px-4 py-3">
+                    No Invoice Saved Yet
+                </span>
+                {% endif %}
+            </div>
+            
+            {% if order.invoice_file_url %}
+            <div class="mt-4">
+                <form action="{{ url_for('admin_remove_invoice_pdf', order_id=order.id) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" onclick="return confirm('Are you sure you want to remove the invoice link from the database? This does not delete the file from Cloudinary.')" 
+        class="text-xs text-red-600 hover:text-red-800 underline">
+    Remove Saved Link (DB only)
+</button>
+
+                </form>
+            </div>
+            {% endif %}
+
+        </div>
+            
     </div>
 </div>
+
+<script>
+// Function to display Flash Message dynamically
+function showFlashMessage(message, category) {
+    const flashContainer = document.querySelector('.max-w-4xl.mx-auto.mb-4');
+    if (!flashContainer) return;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('text-center', 'p-3', 'rounded-lg', 'border-2', 'mt-2');
+    
+    if (category === 'success') {
+        messageDiv.classList.add('bg-green-100', 'text-green-800', 'border-green-200');
+    } else if (category === 'danger') {
+        messageDiv.classList.add('bg-red-100', 'text-red-800', 'border-red-200');
+    } else {
+        messageDiv.classList.add('bg-blue-100', 'text-blue-800', 'border-blue-200');
+    }
+    
+    messageDiv.innerHTML = message;
+    flashContainer.prepend(messageDiv);
+
+    setTimeout(() => {
+        messageDiv.remove();
+        if (category === 'success') {
+             window.location.reload();
+        }
+    }, 5000); 
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const generateBtn = document.getElementById('generate-invoice-btn');
+    const csrfToken = document.querySelector('input[name="csrf_token"]').value; 
+    
+    if (generateBtn) {
+        generateBtn.addEventListener('click', async function(e) {
+            e.preventDefault(); 
+            
+            const url = generateBtn.getAttribute('data-url');
+
+           
+            // Initial button state
+            generateBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Processing... Please wait';
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
+                    const result = await response.json();
+
+                    if (response.ok && result.success) {
+                        showFlashMessage(result.message || 'Invoice successfully generated and uploaded!', 'success');
+                    } else {
+                        showFlashMessage(result.message || 'Error processing request.', 'danger');
+                    }
+                } else {
+                    const text = await response.text();
+                    showFlashMessage("Unexpected response: " + text, "danger");
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                showFlashMessage('A network error occurred. Check server logs.', 'danger');
+            } finally {
+                generateBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                generateBtn.innerHTML = '⚡ Generate PDF, Upload to Cloudinary & Save Link';
+            }
+        });
+    }
+});
+</script>
+
 {% endblock %}

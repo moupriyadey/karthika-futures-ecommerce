@@ -119,6 +119,14 @@
                 <a href="{{ url_for('order_summary', order_id=order.id) }}" class="btn btn-info btn-sm flex-1 sm:flex-none text-center">
                     <i class="fas fa-info-circle mr-1"></i> View Details
                 </a>
+                {% if order.invoice_file_url %}
+<a href="{{ url_for('download_invoice', order_id=order.id) }}" 
+    class="btn btn-success btn-sm flex-1 sm:flex-none text-center" 
+    target="_blank" 
+    title="Download Invoice PDF">
+    <i class="fas fa-file-pdf mr-1"></i> Download Invoice
+</a>
+{% endif %}
                 <a href="{{ url_for('payment_initiate', order_id=order.id, amount=order.total_amount) }}" class="btn btn-success btn-sm flex-1 sm:flex-none text-center {% if order.status != 'Pending Payment' %}hidden{% endif %}">
                     <i class="fas fa-money-bill-wave mr-1"></i> Make Payment
                 </a>

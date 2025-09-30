@@ -558,6 +558,10 @@
     }
 }
 
+.product-card::before {
+  pointer-events: none; /* ✅ allows clicks to pass through */
+}
+
 
 /* Mobile devices (always show subtle styling) */
 @media (max-width: 768px) {

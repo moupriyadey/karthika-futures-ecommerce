@@ -1,3 +1,5 @@
+payment_initiate.html ver5
+
 {% extends '_base.html' %}
 
 {% block title %}Complete Your Payment - Karthika Futures{% endblock %}
@@ -176,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function () {
             setTimeout(() => {
                 // Call the real native submit in case "submit" is shadowed
                 HTMLFormElement.prototype.submit.call(form);
-            }, 400); // 0.4s is enough for a visible flash
+            }, 10); // 0.4s is enough for a visible flash
         }, true); // <-- capture phase
     }
 
