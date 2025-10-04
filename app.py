@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 load_dotenv()
 import cloudinary
 import cloudinary.uploader
+import cloudinary.utils
 
 import json
 import csv
@@ -121,14 +122,43 @@ app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = os.environ.get('EMAIL_USER', 'smarasada@gmail.com') # REPLACE WITH YOUR EMAIL
 app.config['MAIL_PASSWORD'] = os.environ.get('EMAIL_PASS', 'ujipgkporeybjtoy') # REPLACE WITH YOUR APP PASSWORD
 
+import re
+
+def extract_public_id(url, folder=None, resource_type='upload'):
+    """Extracts the public ID (without version/extension) from a Cloudinary URL."""
+    # Find the segment after /<resource_type>/<type>/v<version>/
+    if resource_type == 'image':
+        match = re.search(r'/(?:image|raw|video)/upload/(?:v\d+/)?(.*?)(?:\.\w+)?$', url)
+    else: # Default for raw/file/download
+        match = re.search(r'/(?:image|raw|video)/upload/(?:v\d+/)?(.*?)(?:\.\w+)?$', url)
+        
+    if match:
+        public_id_with_extension = match.group(1)
+        # Remove file extension (.pdf, .jpg, etc.)
+        public_id = os.path.splitext(public_id_with_extension)[0]
+        return public_id
+    return None
+
+# Assuming your invoices are uploaded as 'raw' resource type:
+INVOICE_RESOURCE_TYPE = "raw"
+# In app.py, replace the existing Cloudinary config block (around line 100) with this:
+
+# --- Cloudinary Configuration (Securely loading from environment) ---
+# WARNING: DO NOT COMMIT HARDCODED SECRETS TO PUBLIC REPOSITORIES
+CLOUDINARY_CLOUD_NAME_ENV = os.environ.get('CLOUDINARY_CLOUD_NAME', 'dig3hkicn')
+CLOUDINARY_API_KEY_ENV    = os.environ.get('CLOUDINARY_API_KEY', '762492167812921')
+# THIS IS THE MOST IMPORTANT LINE: Fetch the secret from environment variables
+CLOUDINARY_API_SECRET_ENV = os.environ.get('CLOUDINARY_API_SECRET', 'x4MqT_kukJd52NbEGMyPLBjkNwY') 
+# -------------------------------------------------------------------
 
 cloudinary.config(
-    cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME'),
-    api_key = os.getenv('CLOUDINARY_API_KEY'),
-    api_secret = os.getenv('CLOUDINARY_API_SECRET')
-    
+    # Use the variables loaded from the environment
+    cloud_name = CLOUDINARY_CLOUD_NAME_ENV,
+    api_key = CLOUDINARY_API_KEY_ENV,
+    api_secret = CLOUDINARY_API_SECRET_ENV, 
+    secure = True
 )
-app.config['CLOUDINARY_INVOICE_FOLDER'] = 'invoices'
+
 # Business Details (for invoices, etc.)
 app.config['OUR_BUSINESS_NAME'] = "Karthika Futures"
 app.config['OUR_BUSINESS_ADDRESS'] = "Annapurnna Appartment, New Alipore, Kolkata - 700052"
@@ -149,6 +179,12 @@ login_manager.login_message_category = 'info'
 csrf = CSRFProtect(app)
 
 # --- Helper Functions ---
+import re
+
+def extract_cloudinary_version(url):
+    # Regex to find the version number (v followed by digits)
+    match = re.search(r'/v(\d+)/', url)
+    return int(match.group(1)) if match else None
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -163,6 +199,54 @@ def get_products_by_category(category_name):
         artworks = json.load(f)
     # Filter artworks matching this category
     return [art for art in artworks if art.get("category") == category_name]
+
+# ... imports
+import cloudinary.utils # Make sure to add this import if it's not present
+# --- CRITICAL INVOICE DOWNLOAD DEFINITIONS (FIXED) ---
+
+# This constant must be defined
+INVOICE_RESOURCE_TYPE = "raw" 
+INVOICE_FOLDER = "invoices" # Assuming your upload uses this folder
+# Assuming INVOICE_RESOURCE_TYPE = "raw" is defined globally (it must be)
+# Assuming INVOICE_RESOURCE_TYPE = "raw" is defined globally
+
+def generate_signed_invoice_url(order_id):
+    """
+    Generates a secure, signed URL for the invoice PDF.
+    FIX: Changed type from 'authenticated' to 'upload' to match the likely 
+    default upload type while keeping 'sign_url=True' for security.
+    """
+    from datetime import datetime, timedelta
+    import re
+    
+    order = db.session.get(Order, order_id)
+    if not order or not order.invoice_file_url:
+        raise ValueError(f"Invoice URL not found for Order ID {order_id}")
+
+    # Extract the full path including the version number (vXXXX/folder/filename)
+    match = re.search(r'/(?:raw|image|video)/upload/(.+?)(?:\.\w+)?$', order.invoice_file_url)
+    
+    if not match:
+         raise ValueError(f"Could not extract versioned Public ID from URL: {order.invoice_file_url}")
+    
+    public_id_for_signing = match.group(1) 
+
+    # 1. Generate the signed URL using the full extracted public ID
+    url, options = cloudinary.utils.cloudinary_url(
+        public_id_for_signing, 
+        resource_type="raw", # Must match how the file was uploaded
+        type="upload",       # <-- CRITICAL CHANGE: Use 'upload' but rely on signature
+        format="pdf",
+        sign_url=True,       # <-- This is what provides the security signature
+        attachment=f"Invoice_{order.id}.pdf",
+        expires_at=int((datetime.utcnow() + timedelta(minutes=10)).timestamp()) 
+    )
+    
+    # Return the complete URL string
+    return url 
+
+
+
 
 
 # NEW: SequenceCounter model for sequential IDs
@@ -621,6 +705,32 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # --- Routes ---
 
 # NEW: Route to get cart count for real-time update
@@ -924,6 +1034,46 @@ def create_direct_order():
         session['redirect_after_auth'] = url_for('purchase_form') 
         session.modified = True
         return jsonify(success=True, message='Please log in or sign up to complete your purchase.', redirect_url=url_for('user_login', next=url_for('purchase_form')))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # app.py (Modified Excerpt for purchase_form route)
 
@@ -1385,6 +1535,39 @@ def resend_otp():
     else:
         return jsonify(success=False, message='Failed to send OTP. Please try again later.'), 500
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # MODIFIED: User Login route to check email verification
 @app.route('/user-login', methods=['GET', 'POST'])
 def user_login():
@@ -1587,6 +1770,31 @@ def index():
                            categorized_artworks=categorized_artworks,
                            all_artworks=all_artworks,
                            featured_artworks=featured_artworks)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # NEW: Route for category pages
 from datetime import datetime, timedelta
@@ -2062,6 +2270,26 @@ def admin_delete_user(user_id):
         flash('User not found.', 'danger')
     return redirect(url_for('admin_users'))
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @app.route('/admin/order/<order_id>')
 @login_required
 @admin_required
@@ -2376,6 +2604,36 @@ def admin_add_artwork():
         return redirect(url_for('admin_artworks'))
 
     return render_template('admin_add_artwork.html', categories=categories, form_data=form_data) # Always pass form_data
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @app.route('/admin/edit-artwork/<artwork_id>', methods=['GET', 'POST'])
 @login_required
@@ -2905,51 +3163,53 @@ def _get_single_invoice_flowables(order, invoice_data_safe, styles, font_name, f
 
     return story_elements
 
-# NEW Route: Automatically Generates PDF and Uploads to Cloudinary
-@app.route('/admin/order/<order_id>/generate_and_upload_invoice', methods=['POST'])   
-@admin_required # Assumed decorator
+@app.route('/admin/order/<order_id>/generate_and_upload_invoice', methods=['POST'])
+@admin_required
 def admin_generate_and_upload_invoice_pdf(order_id):
+    """
+    Admin route: Generates and uploads the invoice PDF to Cloudinary (public access).
+    """
     order = db.session.get(Order, order_id)
     if not order:
         flash('Order not found.', 'danger')
         return redirect(url_for('admin_dashboard'))
 
-    # 1. Generate the PDF buffer using the existing helper function
     pdf_buffer = generate_invoice_pdf_buffer(order)
-
     if pdf_buffer is None:
-        flash('PDF generation failed (library missing or internal error).', 'danger')
+        flash('PDF generation failed.', 'danger')
         return redirect(url_for('admin_edit_invoice', order_id=order_id))
 
     try:
-        # --- FIX: Read folder name from config instead of hardcoding ---
-        # Get the folder name from the configuration (defaults to 'invoices' if not set)
-        folder_name = current_app.config.get('CLOUDINARY_INVOICE_FOLDER', 'invoices') 
-        public_id = f"invoice_{order_id}.pdf"
-        
+        pdf_buffer.seek(0)
+        folder_name = current_app.config.get("CLOUDINARY_INVOICE_FOLDER", "invoices")
+        public_id = f"invoice_{order.id}"
 
+        # ✅ Upload with public access
         upload_result = cloudinary.uploader.upload(
-            io.BytesIO(pdf_buffer),  # wrap your PDF bytes
+            pdf_buffer,
             resource_type="raw",
+            type="upload",
             folder=folder_name,
             public_id=public_id,
-            access_mode="public",
-            overwrite=True
+            overwrite=True,
+            format="pdf",
+            access_mode="public"   # ✅ makes PDF link public
         )
 
-        
-        order.invoice_file_url = upload_result['secure_url']
+        # ✅ Save the secure URL directly (it will be versioned but fully accessible)
+        file_url = upload_result.get("secure_url")
+        order.invoice_file_url = file_url
         db.session.commit()
-        
-        flash(f'Invoice PDF successfully generated and uploaded to Cloudinary (Folder: {folder_name}) for Order ID {order_id}.', 'success')
-    
+
+        flash(f"Invoice uploaded successfully. Shareable URL: {order.invoice_file_url}", "success")
+
     except Exception as e:
         db.session.rollback()
-        # Log the full error to the console for debugging
-        current_app.logger.error(f'Cloudinary upload error during auto-generation for Order {order_id}: {e}', exc_info=True)
-        flash(f'An error occurred during Cloudinary upload. Check logs for details. Error: {e}', 'danger')
+        current_app.logger.error(f"Cloudinary upload error for Order {order_id}: {e}", exc_info=True)
+        flash(f"Error uploading invoice: {e}", "danger")
 
     return redirect(url_for('admin_edit_invoice', order_id=order_id))
+
 
 @app.route('/admin/edit-invoice/<order_id>', methods=['GET', 'POST'])
 @login_required
@@ -3010,6 +3270,9 @@ def admin_edit_invoice(order_id):
 @login_required
 @admin_required
 def generate_invoice_pdf(order_id):
+    """
+    Admin route to generate an invoice PDF, preview (GET), or upload to Cloudinary (POST).
+    """
     order = db.session.get(Order, order_id)
     if not order:
         flash("Order not found.", "danger")
@@ -3034,6 +3297,7 @@ def generate_invoice_pdf(order_id):
             flash("Error generating PDF.", "danger")
             return redirect(url_for("admin_edit_invoice", order_id=order.id))
 
+    # CASE 2: POST → upload to Cloudinary
     if request.method == "POST":
         try:
             pdf_buffer = generate_invoice_pdf_buffer(order)
@@ -3041,22 +3305,25 @@ def generate_invoice_pdf(order_id):
                 return jsonify(success=False, message="Failed to generate invoice."), 500
 
             pdf_buffer.seek(0)
+            folder_name = current_app.config.get("CLOUDINARY_INVOICE_FOLDER", "invoices")
+            public_id = f"invoice_{order.id}"
+
+            # ✅ Upload with public access mode
             upload_result = cloudinary.uploader.upload(
                 pdf_buffer,
-                folder=app.config["CLOUDINARY_INVOICE_FOLDER"],
-                public_id=f"invoice_{order.id}.pdf",
                 resource_type="raw",
-                access_mode="public",
+                folder=folder_name,
+                public_id=public_id,
                 overwrite=True,
+                format="pdf",
+                access_mode="public"   # ✅ public link fix
             )
 
             file_url = upload_result.get("secure_url")
-            if file_url:
-                order.invoice_file_url = file_url
-                db.session.commit()
-                return jsonify(success=True, message="Invoice generated & uploaded.", file_url=file_url)
-            else:
-                return jsonify(success=False, message="Upload failed."), 500
+            order.invoice_file_url = file_url
+            db.session.commit()
+
+            return jsonify(success=True, message="Invoice generated & uploaded.", file_url=file_url)
 
         except Exception as e:
             app.logger.error(f"Error in POST /generate_invoice_pdf/{order_id}: {e}")
@@ -3065,10 +3332,16 @@ def generate_invoice_pdf(order_id):
 def generate_invoice_pdf_buffer(order):
     if SimpleDocTemplate is None:
         return None
+
+    # Get stored invoice data
     invoice_data = order.get_invoice_details()
-    
+
+    # ✅ Determine B2B or B2C automatically
+    is_b2b = bool(order.customer_gstin and order.customer_gstin.strip())
+    invoice_type = "B2B" if is_b2b else "B2C"
+
+    # ✅ Prepare safe data
     invoice_data_safe = {
-        
         'business_name': invoice_data.get('business_name') or app.config['OUR_BUSINESS_NAME'],
         'gst_number': invoice_data.get('gst_number') or app.config['OUR_GSTIN'],
         'pan_number': invoice_data.get('pan_number') or app.config['OUR_PAN'],
@@ -3076,7 +3349,8 @@ def generate_invoice_pdf_buffer(order):
         'invoice_number': invoice_data.get('invoice_number') or order.id,
         'invoice_date': invoice_data.get('invoice_date') or datetime.utcnow().strftime('%Y-%m-%d'),
         'billing_address': invoice_data.get('billing_address') or ', '.join(filter(None, [
-            order.customer_name, order.customer_phone,
+            order.customer_name,
+            order.customer_phone,
             order.get_shipping_address().get('address_line1'),
             order.get_shipping_address().get('address_line2'),
             order.get_shipping_address().get('city'),
@@ -3092,10 +3366,12 @@ def generate_invoice_pdf_buffer(order):
         'igst_amount': Decimal(invoice_data.get('igst_amount', '0.00')),
         'ugst_amount': Decimal(invoice_data.get('ugst_amount', '0.00')),
         'cess_amount': Decimal(invoice_data.get('cess_amount', '0.00')),
-        'is_b2b': invoice_data.get('is_b2b', False),
-        'customer_gstin': invoice_data.get('customer_gstin', '')
+        'is_b2b': is_b2b,
+        'customer_gstin': order.customer_gstin or '',
+        'invoice_type': invoice_type
     }
 
+    # ✅ Convert invoice_date safely
     if 'invoice_date' in invoice_data_safe and invoice_data_safe['invoice_date']:
         if isinstance(invoice_data_safe['invoice_date'], str):
             try:
@@ -3112,84 +3388,69 @@ def generate_invoice_pdf_buffer(order):
                             leftMargin=0.3*inch, rightMargin=0.3*inch,
                             topMargin=0.3*inch, bottomMargin=0.3*inch)
 
+    # ✅ Fonts setup
     try:
         pdfmetrics.registerFont(TTFont('DejaVuSans', 'DejaVuSans.ttf'))
         pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', 'DejaVuSans-Bold.ttf'))
         font_name = 'DejaVuSans'
         font_name_bold = 'DejaVuSans-Bold'
-    except Exception as e:
+    except Exception:
         font_name = 'Helvetica'
         font_name_bold = 'Helvetica-Bold'
 
+    # ✅ Styles setup
     styles = getSampleStyleSheet()
     styles['Normal'].fontName = font_name
     styles['Normal'].fontSize = 8
     styles['Normal'].leading = 9
     styles['Normal'].alignment = TA_LEFT
     styles['Normal'].spaceAfter = 1
-    styles['Normal'].bulletText = ''
 
-    # Re-define styles here as well to ensure they are consistent
     styles['h1'].fontName = font_name_bold
     styles['h1'].fontSize = 14
     styles['h1'].leading = 16
     styles['h1'].alignment = TA_CENTER
     styles['h1'].spaceAfter = 3
-    styles['h1'].bulletText = ''
 
     styles['h2'].fontName = font_name_bold
     styles['h2'].fontSize = 12
     styles['h2'].leading = 14
     styles['h2'].alignment = TA_LEFT
     styles['h2'].spaceAfter = 4
-    styles['h2'].bulletText = ''
 
     if 'RightAlign' not in styles:
         styles.add(ParagraphStyle(name='RightAlign', parent=styles['Normal']))
     styles['RightAlign'].alignment = TA_RIGHT
-    styles['RightAlign'].fontName = font_name
-    styles['RightAlign'].bulletText = ''
 
     if 'BoldBodyText' not in styles:
         styles.add(ParagraphStyle(name='BoldBodyText', parent=styles['Normal']))
     styles['BoldBodyText'].fontName = font_name_bold
-    styles['BoldBodyText'].spaceAfter = 1
-    styles['BoldBodyText'].bulletText = ''
 
     if 'Footer' not in styles:
         styles.add(ParagraphStyle(name='Footer', parent=styles['Normal']))
     styles['Footer'].fontSize = 6
-    styles['Footer'].leading = 7
     styles['Footer'].alignment = TA_CENTER
-    styles['Footer'].spaceBefore = 5
-    styles['Footer'].fontName = font_name
-    styles['Footer'].bulletText = ''
 
     if 'TableCell' not in styles:
         styles.add(ParagraphStyle(name='TableCell', parent=styles['Normal']))
     styles['TableCell'].alignment = TA_CENTER
-    styles['TableCell'].fontName = font_name
     styles['TableCell'].fontSize = 7
-    styles['TableCell'].leading = 8
-    styles['TableCell'].bulletText = ''
 
     if 'TableCellLeft' not in styles:
         styles.add(ParagraphStyle(name='TableCellLeft', parent=styles['Normal']))
     styles['TableCellLeft'].alignment = TA_LEFT
-    styles['TableCellLeft'].fontName = font_name
-    styles['TableCellLeft'].fontSize = 7
-    styles['TableCellLeft'].leading = 8
-    styles['TableCellLeft'].bulletText = ''
 
     if 'TableCellRight' not in styles:
         styles.add(ParagraphStyle(name='TableCellRight', parent=styles['Normal']))
     styles['TableCellRight'].alignment = TA_RIGHT
-    styles['TableCellRight'].fontName = font_name
-    styles['TableCellRight'].fontSize = 7
-    styles['TableCellRight'].leading = 8
-    styles['TableCellRight'].bulletText = ''
 
+    # ✅ Build PDF
     story = []
+
+    # Add invoice type visibly
+    story.append(Paragraph(f"<b>Invoice Type:</b> {invoice_type}", styles["BodyText"]))
+    story.append(Spacer(1, 4))
+
     story += _get_single_invoice_flowables(order, invoice_data_safe, styles, font_name, font_name_bold)
     story.append(Spacer(1, 0.5 * inch))
     story += _get_single_invoice_flowables(order, invoice_data_safe, styles, font_name, font_name_bold)
@@ -3198,59 +3459,39 @@ def generate_invoice_pdf_buffer(order):
     buffer.seek(0)
     return buffer
 
-@app.route('/admin/order/<order_id>/upload_invoice_pdf', methods=['POST'])
-@admin_required # Assumed decorator
-def admin_upload_invoice_pdf(order_id):
-    order = db.session.get(Order, order_id)
-    current_app.logger.info(f"Starting upload process for Order ID: {order_id}")
-    if not order:
-        flash('Order not found.', 'danger')
-        return redirect(url_for('admin_dashboard')) # Or appropriate route
 
-    if 'invoice_file' not in request.files:
-        flash('No file part in the request.', 'danger')
-        return redirect(url_for('admin_edit_invoice', order_id=order_id))
 
-    file = request.files['invoice_file']
-    
-    if file.filename == '':
-        flash('No file selected for upload.', 'danger')
-        return redirect(url_for('admin_edit_invoice', order_id=order_id))
 
-    if file and file.filename.endswith('.pdf'):
-        try:
-            
-            public_id = f"invoices/{order_id}"
-            
-            # Cloudinary upload configuration
-            upload_result = cloudinary.uploader.upload(
-                file,
-                resource_type="raw", # Use 'raw' for non-image files like PDF
-                folder="karthika_futures_invoices", # Specific folder in Cloudinary
-                public_id=public_id,
-                access_mode="public",
-                overwrite=True # Always overwrite if admin re-uploads a new version
-            )
-            
-            # Save the secure URL to the database
-            order.invoice_file_url = upload_result['secure_url']
-            db.session.commit()
-            
-            flash(f'Invoice PDF uploaded to Cloudinary and URL saved successfully for Order ID {order_id}.', 'success')
-        
-        except Exception as e:
-            db.session.rollback()
-            current_app.logger.error(f'Cloudinary upload error for Order {order_id}: {e}', exc_info=True)
-            flash(f'An error occurred during Cloudinary upload: {e}', 'danger')
 
-    else:
-        flash('Invalid file type. Please upload a PDF file.', 'danger')
 
-    return redirect(url_for('admin_edit_invoice', order_id=order_id))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 @app.route('/admin/order/<order_id>/remove_invoice_pdf', methods=['POST'])
-@admin_required # Assumed decorator
+@admin_required
 def admin_remove_invoice_pdf(order_id):
     order = db.session.get(Order, order_id)
     if not order:
@@ -3269,47 +3510,120 @@ import cloudinary.utils
 from flask import redirect, flash, url_for
 from flask_login import login_required, current_user
 
-@app.route('/order/<string:order_id>/download-invoice')
+import os
+import re # <-- Ensure this is at the top of your app.py along with other imports
+
+# Assuming INVOICE_RESOURCE_TYPE = "raw" is defined globally
+
+# REMOVED: The problematic generate_signed_invoice_url function is no longer needed.
+# We consolidate the logic into the route below for robustness.
+
+# --- FIX: The main download route now handles URL signing directly ---
+@app.route('/order/download/<order_id>', methods=['GET'])
 @login_required
-def download_invoice(order_id):
-    """
-    Handles the customer request to download the invoice.
-
-    Generates a signed Cloudinary URL for private PDF access to avoid 401 errors.
-    """
+def order_download_invoice(order_id):
+    import requests
+    from flask import make_response
+    
     order = db.session.get(Order, order_id)
-
-    if not order or (str(order.user_id) != str(current_user.id) and not current_user.is_admin):
-        flash('Unauthorized access or order not found.', 'danger')
-        return redirect(url_for('my_orders'))
-
-    if not order.invoice_file_url:
-        flash('Invoice PDF is not yet available for this order.', 'warning')
-        return redirect(url_for('order_summary', order_id=order.id))
-
-    # Extract the Cloudinary public_id from the stored URL
-    # Assuming you store it like: "https://res.cloudinary.com/<cloud_name>/raw/upload/folder/invoice_<order_id>.pdf"
-    public_id = f"karthika_futures_invoices/invoice_{order_id}.pdf"
+    if not order or not order.invoice_file_url:
+        flash("Invoice not found or not yet generated.", 'danger')
+        return redirect(url_for('user_orders'))
 
     try:
-        # Generate a signed, authenticated URL (temporary, usually expires in 10 minutes)
-        signed_url = cloudinary.utils.cloudinary_url(
-            public_id,
-            resource_type="raw",
-            type="authenticated",
-            sign_url=True
-        )[0]
+        # We need the full versioned path for the signed URL
+        # We must redefine the required global constant here to ensure it's available
+        INVOICE_RESOURCE_TYPE = "raw" 
+        
+        # Extract the full path including the version number (vXXXX/folder/filename)
+        # This is the correct regex needed to resolve the 404 error
+        match = re.search(r'/(?:raw|image|video)/upload/(.+?)(?:\.\w+)?$', order.invoice_file_url)
+        
+        if not match:
+             raise ValueError(f"Could not extract versioned Public ID from URL: {order.invoice_file_url}")
+        
+        public_id_for_signing = match.group(1)
+        
+        # 1. Generate the secure, signed URL directly
+        # We use type="upload" as it is the standard and most robust configuration for signed URLs
+        final_download_url, options = cloudinary.utils.cloudinary_url(
+            public_id_for_signing, 
+            resource_type=INVOICE_RESOURCE_TYPE,
+            type="upload",  # <-- Using 'upload' is the most common correct configuration for signing public files
+            format="pdf",
+            sign_url=True,
+            attachment=f"Invoice_{order.id}.pdf",
+            expires_at=int((datetime.now() + timedelta(minutes=10)).timestamp()) 
+        )
+        
+        # 2. Server-side fetch (using requests)
+        response = requests.get(final_download_url, timeout=60)
+        
+        # Check for 404/401/403 errors
+        if response.status_code != 200:
+             # Include the actual Cloudinary error message in the flash message for debugging
+            error_details = response.text if response.text else response.reason
+            raise requests.exceptions.HTTPError(
+                f"{response.status_code} Client Error: {error_details} for url: {final_download_url}"
+            )
+        
+        # Create a Flask response to stream the file to the user
+        response = make_response(response.content)
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'attachment; filename=Invoice_{order.id}.pdf'
+        return response
 
-        return redirect(signed_url)
-
+    except requests.exceptions.RequestException as e:
+        current_app.logger.error(f"Error fetching invoice PDF for {order_id}: {e}")
+        flash(f"Failed to download the invoice. A server error occurred: {e}", 'danger')
     except Exception as e:
-        current_app.logger.error(f"Error generating signed URL for Order {order_id}: {e}", exc_info=True)
-        flash("Could not generate secure invoice link. Please contact support.", "danger")
-        return redirect(url_for('order_summary', order_id=order.id))
+        current_app.logger.error(f"General error in invoice download for {order_id}: {e}")
+        flash(f"An unexpected error occurred during download. {e}", 'danger')
+        
+    return redirect(url_for('user_orders'))
 
 
 
 
+@app.route('/download-invoice/<order_id>')
+@login_required 
+def download_invoice(order_id):
+    # This route is simplified to redirect to the client-side mechanism
+    return redirect(url_for('order_download_invoice', order_id=order_id))
+
+@app.route('/order/<string:order_id>/generate-invoice')
+@login_required
+def user_generate_invoice(order_id):
+    """
+    Allows a logged-in user to regenerate and download their invoice PDF
+    only after the order is shipped or delivered.
+    """
+    order = db.session.get(Order, order_id)
+    if not order:
+        flash("Order not found.", "danger")
+        return redirect(url_for("user_orders"))
+
+    # ✅ Only allow after shipment
+    if str(order.user_id) != str(current_user.id):
+        flash("Unauthorized access.", "danger")
+        return redirect(url_for("user_orders"))
+
+    if order.status not in ["Shipped", "Delivered"]:
+        flash("Invoice will be available once your order is shipped.", "warning")
+        return redirect(url_for("user_orders"))
+
+    # ✅ Generate PDF now
+    pdf_buffer = generate_invoice_pdf_buffer(order)
+    if not pdf_buffer:
+        flash("Could not generate invoice.", "danger")
+        return redirect(url_for("user_orders"))
+
+    return send_file(
+        pdf_buffer,
+        as_attachment=True,
+        download_name=f"invoice_{order.id}.pdf",
+        mimetype="application/pdf"
+    )
 
 
 
