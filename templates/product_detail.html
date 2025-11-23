@@ -81,10 +81,24 @@
             <span class="inline-block bg-green-100 text-green-700 font-semibold px-3 py-1 rounded-full mb-2">Available</span>
           {% endif %}
 
-          <div class="flex items-baseline mb-2">
-            <span class="text-3xl font-bold text-primary-dark mr-2" id="displayPrice">{{ artwork.selling_price_incl_gst | currency }}</span>
-          </div>
-
+        <div class="mb-2">
+    {% if artwork.discount_price and artwork.discount_price | default(0) < artwork.price | default(0) %}
+    <span class="text-4xl font-extrabold text-red-600 me-3" id="displayPrice">
+        ₹{{ "{:,.2f}".format(artwork.discount_price | default(0) ) }}
+    </span>
+    <span class="text-xl font-semibold text-gray-500 line-through">
+        ₹{{ "{:,.2f}".format(artwork.price | default(0) ) }}
+    </span>
+    <div class="mt-2 text-lg text-green-600 font-medium">
+        You save: ₹{{ "{:,.2f}".format( (artwork.price | default(0)) - (artwork.discount_price | default(0)) ) }}
+    </div>
+    {% else %}
+    <span class="text-4xl font-extrabold text-gray-900" id="displayPrice">
+        {# This is the most likely culprit if the page is product_detail.html #}
+        ₹{{ "{:,.2f}".format(artwork.price | default(0) ) }}
+    </span>
+    {% endif %}
+</div>
           <p class="text-gray-700 mb-3 leading-relaxed">{{ artwork.description }}</p>
 
           <!-- Custom Options -->

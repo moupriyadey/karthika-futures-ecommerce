@@ -1,0 +1,59 @@
+{% extends "_base.html" %}
+{% block title %}Stock Logs - Karthika Futures{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="fw-bold text-dark">Stock History</h3>
+    <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary btn-sm">← Back to Dashboard</a>
+  </div>
+
+  {% if logs %}
+  <div class="table-responsive shadow-sm rounded">
+    <table class="table table-striped table-hover align-middle">
+      <thead class="table-dark">
+        <tr>
+          <th>#</th>
+          <th>Artwork</th>
+          <th>Change Type</th>
+          <th>Qty Change</th>
+          <th>Current Stock</th>
+          <th>Order ID</th>
+          <th>User</th>
+          <th>Timestamp</th>
+          <th>Remarks</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ log.artwork.name if log.artwork else 'Deleted Artwork' }}</td>
+          <td>
+            {% if log.change_type == 'SALE' %}
+              <span class="badge bg-danger">SALE</span>
+            {% elif log.change_type == 'ADD' %}
+              <span class="badge bg-success">ADD</span>
+            {% elif log.change_type == 'RETURN' %}
+              <span class="badge bg-info text-dark">RETURN</span>
+            {% else %}
+              <span class="badge bg-secondary">{{ log.change_type }}</span>
+            {% endif %}
+          </td>
+          <td>{{ log.change_quantity }}</td>
+          <td>{{ log.current_stock }}</td>
+          <td>{% if log.order_id %}{{ log.order_id }}{% else %}-{% endif %}</td>
+          <td>{{ log.user.email if log.user else '-' }}</td>
+          <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+          <td>{{ log.remarks or '-' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+   <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary btn-sm">← Back to Dashboard</a>
+  {% else %}
+  <div class="alert alert-info">No stock history found yet.</div>
+  {% endif %}
+</div>
+{% endblock %}

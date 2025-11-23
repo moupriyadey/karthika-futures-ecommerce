@@ -20,10 +20,20 @@
                             <h3 class="font-semibold text-sm md:text-lg text-gray-800 truncate mb-1" title="{{ artwork.name }}">
                                 {{ artwork.name }}
                             </h3>
-                            <p class="text-gray-500 text-xs md:text-sm">SKU: {{ artwork.sku }}</p>
-                            <p class="text-lg md:text-xl font-bold text-gray-900 mt-2">
-                                ₹{{ "{:,.2f}".format(artwork.price) }}
-                            </p>
+                            <p class="text-lg md:text-xl font-bold mt-2">
+    {% if artwork.discount_price and artwork.discount_price < artwork.price %}
+        <span class="text-red-600 me-2">
+            ₹{{ "{:,.2f}".format(artwork.discount_price) }}
+        </span> 
+        <span class="text-gray-500 line-through text-base">
+            ₹{{ "{:,.2f}".format(artwork.price) }}
+        </span>
+    {% else %}
+        <span class="text-gray-900">
+            ₹{{ "{:,.2f}".format(artwork.price) }}
+        </span>
+    {% endif %}
+</p>
                         </div>
                     </a>
                     <div class="p-2 md:p-3 bg-gray-50 text-center border-t border-gray-200">

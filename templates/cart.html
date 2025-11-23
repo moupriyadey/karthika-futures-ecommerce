@@ -17,6 +17,17 @@
                     <span class="font-semibold text-gray-900">{{ subtotal_before_gst | currency }}</span>
                 </div>
                 <div class="flex justify-between py-2 border-b">
+    <span class="text-gray-600">Subtotal (Excl. GST):</span>
+    <span class="font-semibold text-gray-900">{{ subtotal_before_gst | currency }}</span>
+</div>
+
+{% if first_time_discount_amount and first_time_discount_amount > 0 %}
+<div class="flex justify-between py-2 border-b bg-green-50 rounded-md px-2">
+    <span class="text-green-700 font-medium">✨ First-Time Customer Discount (10%):</span>
+    <span class="font-bold text-green-700">- {{ first_time_discount_amount | currency }}</span>
+</div>
+{% endif %}
+                <div class="flex justify-between py-2 border-b">
                     <span class="text-gray-600">Shipping Charge:</span>
                     <span class="font-semibold text-gray-900">{{ shipping_charge | currency }}</span>
                 </div>

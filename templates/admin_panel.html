@@ -6,6 +6,16 @@
 <div class="container main-content-area py-5">
     <h2 class="text-center mb-4">Admin Dashboard</h2>
 
+    {# 4. Low-Stock Alerts - Backend data provided by the new /admin_panel route in app.py #}
+    {% if low_stock_items %}
+    <div class="alert alert-warning shadow-sm mb-4" role="alert">
+      ⚠️ <strong>Low Stock Alert:</strong>
+      {% for a in low_stock_items %}
+        {{ a.name }} (**{{ a.stock }}**){% if not loop.last %}, {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="card text-white bg-primary mb-3 shadow-sm rounded-lg">
@@ -35,15 +45,18 @@
             <div class="card text-white bg-warning mb-3 shadow-sm rounded-lg">
                 <div class="card-body">
                     <h5 class="card-title">Orders Pending Review</h5>
-                    <p class="card-text fs-3">{{ pending_orders_count }}</p> {# Using the new pending_orders_count from app.py #}
+                    <p class="card-text fs-3">{{ pending_orders_count }}</p>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="card shadow-sm border-0 rounded-lg mb-4">
-        <div class="card-header bg-light">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
             <h4 class="mb-0">Recent Orders</h4>
+            <a href="{{ url_for('admin_stock_logs_page') }}" class="btn btn-outline-dark btn-sm">
+                View Stock Logs
+            </a>
         </div>
         <div class="card-body">
             {% if orders %}
@@ -60,10 +73,9 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for order in orders[:5] %} {# Displaying only top 5 recent orders #}
+                        {% for order in orders[:5] %}
                         <tr>
                             <td>{{ order.id }}</td>
-
                             <td>{{ order.customer.full_name or order.customer.email }}</td>
                             <td>{{ order.order_date.strftime('%Y-%m-%d %H:%M') }}</td>
                             <td>{{ order.total_amount | currency }}</td>
@@ -90,16 +102,77 @@
     <div class="row">
         <div class="col-md-6 mb-4">
             <div class="card shadow-sm border-0 rounded-lg">
-                <div class="card-header bg-light">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
                     <h4 class="mb-0">Manage Products</h4>
+                    <a href="{{ url_for('admin_stock_logs_page') }}" class="btn btn-outline-secondary btn-sm">Stock Logs</a>
                 </div>
                 <div class="card-body">
-                    <p>Add, edit, or delete artworks and manage categories.</p>
+                    <p>Add, edit, or delete artworks and manage stock levels.</p>
                     <a href="{{ url_for('admin_artworks') }}" class="btn btn-primary me-2">Manage Artworks</a>
                     <a href="{{ url_for('admin_categories') }}" class="btn btn-secondary">Manage Categories</a>
+
+                    <hr>
+
+                    <h6 class="mt-3 mb-2">Quick Stock Adjust</h6>
+                    {% if artworks %}
+                    <div class="list-group small">
+                        {% for artwork in artworks[:5] %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ artwork.name }}</strong>
+                                <small class="text-muted">({{ artwork.stock }} in stock)</small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-dark" data-bs-toggle="modal" data-bs-target="#stockModal{{ artwork.id }}">
+                                Adjust
+                            </button>
+                        </div>
+
+                        <!-- Stock Adjustment Modal -->
+                        <div class="modal fade" id="stockModal{{ artwork.id }}" tabindex="-1" aria-labelledby="stockModalLabel{{ artwork.id }}" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content rounded-3 shadow">
+                                    <div class="modal-header bg-dark text-white">
+                                        <h5 class="modal-title" id="stockModalLabel{{ artwork.id }}">Adjust Stock – {{ artwork.name }}</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <form method="POST" action="{{ url_for('update_stock', artwork_id=artwork.id) }}">
+                                        <div class="modal-body">
+                                            <div class="mb-3">
+                                                <label class="form-label">Change Quantity</label>
+                                                <input type="number" name="change_qty" class="form-control" required placeholder="e.g. +5 or -3">
+                                                <small class="text-muted">Positive = add stock, negative = reduce stock.</small>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Change Type</label>
+                                                <select name="change_type" class="form-select">
+                                                    <option value="ADD">ADD (Restock)</option>
+                                                    <option value="RETURN">RETURN (Customer Return)</option>
+                                                    <option value="ADJUSTMENT">ADJUSTMENT (Manual Correction)</option>
+                                                    <option value="SALE">SALE (Manual Sale)</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Remarks</label>
+                                                <textarea name="remarks" class="form-control" placeholder="Optional notes..."></textarea>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-dark">Update Stock</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted small">No artworks available for adjustment.</p>
+                    {% endif %}
                 </div>
             </div>
         </div>
+
         <div class="col-md-6 mb-4">
             <div class="card shadow-sm border-0 rounded-lg">
                 <div class="card-header bg-light">
@@ -116,5 +189,5 @@
 {% endblock %}
 
 {% block extra_js %}
-{# No specific JS for this page, as main dashboard handles most of it #}
+{# Bootstrap modals and admin dashboard JS logic (if needed) #}
 {% endblock %}

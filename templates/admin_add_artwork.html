@@ -49,14 +49,19 @@
                     </div>
                 </div>
 
-                    <div class="col-md-6">
-                        <label for="original_price" class="form-label">Original Price (₹, Before GST) <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="original_price" name="original_price" step="0.01" min="0" required value="{{ form_data.original_price if form_data.original_price is defined else '' }}">
-                    </div>
-                    <div class="col-md-6">
-                        <label for="stock" class="form-label">Stock Quantity <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="stock" name="stock" min="0" required value="{{ form_data.stock if form_data.stock is defined else '' }}">
-                    </div>
+                   <div class="col-md-4">
+                        <label for="original_price" class="form-label">Original Price (₹, Before GST) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="original_price" name="original_price" step="0.01" min="0" required value="{{ form_data.original_price if form_data.original_price is defined else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="discount_price" class="form-label">Discount Price (₹, Before GST)</label>
+                        <input type="number" class="form-control" id="discount_price" name="discount_price" step="0.01" min="0" value="{{ form_data.discount_price if form_data.discount_price is defined else '' }}">
+                        <div class="form-text text-muted">If lower than Original Price, this is used as the base price.</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="stock" class="form-label">Stock Quantity <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="stock" name="stock" min="0" required value="{{ form_data.stock if form_data.stock is defined else '' }}">
+                    </div> 
 
                     <div class="col-12">
                         <label for="category_id" class="form-label">Category <span class="text-danger">*</span></label>
@@ -157,16 +162,23 @@
 
         // --- NEW: Price Calculation Logic ---
         const priceInputs = [
-            'original_price', 'shipping_charge', 'cgst_percentage', 'sgst_percentage',
-            'igst_percentage', 'ugst_percentage', 'cess_percentage'
-        ];
+    'original_price', 'discount_price', 'shipping_charge', 'cgst_percentage', 'sgst_percentage',
+    'igst_percentage', 'ugst_percentage', 'cess_percentage'
+];
         const gstTypeSelect = document.getElementById('gst_type');
         const finalPriceDisplay = document.getElementById('final-price-display');
 
         function calculateTotalPrice() {
-            let basePrice = parseFloat(document.getElementById('original_price').value) || 0;
-            const shippingCharge = parseFloat(document.getElementById('shipping_charge').value) || 0;
-            const gstType = gstTypeSelect.value;
+    const originalPrice = parseFloat(document.getElementById('original_price').value) || 0;
+    const discountPrice = parseFloat(document.getElementById('discount_price').value) || 0;
+
+  let basePrice = originalPrice;
+    if (discountPrice > 0 && discountPrice < originalPrice) {
+        basePrice = discountPrice;
+    }
+    
+    const shippingCharge = parseFloat(document.getElementById('shipping_charge').value) || 0;
+    const gstType = gstTypeSelect.value;
             let gstPercentage = 0;
 
             if (gstType === 'intra_state') {

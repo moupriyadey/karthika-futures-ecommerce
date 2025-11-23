@@ -330,7 +330,14 @@ class User(db.Model, UserMixin):
 
     def __repr__(self):
         return f"User('{self.email}', '{self.role}')"
-
+    def is_first_time_customer(self):
+        """Checks if the user has any completed orders in the database."""
+        # You need an 'Order' model linked to 'User' by 'user_id'
+        # and a way to know if an order is completed (e.g., status is 'Completed')
+        completed_orders_count = Order.query.filter_by(user_id=self.id).filter(
+            Order.status.in_(['Completed', 'Shipped', 'Delivered']) # Use your actual completed statuses
+        ).count()
+        return completed_orders_count == 0
 class OTP(db.Model):
     id = Column(Integer, primary_key=True)
     user_id = Column(String(36), ForeignKey('user.id'), nullable=False)
@@ -361,6 +368,7 @@ class Artwork(db.Model):
     name = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
     original_price = Column(Numeric(10, 2), nullable=False) # Price before any options or GST
+    discount_price = Column(Numeric(10, 2), nullable=True, default=None) 
     display_order = db.Column(db.Integer, default=999) # Add this line
     
     # New GST fields
@@ -392,11 +400,19 @@ class Artwork(db.Model):
             return json.loads(self.custom_options) if self.custom_options else {}
         except json.JSONDecodeError:
             return {}
-            
+
+    @property
+    def selling_price(self):
+        """Returns the discounted price if it's set and lower than the original price, otherwise returns the original price."""
+        # Use 'original_price' for comparison, as that is your column name
+        if self.discount_price is not None and self.discount_price < self.original_price:
+            return self.discount_price
+        return self.original_price 
+
     @property
     def selling_price_incl_gst(self):
         """Calculates the selling price including applicable GST based on gst_type."""
-        base_price = self.original_price
+        base_price = self.selling_price
         total_gst_rate = Decimal('0.00')
         if self.gst_type == 'intra_state':
             total_gst_rate = self.cgst_percentage + self.sgst_percentage
@@ -569,7 +585,36 @@ class OrderItem(db.Model):
 
     def __repr__(self):
         return f"OrderItem('{self.artwork.name}', Quantity: {self.quantity}, Total: {self.total_price_incl_gst})"
+class StockLog(db.Model):
+    """Tracks every stock change for auditing."""
+    # NOTE: This uses the Column/String/Integer imports from SQLAlchemy 
+    # at the top of app.py, not db.Column.
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    artwork_id = Column(String(36), ForeignKey('artwork.id'), nullable=False)
+    
+    # The quantity of stock change (-5 for sale, +10 for restock, etc.)
+    change_quantity = Column(Integer, nullable=False) 
+    
+    # Snapshot of the stock after this change occurred
+    current_stock = Column(Integer, nullable=False)   
+    
+    # e.g., 'SALE', 'ADD', 'RETURN', 'ADJUSTMENT'
+    change_type = Column(String(50), nullable=False)  
+    
+    # Link to the Order (SALE, RETURN)
+    # The ForeignKey must match the exact type of Order.id (String(10))
+    order_id = Column(String(10), ForeignKey('order.id'), nullable=True) 
+    
+    # User who made the change (Admin/Customer)
+    user_id = Column(String(36), ForeignKey('user.id'), nullable=True) 
+    
+    remarks = Column(Text, nullable=True) 
+    timestamp = Column(DateTime, default=datetime.utcnow)
 
+    # Use 'relationship' directly since it's imported at the top
+    artwork = relationship('Artwork', backref=db.backref('stock_logs', lazy=True))
+    order = relationship('Order', backref=db.backref('stock_logs', lazy=True)) 
+    user = relationship('User', backref=db.backref('stock_logs', lazy=True))
 class ContactMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -706,41 +751,12 @@ def admin_required(f):
     return decorated_function
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# --- Routes ---
-
-# NEW: Route to get cart count for real-time update
 @app.route('/get_cart_count')
 def get_cart_count():
     cart_data = session.get('cart', {})
     total_quantity = sum(item['quantity'] for item in cart_data.values())
     return jsonify(success=True, cart_count=total_quantity)
 
-# NEW: Helper function to calculate item total including options and GST
 # Helper function to calculate item total including options and GST
 def calculate_item_total(artwork, selected_options, quantity):
     """
@@ -748,7 +764,7 @@ def calculate_item_total(artwork, selected_options, quantity):
     considering custom options and quantity.
     Returns a dictionary of detailed calculation results.
     """
-    base_price = artwork.original_price
+    base_price = artwork.selling_price
 
     # Add option prices if applicable
     options_data = artwork.get_custom_options_dict()
@@ -793,7 +809,6 @@ def calculate_item_total(artwork, selected_options, quantity):
     }
 
 # Assuming you have a get_cart_items_details() function somewhere,
-# NEW: Helper function to get detailed cart items for display and calculation
 from decimal import Decimal, InvalidOperation # Ensure InvalidOperation is imported
 
 def get_cart_items_details():
@@ -939,7 +954,8 @@ def add_to_cart():
             'igstPercentage': str(igst_percentage),
             'ugstPercentage': str(ugst_percentage),
             'cessPercentage': str(cess_percentage), # NEW: Store cessPercentage
-            'options': selected_options
+            'options': selected_options,
+            'shippingCharge': str(artwork.shipping_charge)
         }
     
     session['cart'] = cart
@@ -970,32 +986,55 @@ def remove_from_cart():
         return jsonify(success=True, message='Item removed from cart.', cart_count=total_quantity_in_cart)
     return jsonify(success=False, message='Item not found in cart.'), 404
 
-# MODIFIED: Cart route to display detailed cart items
+# MODIFIED: Cart route to display detailed cart items with new discount logic
 @app.route('/cart')
 def cart():
+    # 1. Calculate all initial totals (Subtotal, GST, Shipping)
     detailed_cart_items, subtotal_before_gst, total_cgst_amount, \
     total_sgst_amount, total_igst_amount, total_ugst_amount, total_cess_amount, \
-    total_gst_amount, grand_total, total_shipping_charge = get_cart_items_details() # Changed variable name
+    total_gst_amount, grand_total, total_shipping_charge = get_cart_items_details()
     
+    # 2. Initialize and Apply First-Time Customer Discount
+    first_time_discount_amount = Decimal('0.00')
+
+    # Check for authentication and first-time status
+    if current_user.is_authenticated and current_user.is_first_time_customer():
+        MIN_PURCHASE = Decimal('1000.00')
+        DISCOUNT_RATE = Decimal('0.10') # 10% off
+
+        if subtotal_before_gst >= MIN_PURCHASE:
+            first_time_discount_amount = subtotal_before_gst * DISCOUNT_RATE
+            # Since the grand total and GST amounts were already calculated based on the 
+            # FULL subtotal, we now need to adjust the grand total downwards by the discount amount.
+            # NOTE: For simplicity, we apply the discount to the entire 'subtotal_before_gst' 
+            # and reduce the final total by this amount. This is a simple, minimal approach.
+            
+            # 3. Update the Grand Total
+            grand_total -= first_time_discount_amount
+            
+            # Optional: Flash a success message
+            flash("🎉 You received a 10% first-time customer discount!", 'success')
+
+    # 4. Render the template, passing the new discount variable
     return render_template('cart.html', 
-                           cart_items=detailed_cart_items,
-                           subtotal_before_gst=subtotal_before_gst,
-                           total_cgst_amount=total_cgst_amount,
-                           total_sgst_amount=total_sgst_amount,
-                           total_igst_amount=total_igst_amount,
-                           total_ugst_amount=total_ugst_amount,
-                           total_cess_amount=total_cess_amount, # NEW
-                           total_gst_amount=total_gst_amount,
-                           grand_total=grand_total,
-                           shipping_charge=total_shipping_charge) # Pass the calculated total_shipping_charge
+                            cart_items=detailed_cart_items,
+                            subtotal_before_gst=subtotal_before_gst,
+                            total_cgst_amount=total_cgst_amount,
+                            total_sgst_amount=total_sgst_amount,
+                            total_igst_amount=total_igst_amount,
+                            total_ugst_amount=total_ugst_amount,
+                            total_cess_amount=total_cess_amount, 
+                            total_gst_amount=total_gst_amount,
+                            first_time_discount_amount=first_time_discount_amount, 
+                            grand_total=grand_total, 
+                            shipping_charge=total_shipping_charge)
 
 # NEW: Route to create a direct order from "Buy Now"
 @app.route('/create_direct_order', methods=['POST'])
 @csrf.exempt # Exempt CSRF for AJAX, handled by X-CSRFToken header
 def create_direct_order():
     data = request.get_json()
-    # Expect data to contain a 'cart' object, even if it's just one item
-    # The 'cart' object here is actually the itemToBuyNow from main.js
+  
     item_to_buy_now = data 
 
     if not item_to_buy_now:
@@ -1035,51 +1074,10 @@ def create_direct_order():
         session.modified = True
         return jsonify(success=True, message='Please log in or sign up to complete your purchase.', redirect_url=url_for('user_login', next=url_for('purchase_form')))
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# app.py (Modified Excerpt for purchase_form route)
-
 @app.route('/purchase-form', methods=['GET', 'POST'])
 @login_required
 def purchase_form():
+    # --- 1. Initial Address Setup (Pre-GET/POST) ---
     user_addresses = Address.query.filter_by(user_id=current_user.id).order_by(Address.is_default.desc(), Address.id.asc()).all()
     
     prefill_address = None
@@ -1092,7 +1090,7 @@ def purchase_form():
             prefill_address = user_addresses[0]
 
     prefill_address_dict = prefill_address.to_dict() if prefill_address else None
-    selected_address = prefill_address
+    selected_address = prefill_address # Default selected address for GET or initial POST attempt
 
     items_to_process = []
     subtotal_before_gst = Decimal('0.00')
@@ -1119,14 +1117,36 @@ def purchase_form():
         gst_number = request.form.get('gst_number', '').strip().upper()
         print("DEBUG purchase_form: gst_number received ->", repr(gst_number), " action_type ->", request.form.get('action_type'))
 
+        # Determine the selected address for re-rendering errors (required context)
+        selected_address_id_on_post = request.form.get('selected_address_id') or request.form.get('shipping_address')
+        current_selected_address_obj = db.session.get(Address, selected_address_id_on_post) if selected_address_id_on_post else prefill_address
+        
+        # --- GST Validation Error ---
         if gst_number and len(gst_number) != 15:
             flash('Please enter a valid 15-digit GSTIN or leave the field empty.', 'danger')
-            return redirect(url_for('purchase_form'))
+            # Changed redirect to render_template to preserve form data (GSTIN, New Address form)
+            return render_template('purchase_form.html',
+                                   items_to_process=items_to_process,
+                                   subtotal_before_gst=subtotal_before_gst,
+                                   total_gst=total_gst,
+                                   shipping_charge=shipping_charge,
+                                   final_total_amount=final_total_amount,
+                                   user_addresses=user_addresses,
+                                   selected_address=current_selected_address_obj, # Use the address that was selected
+                                   prefill_address=prefill_address_dict,
+                                   form_data=request.form.to_dict(),
+                                   total_cgst_amount=total_cgst_amount,
+                                   total_sgst_amount=total_sgst_amount,
+                                   total_igst_amount=total_igst_amount,
+                                   total_ugst_amount=total_ugst_amount,
+                                   total_cess_amount=total_cess_amount,
+                                   has_addresses=bool(user_addresses),
+                                   current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
 
         action_type = request.form.get('action_type')
 
         if action_type == 'add_new_address':
-            selected_address_id = request.form.get('selected_address_id') or request.form.get('shipping_address')
+            # selected_address_id = request.form.get('selected_address_id') or request.form.get('shipping_address') # Not used in logic, but good for context
             full_name = request.form.get('full_name')
             phone = request.form.get('phone')
             address_line1 = request.form.get('address_line1')
@@ -1134,27 +1154,29 @@ def purchase_form():
             city = request.form.get('city')
             state = request.form.get('state')
             pincode = request.form.get('pincode')
-            save_address = request.form.get('save_address') == 'on'
+            save_address = request.form.get('save_address') == 'on' # Not used in current logic, but kept
             set_as_default = request.form.get('set_as_default') == 'on'
 
+            # --- New Address Validation Error ---
             if not all([full_name, phone, address_line1, city, state, pincode]):
                 flash('Please fill in all required fields for the new address.', 'danger')
                 return render_template('purchase_form.html',
-                                         items_to_process=items_to_process,
-                                         subtotal_before_gst=subtotal_before_gst,
-                                         total_gst=total_gst,
-                                         shipping_charge=shipping_charge,
-                                         final_total_amount=final_total_amount,
-                                         user_addresses=user_addresses,
-                                         prefill_address=prefill_address_dict,
-                                         form_data=request.form.to_dict(),
-                                         total_cgst_amount=total_cgst_amount,
-                                         total_sgst_amount=total_sgst_amount,
-                                         total_igst_amount=total_igst_amount,
-                                         total_ugst_amount=total_ugst_amount,
-                                         total_cess_amount=total_cess_amount,
-                                         has_addresses=bool(user_addresses),
-                                         current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
+                                        items_to_process=items_to_process,
+                                        subtotal_before_gst=subtotal_before_gst,
+                                        total_gst=total_gst,
+                                        shipping_charge=shipping_charge,
+                                        final_total_amount=final_total_amount,
+                                        user_addresses=user_addresses,
+                                        selected_address=current_selected_address_obj, # Retain radio selection
+                                        prefill_address=prefill_address_dict,
+                                        form_data=request.form.to_dict(), # Pass form data to repopulate fields
+                                        total_cgst_amount=total_cgst_amount,
+                                        total_sgst_amount=total_sgst_amount,
+                                        total_igst_amount=total_igst_amount,
+                                        total_ugst_amount=total_ugst_amount,
+                                        total_cess_amount=total_cess_amount,
+                                        has_addresses=bool(user_addresses),
+                                        current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
 
             new_address = Address(
                 user_id=current_user.id,
@@ -1179,6 +1201,7 @@ def purchase_form():
         elif action_type == 'place_order':
             selected_address_id = request.form.get('selected_address_id') or request.form.get('shipping_address')
             
+            # --- Address Selection Missing Error ---
             if not selected_address_id:
                 flash('Please select a shipping address.', 'danger')
                 return render_template('purchase_form.html',
@@ -1188,6 +1211,7 @@ def purchase_form():
                                          shipping_charge=shipping_charge,
                                          final_total_amount=final_total_amount,
                                          user_addresses=user_addresses,
+                                         selected_address=None, # Explicitly set to None since no address was selected
                                          prefill_address=prefill_address_dict,
                                          form_data=request.form.to_dict(),
                                          total_cgst_amount=total_cgst_amount,
@@ -1199,6 +1223,8 @@ def purchase_form():
                                          current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
 
             shipping_address_obj = db.session.get(Address, selected_address_id)
+            
+            # --- Invalid Address Error ---
             if not shipping_address_obj or shipping_address_obj.user_id != current_user.id:
                 flash("Invalid address selection.", "danger")
                 return render_template('purchase_form.html',
@@ -1208,6 +1234,7 @@ def purchase_form():
                                          shipping_charge=shipping_charge,
                                          final_total_amount=final_total_amount,
                                          user_addresses=user_addresses,
+                                         selected_address=None, # Clear selection on invalid address
                                          prefill_address=prefill_address_dict,
                                          form_data=request.form.to_dict(),
                                          total_cgst_amount=total_cgst_amount,
@@ -1219,6 +1246,7 @@ def purchase_form():
                                          current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
 
             try:
+                # --- Order Creation Logic ---
                 new_order = Order(
                     id=generate_order_id(),
                     user_id=current_user.id,
@@ -1238,23 +1266,44 @@ def purchase_form():
                         order_id=new_order.id,
                         artwork_id=item['artwork'].id,
                         quantity=item['quantity'],
+
+                        # 🔹 NEW: give DB the required field
                         unit_price_before_gst=item['unit_price_before_gst'],
+
+                        # keep only the percentage fields that are real DB columns
                         cgst_percentage_applied=item['cgst_percentage'],
                         sgst_percentage_applied=item['sgst_percentage'],
                         igst_percentage_applied=item['igst_percentage'],
                         ugst_percentage_applied=item['ugst_percentage'],
                         cess_percentage_applied=item['cess_percentage'],
+
                         selected_options=json.dumps(item['selected_options'])
                     )
                     db.session.add(order_item)
 
+
+
+                    # Update Stock
                     artwork = db.session.get(Artwork, item['artwork'].id)
                     if artwork:
                         artwork.stock -= item.get('quantity', 0)
                         if artwork.stock < 0:
                             artwork.stock = 0
+                        # --- Add StockLog entry ---
+                        stock_log = StockLog(
+                            artwork_id=artwork.id,
+                            change_quantity=-item.get('quantity', 0),
+                            current_stock=artwork.stock,
+                            change_type='SALE',
+                            order_id=new_order.id,
+                            user_id=current_user.id,
+                            remarks=f"Stock reduced after order {new_order.id}"
+                        )
+                        db.session.add(stock_log)
 
                 db.session.commit()
+                
+                # Clear Carts
                 session.pop('cart', None)
                 session.pop('direct_purchase_cart', None)
                 session.modified = True
@@ -1284,11 +1333,13 @@ def purchase_form():
             except IntegrityError:
                 db.session.rollback()
                 flash('An error occurred while creating your order. Please try again.', 'danger')
+                return redirect(url_for('purchase_form'))
             except Exception as e:
                 db.session.rollback()
                 flash(f'An unexpected error occurred: {e}', 'danger')
+                return redirect(url_for('purchase_form'))
 
-    # ----- Handle GET -----
+    # ----- Handle GET (Initial load or redirect from POST success/non-form error) -----
     (items_to_process, subtotal_before_gst, total_cgst_amount, 
      total_sgst_amount, total_igst_amount, total_ugst_amount, total_cess_amount,
      total_gst, final_total_amount, shipping_charge) = get_cart_items_details()
@@ -1297,33 +1348,34 @@ def purchase_form():
         flash("No items to purchase.", "danger")
         return redirect(url_for('cart'))
 
+    # Check for pre-selected ID set by 'add_new_address' redirect
     pre_selected_id = session.pop('pre_selected_address_id', None)
+    new_address_added = bool(pre_selected_id)
     if pre_selected_id:
-        selected_address = db.session.get(Address, pre_selected_id)
+        session_selected_address = db.session.get(Address, pre_selected_id)
+        if session_selected_address:
+             selected_address = session_selected_address
 
-    form_data = request.form.to_dict() if request.method == 'POST' else {}
+    form_data = request.form.to_dict() if request.method == 'POST' else {} # Will be empty on a fresh GET/redirect
 
     return render_template('purchase_form.html',
-                           items_to_process=items_to_process,
-                           subtotal_before_gst=subtotal_before_gst,
-                           total_gst=total_gst,
-                           shipping_charge=shipping_charge,
-                           final_total_amount=final_total_amount,
-                           user_addresses=user_addresses,
-                           selected_address=selected_address,
-                           prefill_address=prefill_address_dict,
-                           form_data=form_data,
-                           total_cgst_amount=total_cgst_amount,
-                           total_sgst_amount=total_sgst_amount,
-                           total_igst_amount=total_igst_amount,
-                           total_ugst_amount=total_ugst_amount,
-                           total_cess_amount=total_cess_amount,
-                           new_address_added=bool(pre_selected_id),
-                           has_addresses=bool(user_addresses),
-                           current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
-
-
-
+                            items_to_process=items_to_process,
+                            subtotal_before_gst=subtotal_before_gst,
+                            total_gst=total_gst,
+                            shipping_charge=shipping_charge,
+                            final_total_amount=final_total_amount,
+                            user_addresses=user_addresses,
+                            selected_address=selected_address, # The determined selected address object
+                            prefill_address=prefill_address_dict,
+                            form_data=form_data,
+                            total_cgst_amount=total_cgst_amount,
+                            total_sgst_amount=total_sgst_amount,
+                            total_igst_amount=total_igst_amount,
+                            total_ugst_amount=total_ugst_amount,
+                            total_cess_amount=total_cess_amount,
+                            new_address_added=new_address_added,
+                            has_addresses=bool(user_addresses),
+                            current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
 
 @app.route('/set-default-address/<uuid:address_id>', methods=['POST'])
 @login_required
@@ -2287,6 +2339,62 @@ def admin_delete_user(user_id):
 
 
 
+# Route 1: Show stock logs inside admin_dashboard.html tab
+@app.route('/admin/stock-logs')
+@login_required
+@admin_required
+def admin_dashboard_stock_logs():
+    stock_logs = (
+        db.session.query(StockLog, Artwork.name.label('artwork_name'), User.email.label('user_email'))
+        .join(Artwork, StockLog.artwork_id == Artwork.id)
+        .outerjoin(User, StockLog.user_id == User.id)
+        .order_by(StockLog.timestamp.desc())
+        .limit(200)
+        .all()
+    )
+
+    log_entries = []
+    for log, artwork_name, user_email in stock_logs:
+        log_entries.append({
+            'timestamp': log.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            'artwork_name': artwork_name,
+            'change_type': log.change_type,
+            'change_quantity': log.change_quantity,
+            'current_stock': log.current_stock,
+            'order_id': log.order_id if log.order_id else 'N/A',
+            'user_email': user_email if user_email else 'System/Admin',
+            'remarks': log.remarks or ''
+        })
+
+    return render_template(
+        'admin_dashboard.html',
+        active_tab='stock-history',
+        stock_logs=log_entries,
+        applied_filters={'filter_b2b': 'all', 'start_date': '', 'end_date': '', 'customer_name': ''},
+        orders=[],
+        total_users=0,
+        total_artworks=0,
+        total_orders=0,
+        pending_orders=0,
+        revenue_labels=[],
+        revenue_values=[],
+        low_stock_artworks=[],
+        out_of_stock_artworks=[],
+        orders_pending_review=[]
+    )
+
+
+# Route 2: Separate stock logs page (optional)
+@app.route('/admin/stock_logs_page')
+@login_required
+@admin_required
+def admin_stock_logs_page():
+    try:
+        logs = StockLog.query.order_by(StockLog.timestamp.desc()).all()
+        return render_template('admin_stock_logs.html', logs=logs)
+    except Exception as e:
+        flash(f"Error loading stock logs: {e}", "danger")
+        return redirect(url_for('admin_panel'))
 
 
 
@@ -2427,7 +2535,7 @@ def admin_edit_category(category_id):
                 # Delete old image if exists
                 if category.image and os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(category.image))):
                     os.remove(os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(category.image)))
-                category.image = 'images/categories/' + unique_filename
+                category.image = 'uploads/' + unique_filename
             elif file and not allowed_file(file.filename):
                 flash('Invalid image file type.', 'danger')
                 return render_template('admin_edit_category.html', category=category)
@@ -2606,35 +2714,6 @@ def admin_add_artwork():
     return render_template('admin_add_artwork.html', categories=categories, form_data=form_data) # Always pass form_data
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 @app.route('/admin/edit-artwork/<artwork_id>', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -2643,38 +2722,42 @@ def admin_edit_artwork(artwork_id):
     categories = Category.query.all()
 
     if request.method == 'POST':
-        # Retrieve form data
+        # --- Retrieve form data ---
         name = request.form.get('name')
         category_id = request.form.get('category_id')
         is_featured = 'is_featured' in request.form
-        # Use .get() with a default value to prevent NoneType errors
         original_price = request.form.get('original_price', '0.00')
-        
-        # New GST fields - provide default '0.00' if not present
         cgst_percentage = request.form.get('cgst_percentage', '0.00')
         sgst_percentage = request.form.get('sgst_percentage', '0.00')
         igst_percentage = request.form.get('igst_percentage', '0.00')
         ugst_percentage = request.form.get('ugst_percentage', '0.00')
-        cess_percentage = request.form.get('cess_percentage', '0.00') # NEW
-        stock = request.form.get('stock', '0') # Default to '0' for stock
+        cess_percentage = request.form.get('cess_percentage', '0.00')
+        stock = request.form.get('stock', '0')
         description = request.form.get('description')
-        shipping_charge = request.form.get('shipping_charge', '0.00') # NEW: Default to '0.00'
-        gst_type = request.form.get('gst_type') # NEW
+        shipping_charge = request.form.get('shipping_charge', '0.00')
+        gst_type = request.form.get('gst_type')
 
-        # Get images to keep (hidden inputs from frontend)
         images_to_keep = request.form.getlist('images_to_keep')
-        
-        # Get custom options JSON string
-        custom_options_json_str = request.form.get('custom_options_json') # This name needs to match frontend
+        custom_options_json_str = request.form.get('custom_options_json')
 
-        # Update artwork object
+        # --- Save old stock for logging ---
+        old_stock = artwork.stock
+        try:
+            new_stock = int(stock)
+        except ValueError:
+            flash('Invalid stock quantity.', 'danger')
+            form_data = request.form.to_dict()
+            form_data['custom_option_groups'] = json.loads(custom_options_json_str) if custom_options_json_str else {}
+            return render_template('admin_edit_artwork.html', artwork=artwork, categories=categories, form_data=form_data)
+
+        # --- Update artwork fields ---
         artwork.name = name
         artwork.category_id = category_id
         artwork.is_featured = is_featured
         artwork.description = description
-        artwork.gst_type = gst_type # NEW
-        artwork.hsn_code = request.form.get('hsn_code') # NEW
-        artwork.hsn_description = request.form.get('hsn_description') # NEW
+        artwork.gst_type = gst_type
+        artwork.hsn_code = request.form.get('hsn_code')
+        artwork.hsn_description = request.form.get('hsn_description')
 
         try:
             artwork.original_price = Decimal(original_price)
@@ -2682,54 +2765,62 @@ def admin_edit_artwork(artwork_id):
             artwork.sgst_percentage = Decimal(sgst_percentage)
             artwork.igst_percentage = Decimal(igst_percentage)
             artwork.ugst_percentage = Decimal(ugst_percentage)
-            artwork.cess_percentage = Decimal(cess_percentage) # NEW
-            artwork.stock = int(stock)
-            artwork.shipping_charge = Decimal(shipping_charge) # NEW: Assign shipping charge
+            artwork.cess_percentage = Decimal(cess_percentage)
+            artwork.stock = new_stock
+            artwork.shipping_charge = Decimal(shipping_charge)
         except (ValueError, InvalidOperation):
-            flash('Invalid numeric value for price, GST percentage, stock quantity, or shipping charge.', 'danger')
-            # Pass form data back to template to re-populate
+            flash('Invalid numeric value for price, GST, stock, or shipping charge.', 'danger')
             form_data = request.form.to_dict()
-            form_data['custom_option_groups'] = json.loads(custom_options_json_str) if custom_options_json_str else {} # Ensure it's a dict
+            form_data['custom_option_groups'] = json.loads(custom_options_json_str) if custom_options_json_str else {}
             return render_template('admin_edit_artwork.html', artwork=artwork, categories=categories, form_data=form_data)
 
-        # Handle new image uploads
+        # --- Handle new image uploads ---
         new_image_paths = []
         if 'new_images' in request.files:
             for file in request.files.getlist('new_images'):
                 if file and allowed_file(file.filename):
-                    # Upload to Cloudinary and get the public URL
                     upload_result = cloudinary.uploader.upload(file)
                     new_image_paths.append(upload_result['secure_url'])
-                elif file.filename != '': # If file is present but not allowed
-                    flash(f'Invalid file type for new image: {file.filename}.', 'danger')
+                elif file.filename != '':
+                    flash(f'Invalid file type: {file.filename}', 'danger')
                     form_data = request.form.to_dict()
-                    form_data['custom_option_groups'] = json.loads(custom_options_json_str) if custom_options_json_str else {} # Ensure it's a dict
+                    form_data['custom_option_groups'] = json.loads(custom_options_json_str) if custom_options_json_str else {}
                     return render_template('admin_edit_artwork.html', artwork=artwork, categories=categories, form_data=form_data)
 
-        # Combine old images to keep and new images
-        final_image_list = images_to_keep + new_image_paths
-        artwork.set_images_list(final_image_list)
+        artwork.set_images_list(images_to_keep + new_image_paths)
 
-
-        # Update custom options
+        # --- Update custom options ---
         if custom_options_json_str:
             try:
-                # Validate and save
                 json.loads(custom_options_json_str)
                 artwork.custom_options = custom_options_json_str
             except json.JSONDecodeError:
-                flash('Invalid format for custom options JSON.', 'danger')
+                flash('Invalid JSON format for custom options.', 'danger')
                 form_data = request.form.to_dict()
-                form_data['custom_option_groups'] = json.loads(custom_options_json_str) if custom_options_json_str else {} # Ensure it's a dict
+                form_data['custom_option_groups'] = json.loads(custom_options_json_str) if custom_options_json_str else {}
                 return render_template('admin_edit_artwork.html', artwork=artwork, categories=categories, form_data=form_data)
         else:
-            artwork.custom_options = None # Clear if no options are submitted
+            artwork.custom_options = None
 
+        # --- Log stock change if applicable ---
+        if new_stock != old_stock:
+            change_qty = new_stock - old_stock
+            stock_log = StockLog(
+                artwork_id=artwork.id,
+                change_quantity=change_qty,
+                current_stock=new_stock,
+                change_type='ADD' if change_qty > 0 else 'ADJUST',
+                user_id=current_user.id,
+                remarks=f"Manual stock update by admin from {old_stock} → {new_stock}"
+            )
+            db.session.add(stock_log)
+
+        # --- Commit everything ---
         db.session.commit()
         flash('Artwork updated successfully!', 'success')
         return redirect(url_for('admin_artworks'))
 
-    # For GET request, prepare form_data from existing artwork
+    # --- GET request: populate form_data ---
     form_data = {
         'name': artwork.name,
         'category_id': artwork.category_id,
@@ -2739,19 +2830,89 @@ def admin_edit_artwork(artwork_id):
         'sgst_percentage': artwork.sgst_percentage,
         'igst_percentage': artwork.igst_percentage,
         'ugst_percentage': artwork.ugst_percentage,
-        'cess_percentage': artwork.cess_percentage, # NEW
+        'cess_percentage': artwork.cess_percentage,
         'gst_type': artwork.gst_type,
         'stock': artwork.stock,
         'description': artwork.description,
-        'shipping_charge': artwork.shipping_charge, # NEW: Pass shipping charge
-        # Pass the dictionary directly, it will be converted to JSON string by tojson in template
-        'custom_option_groups': artwork.get_custom_options_dict() 
+        'shipping_charge': artwork.shipping_charge,
+        'custom_option_groups': artwork.get_custom_options_dict()
     }
-    # No need to convert custom_option_groups dict to a list of dicts here.
-    # The JS in admin_edit_artwork.html expects the raw dictionary from get_custom_options_dict()
-    # and handles its own formatting for display.
 
     return render_template('admin_edit_artwork.html', artwork=artwork, categories=categories, form_data=form_data)
+
+@app.route('/admin/update_stock/<string:artwork_id>', methods=['POST'])
+@login_required
+@admin_required
+def update_stock(artwork_id):
+    """Admin can manually adjust artwork stock (add/reduce)."""
+    artwork = db.session.get(Artwork, artwork_id)
+    if not artwork:
+        flash('Artwork not found.', 'danger')
+        return redirect(url_for('admin_panel'))
+
+    try:
+        change_qty = int(request.form.get('change_qty', 0))
+        change_type = request.form.get('change_type', 'ADJUSTMENT')
+        remarks = request.form.get('remarks', '').strip()
+
+        if change_qty == 0:
+            flash('Please enter a non-zero quantity.', 'warning')
+            return redirect(url_for('admin_panel'))
+
+        # Update artwork stock
+        artwork.stock += change_qty
+        if artwork.stock < 0:
+            artwork.stock = 0
+
+        # Log the stock change
+        stock_log = StockLog(
+            artwork_id=artwork.id,
+            change_quantity=change_qty,
+            current_stock=artwork.stock,
+            change_type=change_type.upper(),
+            user_id=current_user.id,
+            remarks=remarks or f"Manual {change_type.lower()} by {current_user.email}"
+        )
+        db.session.add(stock_log)
+        db.session.commit()
+
+        flash('Stock updated successfully.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error updating stock: {e}', 'danger')
+
+    return redirect(url_for('admin_panel'))
+# In app.py, add this new route:
+# In app.py, add this new route:
+@app.route('/admin_panel')
+@login_required
+@admin_required
+def admin_panel():
+    """Main admin dashboard with key stats and low-stock alerts."""
+    # Fetch key statistics for the dashboard tiles
+    total_users = User.query.count()
+    total_artworks = Artwork.query.count()
+    total_orders = Order.query.count()
+    pending_orders_count = Order.query.filter(Order.status.ilike('%Pending%')).count()
+
+    # 🟡 Low-stock alert logic (threshold = 5)
+    low_stock_items = Artwork.query.filter(Artwork.stock < 5).all()
+
+    # Fetch data needed for dashboard display (e.g., recent orders, quick stock adjust)
+    orders = Order.query.order_by(Order.order_date.desc()).all()
+    artworks = Artwork.query.order_by(Artwork.name.asc()).all()
+
+    return render_template(
+        'admin_panel.html',
+        total_users=total_users,
+        total_artworks=total_artworks,
+        total_orders=total_orders,
+        pending_orders_count=pending_orders_count,
+        orders=orders,
+        artworks=artworks,
+        low_stock_items=low_stock_items   # 🟢 This list powers the alert in admin_panel.html
+    )
+
 
 # In app.py
 from flask import flash, redirect, url_for
@@ -2824,6 +2985,7 @@ def admin_delete_artwork(artwork_id):
         print(f"Error deleting artwork: {e}")
         flash('An unexpected error occurred while deleting the artwork.', 'danger')
         return redirect(url_for('admin_artworks'))    
+
 
 import os
 from dotenv import load_dotenv
@@ -3967,10 +4129,10 @@ with app.app_context():
 
 # Ecommerce update
 
-@app.route("/check-db")
-def check_db():
-    uri = app.config.get("SQLALCHEMY_DATABASE_URI", "Not Set")
-    return f"Database URI in use: {uri}"
+#@app.route("/check-db")
+#def check_db():
+    #uri = app.config.get("SQLALCHEMY_DATABASE_URI", "Not Set")
+    #return f"Database URI in use: {uri}"
 
 @app.route("/version")
 def version():
