@@ -1120,7 +1120,9 @@ def create_direct_order():
 @login_required
 def purchase_form():
     # --- 1. Initial Address Setup (Pre-GET/POST) ---
-    user_addresses = Address.query.filter_by(user_id=current_user.id).order_by(Address.is_default.desc(), Address.id.asc()).all()
+    user_addresses = Address.query.filter_by(user_id=current_user.id).order_by(
+        Address.is_default.desc(), Address.id.asc()
+    ).all()
     
     prefill_address = None
     if user_addresses:
@@ -1132,7 +1134,7 @@ def purchase_form():
             prefill_address = user_addresses[0]
 
     prefill_address_dict = prefill_address.to_dict() if prefill_address else None
-    selected_address = prefill_address # Default selected address for GET or initial POST attempt
+    selected_address = prefill_address  # Default selected address
 
     items_to_process = []
     subtotal_before_gst = Decimal('0.00')
@@ -1147,48 +1149,71 @@ def purchase_form():
     shipping_address_obj = None
 
     if request.method == 'POST':
-        (items_to_process, subtotal_before_gst, total_cgst_amount, 
-         total_sgst_amount, total_igst_amount, total_ugst_amount, total_cess_amount,
-         total_gst, final_total_amount, shipping_charge) = get_cart_items_details()
+        (
+            items_to_process,
+            subtotal_before_gst,
+            total_cgst_amount,
+            total_sgst_amount,
+            total_igst_amount,
+            total_ugst_amount,
+            total_cess_amount,
+            total_gst,
+            final_total_amount,
+            shipping_charge,
+        ) = get_cart_items_details()
 
         if not items_to_process:
             flash("No items to purchase.", "danger")
             return redirect(url_for('cart'))
 
-        # ✅ Retrieve GST number for both add_new_address and place_order
+        # ✅ GST number for both add_new_address and place_order
         gst_number = request.form.get('gst_number', '').strip().upper()
-        print("DEBUG purchase_form: gst_number received ->", repr(gst_number), " action_type ->", request.form.get('action_type'))
+        print(
+            "DEBUG purchase_form: gst_number received ->",
+            repr(gst_number),
+            " action_type ->",
+            request.form.get('action_type'),
+        )
 
-        # Determine the selected address for re-rendering errors (required context)
+        # Selected address for re-rendering
         selected_address_id_on_post = request.form.get('selected_address_id') or request.form.get('shipping_address')
-        current_selected_address_obj = db.session.get(Address, selected_address_id_on_post) if selected_address_id_on_post else prefill_address
-        
+        current_selected_address_obj = (
+            db.session.get(Address, selected_address_id_on_post)
+            if selected_address_id_on_post
+            else prefill_address
+        )
+
         # --- GST Validation Error ---
         if gst_number and len(gst_number) != 15:
             flash('Please enter a valid 15-digit GSTIN or leave the field empty.', 'danger')
-            # Changed redirect to render_template to preserve form data (GSTIN, New Address form)
-            return render_template('purchase_form.html',
-                                   items_to_process=items_to_process,
-                                   subtotal_before_gst=subtotal_before_gst,
-                                   total_gst=total_gst,
-                                   shipping_charge=shipping_charge,
-                                   final_total_amount=final_total_amount,
-                                   user_addresses=user_addresses,
-                                   selected_address=current_selected_address_obj, # Use the address that was selected
-                                   prefill_address=prefill_address_dict,
-                                   form_data=request.form.to_dict(),
-                                   total_cgst_amount=total_cgst_amount,
-                                   total_sgst_amount=total_sgst_amount,
-                                   total_igst_amount=total_igst_amount,
-                                   total_ugst_amount=total_ugst_amount,
-                                   total_cess_amount=total_cess_amount,
-                                   has_addresses=bool(user_addresses),
-                                   current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
+            return render_template(
+                'purchase_form.html',
+                items_to_process=items_to_process,
+                subtotal_before_gst=subtotal_before_gst,
+                total_gst=total_gst,
+                shipping_charge=shipping_charge,
+                final_total_amount=final_total_amount,
+                user_addresses=user_addresses,
+                selected_address=current_selected_address_obj,
+                prefill_address=prefill_address_dict,
+                form_data=request.form.to_dict(),
+                total_cgst_amount=total_cgst_amount,
+                total_sgst_amount=total_sgst_amount,
+                total_igst_amount=total_igst_amount,
+                total_ugst_amount=total_ugst_amount,
+                total_cess_amount=total_cess_amount,
+                has_addresses=bool(user_addresses),
+                current_user_data={
+                    'full_name': current_user.full_name,
+                    'phone': current_user.phone,
+                    'email': current_user.email,
+                },
+            )
 
         action_type = request.form.get('action_type')
 
+        # --- ADD NEW ADDRESS ---
         if action_type == 'add_new_address':
-            # selected_address_id = request.form.get('selected_address_id') or request.form.get('shipping_address') # Not used in logic, but good for context
             full_name = request.form.get('full_name')
             phone = request.form.get('phone')
             address_line1 = request.form.get('address_line1')
@@ -1196,29 +1221,33 @@ def purchase_form():
             city = request.form.get('city')
             state = request.form.get('state')
             pincode = request.form.get('pincode')
-            save_address = request.form.get('save_address') == 'on' # Not used in current logic, but kept
             set_as_default = request.form.get('set_as_default') == 'on'
 
-            # --- New Address Validation Error ---
             if not all([full_name, phone, address_line1, city, state, pincode]):
                 flash('Please fill in all required fields for the new address.', 'danger')
-                return render_template('purchase_form.html',
-                                        items_to_process=items_to_process,
-                                        subtotal_before_gst=subtotal_before_gst,
-                                        total_gst=total_gst,
-                                        shipping_charge=shipping_charge,
-                                        final_total_amount=final_total_amount,
-                                        user_addresses=user_addresses,
-                                        selected_address=current_selected_address_obj, # Retain radio selection
-                                        prefill_address=prefill_address_dict,
-                                        form_data=request.form.to_dict(), # Pass form data to repopulate fields
-                                        total_cgst_amount=total_cgst_amount,
-                                        total_sgst_amount=total_sgst_amount,
-                                        total_igst_amount=total_igst_amount,
-                                        total_ugst_amount=total_ugst_amount,
-                                        total_cess_amount=total_cess_amount,
-                                        has_addresses=bool(user_addresses),
-                                        current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
+                return render_template(
+                    'purchase_form.html',
+                    items_to_process=items_to_process,
+                    subtotal_before_gst=subtotal_before_gst,
+                    total_gst=total_gst,
+                    shipping_charge=shipping_charge,
+                    final_total_amount=final_total_amount,
+                    user_addresses=user_addresses,
+                    selected_address=current_selected_address_obj,
+                    prefill_address=prefill_address_dict,
+                    form_data=request.form.to_dict(),
+                    total_cgst_amount=total_cgst_amount,
+                    total_sgst_amount=total_sgst_amount,
+                    total_igst_amount=total_igst_amount,
+                    total_ugst_amount=total_ugst_amount,
+                    total_cess_amount=total_cess_amount,
+                    has_addresses=bool(user_addresses),
+                    current_user_data={
+                        'full_name': current_user.full_name,
+                        'phone': current_user.phone,
+                        'email': current_user.email,
+                    },
+                )
 
             new_address = Address(
                 user_id=current_user.id,
@@ -1229,66 +1258,75 @@ def purchase_form():
                 city=city,
                 state=state,
                 pincode=pincode,
-                is_default=set_as_default
+                is_default=set_as_default,
             )
             if new_address.is_default:
-                # Minimal change: unset any other default addresses for this user
                 Address.query.filter_by(user_id=current_user.id, is_default=True).update({"is_default": False})
             db.session.add(new_address)
             db.session.commit()
             session['pre_selected_address_id'] = new_address.id
             flash('New address added successfully! Please select it below before placing the order.', 'info')
             return redirect(url_for('purchase_form'))
-        
+
+        # --- PLACE ORDER ---
         elif action_type == 'place_order':
             selected_address_id = request.form.get('selected_address_id') or request.form.get('shipping_address')
-            
-            # --- Address Selection Missing Error ---
+
             if not selected_address_id:
                 flash('Please select a shipping address.', 'danger')
-                return render_template('purchase_form.html',
-                                         items_to_process=items_to_process, 
-                                         subtotal_before_gst=subtotal_before_gst,
-                                         total_gst=total_gst,
-                                         shipping_charge=shipping_charge,
-                                         final_total_amount=final_total_amount,
-                                         user_addresses=user_addresses,
-                                         selected_address=None, # Explicitly set to None since no address was selected
-                                         prefill_address=prefill_address_dict,
-                                         form_data=request.form.to_dict(),
-                                         total_cgst_amount=total_cgst_amount,
-                                         total_sgst_amount=total_sgst_amount,
-                                         total_igst_amount=total_igst_amount,
-                                         total_ugst_amount=total_ugst_amount,
-                                         total_cess_amount=total_cess_amount,
-                                         has_addresses=bool(user_addresses),
-                                         current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
+                return render_template(
+                    'purchase_form.html',
+                    items_to_process=items_to_process,
+                    subtotal_before_gst=subtotal_before_gst,
+                    total_gst=total_gst,
+                    shipping_charge=shipping_charge,
+                    final_total_amount=final_total_amount,
+                    user_addresses=user_addresses,
+                    selected_address=None,
+                    prefill_address=prefill_address_dict,
+                    form_data=request.form.to_dict(),
+                    total_cgst_amount=total_cgst_amount,
+                    total_sgst_amount=total_sgst_amount,
+                    total_igst_amount=total_igst_amount,
+                    total_ugst_amount=total_ugst_amount,
+                    total_cess_amount=total_cess_amount,
+                    has_addresses=bool(user_addresses),
+                    current_user_data={
+                        'full_name': current_user.full_name,
+                        'phone': current_user.phone,
+                        'email': current_user.email,
+                    },
+                )
 
             shipping_address_obj = db.session.get(Address, selected_address_id)
-            
-            # --- Invalid Address Error ---
+
             if not shipping_address_obj or shipping_address_obj.user_id != current_user.id:
                 flash("Invalid address selection.", "danger")
-                return render_template('purchase_form.html',
-                                         items_to_process=items_to_process, 
-                                         subtotal_before_gst=subtotal_before_gst,
-                                         total_gst=total_gst,
-                                         shipping_charge=shipping_charge,
-                                         final_total_amount=final_total_amount,
-                                         user_addresses=user_addresses,
-                                         selected_address=None, # Clear selection on invalid address
-                                         prefill_address=prefill_address_dict,
-                                         form_data=request.form.to_dict(),
-                                         total_cgst_amount=total_cgst_amount,
-                                         total_sgst_amount=total_sgst_amount,
-                                         total_igst_amount=total_igst_amount,
-                                         total_ugst_amount=total_ugst_amount,
-                                         total_cess_amount=total_cess_amount,
-                                         has_addresses=bool(user_addresses),
-                                         current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
+                return render_template(
+                    'purchase_form.html',
+                    items_to_process=items_to_process,
+                    subtotal_before_gst=subtotal_before_gst,
+                    total_gst=total_gst,
+                    shipping_charge=shipping_charge,
+                    final_total_amount=final_total_amount,
+                    user_addresses=user_addresses,
+                    selected_address=None,
+                    prefill_address=prefill_address_dict,
+                    form_data=request.form.to_dict(),
+                    total_cgst_amount=total_cgst_amount,
+                    total_sgst_amount=total_sgst_amount,
+                    total_igst_amount=total_igst_amount,
+                    total_ugst_amount=total_ugst_amount,
+                    total_cess_amount=total_cess_amount,
+                    has_addresses=bool(user_addresses),
+                    current_user_data={
+                        'full_name': current_user.full_name,
+                        'phone': current_user.phone,
+                        'email': current_user.email,
+                    },
+                )
 
             try:
-                # --- Order Creation Logic ---
                 new_order = Order(
                     id=generate_order_id(),
                     user_id=current_user.id,
@@ -1297,8 +1335,8 @@ def purchase_form():
                     payment_status='pending',
                     shipping_address_id=shipping_address_obj.id,
                     shipping_charge=shipping_charge,
-                    customer_gstin=gst_number if gst_number else None,   # optional
-                    gst_number=gst_number if gst_number else None        # ✅ this line ensures Neon stores GSTIN
+                    customer_gstin=gst_number if gst_number else None,
+                    gst_number=gst_number if gst_number else None,
                 )
                 db.session.add(new_order)
                 db.session.flush()
@@ -1308,30 +1346,22 @@ def purchase_form():
                         order_id=new_order.id,
                         artwork_id=item['artwork'].id,
                         quantity=item['quantity'],
-
-                        # 🔹 NEW: give DB the required field
                         unit_price_before_gst=item['unit_price_before_gst'],
-
-                        # keep only the percentage fields that are real DB columns
                         cgst_percentage_applied=item['cgst_percentage'],
                         sgst_percentage_applied=item['sgst_percentage'],
                         igst_percentage_applied=item['igst_percentage'],
                         ugst_percentage_applied=item['ugst_percentage'],
                         cess_percentage_applied=item['cess_percentage'],
-
-                        selected_options=json.dumps(item['selected_options'])
+                        selected_options=json.dumps(item['selected_options']),
                     )
                     db.session.add(order_item)
 
-
-
-                    # Update Stock
                     artwork = db.session.get(Artwork, item['artwork'].id)
                     if artwork:
                         artwork.stock -= item.get('quantity', 0)
                         if artwork.stock < 0:
                             artwork.stock = 0
-                        # --- Add StockLog entry ---
+
                         stock_log = StockLog(
                             artwork_id=artwork.id,
                             change_quantity=-item.get('quantity', 0),
@@ -1339,40 +1369,24 @@ def purchase_form():
                             change_type='SALE',
                             order_id=new_order.id,
                             user_id=current_user.id,
-                            remarks=f"Stock reduced after order {new_order.id}"
+                            remarks=f"Stock reduced after order {new_order.id}",
                         )
                         db.session.add(stock_log)
 
                 db.session.commit()
-                
-                # Clear Carts
+
+                # Clear carts
                 session.pop('cart', None)
                 session.pop('direct_purchase_cart', None)
                 session.modified = True
 
-                # ✅ Send confirmation email with attached invoice
-                # ✅ Send confirmation email with attached invoice
-            try:
-                msg = Message(
-                    subject=f"Your Order #{new_order.id} Confirmation - Karthika Futures",
-                    recipients=[current_user.email]
-                )
-                msg.body = f"Dear {current_user.full_name},\n\nThank you for your order #{new_order.id}.\n\nPlease find your invoice attached.\n\nKarthika Futures Team"
-
-                pdf_buffer = generate_invoice_pdf_buffer(new_order)
-                if pdf_buffer:
-                    msg.attach(
-                        filename=f"invoice_{new_order.id}.pdf",
-                        content_type="application/pdf",
-                        data=pdf_buffer.read()
-                    )
-                mail.send(msg)
-            except Exception as e:
-                print(f"Error sending email: {e}")
-
+                # ✅ No Flask-Mail / Message here.
+                # Order confirmation email is handled in order_summary using send_email (Brevo).
 
                 flash('Order placed successfully! Please proceed to payment.', 'success')
-                return redirect(url_for('payment_initiate', order_id=new_order.id, amount=new_order.total_amount))
+                return redirect(
+                    url_for('payment_initiate', order_id=new_order.id, amount=new_order.total_amount)
+                )
 
             except IntegrityError:
                 db.session.rollback()
@@ -1383,43 +1397,57 @@ def purchase_form():
                 flash(f'An unexpected error occurred: {e}', 'danger')
                 return redirect(url_for('purchase_form'))
 
-    # ----- Handle GET (Initial load or redirect from POST success/non-form error) -----
-    (items_to_process, subtotal_before_gst, total_cgst_amount, 
-     total_sgst_amount, total_igst_amount, total_ugst_amount, total_cess_amount,
-     total_gst, final_total_amount, shipping_charge) = get_cart_items_details()
+    # ----- Handle GET -----
+    (
+        items_to_process,
+        subtotal_before_gst,
+        total_cgst_amount,
+        total_sgst_amount,
+        total_igst_amount,
+        total_ugst_amount,
+        total_cess_amount,
+        total_gst,
+        final_total_amount,
+        shipping_charge,
+    ) = get_cart_items_details()
 
     if not items_to_process:
         flash("No items to purchase.", "danger")
         return redirect(url_for('cart'))
 
-    # Check for pre-selected ID set by 'add_new_address' redirect
     pre_selected_id = session.pop('pre_selected_address_id', None)
     new_address_added = bool(pre_selected_id)
     if pre_selected_id:
         session_selected_address = db.session.get(Address, pre_selected_id)
         if session_selected_address:
-             selected_address = session_selected_address
+            selected_address = session_selected_address
 
-    form_data = request.form.to_dict() if request.method == 'POST' else {} # Will be empty on a fresh GET/redirect
+    form_data = request.form.to_dict() if request.method == 'POST' else {}
 
-    return render_template('purchase_form.html',
-                            items_to_process=items_to_process,
-                            subtotal_before_gst=subtotal_before_gst,
-                            total_gst=total_gst,
-                            shipping_charge=shipping_charge,
-                            final_total_amount=final_total_amount,
-                            user_addresses=user_addresses,
-                            selected_address=selected_address, # The determined selected address object
-                            prefill_address=prefill_address_dict,
-                            form_data=form_data,
-                            total_cgst_amount=total_cgst_amount,
-                            total_sgst_amount=total_sgst_amount,
-                            total_igst_amount=total_igst_amount,
-                            total_ugst_amount=total_ugst_amount,
-                            total_cess_amount=total_cess_amount,
-                            new_address_added=new_address_added,
-                            has_addresses=bool(user_addresses),
-                            current_user_data={'full_name': current_user.full_name, 'phone': current_user.phone, 'email': current_user.email})
+    return render_template(
+        'purchase_form.html',
+        items_to_process=items_to_process,
+        subtotal_before_gst=subtotal_before_gst,
+        total_gst=total_gst,
+        shipping_charge=shipping_charge,
+        final_total_amount=final_total_amount,
+        user_addresses=user_addresses,
+        selected_address=selected_address,
+        prefill_address=prefill_address_dict,
+        form_data=form_data,
+        total_cgst_amount=total_cgst_amount,
+        total_sgst_amount=total_sgst_amount,
+        total_igst_amount=total_igst_amount,
+        total_ugst_amount=total_ugst_amount,
+        total_cess_amount=total_cess_amount,
+        new_address_added=new_address_added,
+        has_addresses=bool(user_addresses),
+        current_user_data={
+            'full_name': current_user.full_name,
+            'phone': current_user.phone,
+            'email': current_user.email,
+        },
+    )
 
 @app.route('/set-default-address/<uuid:address_id>', methods=['POST'])
 @login_required
