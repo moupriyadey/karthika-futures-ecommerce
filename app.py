@@ -1351,23 +1351,25 @@ def purchase_form():
                 session.modified = True
 
                 # ✅ Send confirmation email with attached invoice
-                try:
-                    msg = Message(
-                        subject=f"Your Order #{new_order.id} Confirmation - Karthika Futures",
-                        recipients=[current_user.email]
-                    )
-                    msg.body = f"Dear {current_user.full_name},\n\nThank you for your order #{new_order.id}.\n\nPlease find your invoice attached.\n\nKarthika Futures Team"
+                # ✅ Send confirmation email with attached invoice
+            try:
+                msg = Message(
+                    subject=f"Your Order #{new_order.id} Confirmation - Karthika Futures",
+                    recipients=[current_user.email]
+                )
+                msg.body = f"Dear {current_user.full_name},\n\nThank you for your order #{new_order.id}.\n\nPlease find your invoice attached.\n\nKarthika Futures Team"
 
-                    pdf_buffer = generate_invoice_pdf_buffer(new_order)
-                    if pdf_buffer:
-                        msg.attach(
-                            filename=f"invoice_{new_order.id}.pdf",
-                            content_type="application/pdf",
-                            data=pdf_buffer.read()
-                        )
-                    mail.send(msg)
-                except Exception as e:
-                    print(f"Error sending email: {e}")
+                pdf_buffer = generate_invoice_pdf_buffer(new_order)
+                if pdf_buffer:
+                    msg.attach(
+                        filename=f"invoice_{new_order.id}.pdf",
+                        content_type="application/pdf",
+                        data=pdf_buffer.read()
+                    )
+                mail.send(msg)
+            except Exception as e:
+                print(f"Error sending email: {e}")
+
 
                 flash('Order placed successfully! Please proceed to payment.', 'success')
                 return redirect(url_for('payment_initiate', order_id=new_order.id, amount=new_order.total_amount))
