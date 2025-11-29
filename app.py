@@ -124,8 +124,7 @@ app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = os.environ.get('SENDER_EMAIL')
 app.config['MAIL_PASSWORD'] = os.environ.get('SENDER_PASSWORD')
-# NEW: Brevo API key
-app.config['BREVO_API_KEY'] = os.environ.get('BREVO_API_KEY')
+
 
 
 import re
@@ -280,79 +279,50 @@ def generate_order_id():
 
     # Format the ID as "OD" + padded 8 digits
     return f"OD{new_numeric_part:08d}"
-def send_email(
-    to_email,
-    subject,
-    body_plain=None,
-    html_body=None,
-    attachment_path=None,
-    attachment_name=None
-):
-    """
-    Send email using Brevo API.
-    Works both on localhost and Render.
-    Used for: OTP emails, order confirmation, etc.
-    """
-
-    api_key = current_app.config.get("BREVO_API_KEY")
-    if not api_key:
-        current_app.logger.error("BREVO_API_KEY not found in environment.")
-        return False
-
-    # Use your existing sender email from .env
-    sender_email = current_app.config.get("MAIL_USERNAME") or \
-                   current_app.config.get("SENDER_EMAIL") or \
-                   "no-reply@example.com"
-
-    url = "https://api.brevo.com/v3/smtp/email"
-
-    payload = {
-        "sender": {
-            "name": current_app.config.get("OUR_BUSINESS_NAME", "Karthika Futures"),
-            "email": sender_email
-        },
-        "to": [{"email": to_email}],
-        "subject": subject,
-    }
-
-    # Prefer HTML if provided, else plain text
-    if html_body:
-        payload["htmlContent"] = html_body
-        if body_plain:
-            payload["textContent"] = body_plain
-    elif body_plain:
-        payload["textContent"] = body_plain
-    else:
-        payload["textContent"] = ""  # avoid empty body error
-
-    # Optional attachment (invoice PDF, etc.)
-    if attachment_path and os.path.exists(attachment_path):
-        with open(attachment_path, "rb") as file:
-            encoded_file = base64.b64encode(file.read()).decode()
-
-        payload["attachment"] = [{
-            "content": encoded_file,
-            "name": attachment_name or os.path.basename(attachment_path)
-        }]
-
-    headers = {
-        "accept": "application/json",
-        "api-key": api_key,
-        "content-type": "application/json"
-    }
-
+def send_email(to_email, subject, body_plain=None, html_body=None,
+               attachment_path=None, attachment_name=None):
+    """Send email using Gmail SMTP. Supports optional HTML and PDF attachment."""
     try:
-        response = requests.post(url, headers=headers, data=json.dumps(payload))
+        # Build a multipart message (plain + HTML)
+        msg = MIMEMultipart('alternative')
+        msg['From'] = current_app.config['MAIL_USERNAME']
+        msg['To'] = to_email
+        msg['Subject'] = subject
 
-        if response.status_code in (200, 201):
-            print(f"Brevo email sent successfully to {to_email}")
-            return True
-        else:
-            current_app.logger.error(f"Brevo email error ({response.status_code}): {response.text}")
-            return False
+        if body_plain:
+            msg.attach(MIMEText(body_plain, 'plain'))
+        if html_body:
+            msg.attach(MIMEText(html_body, 'html'))
+
+        # Optional PDF (or any file) attachment
+        if attachment_path and os.path.exists(attachment_path):
+            with open(attachment_path, "rb") as f:
+                attach = MIMEApplication(f.read(), _subtype="pdf")
+                attach.add_header(
+                    'Content-Disposition',
+                    'attachment',
+                    filename=attachment_name or os.path.basename(attachment_path)
+                )
+                msg.attach(attach)
+
+        # Use Gmail SMTP with a timeout to avoid Render hanging
+        with smtplib.SMTP(
+            current_app.config['MAIL_SERVER'],
+            current_app.config['MAIL_PORT'],
+            timeout=10  # 10 seconds max to connect
+        ) as smtp:
+            smtp.starttls()
+            smtp.login(
+                current_app.config['MAIL_USERNAME'],
+                current_app.config['MAIL_PASSWORD']
+            )
+            smtp.send_message(msg)
+
+        print(f"Email sent successfully to {to_email}")
+        return True
 
     except Exception as e:
-        current_app.logger.error(f"Brevo exception while sending to {to_email}: {e}")
+        current_app.logger.error(f"Failed to send email to {to_email}: {e}")
         return False
 
 # --- Database Models ---
