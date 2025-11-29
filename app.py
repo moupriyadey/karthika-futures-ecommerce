@@ -124,6 +124,7 @@ app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = os.environ.get('SENDER_EMAIL')
 app.config['MAIL_PASSWORD'] = os.environ.get('SENDER_PASSWORD')
+app.config['BREVO_API_KEY'] = os.environ.get('BREVO_API_KEY')
 
 
 
@@ -279,51 +280,71 @@ def generate_order_id():
 
     # Format the ID as "OD" + padded 8 digits
     return f"OD{new_numeric_part:08d}"
+
+import requests
+import json
+
 def send_email(to_email, subject, body_plain=None, html_body=None,
                attachment_path=None, attachment_name=None):
-    """Send email using Gmail SMTP. Supports optional HTML and PDF attachment."""
-    try:
-        # Build a multipart message (plain + HTML)
-        msg = MIMEMultipart('alternative')
-        msg['From'] = current_app.config['MAIL_USERNAME']
-        msg['To'] = to_email
-        msg['Subject'] = subject
+    """
+    FINAL VERSION: Send email using Brevo API.
+    Used for OTP, signup, order confirmation, etc.
+    Attachments are ignored for now to keep it simple.
+    """
 
-        if body_plain:
-            msg.attach(MIMEText(body_plain, 'plain'))
-        if html_body:
-            msg.attach(MIMEText(html_body, 'html'))
-
-        # Optional PDF (or any file) attachment
-        if attachment_path and os.path.exists(attachment_path):
-            with open(attachment_path, "rb") as f:
-                attach = MIMEApplication(f.read(), _subtype="pdf")
-                attach.add_header(
-                    'Content-Disposition',
-                    'attachment',
-                    filename=attachment_name or os.path.basename(attachment_path)
-                )
-                msg.attach(attach)
-
-        # Use Gmail SMTP with a timeout to avoid Render hanging
-        with smtplib.SMTP(
-            current_app.config['MAIL_SERVER'],
-            current_app.config['MAIL_PORT'],
-            timeout=10  # 10 seconds max to connect
-        ) as smtp:
-            smtp.starttls()
-            smtp.login(
-                current_app.config['MAIL_USERNAME'],
-                current_app.config['MAIL_PASSWORD']
-            )
-            smtp.send_message(msg)
-
-        print(f"Email sent successfully to {to_email}")
-        return True
-
-    except Exception as e:
-        current_app.logger.error(f"Failed to send email to {to_email}: {e}")
+    api_key = current_app.config.get("BREVO_API_KEY")
+    if not api_key:
+        current_app.logger.error("BREVO_API_KEY not set; cannot send email.")
         return False
+
+    url = "https://api.brevo.com/v3/smtp/email"
+
+    # Use your configured sender email (SENDER_EMAIL / MAIL_USERNAME)
+    sender_email = (
+        current_app.config.get("MAIL_USERNAME")
+        or current_app.config.get("SENDER_EMAIL")
+        or "no-reply@karthikafutures.com"
+    )
+
+    payload = {
+        "sender": {
+            "name": current_app.config.get("OUR_BUSINESS_NAME", "Karthika Futures"),
+            "email": sender_email
+        },
+        "to": [{"email": to_email}],
+        "subject": subject,
+    }
+
+    # Prefer HTML if provided; else plain text
+    if html_body:
+        payload["htmlContent"] = html_body
+        if body_plain:
+            payload["textContent"] = body_plain
+    elif body_plain:
+        payload["textContent"] = body_plain
+    else:
+        payload["textContent"] = " "  # avoid empty body issues
+
+    headers = {
+        "accept": "application/json",
+        "api-key": api_key,
+        "content-type": "application/json"
+    }
+
+    try:
+        resp = requests.post(url, headers=headers, data=json.dumps(payload))
+        if resp.status_code in (200, 201):
+            print(f"Brevo email sent successfully to {to_email}")
+            return True
+        else:
+            current_app.logger.error(
+                f"Brevo email error ({resp.status_code}): {resp.text}"
+            )
+            return False
+    except Exception as e:
+        current_app.logger.error(f"Brevo exception while sending to {to_email}: {e}")
+        return False
+
 
 # --- Database Models ---
 class User(db.Model, UserMixin):
