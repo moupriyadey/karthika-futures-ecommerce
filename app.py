@@ -4,6 +4,8 @@ load_dotenv()
 import cloudinary
 import cloudinary.uploader
 import cloudinary.utils
+import socket
+
 
 import json
 import csv
@@ -79,7 +81,8 @@ app = Flask(__name__)
 
 app.jinja_env.filters['slugify'] = slugify
 # --- Configuration ---
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'a_very_secret_key_that_should_be_in_env')
+app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY') or os.environ.get('SECRET_KEY') or 'dev-secret-key'
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['RECAPTCHA_SECRET_KEY'] = os.environ.get('RECAPTCHA_SECRET_KEY')
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
@@ -119,8 +122,9 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.environ.get('EMAIL_USER', 'smarasada@gmail.com') # REPLACE WITH YOUR EMAIL
-app.config['MAIL_PASSWORD'] = os.environ.get('EMAIL_PASS', 'ujipgkporeybjtoy') # REPLACE WITH YOUR APP PASSWORD
+app.config['MAIL_USERNAME'] = os.environ.get('SENDER_EMAIL')
+app.config['MAIL_PASSWORD'] = os.environ.get('SENDER_PASSWORD')
+
 
 import re
 
@@ -145,10 +149,10 @@ INVOICE_RESOURCE_TYPE = "raw"
 
 # --- Cloudinary Configuration (Securely loading from environment) ---
 # WARNING: DO NOT COMMIT HARDCODED SECRETS TO PUBLIC REPOSITORIES
-CLOUDINARY_CLOUD_NAME_ENV = os.environ.get('CLOUDINARY_CLOUD_NAME', 'dig3hkicn')
-CLOUDINARY_API_KEY_ENV    = os.environ.get('CLOUDINARY_API_KEY', '762492167812921')
-# THIS IS THE MOST IMPORTANT LINE: Fetch the secret from environment variables
-CLOUDINARY_API_SECRET_ENV = os.environ.get('CLOUDINARY_API_SECRET', 'x4MqT_kukJd52NbEGMyPLBjkNwY') 
+CLOUDINARY_CLOUD_NAME_ENV = os.environ['CLOUDINARY_CLOUD_NAME']
+CLOUDINARY_API_KEY_ENV    = os.environ['CLOUDINARY_API_KEY']
+CLOUDINARY_API_SECRET_ENV = os.environ['CLOUDINARY_API_SECRET']
+
 # -------------------------------------------------------------------
 
 cloudinary.config(
@@ -294,7 +298,12 @@ def send_email(to_email, subject, body_plain=None, html_body=None, attachment_pa
                 msg.attach(attach)
 
         # Use current_app.config for SMTP settings
-        with smtplib.SMTP(current_app.config['MAIL_SERVER'], current_app.config['MAIL_PORT']) as smtp: # CHANGED THIS LINE
+                # Use current_app.config for SMTP settings
+        with smtplib.SMTP(
+            current_app.config['MAIL_SERVER'],
+            current_app.config['MAIL_PORT'],
+            timeout=10  # 10 seconds max waiting for connection
+        ) as smtp:
             smtp.starttls()
             smtp.login(current_app.config['MAIL_USERNAME'], current_app.config['MAIL_PASSWORD'])
             smtp.send_message(msg)
@@ -4140,5 +4149,5 @@ def version():
 
 # --- Run the App ---
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
 
