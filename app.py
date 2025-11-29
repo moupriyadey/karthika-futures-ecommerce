@@ -280,37 +280,52 @@ def generate_order_id():
 
     # Format the ID as "OD" + padded 8 digits
     return f"OD{new_numeric_part:08d}"
-def send_email(to_email, subject, body_plain=None, html_body=None,
-               attachment_path=None, attachment_name=None):
+def send_email(
+    to_email,
+    subject,
+    body_plain=None,
+    html_body=None,
+    attachment_path=None,
+    attachment_name=None
+):
     """
-    Send email using Brevo API (works on Render).
-    Supports HTML email and PDF attachments.
+    Send email using Brevo API.
+    Works both on localhost and Render.
+    Used for: OTP emails, order confirmation, etc.
     """
 
     api_key = current_app.config.get("BREVO_API_KEY")
     if not api_key:
-        print("ERROR: BREVO_API_KEY not found in environment.")
+        current_app.logger.error("BREVO_API_KEY not found in environment.")
         return False
+
+    # Use your existing sender email from .env
+    sender_email = current_app.config.get("MAIL_USERNAME") or \
+                   current_app.config.get("SENDER_EMAIL") or \
+                   "no-reply@example.com"
 
     url = "https://api.brevo.com/v3/smtp/email"
 
-    # Construct the base payload
     payload = {
         "sender": {
             "name": current_app.config.get("OUR_BUSINESS_NAME", "Karthika Futures"),
-            "email": "no-reply@karthikafutures.com"
+            "email": sender_email
         },
         "to": [{"email": to_email}],
         "subject": subject,
     }
 
-    # Body (plain or HTML)
+    # Prefer HTML if provided, else plain text
     if html_body:
         payload["htmlContent"] = html_body
+        if body_plain:
+            payload["textContent"] = body_plain
     elif body_plain:
         payload["textContent"] = body_plain
+    else:
+        payload["textContent"] = ""  # avoid empty body error
 
-    # Attachment handling (PDF or any file)
+    # Optional attachment (invoice PDF, etc.)
     if attachment_path and os.path.exists(attachment_path):
         with open(attachment_path, "rb") as file:
             encoded_file = base64.b64encode(file.read()).decode()
@@ -327,21 +342,17 @@ def send_email(to_email, subject, body_plain=None, html_body=None,
     }
 
     try:
-        response = requests.post(
-            url,
-            headers=headers,
-            data=json.dumps(payload)
-        )
+        response = requests.post(url, headers=headers, data=json.dumps(payload))
 
         if response.status_code in (200, 201):
             print(f"Brevo email sent successfully to {to_email}")
             return True
         else:
-            print("Brevo email error:", response.text)
+            current_app.logger.error(f"Brevo email error ({response.status_code}): {response.text}")
             return False
 
     except Exception as e:
-        print("Brevo exception:", e)
+        current_app.logger.error(f"Brevo exception while sending to {to_email}: {e}")
         return False
 
 # --- Database Models ---
