@@ -86,20 +86,21 @@
                                     <h3 class="text-sm font-semibold text-gray-900 mb-1 truncate">{{ artwork.name }}</h3>
                                     {# Removed description to clean up the card height #}
                                     
-                                   <div class="flex items-baseline justify-center mb-1">
-    {% if artwork.discount_price and artwork.discount_price | default(0) < artwork.price | default(0) %}
+                                  <div class="flex items-baseline justify-center mb-1">
+    {% if artwork.discount_price and artwork.discount_price < artwork.original_price %}
     <span class="text-lg font-bold text-red-600 me-2 final-price">
-        ₹{{ "{:,.2f}".format(artwork.discount_price | default(0) ) }}
+        ₹{{ "{:,.2f}".format(artwork.discount_price or 0) }}
     </span>
     <span class="text-xl font-semibold text-gray-500 line-through">
-        ₹{{ "{:,.2f}".format(artwork.price | default(0) ) }}
+        ₹{{ "{:,.2f}".format(artwork.original_price or 0) }}
     </span>
     {% else %}
     <span class="text-lg font-bold text-primary final-price">
-        ₹{{ "{:,.2f}".format(artwork.price | default(0) ) }}
+        ₹{{ "{:,.2f}".format(artwork.original_price or 0) }}
     </span>
     {% endif %}
 </div>
+
 
                                     <div class="flex items-center justify-center mb-1">
                                         <div class="text-yellow-500 text-xs">

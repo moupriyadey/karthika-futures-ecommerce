@@ -94,12 +94,39 @@
     </div>
 
     <hr>
+<h3 class="mt-5 mb-3">All Customer Orders</h3>
 
-    <h3 class="mt-5 mb-3">All Customer Orders</h3>
+<!-- TOP BAR: title + buttons -->
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div>
+        <span class="badge bg-primary me-2">
+            Total on screen: {{ orders|length }}
+        </span>
+        <small class="text-muted">
+            Use filters below to narrow by period / invoice type / customer.
+        </small>
+    </div>
+    <div class="d-flex gap-2">
+        <!-- PRINT BUTTON -->
+        <button type="button"
+                class="btn btn-outline-secondary btn-sm"
+                onclick="window.print()">
+            <i class="fas fa-print"></i> Print / Save as PDF
+        </button>
+        <!-- (Optional placeholder) EXPORT BUTTON – can wire later -->
+        {# 
+        <a href="#"
+           class="btn btn-outline-primary btn-sm disabled"
+           title="CSV export will be added next step">
+            <i class="fas fa-file-download"></i> Export CSV
+        </a>
+        #}
+    </div>
+</div>
 
-    <div class="bg-gray-100 p-4 rounded-lg shadow-inner mb-6">
+<div class="bg-gray-100 p-4 rounded-lg shadow-inner mb-6">
     <form method="GET" action="{{ url_for('admin_orders_view') }}" class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-        
+  
         <!-- B2B/B2C Filter -->
         <div>
             <label for="filter_b2b" class="block text-sm font-medium text-gray-700">Invoice Type</label>

@@ -79,6 +79,27 @@ except ImportError:
 
 app = Flask(__name__)
 
+# ---- Custom Jinja filter: floatformat (like Django) ----
+@app.template_filter('floatformat')
+def floatformat_filter(value, precision=2):
+    """
+    Usage in templates:
+        {{ some_number | floatformat(2) }}
+    This will show: 123.45
+    """
+    try:
+        if value is None or value == "":
+            return ""
+        # Convert to float
+        num = float(value)
+        # Build a format string like "{:.2f}"
+        fmt = "{:." + str(int(precision)) + "f}"
+        return fmt.format(num)
+    except (ValueError, TypeError):
+        # If it can't be converted, just return original value safely
+        return value
+
+
 app.jinja_env.filters['slugify'] = slugify
 # --- Configuration ---
 app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY') or os.environ.get('SECRET_KEY') or 'dev-secret-key'
@@ -1183,9 +1204,10 @@ def purchase_form():
             else prefill_address
         )
 
-        # --- GST Validation Error ---
-        if gst_number and len(gst_number) != 15:
-            flash('Please enter a valid 15-digit GSTIN or leave the field empty.', 'danger')
+                # --- GST Validation Error ---
+        gst_pattern = re.compile(r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}Z[A-Z0-9]{1}$')
+        if gst_number and not gst_pattern.match(gst_number):
+            flash('Please enter a valid GSTIN (e.g. 19AAABBB1234C1Z4) or leave the field empty.', 'danger')
             return render_template(
                 'purchase_form.html',
                 items_to_process=items_to_process,
@@ -1206,9 +1228,10 @@ def purchase_form():
                 current_user_data={
                     'full_name': current_user.full_name,
                     'phone': current_user.phone,
-                    'email': current_user.email,
-                },
+                    'email': current_user.email
+                }
             )
+
 
         action_type = request.form.get('action_type')
 
@@ -4212,6 +4235,310 @@ with app.app_context():
 @app.route("/version")
 def version():
     return "Karthika Futures | Build: 2025-07-28 10:45 AM"
+
+@app.route('/admin/console', methods=['GET'])
+@login_required
+@admin_required
+def admin_console():
+    import traceback
+    from datetime import datetime, timedelta
+    from decimal import Decimal
+
+    try:
+        # --- Base query: newest first ---
+        query = Order.query.order_by(Order.order_date.desc())
+
+        # ---- Read filters from URL ----
+        business_type = request.args.get('business_type', 'all')
+        status       = request.args.get('status', 'all')
+        start_date   = request.args.get('start_date', '')  # 'YYYY-MM-DD'
+        end_date     = request.args.get('end_date', '')    # 'YYYY-MM-DD'
+        search       = request.args.get('search', '').strip()
+
+        # ---- B2B / B2C based on GSTIN ----
+        if business_type == 'b2b':
+            query = query.filter(
+                Order.customer_gstin.isnot(None),
+                Order.customer_gstin != ''
+            )
+        elif business_type == 'b2c':
+            query = query.filter(
+                db.or_(Order.customer_gstin.is_(None), Order.customer_gstin == '')
+            )
+
+        # ---- Status filter ----
+        if status and status != 'all':
+            query = query.filter(Order.status == status)
+
+        # ---- Date range filter (order_date) ----
+        try:
+            if start_date:
+                start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+                query = query.filter(Order.order_date >= start_dt)
+            if end_date:
+                end_dt = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+                query = query.filter(Order.order_date < end_dt)
+        except ValueError:
+            flash("Invalid date format for filtering.", "warning")
+
+        # ---- Search (Order ID / customer name / email / phone / pincode / city) ----
+        if search:
+            like = f"%{search}%"
+            query = (query
+                     .join(User)
+                     .outerjoin(Address, Order.shipping_address_id == Address.id)
+                     .filter(
+                         db.or_(
+                             Order.id.ilike(like),
+                             User.full_name.ilike(like),
+                             User.email.ilike(like),
+                             User.phone.ilike(like),
+                             Address.pincode.ilike(like),
+                             Address.city.ilike(like),
+                         )
+                     ))
+
+        # ---- Pagination ----
+        page = request.args.get('page', 1, type=int)
+        per_page = 25
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+
+        # ---- Summary stats (all orders) ----
+        total_orders = Order.query.count()
+        today_orders = Order.query.filter(
+            db.func.date(Order.order_date) == db.func.current_date()
+        ).count()
+        pending_orders = Order.query.filter_by(status='Pending Payment').count()
+        total_revenue = (db.session.query(db.func.sum(Order.total_amount))
+                         .scalar() or Decimal('0.00'))
+
+        # Status distribution for small chart
+        status_rows = (db.session.query(Order.status, db.func.count(Order.id))
+                       .group_by(Order.status)
+                       .all())
+        status_counts = {row[0]: row[1] for row in status_rows}
+
+        filters = {
+            'business_type': business_type,
+            'status': status,
+            'start_date': start_date,
+            'end_date': end_date,
+            'search': search,
+        }
+
+        stats = {
+            'total_orders': total_orders,
+            'today_orders': today_orders,
+            'pending': pending_orders,
+            'total_revenue': total_revenue,
+            'status_counts': status_counts,
+        }
+
+        return render_template(
+            'admin_console.html',
+            orders=pagination.items,
+            pagination=pagination,
+            stats=stats,
+            filters=filters,
+        )
+
+    except Exception as e:
+        current_app.logger.error(f"Error in admin_console: {e}")
+        current_app.logger.error(traceback.format_exc())
+        flash('An error occurred while fetching orders. See console logs for details.', 'danger')
+        return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/orders/export')
+@login_required
+@admin_required
+def admin_orders_export():
+    """
+    Export filtered orders (same filters as admin_console) as a CSV.
+    Optimized for Excel / Google Sheets.
+    """
+    import csv
+    import traceback
+    from io import StringIO
+    from datetime import datetime, timedelta
+    from sqlalchemy import or_
+
+    try:
+        # --- Read filters from query string (same as admin_console) ---
+        business_type  = request.args.get('business_type', 'all')
+        status         = request.args.get('status', 'all')
+        start_date_str = request.args.get('start_date') or ''
+        end_date_str   = request.args.get('end_date') or ''
+        search         = request.args.get('search', '').strip()
+
+        query = Order.query
+
+        # ---- Business type filter (B2B/B2C based on GSTIN) ----
+        if business_type == 'b2b':
+            # B2B = GSTIN present
+            query = query.filter(
+                Order.customer_gstin.isnot(None),
+                Order.customer_gstin != ''
+            )
+        elif business_type == 'b2c':
+            # B2C = GSTIN empty or NULL
+            query = query.filter(
+                or_(Order.customer_gstin.is_(None), Order.customer_gstin == '')
+            )
+
+        # ---- Status filter ----
+        if status and status != 'all':
+            query = query.filter(Order.status == status)
+
+        # ---- Date range filter (end_date inclusive) ----
+        if start_date_str:
+            try:
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+                query = query.filter(Order.order_date >= start_date)
+            except ValueError:
+                pass
+
+        if end_date_str:
+            try:
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1)
+                query = query.filter(Order.order_date < end_date)
+            except ValueError:
+                pass
+
+        # ---- Search filter (order id, name, email, phone, pincode) ----
+        if search:
+            like = f"%{search}%"
+            query = query.outerjoin(User, User.id == Order.user_id)
+            query = query.filter(
+                or_(
+                    Order.id.ilike(like),
+                    Order.customer_name.ilike(like),
+                    Order.customer_email.ilike(like),
+                    Order.shipping_name.ilike(like),
+                    Order.shipping_pincode.ilike(like),
+                    User.full_name.ilike(like),
+                    User.email.ilike(like),
+                )
+            )
+
+        orders = query.order_by(Order.order_date.desc()).all()
+
+        # ---- Build CSV in memory ----
+        output = StringIO()
+        writer = csv.writer(output)
+
+        # Header row – simple for Excel / Google Sheets
+        writer.writerow([
+            'Order ID',
+            'Order Date',
+            'Status',
+            'Business Type',
+            'Customer Name',
+            'Customer Email',
+            'Customer Phone',
+            'Shipping City',
+            'Shipping State',
+            'Shipping Pincode',
+            'Total Amount',
+            'Payment Status',
+            'Courier',
+            'Tracking Number',
+            'Cancellation Reason',
+            'Items (name x qty, options, price)'
+        ])
+
+        for order in orders:
+            # Shipping object (if method exists)
+            shipping = order.get_shipping_address() if hasattr(order, 'get_shipping_address') else None
+
+            business_label = 'B2B' if (getattr(order, "customer_gstin", "") or "").strip() else 'B2C'
+
+            # Customer fields – all via getattr to avoid AttributeError
+            customer_name  = getattr(order, 'customer_name', None) or getattr(order, 'shipping_name', None) or ''
+            customer_email = getattr(order, 'customer_email', None) or getattr(order, 'user_email', None) or ''
+
+            customer_phone = getattr(order, 'customer_phone', None)
+            shipping_phone = getattr(shipping, 'phone', None) if shipping else None
+            final_phone    = shipping_phone or customer_phone or ''
+
+            shipping_city    = getattr(shipping, 'city', '')    if shipping else ''
+            shipping_state   = getattr(shipping, 'state', '')   if shipping else ''
+            shipping_pincode = getattr(shipping, 'pincode', '') if shipping else ''
+
+            # Build a compact items string – fully defensive
+            item_strings = []
+            for item in getattr(order, 'items', []):
+                # try several possible name fields, but NEVER crash
+                item_name = (
+                    getattr(item, 'name', None)
+                    or getattr(item, 'artwork_name', None)
+                    or getattr(item, 'title', None)
+                    or getattr(item, 'product_name', None)
+                    or getattr(item, 'sku', '')
+                    or ''
+                )
+
+                quantity = getattr(item, 'quantity', None)
+                size     = getattr(item, 'size', None)
+                frame    = getattr(item, 'frame', None)
+                glass    = getattr(item, 'glass', None)
+                price    = getattr(item, 'price', None)
+
+                parts = [item_name]
+
+                if quantity is not None:
+                    parts.append(f"x{quantity}")
+
+                opts = []
+                if size:
+                    opts.append(f"Size:{size}")
+                if frame:
+                    opts.append(f"Frame:{frame}")
+                if glass:
+                    opts.append(f"Glass:{glass}")
+                if opts:
+                    parts.append("(" + ", ".join(opts) + ")")
+
+                if price is not None:
+                    try:
+                        parts.append(f"₹{float(price):.2f}")
+                    except (TypeError, ValueError):
+                        pass
+
+                item_strings.append(" ".join(parts))
+
+            items_joined = " | ".join(item_strings)
+
+            writer.writerow([
+                order.id,
+                order.order_date.strftime('%Y-%m-%d %H:%M:%S') if getattr(order, 'order_date', None) else '',
+                getattr(order, 'status', '') or '',
+                business_label,
+                customer_name,
+                customer_email,
+                final_phone,
+                shipping_city,
+                shipping_state,
+                shipping_pincode,
+                f"{float(getattr(order, 'total_amount', 0) or 0):.2f}",
+                getattr(order, 'payment_status', '') or '',
+                getattr(order, 'courier', '') or '',
+                getattr(order, 'tracking_number', '') or '',
+                getattr(order, 'cancellation_reason', '') or '',
+                items_joined,
+            ])
+
+        # ---- Return CSV response ----
+        from flask import make_response
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+        response.headers['Content-Disposition'] = 'attachment; filename=orders_export.csv'
+        return response
+
+    except Exception as e:
+        current_app.logger.error(f"Error exporting orders CSV: {e}")
+        current_app.logger.error(traceback.format_exc())
+        flash('Failed to export orders CSV. Please try again.', 'danger')
+        return redirect(url_for('admin_console'))
 
 # --- Run the App ---
 if __name__ == '__main__':

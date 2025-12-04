@@ -1,0 +1,692 @@
+{% extends '_base.html' %}
+
+{% block title %}Admin Orders Console{% endblock %}
+
+{% block extra_css %}
+<style>
+    .admin-console-page {
+        padding-top: 90px; /* space for fixed navbar */
+        padding-bottom: 40px;
+        background: #f4f5fb;
+    }
+    .admin-console-card {
+        border-radius: 12px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+        background: #ffffff;
+    }
+    .stat-card {
+        border-radius: 12px;
+        padding: 16px 18px;
+        background: linear-gradient(135deg, #ff9800, #ff5722);
+        color: #fff;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    }
+    .stat-card h4 {
+        font-size: 1rem;
+        margin-bottom: 4px;
+        opacity: 0.9;
+    }
+    .stat-card .value {
+        font-size: 1.6rem;
+        font-weight: 700;
+    }
+    .stat-card.small {
+        background: #ffffff;
+        color: #333;
+        border: 1px solid #eee;
+        box-shadow: none;
+    }
+    .stat-card.small .value {
+        color: #ff5722;
+        font-size: 1.4rem;
+    }
+
+    .filters-wrapper {
+        border-bottom: 1px solid #eee;
+        background: #fff;
+        padding: 12px 16px;
+        border-radius: 12px 12px 0 0;
+    }
+
+    .order-status-badge {
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .status-pending {
+        background: #fff7e6;
+        color: #ff9800;
+    }
+    .status-paid, .status-completed {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+    .status-shipped {
+        background: #e3f2fd;
+        color: #1565c0;
+    }
+    .status-cancelled {
+        background: #ffebee;
+        color: #c62828;
+    }
+
+    .order-row:hover {
+        background: #fdf5ff;
+        cursor: pointer;
+    }
+
+    .table thead th {
+        white-space: nowrap;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: #6b7280;
+    }
+    .table td {
+        font-size: 0.82rem;
+    }
+
+    /* Print styles – only print the table + header */
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        #adminPrintArea, #adminPrintArea * {
+            visibility: visible;
+        }
+        #adminPrintArea {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid admin-console-page">
+
+    <!-- Header + Buttons -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="fw-bold mb-0">Admin Orders Console</h2>
+            <small class="text-muted">Flipkart-style combined view of all orders</small>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+            </a>
+            <button class="btn btn-outline-primary btn-sm" onclick="printOrdersList()">
+                <i class="fas fa-print me-1"></i> Print View
+            </button>
+        </div>
+    </div>
+
+    <!-- Top Stats Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4 col-lg-3">
+            <div class="stat-card h-100">
+                <h4>Total Orders</h4>
+                <div class="value">{{ stats.total_orders or 0 }}</div>
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-3">
+            <div class="stat-card small h-100">
+                <h4>Orders Today</h4>
+                <div class="value">{{ stats.today_orders or 0 }}</div>
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-3">
+            <div class="stat-card small h-100">
+                <h4>Pending Payment</h4>
+                <div class="value">{{ stats.pending or 0 }}</div>
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-3">
+            <div class="stat-card small h-100">
+                <h4>Total Revenue</h4>
+                <div class="value">₹{{ "%.2f"|format(stats.total_revenue or 0) }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- Left: Filters + Orders Table -->
+        <div class="col-lg-8 col-xl-9">
+            <div class="admin-console-card" id="adminPrintArea">
+                <!-- Filters -->
+                <form method="GET" action="{{ url_for('admin_console') }}" class="filters-wrapper">
+                    <div class="row g-2 align-items-end">
+                        <!-- Business type -->
+                        <div class="col-md-2 col-6">
+                            <label class="form-label mb-1 small fw-semibold">Invoice Type</label>
+                            <select name="business_type" class="form-select form-select-sm">
+                                <option value="all" {% if filters.business_type == 'all' %}selected{% endif %}>All</option>
+                                <option value="b2b" {% if filters.business_type == 'b2b' %}selected{% endif %}>B2B</option>
+                                <option value="b2c" {% if filters.business_type == 'b2c' %}selected{% endif %}>B2C</option>
+                            </select>
+                        </div>
+
+                        <!-- Status -->
+                        <div class="col-md-2 col-6">
+                            <label class="form-label mb-1 small fw-semibold">Status</label>
+                            <select name="status" class="form-select form-select-sm">
+                                <option value="all" {% if filters.status == 'all' %}selected{% endif %}>All</option>
+                                <option value="Pending Payment" {% if filters.status == 'Pending Payment' %}selected{% endif %}>Pending Payment</option>
+                                <option value="Payment Submitted - Awaiting Verification" {% if filters.status == 'Payment Submitted - Awaiting Verification' %}selected{% endif %}>Payment Submitted</option>
+                                <option value="Payment Verified – Preparing Order" {% if filters.status == 'Payment Verified – Preparing Order' %}selected{% endif %}>Payment Verified</option>
+                                <option value="Shipped" {% if filters.status == 'Shipped' %}selected{% endif %}>Shipped</option>
+                                <option value="Delivered" {% if filters.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                                <option value="Cancelled by User" {% if filters.status == 'Cancelled by User' %}selected{% endif %}>Cancelled by User</option>
+                                <option value="Cancelled by Admin" {% if filters.status == 'Cancelled by Admin' %}selected{% endif %}>Cancelled by Admin</option>
+                                <option value="Payment Failed" {% if filters.status == 'Payment Failed' %}selected{% endif %}>Payment Failed</option>
+                            </select>
+                        </div>
+
+                        <!-- Start date -->
+                        <div class="col-md-2 col-6">
+                            <label class="form-label mb-1 small fw-semibold">Start Date</label>
+                            <input type="date" name="start_date" class="form-control form-control-sm"
+                                   value="{{ filters.start_date or '' }}">
+                        </div>
+
+                        <!-- End date -->
+                        <div class="col-md-2 col-6">
+                            <label class="form-label mb-1 small fw-semibold">End Date</label>
+                            <input type="date" name="end_date" class="form-control form-control-sm"
+                                   value="{{ filters.end_date or '' }}">
+                        </div>
+
+                        <!-- Search -->
+                        <div class="col-md-3 col-8">
+                            <label class="form-label mb-1 small fw-semibold">Search</label>
+                            <input type="text" name="search"
+                                   class="form-control form-control-sm"
+                                   placeholder="Order ID, name, email, phone, pincode..."
+                                   value="{{ filters.search or '' }}">
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="col-md-1 col-4 text-end">
+
+    <!-- Search Button -->
+    <button type="submit" class="btn btn-primary btn-sm w-100 mb-1">
+        <i class="fas fa-search"></i>
+    </button>
+
+    <!-- Reset Button -->
+    <a href="{{ url_for('admin_console') }}" class="btn btn-outline-secondary btn-sm w-100 mb-1">
+        Reset
+    </a>
+
+    <!-- Print Button -->
+<button type="button"
+        class="btn btn-outline-secondary btn-sm w-100 mb-1"
+        onclick="printOrdersList()">
+    <i class="fas fa-print me-1"></i> Print
+</button>
+
+
+    <!-- CSV Download Button -->
+    <a class="btn btn-outline-success btn-sm w-100"
+       href="{{ url_for('admin_orders_export',
+                        business_type=filters.business_type,
+                        status=filters.status,
+                        start_date=filters.start_date,
+                        end_date=filters.end_date,
+                        search=filters.search) }}">
+        <i class="fas fa-file-download me-1"></i> CSV
+    </a>
+
+</div>
+
+                    </div>
+                </form>
+
+                <!-- Orders table -->
+                <div class="table-responsive p-3" id="ordersTableArea">
+                    <table class="table align-middle">
+                        <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Customer</th>
+                            <th>Amount</th>
+                            <th>Invoice</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% if orders %}
+                            {% for order in orders %}
+                                {% set shipping = order.get_shipping_address() %}
+                                <tr class="order-row">
+                                    <!-- Order -->
+                                    <td>
+                                        <div class="fw-semibold text-primary">#{{ order.id }}</div>
+                                        <small class="text-muted">
+                                            {{ 'B2B' if order.customer_gstin else 'B2C' }}
+                                            {% if order.customer_gstin %}
+                                                · GST: {{ order.customer_gstin }}
+                                            {% endif %}
+                                        </small><br>
+                                        <small class="text-muted">
+                                            {{ order.items|length }} item(s)
+                                        </small>
+                                    </td>
+
+                                    <!-- Customer -->
+                                    <td>
+                                        <div class="fw-semibold">{{ order.customer_name or order.shipping_name }}</div>
+                                        <small class="text-muted d-block">
+                                            {{ order.customer_email or order.user_email }}
+                                        </small>
+                                        {% if order.shipping_phone or order.customer_phone %}
+                                            <small class="text-muted d-block">
+                                                {{ order.shipping_phone or order.customer_phone }}
+                                            </small>
+                                        {% endif %}
+                                        {% if shipping %}
+                                            <small class="text-muted d-block">
+                                                {{ shipping.city }}, {{ shipping.state }} - {{ shipping.pincode }}
+                                            </small>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Amount -->
+                                    <td>
+                                        <div class="fw-semibold text-success">
+                                            ₹{{ "%.2f"|format(order.total_amount or 0) }}
+                                        </div>
+                                        <small class="text-muted">
+                                            {{ order.payment_status|default('unpaid')|capitalize }}
+                                        </small>
+                                    </td>
+
+                                    <!-- Invoice -->
+                                    <td>
+                                        <a href="{{ url_for('generate_invoice_pdf', order_id=order.id) }}"
+                                           target="_blank"
+                                           class="btn btn-outline-secondary btn-sm">
+                                            <i class="fas fa-file-pdf me-1 text-danger"></i>PDF
+                                        </a>
+                                    </td>
+
+                                    <!-- Status -->
+                                    <td>
+                                        {% set s = order.status or 'Pending Payment' %}
+                                        {% set class_ = 'status-pending' %}
+                                        {% if 'Shipped' in s %}
+                                            {% set class_ = 'status-shipped' %}
+                                        {% elif 'Delivered' in s %}
+                                            {% set class_ = 'status-completed' %}
+                                        {% elif 'Cancelled' in s or 'Failed' in s %}
+                                            {% set class_ = 'status-cancelled' %}
+                                        {% elif 'Verified' in s %}
+                                            {% set class_ = 'status-paid' %}
+                                        {% endif %}
+
+                                        <span class="order-status-badge {{ class_ }}">
+                                            <i class="fas fa-circle" style="font-size:6px;"></i> {{ s }}
+                                        </span>
+                                        {% if order.courier or order.tracking_number %}
+                                            <small class="text-muted d-block mt-1">
+                                                {{ order.courier or '' }} {{ order.tracking_number or '' }}
+                                            </small>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Date -->
+                                    <td>
+                                        <div class="fw-semibold">
+                                            {{ order.order_date.strftime('%d %b %Y') if order.order_date else '-' }}
+                                        </div>
+                                        <small class="text-muted">
+                                            {{ order.order_date.strftime('%I:%M %p') if order.order_date else '' }}
+                                        </small>
+                                    </td>
+
+                                    <!-- Actions -->
+                                    <td class="text-end">
+                                        <a href="{{ url_for('admin_order_details', order_id=order.id) }}"
+                                           class="btn btn-outline-primary btn-xs btn-sm mb-1">
+                                            <i class="fas fa-eye me-1"></i>Details
+                                        </a>
+                                        <button type="button"
+                                                class="btn btn-outline-warning btn-xs btn-sm mb-1 update-order-status-btn"
+                                                data-order-id="{{ order.id }}"
+                                                data-current-status="{{ order.status }}"
+                                                data-current-remark="{{ order.remark or '' }}"
+                                                data-current-courier="{{ order.courier or '' }}"
+                                                data-current-tracking="{{ order.tracking_number or '' }}"
+                                                data-current-cancellation-reason="{{ order.cancellation_reason or '' }}">
+                                            <i class="fas fa-edit me-1"></i>Status
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <!-- Items row -->
+                                <tr class="bg-light">
+                                    <td colspan="7">
+                                        <strong>Items:</strong>
+                                        <ul class="mb-0 small">
+                                            {% for item in order.items %}
+                                                <li>
+                                                    {{ item.name }} x{{ item.quantity }}
+                                                    {% if item.size %} · Size: {{ item.size }}{% endif %}
+                                                    {% if item.frame %} · Frame: {{ item.frame }}{% endif %}
+                                                    {% if item.glass %} · Glass: {{ item.glass }}{% endif %}
+                                                    – ₹{{ "%.2f"|format(item.price or 0) }}
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    No orders found for the selected filters.
+                                </td>
+                            </tr>
+                        {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if pagination.pages > 1 %}
+                    <div class="d-flex justify-content-between align-items-center px-3 pb-3">
+                        <small class="text-muted">
+                            Page {{ pagination.page }} of {{ pagination.pages }}
+                        </small>
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0">
+                                {% if pagination.has_prev %}
+                                    <li class="page-item">
+                                        <a class="page-link"
+                                           href="{{ url_for('admin_console',
+                                                            page=pagination.prev_num,
+                                                            business_type=filters.business_type,
+                                                            status=filters.status,
+                                                            start_date=filters.start_date,
+                                                            end_date=filters.end_date,
+                                                            search=filters.search) }}">
+                                            ‹
+                                        </a>
+                                    </li>
+                                {% endif %}
+                                {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                                    {% if p %}
+                                        <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                                            <a class="page-link"
+                                               href="{{ url_for('admin_console',
+                                                                page=p,
+                                                                business_type=filters.business_type,
+                                                                status=filters.status,
+                                                                start_date=filters.start_date,
+                                                                end_date=filters.end_date,
+                                                                search=filters.search) }}">
+                                                {{ p }}
+                                            </a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item disabled"><span class="page-link">…</span></li>
+                                    {% endif %}
+                                {% endfor %}
+                                {% if pagination.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link"
+                                           href="{{ url_for('admin_console',
+                                                            page=pagination.next_num,
+                                                            business_type=filters.business_type,
+                                                            status=filters.status,
+                                                            start_date=filters.start_date,
+                                                            end_date=filters.end_date,
+                                                            search=filters.search) }}">
+                                            ›
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Right: Small Analytics -->
+        <div class="col-lg-4 col-xl-3">
+            <div class="admin-console-card p-3 mb-3">
+                <h5 class="fw-semibold mb-2">Status Distribution</h5>
+                <small class="text-muted d-block mb-2">
+                    Based on all orders
+                </small>
+                <canvas id="statusChart" height="220"></canvas>
+            </div>
+
+            <div class="admin-console-card p-3">
+                <h6 class="fw-semibold mb-2">Quick Tips</h6>
+                <ul class="small text-muted mb-0">
+                    <li>Use the search box for Order ID, customer, phone or pincode.</li>
+                    <li>Click <strong>PDF</strong> to open invoice in new tab.</li>
+                    <li>Use <strong>Status</strong> button to update courier & tracking.</li>
+                    <li>Use browser print for a physical copy of filtered orders.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Update Modal (re-using dashboard logic) -->
+    <div class="modal fade" id="orderStatusModal" tabindex="-1" aria-labelledby="orderStatusModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-lg shadow-xl">
+                <div class="modal-header bg-primary text-white rounded-t-lg">
+                    <h5 class="modal-title" id="orderStatusModalLabel">Update Order Status</h5>
+                    <button type="button" class="btn-close text-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="orderStatusForm">
+                        <input type="hidden" id="modalOrderId" name="order_id">
+                        <div class="mb-3">
+                            <label for="orderStatusSelect" class="form-label">Status</label>
+                            <select class="form-select" id="orderStatusSelect" name="status" required>
+                                <option value="Pending Payment">Pending Payment</option>
+                                <option value="Payment Submitted - Awaiting Verification">Payment Submitted - Awaiting Verification</option>
+                                <option value="Payment Verified – Preparing Order">Payment Verified – Preparing Order</option>
+                                <option value="Shipped">Shipped</option>
+                                <option value="Delivered">Delivered</option>
+                                <option value="Cancelled by User">Cancelled by User</option>
+                                <option value="Cancelled by Admin">Cancelled by Admin</option>
+                                <option value="Payment Failed">Payment Failed</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="modalCourier" class="form-label">Courier</label>
+                            <input type="text" class="form-control" id="modalCourier" name="courier" placeholder="e.g. Delhivery, BlueDart">
+                        </div>
+                        <div class="mb-3">
+                            <label for="modalTrackingNumber" class="form-label">Tracking Number</label>
+                            <input type="text" class="form-control" id="modalTrackingNumber" name="tracking_number" placeholder="e.g. TRK123456789">
+                        </div>
+                        <div class="mb-3">
+                            <label for="modalRemark" class="form-label">Admin Remark</label>
+                            <textarea class="form-control" id="modalRemark" name="remark" rows="2"></textarea>
+                        </div>
+                        <div class="mb-3" id="cancellationReasonGroup" style="display: none;">
+                            <label for="modalCancellationReason" class="form-label">Cancellation Reason</label>
+                            <textarea class="form-control" id="modalCancellationReason" name="cancellation_reason" rows="2"></textarea>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary">Save</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // ---- Status distribution chart ----
+    const statusLabels = [
+        {% for status, count in stats.status_counts.items() %}
+            "{{ status }}",
+        {% endfor %}
+    ];
+    const statusValues = [
+        {% for status, count in stats.status_counts.items() %}
+            {{ count }},
+        {% endfor %}
+    ];
+
+    if (statusLabels.length > 0) {
+        const ctx = document.getElementById('statusChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: statusLabels,
+                datasets: [{
+                    data: statusValues,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+
+    // ---- Order status modal logic (same API as dashboard) ----
+    const orderStatusModal = new bootstrap.Modal(document.getElementById('orderStatusModal'));
+    const orderStatusForm = document.getElementById('orderStatusForm');
+    const modalOrderId = document.getElementById('modalOrderId');
+    const orderStatusSelect = document.getElementById('orderStatusSelect');
+    const modalRemark = document.getElementById('modalRemark');
+    const modalCourier = document.getElementById('modalCourier');
+    const modalTrackingNumber = document.getElementById('modalTrackingNumber');
+    const cancellationReasonGroup = document.getElementById('cancellationReasonGroup');
+    const modalCancellationReason = document.getElementById('modalCancellationReason');
+
+    document.querySelectorAll('.update-order-status-btn').forEach(button => {
+        button.addEventListener('click', function () {
+            modalOrderId.value = this.dataset.orderId;
+            orderStatusSelect.value = this.dataset.currentStatus || 'Pending Payment';
+            modalRemark.value = this.dataset.currentRemark || '';
+            modalCourier.value = this.dataset.currentCourier || '';
+            modalTrackingNumber.value = this.dataset.currentTracking || '';
+            modalCancellationReason.value = this.dataset.currentCancellationReason || '';
+
+            if ((this.dataset.currentStatus || '').includes('Cancelled')) {
+                cancellationReasonGroup.style.display = 'block';
+            } else {
+                cancellationReasonGroup.style.display = 'none';
+                modalCancellationReason.value = '';
+            }
+            orderStatusModal.show();
+        });
+    });
+
+    orderStatusForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const orderId = modalOrderId.value;
+        const status = orderStatusSelect.value;
+        const remark = modalRemark.value;
+        const courier = modalCourier.value;
+        const trackingNumber = modalTrackingNumber.value;
+        const cancellationReason = modalCancellationReason.value;
+
+        try {
+            const response = await fetch(`/admin/order/update_status/${orderId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': window.csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    status,
+                    remark,
+                    courier,
+                    tracking_number: trackingNumber,
+                    cancellation_reason: cancellationReason
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                showCustomAlert(result.message || 'Order updated.', 'success');
+                orderStatusModal.hide();
+                setTimeout(() => location.reload(), 800);
+            } else {
+                showCustomAlert(result.message || 'Failed to update.', 'danger');
+            }
+        } catch (err) {
+            console.error('Error updating order status:', err);
+            showCustomAlert('An error occurred while updating the order status.', 'danger');
+        }
+    });
+});
+
+
+function printOrdersList() {
+    // Prefer only the table; fallback to whole card if needed
+    const areaEl =
+        document.getElementById('ordersTableArea') ||
+        document.getElementById('adminPrintArea');
+
+    if (!areaEl) {
+        window.print(); // safety fallback
+        return;
+    }
+
+    const printContents = areaEl.innerHTML;
+    const originalContents = document.body.innerHTML;
+
+    document.body.innerHTML = `
+        <html>
+        <head>
+            <title>Orders Printout</title>
+            <style>
+                @page { size: A4; margin: 10mm; }
+                body { font-family: Arial, sans-serif; font-size: 11px; }
+                table { width: 100%; border-collapse: collapse; }
+                th, td { border: 1px solid #ddd; padding: 4px 6px; font-size: 11px; }
+                th { background: #f0f0f0; }
+                h2 { margin-bottom: 8px; font-size: 16px; }
+            </style>
+        </head>
+        <body>
+            <h2>Orders List (${new Date().toLocaleDateString()})</h2>
+            ${printContents}
+        </body>
+        </html>
+    `;
+
+    window.print();
+
+    // restore original page
+    document.body.innerHTML = originalContents;
+    location.reload();
+}
+
+</script>
+
+{% endblock %}
