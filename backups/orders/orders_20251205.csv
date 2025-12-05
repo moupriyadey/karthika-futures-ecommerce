@@ -1,0 +1,7 @@
+Order ID,Order Date,Status,Business Type,Customer Name,Customer Email,Customer Phone,Shipping City,Shipping State,Shipping Pincode,Total Amount,Payment Status,Courier,Tracking Number,Cancellation Reason,"Items (name x qty, options, price)"
+OD15416980,2025-11-29 15:45:35,Shipped,B2B,Karthika Futures Admin,admin@karthikafutures.com,,,,,350.00,submitted,None,None,, x1
+OD15416979,2025-11-29 15:31:54,Shipped,B2C,covcorres,covcorres@gmail.com,8920283981,,,,56.00,submitted,None,None,, x1
+OD15416974,2025-11-29 11:04:08,Shipped,B2C,covcorres,covcorres@gmail.com,8920283981,,,,341.96,submitted,,,, x1 |  x1 |  x2
+OD15416957,2025-10-05 19:10:21,Shipped,B2C,covcorres,covcorres@gmail.com,8920283981,,,,53.60,completed,,,, x1
+OD15416955,2025-10-04 13:02:03,Shipped,B2B,covcorres,covcorres@gmail.com,8920283981,,,,56.00,completed,DTDC,1121121212IN,, x1
+OD15416871,2025-08-24 17:20:41,Shipped,B2C,Mou dey,deymoupriya12@gmail.com,9330482697,,,,112.00,submitted,Ufxyddufu,Tfsfg1246899,, x1

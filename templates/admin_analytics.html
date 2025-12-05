@@ -1,0 +1,425 @@
+{% extends "_base.html" %}
+
+{% block title %}Admin Analytics{% endblock %}
+
+{% block extra_css %}
+<style>
+  .analytics-page {
+      padding-top: 90px;
+      padding-bottom: 40px;
+      background: #f4f5fb;
+  }
+  .analytics-card {
+      background:#fff;
+      border-radius:12px;
+      box-shadow:0 8px 20px rgba(0,0,0,0.05);
+      padding:16px 18px;
+      margin-bottom:16px;
+  }
+  .stat-card {
+      border-radius:12px;
+      padding:16px 18px;
+      background:linear-gradient(135deg,#ff9800,#ff5722);
+      color:#fff;
+      box-shadow:0 6px 18px rgba(0,0,0,0.12);
+  }
+  .stat-card.small {
+      background:#fff;
+      color:#333;
+      border:1px solid #eee;
+      box-shadow:none;
+  }
+  .stat-card h4 {
+      font-size:0.9rem;
+      margin-bottom:4px;
+      opacity:0.9;
+  }
+  .stat-card .value {
+      font-size:1.5rem;
+      font-weight:700;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid analytics-page">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+          <h2 class="fw-bold mb-0">Analytics & Insights</h2>
+          <small class="text-muted">Charts & AI-style insights for Karthika Futures</small>
+      </div>
+      <div class="d-flex gap-2">
+          <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary btn-sm">
+              <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+          </a>
+          <a href="{{ url_for('admin_console') }}" class="btn btn-outline-primary btn-sm">
+              <i class="fas fa-list me-1"></i> Orders Console
+          </a>
+      </div>
+  </div>
+
+  <!-- Summary row -->
+  <div class="row g-3 mb-4">
+      <div class="col-md-4">
+          <div class="stat-card h-100">
+              <h4>Total Orders</h4>
+              <div class="value" id="statTotalOrders">0</div>
+          </div>
+      </div>
+      <div class="col-md-4">
+          <div class="stat-card small h-100">
+              <h4>Total Revenue</h4>
+              <div class="value" id="statTotalRevenue">₹0.00</div>
+          </div>
+      </div>
+      <div class="col-md-4">
+          <div class="stat-card small h-100">
+              <h4>Average Order Value</h4>
+              <div class="value" id="statAOV">₹0.00</div>
+          </div>
+      </div>
+  </div>
+
+  <div class="row g-3">
+      <!-- Left big column -->
+      <div class="col-lg-8">
+          <div class="analytics-card">
+              <h5 class="fw-semibold mb-2">Status Distribution</h5>
+              <small class="text-muted">All orders</small>
+              <canvas id="statusChart" height="180"></canvas>
+          </div>
+
+          <div class="analytics-card">
+              <h5 class="fw-semibold mb-2">Orders & Revenue by Month</h5>
+              <small class="text-muted">Trend of growth</small>
+              <canvas id="ordersByMonthChart" height="220"></canvas>
+          </div>
+
+          <div class="analytics-card">
+              <h5 class="fw-semibold mb-2">Hourly Orders</h5>
+              <small class="text-muted">Peak buying hours</small>
+              <canvas id="hourlyChart" height="220"></canvas>
+          </div>
+
+          <div class="analytics-card">
+              <h5 class="fw-semibold mb-2">Top Selling SKUs</h5>
+              <small class="text-muted">By units sold</small>
+              <canvas id="topSkuChart" height="220"></canvas>
+          </div>
+      </div>
+
+      <!-- Right column -->
+      <div class="col-lg-4">
+          <div class="analytics-card">
+              <h5 class="fw-semibold mb-2">New vs Returning Customers</h5>
+              <canvas id="customerTypeChart" height="200"></canvas>
+          </div>
+
+          <div class="analytics-card">
+              <h5 class="fw-semibold mb-2">Payment Success</h5>
+              <canvas id="paymentChart" height="200"></canvas>
+          </div>
+
+          <div class="analytics-card">
+              <h5 class="fw-semibold mb-2">Revenue by State</h5>
+              <canvas id="stateRevenueChart" height="220"></canvas>
+          </div>
+
+          <div class="analytics-card">
+              <h6 class="fw-semibold mb-1">Smart Insight</h6>
+              <p class="small text-muted mb-1" id="smartInsightText">
+                  Loading insight...
+              </p>
+              <ul class="small text-muted mb-0">
+                  <li>Returning customers: <span id="smartReturningRate">0%</span></li>
+                  <li>Cancellation rate: <span id="smartCancelRate">0%</span></li>
+                  <li>Predicted repeat orders (30 days): <span id="smartPredRepeat">0</span></li>
+                  <li>High-risk orders: <span id="smartHighRisk">0</span></li>
+              </ul>
+          </div>
+      </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    fetch("{{ url_for('admin_analytics_data') }}")
+        .then(r => r.json())
+        .then(json => {
+            console.log('Raw analytics response:', json);
+
+            // Support both: {success: true, data: {...}} and plain {...}
+            const data = json.data || json || {};
+            console.log('Normalized analytics data:', data);
+
+            populateSummary(data);
+            buildCharts(data);
+            buildInsight(data);
+        })
+        .catch(err => {
+            console.error('Analytics error:', err);
+            const el = document.getElementById('smartInsightText');
+            if (el) el.textContent = 'Failed to load analytics data.';
+        });
+});
+
+// ---------- SUMMARY CARDS ----------
+function populateSummary(data) {
+    // If backend already sends a summary object, prefer that
+    const s = data.summary || {};
+
+    let totalOrders = s.total_orders || 0;
+    let totalRevenue = s.total_revenue || 0;
+    let avgOrderValue = s.avg_order_value || 0;
+
+    // If summary not provided, derive simple numbers from other fields
+    if (!s.total_orders && Array.isArray(data.monthly_orders)) {
+        totalOrders = data.monthly_orders.reduce((a, b) => a + (b || 0), 0);
+    }
+    if (!s.total_revenue && data.state_revenue) {
+        // state_revenue is a dict: { "WB": 1234, "KA": 5678, ... }
+        totalRevenue = Object.values(data.state_revenue)
+                             .reduce((a, b) => a + (b || 0), 0);
+    }
+    if (!s.avg_order_value && totalOrders > 0) {
+        avgOrderValue = totalRevenue / totalOrders;
+    }
+
+    document.getElementById('statTotalOrders').textContent = totalOrders;
+    document.getElementById('statTotalRevenue').textContent =
+        '₹' + (totalRevenue || 0).toFixed(2);
+    document.getElementById('statAOV').textContent =
+        '₹' + (avgOrderValue || 0).toFixed(2);
+}
+
+// ---------- CHARTS ----------
+function buildCharts(data) {
+    // 1) STATUS DISTRIBUTION (if backend sends status_counts)
+    const statusData = data.status_counts || {};
+    const statusLabels = Object.keys(statusData);
+    const statusValues = statusLabels.map(k => statusData[k]);
+    const ctxStatus = document.getElementById('statusChart');
+    if (ctxStatus && statusLabels.length) {
+        new Chart(ctxStatus, {
+            type: 'doughnut',
+            data: {
+                labels: statusLabels,
+                datasets: [{ data: statusValues }]
+            },
+            options: {
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    }
+
+    // 2) ORDERS & REVENUE BY MONTH
+    // Support either:
+    //   data.orders_by_month = [{month, orders, revenue}, ...]
+    // or:
+    //   data.monthly_labels + data.monthly_orders (+ optional monthly_revenue)
+    let monthLabels = [];
+    let monthOrders = [];
+    let monthRevenue = [];
+
+    if (Array.isArray(data.orders_by_month)) {
+        monthLabels  = data.orders_by_month.map(x => x.month);
+        monthOrders  = data.orders_by_month.map(x => x.orders);
+        monthRevenue = data.orders_by_month.map(x => x.revenue || 0);
+    } else if (Array.isArray(data.monthly_labels) && Array.isArray(data.monthly_orders)) {
+        monthLabels = data.monthly_labels;
+        monthOrders = data.monthly_orders;
+        // If you later send monthly_revenue, it will be used automatically
+        if (Array.isArray(data.monthly_revenue)) {
+            monthRevenue = data.monthly_revenue;
+        } else {
+            // Fallback: approximate revenue with order count (just for visualization)
+            monthRevenue = data.monthly_orders.map(v => v);
+        }
+    }
+
+    const ctxMonth = document.getElementById('ordersByMonthChart');
+    if (ctxMonth && monthLabels.length) {
+        new Chart(ctxMonth, {
+            type: 'bar',
+            data: {
+                labels: monthLabels,
+                datasets: [
+                    { label: 'Orders', data: monthOrders, borderWidth: 1 },
+                    { label: 'Revenue (₹)', data: monthRevenue, borderWidth: 1 }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+
+    // 3) HOURLY ORDERS – expects data.hourly_orders = [24 numbers]
+    // 3) HOURLY ORDERS – expects data.hourly_orders = [24 numbers]
+const hourly = Array.isArray(data.hourly_orders) ? data.hourly_orders : [];
+
+// Create labels "00:00", "01:00", ... "23:00"
+const hourLabels = Array.from({ length: 24 }, (_, h) =>
+    h.toString().padStart(2, '0') + ':00'
+);
+
+const ctxHour = document.getElementById('hourlyChart');
+
+    if (ctxHour && hourly.length === 24) {
+        new Chart(ctxHour, {
+            type: 'bar',
+            data: {
+                labels: hourLabels,
+                datasets: [{ data: hourly }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+
+    // 4) NEW vs RETURNING CUSTOMERS – if backend sends new_vs_returning
+    const nv = data.new_vs_returning || {};
+    const ctxCust = document.getElementById('customerTypeChart');
+    if (ctxCust && (nv.new_customers || nv.returning_customers)) {
+        new Chart(ctxCust, {
+            type: 'doughnut',
+            data: {
+                labels: ['New', 'Returning'],
+                datasets: [{
+                    data: [nv.new_customers || 0, nv.returning_customers || 0]
+                }]
+            },
+            options: {
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    }
+
+    // 5) PAYMENT SUCCESS – if backend sends payment_status
+    const pay = data.payment_status || {};
+    const ctxPay = document.getElementById('paymentChart');
+    if (ctxPay && (pay.success || pay.failed || pay.pending)) {
+        new Chart(ctxPay, {
+            type: 'doughnut',
+            data: {
+                labels: ['Success', 'Failed', 'Pending'],
+                datasets: [{
+                    data: [pay.success || 0, pay.failed || 0, pay.pending || 0]
+                }]
+            },
+            options: {
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    }
+
+    // 6) REVENUE BY STATE
+    // Support:
+    //   data.revenue_by_state = [{state, revenue}, ...]
+    // or:
+    //   data.state_revenue = { "WB": 1000, ... }
+    let stateLabels = [];
+    let stateValues = [];
+    if (Array.isArray(data.revenue_by_state)) {
+        stateLabels = data.revenue_by_state.map(x => x.state);
+        stateValues = data.revenue_by_state.map(x => x.revenue);
+    } else if (data.state_revenue) {
+        stateLabels = Object.keys(data.state_revenue);
+        stateValues = stateLabels.map(k => data.state_revenue[k]);
+    }
+
+    const ctxState = document.getElementById('stateRevenueChart');
+    if (ctxState && stateLabels.length) {
+        new Chart(ctxState, {
+            type: 'bar',
+            data: {
+                labels: stateLabels,
+                datasets: [{ data: stateValues }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { x: { beginAtZero: true } }
+            }
+        });
+    }
+
+    // 7) TOP SELLING SKUs – if backend sends top_skus
+    const topSkus = Array.isArray(data.top_skus) ? data.top_skus : [];
+    const skuLabels = topSkus.map(x => x.sku);
+    const skuUnits = topSkus.map(x => x.units);
+    const ctxSku = document.getElementById('topSkuChart');
+    if (ctxSku && skuLabels.length) {
+        new Chart(ctxSku, {
+            type: 'bar',
+            data: {
+                labels: skuLabels,
+                datasets: [{ data: skuUnits }]
+            },
+            options: {
+                indexAxis: 'y',
+                plugins: { legend: { display: false } },
+                scales: { x: { beginAtZero: true } }
+            }
+        });
+    }
+}
+
+// ---------- SMART INSIGHT ----------
+function buildInsight(data) {
+    const adv     = data.advanced || {};
+    const summary = data.summary  || {};
+    const totalOrders = summary.total_orders ||
+        (Array.isArray(data.monthly_orders)
+            ? data.monthly_orders.reduce((a,b)=>a+(b||0),0)
+            : 0);
+
+    const returningRate   = adv.returning_rate   || 0;
+    const cancellationRate = adv.cancellation_rate || 0;
+    const predictedRepeat = adv.predicted_repeat_orders || 0;
+    const highRisk        = adv.high_risk_orders || 0;
+
+    document.getElementById('smartReturningRate').textContent =
+        returningRate.toFixed(1) + '%';
+    document.getElementById('smartCancelRate').textContent =
+        cancellationRate.toFixed(1) + '%';
+    document.getElementById('smartPredRepeat').textContent =
+        predictedRepeat;
+    document.getElementById('smartHighRisk').textContent =
+        highRisk;
+
+    let text = '';
+    if (!totalOrders) {
+        text = 'No orders yet. Analytics will appear once customers start buying.';
+    } else {
+        if (adv.best_state) {
+            text += `Most revenue is coming from ${adv.best_state}. `;
+        }
+        if (adv.best_hour !== null && adv.best_hour !== undefined) {
+            const h = String(adv.best_hour).padStart(2,'0') + ':00';
+            text += `Peak order time is around ${h}. `;
+        }
+        if (returningRate > 0) {
+            text += `Around ${returningRate.toFixed(1)}% of customers are returning. Focus on offers and WhatsApp follow-ups for them. `;
+        } else {
+            text += 'Almost all customers are first-timers. Try follow-up messages and coupons to convert them into repeat buyers. ';
+        }
+        if (highRisk > 0) {
+            text += `${highRisk} orders are pending for more than 24 hours — verify payments or contact customers.`;
+        }
+    }
+
+    const el = document.getElementById('smartInsightText');
+    if (el) el.textContent = text;
+}
+</script>
+{% endblock %}

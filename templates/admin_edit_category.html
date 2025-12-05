@@ -20,13 +20,20 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Current Image</label><br>
-                {% if category.image %}
-                    <img src="{{ url_for('static', filename=category.image) }}" id="currentImage" alt="{{ category.name }}" class="img-thumbnail mb-2" style="max-height: 150px;">
-                {% else %}
-                    <p class="text-muted">No image uploaded.</p>
-                {% endif %}
-            </div>
+    <label class="form-label">Current Image</label><br>
+    {% if category.image %}
+        {% if category.image.startswith('http') %}
+            <img src="{{ category.image }}" id="currentImage"
+                 alt="{{ category.name }}" class="img-thumbnail mb-2" style="max-height: 150px;">
+        {% else %}
+            <img src="{{ url_for('static', filename=category.image) }}" id="currentImage"
+                 alt="{{ category.name }}" class="img-thumbnail mb-2" style="max-height: 150px;">
+        {% endif %}
+    {% else %}
+        <p class="text-muted">No image uploaded.</p>
+    {% endif %}
+</div>
+
 
             <div class="mb-3">
                 <label for="newImage" class="form-label">Replace Image (optional)</label>

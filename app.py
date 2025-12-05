@@ -2622,21 +2622,28 @@ def admin_edit_category(category_id):
         
         category.description = description
 
-        # Handle image upload
+                # Handle image upload (Cloudinary)
         if 'image' in request.files:
             file = request.files['image']
-            if file and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                unique_filename = str(uuid.uuid4()) + '_' + filename
-                file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-                file.save(file_path)
-                # Delete old image if exists
-                if category.image and os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(category.image))):
-                    os.remove(os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(category.image)))
-                category.image = 'uploads/' + unique_filename
-            elif file and not allowed_file(file.filename):
-                flash('Invalid image file type.', 'danger')
-                return render_template('admin_edit_category.html', category=category)
+
+            # Only act if a file was actually chosen
+            if file and file.filename:
+                if not allowed_file(file.filename):
+                    flash('Invalid image file type.', 'danger')
+                    return render_template('admin_edit_category.html', category=category)
+
+                try:
+                    upload_result = cloudinary.uploader.upload(
+                        file,
+                        folder="categories"
+                    )
+                    # Save the secure Cloudinary URL directly in DB
+                    category.image = upload_result.get("secure_url")
+                except Exception as e:
+                    current_app.logger.error(f"Error uploading category image: {e}")
+                    flash('Error uploading image. Please try again.', 'danger')
+                    return render_template('admin_edit_category.html', category=category)
+
 
         db.session.commit()
         flash('Category updated successfully!', 'success')
@@ -4551,6 +4558,201 @@ def admin_orders_export():
         current_app.logger.error(traceback.format_exc())
         flash('Failed to export orders CSV. Please try again.', 'danger')
         return redirect(url_for('admin_console'))
+
+from collections import defaultdict
+from datetime import datetime
+from flask import jsonify
+# (These imports are probably already at top; if yes, don't repeat)
+# from decimal import Decimal
+# from .models import Order, OrderItem, Address, User  # adjust if you keep models elsewhere
+
+
+# =========================
+# ADMIN ANALYTICS PAGE + API
+# =========================
+
+@app.route("/admin/analytics")
+@login_required
+@admin_required
+def admin_analytics():
+    return render_template("admin_analytics.html")
+
+
+@app.route("/admin/analytics-data")
+@login_required
+@admin_required
+def admin_analytics_data():
+    from collections import defaultdict
+    from datetime import datetime, timedelta
+
+    # 1) Get all orders (if this crashes we *want* to see full traceback)
+    orders = Order.query.order_by(Order.order_date.asc()).all()
+
+    total_orders = len(orders)
+    total_revenue = 0.0
+
+    status_counts = {}
+    by_month = defaultdict(lambda: {"orders": 0, "revenue": 0.0})
+    hourly = [0] * 24
+    now_utc = datetime.utcnow()
+    high_risk = 0
+
+    email_counts = {}
+    pay_success = pay_failed = pay_pending = 0
+    revenue_by_state = defaultdict(float)
+    sku_units = defaultdict(int)
+    cancelled_count = 0
+
+    for o in orders:
+        try:
+            # ----- basic safe fields -----
+            amount = float(getattr(o, "total_amount", 0) or 0.0)
+            total_revenue += amount
+
+            status = (getattr(o, "status", "") or "Pending Payment").strip()
+            status_counts[status] = status_counts.get(status, 0) + 1
+
+            # ----- order date handling -----
+            od = getattr(o, "order_date", None)
+            od_dt = None
+            if isinstance(od, datetime):
+                od_dt = od
+            elif od:
+                # try to parse string dates defensively
+                try:
+                    od_dt = datetime.fromisoformat(str(od))
+                except Exception:
+                    od_dt = None
+
+            if od_dt is not None:
+                # month bucket
+                month_key = od_dt.strftime("%Y-%m")
+                by_month[month_key]["orders"] += 1
+                by_month[month_key]["revenue"] += amount
+
+                # hour bucket
+                h = od_dt.hour
+                if 0 <= h < 24:
+                    hourly[h] += 1
+
+                # high-risk: pending/submitted more than 24h
+                s_lower = status.lower()
+                if ("pending payment" in s_lower or "payment submitted" in s_lower):
+                    try:
+                        diff_hours = (now_utc - od_dt.replace(tzinfo=None)).total_seconds() / 3600.0
+                        if diff_hours > 24:
+                            high_risk += 1
+                    except Exception:
+                        # if timezone mismatch etc – just skip high-risk for this order
+                        pass
+
+            # ----- email counts (new vs returning) -----
+            email = (getattr(o, "customer_email", None)
+                     or getattr(o, "user_email", None)
+                     or "").strip().lower()
+            if email:
+                email_counts[email] = email_counts.get(email, 0) + 1
+
+            # ----- payment status -----
+            ps = (getattr(o, "payment_status", "") or "").lower()
+            if "verified" in ps or "success" in ps or "paid" in ps:
+                pay_success += 1
+            elif "failed" in ps:
+                pay_failed += 1
+            else:
+                pay_pending += 1
+
+            # ----- shipping state + revenue -----
+            addr = o.get_shipping_address() if hasattr(o, "get_shipping_address") else None
+            state = (getattr(addr, "state", "") or "").strip()
+            if state:
+                revenue_by_state[state] += amount
+
+            # ----- cancelled? -----
+            if "cancelled" in status.lower():
+                cancelled_count += 1
+
+            # ----- items for SKU stats -----
+            for item in getattr(o, "items", []):
+                name_fallback = (
+                    getattr(item, "name", None)
+                    or getattr(item, "artwork_name", None)
+                    or getattr(item, "title", None)
+                    or getattr(item, "product_name", None)
+                    or ""
+                )
+                sku = (getattr(item, "sku", None) or name_fallback or "").strip()
+                qty = getattr(item, "quantity", 0) or 0
+                if sku and qty:
+                    sku_units[sku] += int(qty)
+
+        except Exception as loop_err:
+            # If one order is weird, log & skip it but DO NOT break all analytics
+            app.logger.warning(f"Skipping order in analytics (id={getattr(o, 'id', '?')}): {loop_err}")
+
+    # -------- Build final JSON structures --------
+    avg_order_value = (total_revenue / total_orders) if total_orders else 0.0
+
+    orders_by_month = [
+        {"month": m, "orders": v["orders"], "revenue": round(v["revenue"], 2)}
+        for m, v in sorted(by_month.items())
+    ]
+
+    hourly_orders = hourly
+
+    new_customers = sum(1 for c in email_counts.values() if c == 1)
+    returning_customers = sum(1 for c in email_counts.values() if c > 1)
+    total_unique = new_customers + returning_customers
+    returning_rate = (returning_customers / total_unique * 100.0) if total_unique else 0.0
+
+    cancellation_rate = (cancelled_count / total_orders * 100.0) if total_orders else 0.0
+
+    revenue_by_state_list = [
+        {"state": st, "revenue": round(val, 2)}
+        for st, val in sorted(revenue_by_state.items(), key=lambda x: x[1], reverse=True)
+    ]
+
+    top_skus = [
+        {"sku": sku, "units": units}
+        for sku, units in sorted(sku_units.items(), key=lambda x: x[1], reverse=True)[:10]
+    ]
+
+    predicted_repeat_orders = int(round(total_orders * (returning_rate / 100.0) * 0.6))
+
+    best_state = revenue_by_state_list[0]["state"] if revenue_by_state_list else None
+    best_hour = max(range(24), key=lambda h: hourly[h]) if any(hourly) else None
+
+    data = {
+        "summary": {
+            "total_orders": total_orders,
+            "total_revenue": round(total_revenue, 2),
+            "avg_order_value": round(avg_order_value, 2),
+        },
+        "status_counts": status_counts,
+        "orders_by_month": orders_by_month,
+        "hourly_orders": hourly_orders,
+        "new_vs_returning": {
+            "new_customers": new_customers,
+            "returning_customers": returning_customers,
+        },
+        "payment_status": {
+            "success": pay_success,
+            "failed": pay_failed,
+            "pending": pay_pending,
+        },
+        "revenue_by_state": revenue_by_state_list,
+        "top_skus": top_skus,
+        "advanced": {
+            "returning_rate": round(returning_rate, 1),
+            "cancellation_rate": round(cancellation_rate, 1),
+            "predicted_repeat_orders": predicted_repeat_orders,
+            "high_risk_orders": high_risk,
+            "best_state": best_state,
+            "best_hour": best_hour,
+        },
+    }
+
+    return jsonify(data)
 
 
 # --- Run the App ---

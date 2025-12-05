@@ -763,7 +763,7 @@
 
 <script>
 // Everything is wrapped in one safe block.
-// No nested </script> inside strings, no half-closed template literals.
+// No nested inside strings, no half-closed template literals.
 
 document.addEventListener('DOMContentLoaded', function () {
     // ---------- Build JS order data from backend (safe for all analytics) ----------
@@ -954,20 +954,21 @@ document.addEventListener('DOMContentLoaded', function () {
         hourBuckets[h] += 1;
     });
     const hourEl = document.getElementById('hourHeatChart');
-    if (hourEl) {
-        new Chart(hourEl.getContext('2d'), {
-            type: 'bar',
-            data: {
-                labels: [...Array(24).keys()].map(h => h.toString().padStart(2, '0') + ':00'),
-                datasets: [{ data: hourBuckets }]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true } }
-            }
-        });
-    }
+if (hourEl) {
+    new Chart(hourEl.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: Array.from({ length: 24 }, (_, h) => h.toString().padStart(2, '0') + ':00'),
+            datasets: [{ data: hourBuckets }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+}
+
 
     // ---- Payment Success Rate ----
     let success = 0, failed = 0;
@@ -1122,7 +1123,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 // ==========================
-//  PRINT: Orders List (A4) – safe version, no template literals with </script>
+//  PRINT: Orders List (A4) – safe version
 // ==========================
 function printOrdersList() {
     const areaEl =
@@ -1214,5 +1215,7 @@ function printLabel(button) {
     w.focus();
     w.print();
 }
+// Make it global for the LABEL button
+window.printLabel = printLabel;
 </script>
 {% endblock %}
