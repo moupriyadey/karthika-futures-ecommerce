@@ -4359,8 +4359,10 @@ def admin_orders_export():
     import csv
     import traceback
     from io import StringIO
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, date
     from sqlalchemy import or_
+    import os
+    from flask import make_response
 
     try:
         # --- Read filters from query string (same as admin_console) ---
@@ -4473,7 +4475,7 @@ def admin_orders_export():
                     or getattr(item, 'artwork_name', None)
                     or getattr(item, 'title', None)
                     or getattr(item, 'product_name', None)
-                    or getattr(item, 'sku', '')
+                    or getattr(item, 'sku', '')  # last fallback
                     or ''
                 )
 
@@ -4527,8 +4529,18 @@ def admin_orders_export():
                 items_joined,
             ])
 
+        # ---- Daily auto-backup of CSV into /backups/orders ----
+        try:
+            backup_dir = os.path.join(current_app.root_path, 'backups', 'orders')
+            os.makedirs(backup_dir, exist_ok=True)
+            today_str = date.today().strftime('%Y%m%d')
+            backup_path = os.path.join(backup_dir, f'orders_{today_str}.csv')
+            with open(backup_path, 'w', encoding='utf-8', newline='') as f:
+                f.write(output.getvalue())
+        except Exception as backup_err:
+            current_app.logger.error(f"CSV backup failed: {backup_err}")
+
         # ---- Return CSV response ----
-        from flask import make_response
         response = make_response(output.getvalue())
         response.headers['Content-Type'] = 'text/csv; charset=utf-8'
         response.headers['Content-Disposition'] = 'attachment; filename=orders_export.csv'
@@ -4539,6 +4551,7 @@ def admin_orders_export():
         current_app.logger.error(traceback.format_exc())
         flash('Failed to export orders CSV. Please try again.', 'danger')
         return redirect(url_for('admin_console'))
+
 
 # --- Run the App ---
 if __name__ == '__main__':

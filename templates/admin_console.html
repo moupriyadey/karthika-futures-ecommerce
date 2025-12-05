@@ -90,7 +90,55 @@
         font-size: 0.82rem;
     }
 
-    /* Print styles – only print the table + header */
+    /* WhatsApp button */
+    .btn-whatsapp {
+        background-color: #25D366;
+        border-color: #1ebe57;
+        color: #fff;
+    }
+    .btn-whatsapp:hover {
+        background-color: #1ebe57;
+        border-color: #1ebe57;
+        color: #fff;
+    }
+
+    /* Mini timeline under each order */
+    .order-timeline {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 6px 4px 4px;
+    }
+    .timeline-step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 72px;
+        flex: 1 1 0;
+    }
+    .timeline-marker {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        border: 2px solid #d1d5db;
+        background: #fff;
+        margin-bottom: 4px;
+    }
+    .timeline-step.done .timeline-marker {
+        border-color: #22c55e;
+        background: #22c55e;
+    }
+    .timeline-label {
+        font-size: 0.7rem;
+        text-align: center;
+        color: #6b7280;
+    }
+    .timeline-step.done .timeline-label {
+        color: #111827;
+        font-weight: 600;
+    }
+
+    /* Print styles – only print the table + header (fallback browser print) */
     @media print {
         body * {
             visibility: hidden;
@@ -213,37 +261,34 @@
 
                         <!-- Buttons -->
                         <div class="col-md-1 col-4 text-end">
+                            <!-- Search Button -->
+                            <button type="submit" class="btn btn-primary btn-sm w-100 mb-1">
+                                <i class="fas fa-search"></i>
+                            </button>
 
-    <!-- Search Button -->
-    <button type="submit" class="btn btn-primary btn-sm w-100 mb-1">
-        <i class="fas fa-search"></i>
-    </button>
+                            <!-- Reset Button -->
+                            <a href="{{ url_for('admin_console') }}" class="btn btn-outline-secondary btn-sm w-100 mb-1">
+                                Reset
+                            </a>
 
-    <!-- Reset Button -->
-    <a href="{{ url_for('admin_console') }}" class="btn btn-outline-secondary btn-sm w-100 mb-1">
-        Reset
-    </a>
+                            <!-- Print Button (prints only list area via JS) -->
+                            <button type="button"
+                                    class="btn btn-outline-secondary btn-sm w-100 mb-1"
+                                    onclick="printOrdersList()">
+                                <i class="fas fa-print me-1"></i> Print
+                            </button>
 
-    <!-- Print Button -->
-<button type="button"
-        class="btn btn-outline-secondary btn-sm w-100 mb-1"
-        onclick="printOrdersList()">
-    <i class="fas fa-print me-1"></i> Print
-</button>
-
-
-    <!-- CSV Download Button -->
-    <a class="btn btn-outline-success btn-sm w-100"
-       href="{{ url_for('admin_orders_export',
-                        business_type=filters.business_type,
-                        status=filters.status,
-                        start_date=filters.start_date,
-                        end_date=filters.end_date,
-                        search=filters.search) }}">
-        <i class="fas fa-file-download me-1"></i> CSV
-    </a>
-
-</div>
+                            <!-- CSV Download Button -->
+                            <a class="btn btn-outline-success btn-sm w-100"
+                               href="{{ url_for('admin_orders_export',
+                                                business_type=filters.business_type,
+                                                status=filters.status,
+                                                start_date=filters.start_date,
+                                                end_date=filters.end_date,
+                                                search=filters.search) }}">
+                                <i class="fas fa-file-download me-1"></i> CSV
+                            </a>
+                        </div>
 
                     </div>
                 </form>
@@ -287,9 +332,9 @@
                                         <small class="text-muted d-block">
                                             {{ order.customer_email or order.user_email }}
                                         </small>
-                                        {% if order.shipping_phone or order.customer_phone %}
+                                        {% if order.customer_phone %}
                                             <small class="text-muted d-block">
-                                                {{ order.shipping_phone or order.customer_phone }}
+                                                {{ order.customer_phone }}
                                             </small>
                                         {% endif %}
                                         {% if shipping %}
@@ -358,6 +403,7 @@
                                            class="btn btn-outline-primary btn-xs btn-sm mb-1">
                                             <i class="fas fa-eye me-1"></i>Details
                                         </a>
+
                                         <button type="button"
                                                 class="btn btn-outline-warning btn-xs btn-sm mb-1 update-order-status-btn"
                                                 data-order-id="{{ order.id }}"
@@ -368,6 +414,82 @@
                                                 data-current-cancellation-reason="{{ order.cancellation_reason or '' }}">
                                             <i class="fas fa-edit me-1"></i>Status
                                         </button>
+
+                                        {# WhatsApp button (one-click) #}
+                                        {% set wa_phone = (order.customer_phone or '')|replace(' ', '') %}
+                                        {% if wa_phone %}
+                                            {% set wa_msg = 'Namaste ' ~ (order.customer_name or order.shipping_name or '') ~ ', regarding your order ' ~ order.id ~ ' from Karthika Futures.' %}
+                                            <a href="https://wa.me/{{ wa_phone }}?text={{ wa_msg|urlencode }}"
+                                               target="_blank"
+                                               class="btn btn-whatsapp btn-xs btn-sm mb-1">
+                                                <i class="fab fa-whatsapp"></i>
+                                            </a>
+                                        {% endif %}
+
+                                        {# Courier label print button – calls global JS function #}
+                                        <button type="button"
+                                                class="btn btn-outline-secondary btn-xs btn-sm mb-1"
+                                                onclick="printLabel(this)"
+                                                data-order-id="{{ order.id }}"
+                                                data-name="{{ order.customer_name or order.shipping_name or '' }}"
+                                                data-phone="{{ order.customer_phone or '' }}"
+                                                data-city="{{ shipping.city if shipping else '' }}"
+                                                data-state="{{ shipping.state if shipping else '' }}"
+                                                data-pincode="{{ shipping.pincode if shipping else '' }}">
+                                            <i class="fas fa-tag me-1"></i>Label
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                {# Flipkart-style mini timeline row #}
+                                <tr>
+                                    <td colspan="7">
+                                        {% set status_text = s %}
+                                        {% set level = 1 %}
+                                        {% if 'Payment Submitted' in status_text %}
+                                            {% set level = 2 %}
+                                        {% endif %}
+                                        {% if 'Verified' in status_text %}
+                                            {% set level = 3 %}
+                                        {% endif %}
+                                        {% if 'Shipped' in status_text %}
+                                            {% set level = 4 %}
+                                        {% endif %}
+                                        {% if 'Delivered' in status_text %}
+                                            {% set level = 5 %}
+                                        {% endif %}
+                                        {% if 'Cancelled' in status_text or 'Failed' in status_text %}
+                                            {% set level = 0 %}
+                                        {% endif %}
+
+                                        <div class="order-timeline">
+                                            {% if level == 0 %}
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-ban me-1"></i> Order Cancelled / Failed
+                                                </span>
+                                            {% else %}
+                                                <div class="timeline-step {% if level >= 1 %}done{% endif %}">
+                                                    <div class="timeline-marker"></div>
+                                                    <div class="timeline-label">Order Placed</div>
+                                                </div>
+                                                <div class="timeline-step {% if level >= 2 %}done{% endif %}">
+                                                    <div class="timeline-marker"></div>
+                                                    <div class="timeline-label">Payment Submitted</div>
+                                                </div>
+                                                <div class="timeline-step {% if level >= 3 %}done{% endif %}">
+                                                    <div class="timeline-marker"></div>
+                                                    <div class="timeline-label">Payment Verified</div>
+                                                </div>
+                                                <div class="timeline-step {% if level >= 4 %}done{% endif %}">
+                                                    <div class="timeline-marker"></div>
+                                                    <div class="timeline-label">Shipped</div>
+                                                </div>
+                                                <div class="timeline-step {% if level >= 5 %}done{% endif %}">
+                                                    <div class="timeline-marker"></div>
+                                                    <div class="timeline-label">Delivered</div>
+                                                </div>
+                                            {% endif %}
+                                        </div>
                                     </td>
                                 </tr>
 
@@ -461,23 +583,123 @@
             </div>
         </div>
 
-        <!-- Right: Small Analytics -->
+        <!-- Right: Analytics (Tier-1, Tier-2, Tier-3) -->
         <div class="col-lg-4 col-xl-3">
+
+            <!-- TIER-1: STATUS DISTRIBUTION -->
             <div class="admin-console-card p-3 mb-3">
                 <h5 class="fw-semibold mb-2">Status Distribution</h5>
                 <small class="text-muted d-block mb-2">
                     Based on all orders
                 </small>
-                <canvas id="statusChart" height="220"></canvas>
+                <div class="d-flex gap-2 mb-2">
+                    <button class="btn btn-sm btn-outline-primary" id="btnPie">Pie</button>
+                    <button class="btn btn-sm btn-outline-primary" id="btnBar">Bar</button>
+                </div>
+                <div style="height:220px;">
+                    <canvas id="statusChart"></canvas>
+                </div>
             </div>
 
+            <!-- TIER-2: ADVANCED ANALYTICS -->
+
+            <!-- NEW vs REPEAT CUSTOMERS -->
+            <div class="admin-console-card p-3 mb-3">
+                <h5 class="fw-semibold mb-2">Customer Type</h5>
+                <small class="text-muted">New vs Returning</small>
+                <div style="height:220px;">
+                    <canvas id="customerTypeChart"></canvas>
+                </div>
+            </div>
+
+            <!-- AVERAGE ORDER VALUE TREND -->
+            <div class="admin-console-card p-3 mb-3">
+                <h5 class="fw-semibold mb-2">Average Order Value</h5>
+                <small class="text-muted">By Month</small>
+                <div style="height:220px;">
+                    <canvas id="aovChart"></canvas>
+                </div>
+            </div>
+
+            <!-- HOURLY SALES HEATMAP -->
+            <div class="admin-console-card p-3 mb-3">
+                <h5 class="fw-semibold mb-2">Hourly Sales</h5>
+                <small class="text-muted">Orders by hour (0–23)</small>
+                <div style="height:220px;">
+                    <canvas id="hourHeatChart"></canvas>
+                </div>
+            </div>
+
+            <!-- PAYMENT SUCCESS RATE -->
+            <div class="admin-console-card p-3 mb-3">
+                <h5 class="fw-semibold mb-1">Payment Success Rate</h5>
+                <small class="text-muted">Successful / Failed</small>
+                <h3 class="fw-bold mt-2" id="paymentSuccessNumber">0%</h3>
+                <div style="height:200px;">
+                    <canvas id="paymentGauge"></canvas>
+                </div>
+            </div>
+
+            <!-- REVENUE BY STATE -->
+            <div class="admin-console-card p-3 mb-3">
+                <h5 class="fw-semibold mb-2">Revenue by State</h5>
+                <div style="height:220px;">
+                    <canvas id="stateRevenueChart"></canvas>
+                </div>
+            </div>
+
+            <!-- TOP SELLING SKU -->
+            <div class="admin-console-card p-3 mb-3 text-center">
+                <h6 class="fw-semibold">Top Selling SKU</h6>
+                <h4 id="topSkuName" class="text-primary fw-bold mt-2">---</h4>
+                <small class="text-muted d-block">by units sold</small>
+            </div>
+
+            <!-- RETURNING CUSTOMER RATIO -->
+            <div class="admin-console-card p-3 mb-3 text-center">
+                <h6 class="fw-semibold">Returning Customers</h6>
+                <h4 id="returningCustomersRate" class="text-success fw-bold mt-2">0%</h4>
+            </div>
+
+            <!-- CANCELLATION RATE -->
+            <div class="admin-console-card p-3 mb-3 text-center">
+                <h6 class="fw-semibold">Cancellation Rate</h6>
+                <h4 id="cancelRate" class="text-danger fw-bold mt-2">0%</h4>
+            </div>
+
+            <!-- TIER-3: "AI" INSIGHTS -->
+
+            <!-- Predicted Repeat Orders -->
+            <div class="admin-console-card p-3 mb-3 text-center">
+                <h6 class="fw-semibold">Predicted Repeat Orders (Next 30 Days)</h6>
+                <h4 id="predictedRepeatOrders" class="text-primary fw-bold mt-2">0</h4>
+            </div>
+
+            <!-- High Risk Orders -->
+            <div class="admin-console-card p-3 mb-3 text-center">
+                <h6 class="fw-semibold">High-Risk Orders</h6>
+                <small class="text-muted d-block mb-1">
+                    Pending or payment-submitted for &gt; 24 hours
+                </small>
+                <h4 id="highRiskOrders" class="text-warning fw-bold mt-1">0</h4>
+            </div>
+
+            <!-- Smart Insight Text -->
+            <div class="admin-console-card p-3 mb-3">
+                <h6 class="fw-semibold mb-1">Smart Insight</h6>
+                <p class="small text-muted mb-0" id="smartInsightText">
+                    Analytics will appear once there are enough orders.
+                </p>
+            </div>
+
+            <!-- Quick Tips -->
             <div class="admin-console-card p-3">
                 <h6 class="fw-semibold mb-2">Quick Tips</h6>
                 <ul class="small text-muted mb-0">
                     <li>Use the search box for Order ID, customer, phone or pincode.</li>
                     <li>Click <strong>PDF</strong> to open invoice in new tab.</li>
                     <li>Use <strong>Status</strong> button to update courier & tracking.</li>
-                    <li>Use browser print for a physical copy of filtered orders.</li>
+                    <li>Use CSV export + label print for offline records.</li>
                 </ul>
             </div>
         </div>
@@ -540,153 +762,457 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
+// Everything is wrapped in one safe block.
+// No nested </script> inside strings, no half-closed template literals.
+
 document.addEventListener('DOMContentLoaded', function () {
-    // ---- Status distribution chart ----
+    // ---------- Build JS order data from backend (safe for all analytics) ----------
+    const ORDER_DATA = [
+        {% for order in orders %}
+        (function () {
+            const shipping = {{ (order.get_shipping_address() or {})|tojson|safe }};
+            return {
+                id: {{ order.id|tojson }},
+                total_amount: {{ (order.total_amount or 0)|tojson }},
+                status: {{ (order.status or '')|tojson }},
+                payment_status: {{ (order.payment_status or '')|tojson }},
+                business_type: {{ ('B2B' if order.customer_gstin else 'B2C')|tojson }},
+                created_at: {{ (order.order_date.isoformat() if order.order_date else '')|tojson }},
+                customer_email: {{ (order.customer_email or order.user_email or '')|tojson }},
+                customer_phone: {{ (order.customer_phone or '')|tojson }},
+                shipping_city: shipping.city || '',
+                shipping_state: shipping.state || '',
+                shipping_pincode: shipping.pincode || '',
+                items: [
+                    {% for item in order.items %}
+                    {
+                        sku: {{ (item.sku or '')|tojson }},
+                        name: {{ (item.name or '')|tojson }},
+                        quantity: {{ (item.quantity or 0)|tojson }},
+                        size: {{ (item.size or '')|tojson }},
+                        frame: {{ (item.frame or '')|tojson }},
+                        glass: {{ (item.glass or '')|tojson }},
+                        category: {{ (item.category or '')|tojson }}
+                    }{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                ]
+            };
+        })(){% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    console.log('ORDER_DATA length:', ORDER_DATA.length);
+
+    // =======================
+    //  STATUS DISTRIBUTION
+    // =======================
     const statusLabels = [
         {% for status, count in stats.status_counts.items() %}
-            "{{ status }}",
+            {{ status|tojson }},
         {% endfor %}
     ];
     const statusValues = [
         {% for status, count in stats.status_counts.items() %}
-            {{ count }},
+            {{ count|tojson }},
         {% endfor %}
     ];
 
-    if (statusLabels.length > 0) {
-        const ctx = document.getElementById('statusChart').getContext('2d');
-        new Chart(ctx, {
+    let statusChart = null;
+    const statusCtxEl = document.getElementById('statusChart');
+    const btnPie = document.getElementById('btnPie');
+    const btnBar = document.getElementById('btnBar');
+
+    function resetStatusChart() {
+        if (statusChart) statusChart.destroy();
+    }
+    function loadStatusPie() {
+        if (!statusCtxEl) return;
+        resetStatusChart();
+        const ctx = statusCtxEl.getContext('2d');
+        statusChart = new Chart(ctx, {
             type: 'doughnut',
             data: {
                 labels: statusLabels,
+                datasets: [{ data: statusValues }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    }
+    function loadStatusBar() {
+        if (!statusCtxEl) return;
+        resetStatusChart();
+        const ctx = statusCtxEl.getContext('2d');
+        statusChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: statusLabels,
                 datasets: [{
+                    label: 'Orders',
                     data: statusValues,
                     borderWidth: 1
                 }]
             },
             options: {
                 responsive: true,
-                plugins: {
-                    legend: { position: 'bottom' }
-                }
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } }
             }
         });
     }
 
-    // ---- Order status modal logic (same API as dashboard) ----
-    const orderStatusModal = new bootstrap.Modal(document.getElementById('orderStatusModal'));
-    const orderStatusForm = document.getElementById('orderStatusForm');
-    const modalOrderId = document.getElementById('modalOrderId');
-    const orderStatusSelect = document.getElementById('orderStatusSelect');
-    const modalRemark = document.getElementById('modalRemark');
-    const modalCourier = document.getElementById('modalCourier');
-    const modalTrackingNumber = document.getElementById('modalTrackingNumber');
-    const cancellationReasonGroup = document.getElementById('cancellationReasonGroup');
-    const modalCancellationReason = document.getElementById('modalCancellationReason');
+    if (statusCtxEl && statusLabels.length > 0) {
+        loadStatusPie();
+        if (btnPie) btnPie.addEventListener('click', loadStatusPie);
+        if (btnBar) btnBar.addEventListener('click', loadStatusBar);
+    }
 
-    document.querySelectorAll('.update-order-status-btn').forEach(button => {
-        button.addEventListener('click', function () {
-            modalOrderId.value = this.dataset.orderId;
-            orderStatusSelect.value = this.dataset.currentStatus || 'Pending Payment';
-            modalRemark.value = this.dataset.currentRemark || '';
-            modalCourier.value = this.dataset.currentCourier || '';
-            modalTrackingNumber.value = this.dataset.currentTracking || '';
-            modalCancellationReason.value = this.dataset.currentCancellationReason || '';
+    // =======================
+    //  TIER-2 ANALYTICS
+    // =======================
 
-            if ((this.dataset.currentStatus || '').includes('Cancelled')) {
-                cancellationReasonGroup.style.display = 'block';
-            } else {
-                cancellationReasonGroup.style.display = 'none';
-                modalCancellationReason.value = '';
+    // Helper: parse ISO date safely
+    function parseDate(iso) {
+        if (!iso) return null;
+        const d = new Date(iso);
+        return isNaN(d.getTime()) ? null : d;
+    }
+
+    // ---- New vs Returning Customers ----
+    const emailCount = {};
+    ORDER_DATA.forEach(o => {
+        const e = (o.customer_email || '').trim().toLowerCase();
+        if (!e) return;
+        emailCount[e] = (emailCount[e] || 0) + 1;
+    });
+    let newUsers = 0, repeatUsers = 0;
+    Object.keys(emailCount).forEach(e => {
+        if (emailCount[e] > 1) repeatUsers++;
+        else newUsers++;
+    });
+
+    const customerTypeEl = document.getElementById('customerTypeChart');
+    if (customerTypeEl) {
+        new Chart(customerTypeEl.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['New', 'Returning'],
+                datasets: [{ data: [newUsers, repeatUsers] }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } }
             }
-            orderStatusModal.show();
+        });
+    }
+
+    // ---- AOV by Month ----
+    const monthlySum = {};
+    const monthlyCount = {};
+    ORDER_DATA.forEach(o => {
+        const d = parseDate(o.created_at);
+        if (!d) return;
+        const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+        monthlySum[key] = (monthlySum[key] || 0) + (o.total_amount || 0);
+        monthlyCount[key] = (monthlyCount[key] || 0) + 1;
+    });
+    const monthsAOV = Object.keys(monthlySum).sort();
+    const aovValues = monthsAOV.map(m => {
+        const avg = monthlySum[m] / (monthlyCount[m] || 1);
+        return Math.round(avg * 100) / 100;
+    });
+
+    const aovEl = document.getElementById('aovChart');
+    if (aovEl && monthsAOV.length) {
+        new Chart(aovEl.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: monthsAOV,
+                datasets: [{
+                    label: 'AOV (₹)',
+                    data: aovValues,
+                    borderWidth: 1,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+
+    // ---- Hourly Sales ----
+    const hourBuckets = Array(24).fill(0);
+    ORDER_DATA.forEach(o => {
+        const d = parseDate(o.created_at);
+        if (!d) return;
+        const h = d.getHours();
+        hourBuckets[h] += 1;
+    });
+    const hourEl = document.getElementById('hourHeatChart');
+    if (hourEl) {
+        new Chart(hourEl.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: [...Array(24).keys()].map(h => h.toString().padStart(2, '0') + ':00'),
+                datasets: [{ data: hourBuckets }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+
+    // ---- Payment Success Rate ----
+    let success = 0, failed = 0;
+    ORDER_DATA.forEach(o => {
+        const ps = (o.payment_status || '').toLowerCase();
+        if (!ps) return;
+        if (ps.includes('verified') || ps.includes('paid')) success++;
+        else if (ps.includes('failed')) failed++;
+    });
+    const paymentRate = Math.round((success / (success + failed || 1)) * 100);
+    const paymentNumEl = document.getElementById('paymentSuccessNumber');
+    if (paymentNumEl) paymentNumEl.innerText = paymentRate + '%';
+
+    const payGaugeEl = document.getElementById('paymentGauge');
+    if (payGaugeEl) {
+        new Chart(payGaugeEl.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Success', 'Failed'],
+                datasets: [{ data: [success, failed] }]
+            },
+            options: {
+                responsive: true,
+                cutout: '70%',
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    // ---- Revenue by State ----
+    const stateMap = {};
+    ORDER_DATA.forEach(o => {
+        const st = (o.shipping_state || '').trim();
+        if (!st) return;
+        stateMap[st] = (stateMap[st] || 0) + (o.total_amount || 0);
+    });
+    const stateNames = Object.keys(stateMap).sort();
+    const stateAmt = stateNames.map(s => Math.round(stateMap[s] * 100) / 100);
+    const stateEl = document.getElementById('stateRevenueChart');
+    if (stateEl && stateNames.length) {
+        new Chart(stateEl.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: stateNames,
+                datasets: [{ data: stateAmt }]
+            },
+            options: {
+                responsive: true,
+                indexAxis: 'y',
+                plugins: { legend: { display: false } },
+                scales: { x: { beginAtZero: true } }
+            }
+        });
+    }
+
+    // ---- Top Selling SKU ----
+    const skuMap = {};
+    ORDER_DATA.forEach(o => {
+        (o.items || []).forEach(it => {
+            const key = (it.sku || it.name || '').trim();
+            if (!key) return;
+            skuMap[key] = (skuMap[key] || 0) + (it.quantity || 0);
         });
     });
-
-    orderStatusForm.addEventListener('submit', async function (e) {
-        e.preventDefault();
-
-        const orderId = modalOrderId.value;
-        const status = orderStatusSelect.value;
-        const remark = modalRemark.value;
-        const courier = modalCourier.value;
-        const trackingNumber = modalTrackingNumber.value;
-        const cancellationReason = modalCancellationReason.value;
-
-        try {
-            const response = await fetch(`/admin/order/update_status/${orderId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': window.csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({
-                    status,
-                    remark,
-                    courier,
-                    tracking_number: trackingNumber,
-                    cancellation_reason: cancellationReason
-                })
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                showCustomAlert(result.message || 'Order updated.', 'success');
-                orderStatusModal.hide();
-                setTimeout(() => location.reload(), 800);
-            } else {
-                showCustomAlert(result.message || 'Failed to update.', 'danger');
-            }
-        } catch (err) {
-            console.error('Error updating order status:', err);
-            showCustomAlert('An error occurred while updating the order status.', 'danger');
+    let bestSku = '---';
+    let bestCount = 0;
+    Object.keys(skuMap).forEach(k => {
+        if (skuMap[k] > bestCount) {
+            bestCount = skuMap[k];
+            bestSku = k;
         }
     });
-});
+    const topSkuEl = document.getElementById('topSkuName');
+    if (topSkuEl) topSkuEl.innerText = bestSku;
+
+    // ---- Cancellation Rate ----
+    let cancelled = 0;
+    ORDER_DATA.forEach(o => {
+        const s = (o.status || '').toLowerCase();
+        if (s.includes('cancelled')) cancelled++;
+    });
+    const totalOrders = ORDER_DATA.length;
+    const cancelRateVal = Math.round((cancelled / (totalOrders || 1)) * 100);
+    const cancelEl = document.getElementById('cancelRate');
+    if (cancelEl) cancelEl.innerText = cancelRateVal + '%';
+
+    // ---- Returning Customer Rate ----
+    const returningRate = Math.round((repeatUsers / (newUsers + repeatUsers || 1)) * 100);
+    const returningEl = document.getElementById('returningCustomersRate');
+    if (returningEl) returningEl.innerText = returningRate + '%';
+
+    // =======================
+    //  TIER-3 "AI" ANALYTICS
+    // =======================
+
+    const predictedRepeat = Math.round(totalOrders * (returningRate / 100) * 0.6);
+    const predEl = document.getElementById('predictedRepeatOrders');
+    if (predEl) predEl.innerText = predictedRepeat.toString();
+
+    const now = new Date();
+    let highRisk = 0;
+    ORDER_DATA.forEach(o => {
+        const s = (o.status || '').toLowerCase();
+        if (!(s.includes('pending payment') || s.includes('submitted'))) return;
+        const d = parseDate(o.created_at);
+        if (!d) return;
+        const diffHrs = (now - d) / 36e5;
+        if (diffHrs > 24) highRisk++;
+    });
+    const highRiskEl = document.getElementById('highRiskOrders');
+    if (highRiskEl) highRiskEl.innerText = highRisk.toString();
+
+    let insight = 'Analytics will appear once there are enough orders.';
+    if (totalOrders > 0) {
+        let bestHour = 0;
+        let bestHourCount = 0;
+        hourBuckets.forEach((c, i) => {
+            if (c > bestHourCount) {
+                bestHourCount = c;
+                bestHour = i;
+            }
+        });
+        let bestState = '';
+        let bestStateAmt = 0;
+        stateNames.forEach((s, i) => {
+            if (stateAmt[i] > bestStateAmt) {
+                bestStateAmt = stateAmt[i];
+                bestState = s;
+            }
+        });
+
+        insight = 'Most orders are coming ';
+        if (bestState) {
+            insight += 'from ' + bestState + ' ';
+        } else {
+            insight += 'from your current active regions ';
+        }
+        if (bestHourCount > 0) {
+            insight += 'around ' + String(bestHour).padStart(2, '0') + ':00 hours. ';
+        } else {
+            insight += 'throughout the day. ';
+        }
+        if (returningRate > 0) {
+            insight += 'About ' + returningRate + '% of your customers are returning. Focus on them for repeat sales.';
+        } else {
+            insight += 'You can enable offers or follow-ups on WhatsApp to build repeat customers.';
+        }
+    }
+    const insightEl = document.getElementById('smartInsightText');
+    if (insightEl) insightEl.innerText = insight;
+}); // end DOMContentLoaded
 
 
+// ==========================
+//  PRINT: Orders List (A4) – safe version, no template literals with </script>
+// ==========================
 function printOrdersList() {
-    // Prefer only the table; fallback to whole card if needed
     const areaEl =
         document.getElementById('ordersTableArea') ||
         document.getElementById('adminPrintArea');
 
     if (!areaEl) {
-        window.print(); // safety fallback
+        window.print();
         return;
     }
 
     const printContents = areaEl.innerHTML;
-    const originalContents = document.body.innerHTML;
 
-    document.body.innerHTML = `
-        <html>
-        <head>
-            <title>Orders Printout</title>
-            <style>
-                @page { size: A4; margin: 10mm; }
-                body { font-family: Arial, sans-serif; font-size: 11px; }
-                table { width: 100%; border-collapse: collapse; }
-                th, td { border: 1px solid #ddd; padding: 4px 6px; font-size: 11px; }
-                th { background: #f0f0f0; }
-                h2 { margin-bottom: 8px; font-size: 16px; }
-            </style>
-        </head>
-        <body>
-            <h2>Orders List (${new Date().toLocaleDateString()})</h2>
-            ${printContents}
-        </body>
-        </html>
-    `;
+    var html = ''
+        + '<!DOCTYPE html>'
+        + '<html><head>'
+        + '<title>Orders Printout</title>'
+        + '<style>'
+        + '@page { size: A4; margin: 10mm; }'
+        + 'body { font-family: Arial, sans-serif; font-size: 11px; }'
+        + 'table { width: 100%; border-collapse: collapse; }'
+        + 'th, td { border: 1px solid #ddd; padding: 4px 6px; font-size: 11px; }'
+        + 'th { background: #f0f0f0; }'
+        + 'h2 { margin-bottom: 8px; font-size: 16px; }'
+        + '</style>'
+        + '</head><body>'
+        + '<h2>Karthika Futures — Orders List (' + new Date().toLocaleDateString() + ')</h2>'
+        + printContents
+        + '</body></html>';
 
-    window.print();
-
-    // restore original page
-    document.body.innerHTML = originalContents;
-    location.reload();
+    var w = window.open('', '_blank', 'width=800,height=900');
+    if (!w) {
+        alert('Please allow pop-ups for printing.');
+        return;
+    }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    w.print();
 }
 
-</script>
 
+// ==========================
+//  PRINT: Courier Label A6 – safe version
+// ==========================
+function printLabel(button) {
+    const data = button.dataset;
+
+    var html = ''
+        + '<!DOCTYPE html>'
+        + '<html><head>'
+        + '<title>Label ' + (data.orderId || '') + '</title>'
+        + '<style>'
+        + '@page { size: A6 portrait; margin: 8mm; }'
+        + 'body { font-family: Arial, sans-serif; font-size: 11px; }'
+        + '.label-box { border: 1px solid #111; padding: 8px 10px; width: 100%; box-sizing: border-box; }'
+        + '.brand { font-size: 14px; font-weight: 700; margin-bottom: 4px; }'
+        + '.section-title { font-weight: 600; margin-top: 4px; margin-bottom: 2px; font-size: 11px; }'
+        + '.row { margin-bottom: 2px; }'
+        + '.small { font-size: 10px; }'
+        + '</style>'
+        + '</head><body>'
+        + '<div class="label-box">'
+        +   '<div class="brand">Karthika Futures</div>'
+        +   '<div class="row small">Order ID: <strong>' + (data.orderId || '') + '</strong></div>'
+        +   '<div class="section-title">Ship To:</div>'
+        +   '<div class="row"><strong>' + (data.name || '') + '</strong></div>'
+        +   '<div class="row">'
+        +       (data.city || '')
+        +       ((data.city && data.state) ? ', ' : '')
+        +       (data.state || '')
+        +   '</div>'
+        +   '<div class="row">PIN: <strong>' + (data.pincode || '') + '</strong></div>'
+        +   '<div class="row">Phone: ' + (data.phone || '') + '</div>'
+        +   '<div class="section-title">From:</div>'
+        +   '<div class="row small">Karthika Futures, Kolkata, WB</div>'
+        + '</div>'
+        + '</body></html>';
+
+    var w = window.open('', '_blank', 'width=600,height=400');
+    if (!w) {
+        alert('Please allow pop-ups for label printing.');
+        return;
+    }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    w.print();
+}
+</script>
 {% endblock %}
