@@ -32,9 +32,27 @@
                     <input type="text" class="form-control" id="name" name="name" required value="{{ form_data.name if form_data.name is defined else artwork.name }}">
                 </div>
                 <div class="mb-3">
-                    <label for="description" class="form-label">Description</label>
-                    <textarea class="form-control" id="description" name="description" rows="5">{{ form_data.description if form_data.description is defined else artwork.description }}</textarea>
-                </div>
+    <label for="description" class="form-label">
+        Description
+        <span class="text-primary fw-bold">(Supports Multi-Section)</span>
+    </label>
+
+    <textarea class="form-control" id="description" name="description" rows="5"
+              placeholder="Example:
+USP: Used to remove extensions ||
+Weight: 120 ml ||
+Offers: Free shipping above ₹999">{{ form_data.description
+        if form_data.description is defined
+        else artwork.description }}</textarea>
+
+    <div class="form-text text-muted small mt-1">
+        <strong>Tip:</strong> Use <code>||</code> to separate sections.<br>
+        <strong>Format:</strong> <code>Title: description || Title 2: description 2</code><br>
+        Example:
+        <code>USP: Used to remove extensions || Weight: 120 ml || Offers: Free shipping above ₹999</code>
+    </div>
+</div>
+
                 
 
                 <div class="row">
@@ -47,6 +65,38 @@
                         <input type="number" class="form-control" id="stock" name="stock" min="0" required value="{{ form_data.stock if form_data.stock is defined else artwork.stock }}">
                     </div>
                 </div>
+                <h5 class="mt-4">Package Details (Admin Only)</h5>
+
+<div class="mb-3">
+    <label class="form-label fw-bold">Weight (grams)</label>
+    <input type="number" class="form-control"
+           name="package_weight_grams"
+           value="{{ artwork.package_weight_grams or 0 }}">
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <label class="form-label fw-bold">Length (cm)</label>
+        <input type="number" class="form-control"
+               name="package_length_cm"
+               value="{{ artwork.package_length_cm or 0 }}">
+    </div>
+
+    <div class="col-md-4 mb-3">
+        <label class="form-label fw-bold">Width (cm)</label>
+        <input type="number" class="form-control"
+               name="package_width_cm"
+               value="{{ artwork.package_width_cm or 0 }}">
+    </div>
+
+    <div class="col-md-4 mb-3">
+        <label class="form-label fw-bold">Height (cm)</label>
+        <input type="number" class="form-control"
+               name="package_height_cm"
+               value="{{ artwork.package_height_cm or 0 }}">
+    </div>
+</div>
+
 
                 <div class="mb-3">
                     <label for="category_id" class="form-label">Category</label>

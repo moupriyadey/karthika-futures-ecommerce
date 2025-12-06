@@ -433,7 +433,12 @@ class Artwork(db.Model):
     original_price = Column(Numeric(10, 2), nullable=False) # Price before any options or GST
     discount_price = Column(Numeric(10, 2), nullable=True, default=None) 
     display_order = db.Column(db.Integer, default=999) # Add this line
-    
+    # Package weight
+    package_weight_grams = db.Column(db.Integer, default=0)
+    package_length_cm = db.Column(db.Integer, default=0)
+    package_width_cm = db.Column(db.Integer, default=0)
+    package_height_cm = db.Column(db.Integer, default=0)
+
     # New GST fields
     cgst_percentage = Column(Numeric(5, 2), default=Decimal('0.00'), nullable=False)
     sgst_percentage = Column(Numeric(5, 2), default=Decimal('0.00'), nullable=False)
@@ -951,13 +956,24 @@ def get_cart_items_details():
             total_gst_amount += (cgst_amount + sgst_amount + igst_amount + ugst_amount + cess_amount) # Include CESS
             grand_total += total_price_incl_gst
             
+            # SHIPPING FIX: charge shipping once per order, using the highest item shipping
             item_shipping_charge = Decimal(str(item_data.get('shipping_charge', artwork.shipping_charge)))
-            total_shipping_charge += item_shipping_charge * quantity
+
+            # Instead of multiplying by quantity, we only keep the MAX shipping charge
+            if item_shipping_charge > total_shipping_charge:
+                total_shipping_charge = item_shipping_charge
+
         else:
             flash(f"Artwork with SKU {sku} not found and removed from your cart.", "warning")
             if item_key in session.get('cart', {}):
                 del session['cart'][item_key]
             session.modified = True
+
+            # FREE SHIPPING FIX
+        FREE_SHIPPING_THRESHOLD = Decimal('999.00')
+
+        if grand_total >= FREE_SHIPPING_THRESHOLD:
+            total_shipping_charge = Decimal('0.00')
             
     grand_total += total_shipping_charge
 
@@ -2709,46 +2725,57 @@ def admin_artworks():
 @admin_required
 def admin_add_artwork():
     categories = Category.query.all()
-    form_data = {} # Initialize form_data for GET requests
+    form_data = {}  # Initialize form_data for GET requests
+
     if request.method == 'POST':
         sku = request.form.get('sku')
         name = request.form.get('name')
         description = request.form.get('description')
+
         # Use .get() with a default value to prevent NoneType errors
         original_price = request.form.get('original_price', '0.00')
-        
+
         # New GST fields - provide default '0.00' if not present
         cgst_percentage = request.form.get('cgst_percentage', '0.00')
         sgst_percentage = request.form.get('sgst_percentage', '0.00')
         igst_percentage = request.form.get('igst_percentage', '0.00')
         ugst_percentage = request.form.get('ugst_percentage', '0.00')
-        cess_percentage = request.form.get('cess_percentage', '0.00') # NEW
+        cess_percentage = request.form.get('cess_percentage', '0.00')  # NEW
         gst_type = request.form.get('gst_type')
 
-        stock = request.form.get('stock', '0') # Default to '0' for stock
+        stock = request.form.get('stock', '0')  # Default to '0' for stock
         category_id = request.form.get('category_id')
-        is_featured = 'is_featured' in request.form # Checkbox
-        custom_options_json = request.form.get('custom_options') # JSON string from JS
-        shipping_charge = request.form.get('shipping_charge', '0.00') # NEW: Default to '0.00'
+        is_featured = 'is_featured' in request.form  # Checkbox
+        custom_options_json = request.form.get('custom_options_json') # JSON string from JS
+
+        shipping_charge = request.form.get('shipping_charge', '0.00')  # NEW: Default to '0.00'
         shipping_slab_size = int(request.form.get('shipping_slab_size', 3))
 
         # Populate form_data for re-rendering on error
         form_data = {
-            'sku': sku, 'name': name, 'description': description,
-            'original_price': original_price, 'cgst_percentage': cgst_percentage,
-            'sgst_percentage': sgst_percentage, 'igst_percentage': igst_percentage,
-            'ugst_percentage': ugst_percentage, 'cess_percentage': cess_percentage, # NEW
+            'sku': sku,
+            'name': name,
+            'description': description,
+            'original_price': original_price,
+            'cgst_percentage': cgst_percentage,
+            'sgst_percentage': sgst_percentage,
+            'igst_percentage': igst_percentage,
+            'ugst_percentage': ugst_percentage,
+            'cess_percentage': cess_percentage,  # NEW
             'gst_type': gst_type,
-            'stock': stock, 'category_id': category_id, 'is_featured': is_featured,
+            'stock': stock,
+            'category_id': category_id,
+            'is_featured': is_featured,
             'shipping_charge': shipping_charge
         }
+
         if custom_options_json:
             try:
                 form_data['custom_option_groups'] = json.loads(custom_options_json)
             except json.JSONDecodeError:
-                form_data['custom_option_groups'] = {} # Invalid JSON, treat as empty
+                form_data['custom_option_groups'] = {}  # Invalid JSON, treat as empty
 
-        if not all([sku, name, category_id, gst_type]): # Removed original_price and stock from this check
+        if not all([sku, name, category_id, gst_type]):  # Removed original_price and stock from this check
             flash('Please fill in all required fields (SKU, Name, Category, GST Type).', 'danger')
             return render_template('admin_add_artwork.html', categories=categories, form_data=form_data)
 
@@ -2758,9 +2785,9 @@ def admin_add_artwork():
             sgst_percentage = Decimal(sgst_percentage)
             igst_percentage = Decimal(igst_percentage)
             ugst_percentage = Decimal(ugst_percentage)
-            cess_percentage = Decimal(cess_percentage) # NEW
+            cess_percentage = Decimal(cess_percentage)  # NEW
             stock = int(stock)
-            shipping_charge = Decimal(shipping_charge) # NEW: Convert to Decimal
+            shipping_charge = Decimal(shipping_charge)  # NEW: Convert to Decimal
         except (ValueError, InvalidOperation):
             flash('Invalid numeric value for price, GST percentage, stock quantity, or shipping charge.', 'danger')
             return render_template('admin_add_artwork.html', categories=categories, form_data=form_data)
@@ -2777,31 +2804,39 @@ def admin_add_artwork():
                     # Upload to Cloudinary and get the public URL
                     upload_result = cloudinary.uploader.upload(file)
                     image_paths.append(upload_result['secure_url'])
-                elif file.filename != '': # If file is present but not allowed
+                elif file.filename != '':  # If file is present but not allowed
                     flash(f'Invalid file type for image: {file.filename}.', 'danger')
                     return render_template('admin_add_artwork.html', categories=categories, form_data=form_data)
-       
+
+        # --- Create Artwork object ---
         new_artwork = Artwork(
             sku=sku,
             name=name,
             description=description,
             original_price=original_price,
-            hsn_code=request.form.get('hsn_code'), # NEW
-            hsn_description=request.form.get('hsn_description'), # NEW
+            hsn_code=request.form.get('hsn_code'),          # NEW
+            hsn_description=request.form.get('hsn_description'),  # NEW
             cgst_percentage=cgst_percentage,
             sgst_percentage=sgst_percentage,
             igst_percentage=igst_percentage,
             ugst_percentage=ugst_percentage,
-            cess_percentage=cess_percentage, # NEW
+            cess_percentage=cess_percentage,                # NEW
             gst_type=gst_type,
             stock=stock,
             category_id=category_id,
             is_featured=is_featured,
-            shipping_charge=shipping_charge # NEW: Assign shipping charge
+            shipping_charge=shipping_charge                 # NEW: Assign shipping charge
         )
-        new_artwork.set_images_list(image_paths) # Store image paths as JSON
-        
-        # Store custom options as JSON
+
+        new_artwork.set_images_list(image_paths)  # Store image paths as JSON
+
+        # --- NEW: Package weight & dimensions (admin only) ---
+        new_artwork.package_weight_grams = int(request.form.get('package_weight_grams') or 0)
+        new_artwork.package_length_cm = int(request.form.get('package_length_cm') or 0)
+        new_artwork.package_width_cm = int(request.form.get('package_width_cm') or 0)
+        new_artwork.package_height_cm = int(request.form.get('package_height_cm') or 0)
+
+        # --- Store custom options as JSON ---
         if custom_options_json:
             try:
                 # Validate if it's valid JSON before saving
@@ -2816,8 +2851,7 @@ def admin_add_artwork():
         flash('Artwork added successfully!', 'success')
         return redirect(url_for('admin_artworks'))
 
-    return render_template('admin_add_artwork.html', categories=categories, form_data=form_data) # Always pass form_data
-
+    return render_template('admin_add_artwork.html', categories=categories, form_data=form_data)  # Always pass form_data
 
 @app.route('/admin/edit-artwork/<artwork_id>', methods=['GET', 'POST'])
 @login_required
@@ -2841,6 +2875,12 @@ def admin_edit_artwork(artwork_id):
         description = request.form.get('description')
         shipping_charge = request.form.get('shipping_charge', '0.00')
         gst_type = request.form.get('gst_type')
+
+        # --- NEW: Package details (admin-only) ---
+        artwork.package_weight_grams = int(request.form.get('package_weight_grams') or 0)
+        artwork.package_length_cm = int(request.form.get('package_length_cm') or 0)
+        artwork.package_width_cm = int(request.form.get('package_width_cm') or 0)
+        artwork.package_height_cm = int(request.form.get('package_height_cm') or 0)
 
         images_to_keep = request.form.getlist('images_to_keep')
         custom_options_json_str = request.form.get('custom_options_json')
@@ -2944,6 +2984,7 @@ def admin_edit_artwork(artwork_id):
     }
 
     return render_template('admin_edit_artwork.html', artwork=artwork, categories=categories, form_data=form_data)
+
 
 @app.route('/admin/update_stock/<string:artwork_id>', methods=['POST'])
 @login_required

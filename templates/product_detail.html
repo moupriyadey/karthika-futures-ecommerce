@@ -99,7 +99,39 @@
     </span>
     {% endif %}
 </div>
-          <p class="text-gray-700 mb-3 leading-relaxed">{{ artwork.description }}</p>
+         {# Multi-section description, using "||" to split sections and ":" to split title + body #}
+{% set raw_desc = artwork.description or '' %}
+{% set desc_sections = raw_desc.split('||') %}
+
+<div class="mb-3 space-y-3">
+  {% if not raw_desc %}
+    <p class="text-gray-700 mb-3 leading-relaxed text-sm text-gray-500">
+      No description available.
+    </p>
+  {% else %}
+    {% for section in desc_sections %}
+      {% set section = section.strip() %}
+      {% if section %}
+        {% set parts = section.split(':', 1) %}
+        {% if parts|length == 2 %}
+          <div class="border rounded-md p-3 bg-gray-50">
+            <h3 class="text-sm font-semibold text-gray-900 mb-1">
+              {{ parts[0].strip() }}
+            </h3>
+            <p class="text-sm text-gray-700 leading-relaxed">
+              {{ parts[1].strip() }}
+            </p>
+          </div>
+        {% else %}
+          <p class="text-sm text-gray-700 leading-relaxed">
+            {{ section }}
+          </p>
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+</div>
+
 
           <!-- Custom Options -->
           <div id="customOptionsContainer" class="mb-3 space-y-3">
@@ -369,7 +401,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const totalPriceBeforeGst = currentPrice * quantity;
         const gstAmount = (totalPriceBeforeGst * totalGstRate) / 100;
-        let finalPrice = totalPriceBeforeGst + gstAmount + (artworkData.shipping_charge * quantity);
+                
+        // Shipping charged once per order (base estimate)
+        let finalPrice = totalPriceBeforeGst + gstAmount + artworkData.shipping_charge;
 
         displayPriceElement.textContent = currencyFormatter.format(finalPrice);
 

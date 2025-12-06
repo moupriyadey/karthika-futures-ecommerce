@@ -4,154 +4,385 @@
 
 {% block content %}
 <div class="container main-content-area py-5">
-    <h2 class="text-center mb-4 text-primary">Add New Artwork</h2>
 
-    <div class="card shadow-lg border-0 rounded-3">
-        <div class="card-header bg-primary text-white">
-            <h4 class="mb-0">Artwork Details</h4>
+    <!-- Page Title -->
+    <h2 class="text-center mb-4 text-primary fw-bold">
+        <i class="fas fa-plus-circle me-2"></i>Add New Artwork
+    </h2>
+
+    <!-- Main Card -->
+    <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+        
+        <!-- Header -->
+        <div class="card-header bg-primary text-white py-3">
+            <h4 class="mb-0"><i class="fas fa-image me-2"></i>Artwork Information</h4>
         </div>
+
+        <!-- Body -->
         <div class="card-body p-4">
+
             <form action="{{ url_for('admin_add_artwork') }}" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
+                <!-- ============================
+                     SECTION 1 – BASIC DETAILS
+                ============================= -->
+                <div class="section-title mt-3 mb-2 text-primary fw-bold">
+                    <i class="fas fa-info-circle me-2"></i>Basic Details
+                </div>
                 <div class="row g-3">
-                    <div class="col-md-6">
-                        <label for="sku" class="form-label">SKU <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="sku" name="sku" required value="{{ form_data.sku if form_data.sku is defined else '' }}">
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">SKU <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control shadow-sm"
+                               id="sku"
+                               name="sku" required
+                               placeholder="Unique Code (e.g., KRISH001)"
+                               value="{{ form_data.sku if form_data.sku is defined else '' }}">
                     </div>
-                    <div class="col-md-6">
-    <label for="hsn_code" class="form-label">HSN Code <span class="text-danger">*</span></label>
-    <input type="text" class="form-control" id="hsn_code" name="hsn_code" required value="{{ form_data.hsn_code if form_data.hsn_code is defined else artwork.hsn_code if artwork is defined else '' }}">
-</div>
-<div class="col-md-6">
-    <label for="hsn_description" class="form-label">HSN Description</label>
-    <input type="text" class="form-control" id="hsn_description" name="hsn_description" value="{{ form_data.hsn_description if form_data.hsn_description is defined else artwork.hsn_description if artwork is defined else '' }}">
-</div>
-                    <div class="col-md-6">
-                        <label for="name" class="form-label">Artwork Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="name" name="name" required value="{{ form_data.name if form_data.name is defined else '' }}">
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">HSN Code <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control shadow-sm"
+                               id="hsn_code"
+                               name="hsn_code" required
+                               placeholder="e.g., 9701"
+                               value="{{ form_data.hsn_code if form_data.hsn_code is defined else '' }}">
                     </div>
-                    
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">HSN Description</label>
+                        <input type="text" class="form-control shadow-sm"
+                               id="hsn_description"
+                               name="hsn_description"
+                               placeholder="e.g., Paintings, Drawings"
+                               value="{{ form_data.hsn_description if form_data.hsn_description is defined else '' }}">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Artwork Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control shadow-sm"
+                               id="name"
+                               name="name" required placeholder="e.g., Krishna on Lotus"
+                               value="{{ form_data.name if form_data.name is defined else '' }}">
+                    </div>
+
                     <div class="col-12">
-                        <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" name="description" rows="5">{{ form_data.description if form_data.description is defined else '' }}</textarea>
-                    </div>
+                        <label class="form-label fw-bold">
+                            Description
+                            <span class="text-primary fw-bold">(Supports Multi-Section)</span>
+                        </label>
 
+                        <textarea class="form-control shadow-sm" rows="4"
+                                  id="description"
+                                  name="description"
+                                  placeholder="Example:
+USP: Used to remove extensions ||
+Weight: 120 ml ||
+Offers: Free shipping above ₹999">{{ form_data.description if form_data.description is defined else '' }}</textarea>
 
-                    <div class="card mb-4 bg-light shadow-sm">
-                    <div class="card-body">
-                        <h4 class="card-title text-success mb-3">Estimated Final Price</h4>
-                        <div class="d-flex justify-content-between">
-                            <strong>Total Price (including GST & Shipping):</strong>
-                            <strong class="text-success" id="final-price-display">₹ 0.00</strong>
+                        <div class="form-text text-muted small mt-1">
+                            <strong>Tip:</strong> Use <code>||</code> to separate sections.<br>
+                            <strong>Format:</strong> <code>Title: description || Title 2: description 2</code><br>
+                            Example:
+                            <code>USP: Used to remove extensions || Weight: 120 ml || Offers: Free shipping above ₹999</code>
                         </div>
-                        <small class="text-muted mt-2 d-block">This is an estimated price based on the highest-priced custom options and all other charges.</small>
-                    </div>
-                </div>
-
-                   <div class="col-md-4">
-                        <label for="original_price" class="form-label">Original Price (₹, Before GST) <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="original_price" name="original_price" step="0.01" min="0" required value="{{ form_data.original_price if form_data.original_price is defined else '' }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label for="discount_price" class="form-label">Discount Price (₹, Before GST)</label>
-                        <input type="number" class="form-control" id="discount_price" name="discount_price" step="0.01" min="0" value="{{ form_data.discount_price if form_data.discount_price is defined else '' }}">
-                        <div class="form-text text-muted">If lower than Original Price, this is used as the base price.</div>
-                    </div>
-                    <div class="col-md-4">
-                        <label for="stock" class="form-label">Stock Quantity <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="stock" name="stock" min="0" required value="{{ form_data.stock if form_data.stock is defined else '' }}">
-                    </div> 
-
-                    <div class="col-12">
-                        <label for="category_id" class="form-label">Category <span class="text-danger">*</span></label>
-                        <select class="form-select" id="category_id" name="category_id" required>
-                            <option value="">Select a Category</option>
-                            {% for category in categories %}
-                            <option value="{{ category.id }}" {% if form_data.category_id is defined and form_data.category_id|string == category.id|string %}selected{% endif %}>{{ category.name }}</option>
-                            {% endfor %}
-                        </select>
                     </div>
 
-                    <div class="col-md-6">
-                        <label for="shipping_charge" class="form-label">Shipping Charge (₹) <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="shipping_charge" name="shipping_charge" step="0.01" min="0" value="{{ form_data.shipping_charge if form_data.shipping_charge is defined else '0.00' }}" required>
-                        <div class="form-text text-muted">Enter 0 for free shipping.</div>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="shipping_slab_size" class="form-label">Shipping Slab Size <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="shipping_slab_size" name="shipping_slab_size" min="1" value="{{ form_data.shipping_slab_size if form_data.shipping_slab_size is defined else '3' }}" required>
-                        <div class="form-text text-muted">Items per charge (e.g., 3 means 1 shipping fee covers up to 3 items).</div>
-                    </div>
                 </div>
 
                 <hr class="my-4">
-                <h5 class="text-primary">GST Details</h5>
+
+                <!-- ============================
+                     SECTION 2 – PRICE + STOCK
+                ============================= -->
+                <div class="section-title mt-3 mb-2 text-primary fw-bold">
+                    <i class="fas fa-tag me-2"></i>Pricing & Stock
+                </div>
+
                 <div class="row g-3">
-                    <div class="col-12">
-                        <label for="gst_type" class="form-label">GST Type <span class="text-danger">*</span></label>
-                        <select class="form-select" id="gst_type" name="gst_type" required>
-                            <option value="intra_state" {% if form_data.gst_type is defined and form_data.gst_type == 'intra_state' %}selected{% endif %}>Intra-State (CGST + SGST)</option>
-                            <option value="inter_state" {% if form_data.gst_type is defined and form_data.gst_type == 'inter_state' %}selected{% endif %}>Inter-State (IGST)</option>
-                            <option value="union_territory" {% if form_data.gst_type is defined and form_data.gst_type == 'union_territory' %}selected{% endif %}>Union Territory (CGST + UGST)</option>
-                        </select>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">
+                            Base Price (Before GST) <span class="text-danger">*</span>
+                        </label>
+                        <input type="number" class="form-control shadow-sm"
+                               id="original_price"
+                               name="original_price" step="0.01" min="0"
+                               placeholder="e.g., 450.00"
+                               value="{{ form_data.original_price if form_data.original_price is defined else '' }}" required>
                     </div>
-                    <div class="col-md-3">
-                        <label for="cgst_percentage" class="form-label">CGST (%) <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="cgst_percentage" name="cgst_percentage" step="0.01" min="0" max="100" value="{{ form_data.cgst_percentage if form_data.cgst_percentage is defined else '0.00' }}" required>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">
+                            Discount Price <i class="fas fa-info-circle text-muted"
+                            title="Optional. If lower than base price, this becomes the selling price."></i>
+                        </label>
+                        <input type="number" class="form-control shadow-sm"
+                               id="discount_price"
+                               name="discount_price" step="0.01" min="0"
+                               placeholder="e.g., 399.00"
+                               value="{{ form_data.discount_price if form_data.discount_price is defined else '' }}">
                     </div>
-                    <div class="col-md-3">
-                        <label for="sgst_percentage" class="form-label">SGST (%) <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="sgst_percentage" name="sgst_percentage" step="0.01" min="0" max="100" value="{{ form_data.sgst_percentage if form_data.sgst_percentage is defined else '0.00' }}" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="igst_percentage" class="form-label">IGST (%) <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="igst_percentage" name="igst_percentage" step="0.01" min="0" max="100" value="{{ form_data.igst_percentage if form_data.igst_percentage is defined else '0.00' }}" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="ugst_percentage" class="form-label">UGST (%) <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="ugst_percentage" name="ugst_percentage" step="0.01" min="0" max="100" value="{{ form_data.ugst_percentage if form_data.ugst_percentage is defined else '0.00' }}" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="cess_percentage" class="form-label">CESS (%) <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="cess_percentage" name="cess_percentage" step="0.01" min="0" max="100" value="{{ form_data.cess_percentage if form_data.cess_percentage is defined else '0.00' }}" required>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Stock <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control shadow-sm"
+                               id="stock"
+                               name="stock" min="0"
+                               placeholder="Available quantity"
+                               value="{{ form_data.stock if form_data.stock is defined else '' }}" required>
                     </div>
                 </div>
 
                 <hr class="my-4">
-                <h5 class="text-primary">Custom Options (e.g., Size, Frame)</h5>
-                <div id="custom-options-builder" class="mb-3 p-3 border rounded-3 bg-light">
-                    <button type="button" class="btn btn-secondary btn-sm mb-3" id="add-option-group-btn"><i class="fas fa-plus me-2"></i>Add Option Group</button>
+
+                <!-- ============================
+                     SECTION 3 – SHIPPING DETAILS
+                ============================= -->
+                <div class="section-title mt-3 mb-2 text-primary fw-bold">
+                    <i class="fas fa-shipping-fast me-2"></i>Shipping Details
+                </div>
+
+                <div class="row g-3">
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">
+                            Shipping Charge (₹)
+                            <i class="fas fa-info-circle text-muted"
+                               title="Enter 0 for free shipping."></i>
+                        </label>
+                        <input type="number" class="form-control shadow-sm"
+                               id="shipping_charge"
+                               name="shipping_charge" step="0.01" min="0"
+                               placeholder="e.g., 60"
+                               value="{{ form_data.shipping_charge if form_data.shipping_charge is defined else '0.00' }}" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">
+                            Shipping Slab Size
+                            <i class="fas fa-info-circle text-muted"
+                               title="e.g., 3 → charge applies once for up to 3 items."></i>
+                        </label>
+                        <input type="number" class="form-control shadow-sm"
+                               id="shipping_slab_size"
+                               name="shipping_slab_size" min="1"
+                               value="{{ form_data.shipping_slab_size if form_data.shipping_slab_size is defined else '3' }}" required>
+                    </div>
+                </div>
+
+                <!-- Admin-only package details -->
+                <div class="alert alert-warning mt-4">
+                    <strong>Admin-only:</strong> Package weight & dimensions help estimate courier costs.
+                </div>
+
+                <div class="row g-3 mt-2">
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Weight (grams)</label>
+                        <input type="number" class="form-control shadow-sm"
+                               id="package_weight_grams"
+                               name="package_weight_grams" placeholder="e.g., 450">
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Length (cm)</label>
+                        <input type="number" class="form-control shadow-sm"
+                               id="package_length_cm"
+                               name="package_length_cm" placeholder="e.g., 30">
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Width (cm)</label>
+                        <input type="number" class="form-control shadow-sm"
+                               id="package_width_cm"
+                               name="package_width_cm" placeholder="e.g., 20">
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Height (cm)</label>
+                        <input type="number" class="form-control shadow-sm"
+                               id="package_height_cm"
+                               name="package_height_cm" placeholder="e.g., 5">
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <!-- ============================
+                     SECTION 4 – CATEGORY
+                ============================= -->
+                <div class="section-title mt-3 mb-2 text-primary fw-bold">
+                    <i class="fas fa-folder-open me-2"></i>Category
+                </div>
+
+                <select class="form-select shadow-sm" id="category_id" name="category_id" required>
+                    <option value="">-- Select Category --</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}"
+                            {% if form_data.category_id is defined and form_data.category_id|string == category.id|string %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <hr class="my-4">
+
+                <!-- ============================
+                     SECTION 5 – GST DETAILS
+                ============================= -->
+                <div class="section-title mt-3 mb-2 text-primary fw-bold">
+                    <i class="fas fa-file-invoice me-2"></i>GST Details
+                </div>
+
+                <div class="row g-3">
+
+                    <div class="col-12">
+                        <label class="form-label fw-bold">GST Type</label>
+                        <select class="form-select shadow-sm" id="gst_type" name="gst_type" required>
+                            <option value="intra_state"
+                                {% if form_data.gst_type == 'intra_state' %}selected{% endif %}>
+                                Intra-State (CGST + SGST)
+                            </option>
+                            <option value="inter_state"
+                                {% if form_data.gst_type == 'inter_state' %}selected{% endif %}>
+                                Inter-State (IGST)
+                            </option>
+                            <option value="union_territory"
+                                {% if form_data.gst_type == 'union_territory' %}selected{% endif %}>
+                                Union Territory (CGST + UGST)
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- GST percentages -->
+                    {% set gst_fields = [
+                        ('cgst_percentage','CGST (%)'),
+                        ('sgst_percentage','SGST (%)'),
+                        ('igst_percentage','IGST (%)'),
+                        ('ugst_percentage','UGST (%)'),
+                        ('cess_percentage','CESS (%)')
+                    ] %}
+
+                    {% for field, label in gst_fields %}
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold">{{ label }}</label>
+                        <input type="number" class="form-control shadow-sm"
+                               id="{{ field }}"
+                               name="{{ field }}" step="0.01" min="0" max="100"
+                               value="{{ form_data[field] if form_data[field] is defined else '0.00' }}" required>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <hr class="my-4">
+
+                <!-- ============================
+                     SECTION 6 – CUSTOM OPTIONS
+                ============================= -->
+                <div class="section-title mt-3 mb-2 text-primary fw-bold">
+                    <i class="fas fa-cog me-2"></i>Custom Options (Size, Frame, etc.)
+                </div>
+
+                <div id="custom-options-builder" class="p-3 border bg-light rounded-3 shadow-sm mb-3">
+                    <button type="button" class="btn btn-success btn-sm mb-3" id="add-option-group-btn">
+                        <i class="fas fa-plus me-2"></i>Add Option Group
+                    </button>
                     <input type="hidden" name="custom_options_json" id="custom_options_json">
-                    {% if form_data.custom_options is defined %}
+
+                    {% if form_data.custom_option_groups %}
                     <script>
-                        const initialCustomOptionsData = {{ form_data.custom_options | tojson }};
+                        const initialCustomOptionsData = {{ form_data.custom_option_groups | tojson }};
                     </script>
                     {% endif %}
                 </div>
 
                 <hr class="my-4">
-                <h5 class="text-primary">Artwork Images</h5>
-                <div class="mb-3">
-                    <label for="images" class="form-label">Upload Images <span class="text-danger">*</span></label>
-                    <input type="file" class="form-control" id="images" name="images" accept="image/*" multiple required>
+
+                <!-- ============================
+                     SECTION 7 – IMAGE UPLOAD
+                ============================= -->
+                <div class="section-title mt-3 mb-2 text-primary fw-bold">
+                    <i class="fas fa-images me-2"></i>Artwork Images
+                </div>
+
+                <div class="mb-4">
+                    <input type="file" name="images" id="images"
+                           class="form-control shadow-sm" multiple required>
+                    <small class="text-muted">Upload clear images. First image becomes the primary display.</small>
                 </div>
 
                 <div class="form-check mb-4">
-                    <input type="checkbox" class="form-check-input" id="is_featured" name="is_featured" {% if form_data.is_featured is defined and form_data.is_featured %}checked{% endif %}>
-                    <label class="form-check-label" for="is_featured">Mark as Featured Artwork</label>
+                    <input type="checkbox" name="is_featured" id="is_featured"
+                           class="form-check-input"
+                           {% if form_data.is_featured %}checked{% endif %}>
+                    <label class="form-check-label fw-bold" for="is_featured">
+                        Feature this artwork
+                    </label>
                 </div>
 
-                
-                
-                <button type="submit" class="btn btn-primary btn-lg w-100"><i class="fas fa-save me-2"></i>Add Artwork</button>
+                <!-- ============================
+                     FINAL PRICE (Floating Card)
+                ============================= -->
+                <div class="card shadow border mt-4 mb-4 bg-light price-summary-sticky">
+                    <div class="card-body">
+                        <h4 class="text-success fw-bold mb-2">
+                            <i class="fas fa-indian-rupee-sign me-2"></i>Estimated Final Price
+                        </h4>
+
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-bold">
+                                Price incl. GST <span class="text-muted">(without delivery)</span>:
+                            </span>
+                            <span class="fw-bold" id="price-without-shipping">₹ 0.00</span>
+                        </div>
+
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Delivery charge:</span>
+                            <span id="price-delivery">₹ 0.00</span>
+                        </div>
+
+                        <hr class="my-2">
+
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-bold">Customer Pays (incl. delivery):</span>
+                            <span class="fw-bold text-success" id="final-price-display">₹ 0.00</span>
+                        </div>
+
+                        <small class="text-muted d-block mt-2">
+                            Calculated from base/discount price + highest custom options + GST + CESS + delivery.
+                        </small>
+                    </div>
+                </div>
+
+                <!-- ============================
+                     SUBMIT BUTTON
+                ============================= -->
+                <button type="submit" class="btn btn-primary btn-lg w-100 mt-3 shadow-sm">
+                    <i class="fas fa-save me-2"></i>Add Artwork
+                </button>
             </form>
+
         </div>
     </div>
 </div>
+
+<style>
+@media (min-width: 992px) {
+    .price-summary-sticky {
+        position: sticky;
+        bottom: 1rem;
+        z-index: 10;
+    }
+}
+</style>
+
 {% endblock %}
+
 {% block extra_js %}
-<script>
+    {{ super() }}
+    <script>
     document.addEventListener('DOMContentLoaded', function() {
         const customOptionsBuilder = document.getElementById('custom-options-builder');
         const addOptionGroupBtn = document.getElementById('add-option-group-btn');
@@ -160,25 +391,26 @@
         
         let optionGroupCount = 0;
 
-        // --- NEW: Price Calculation Logic ---
+        // --- Price Calculation Logic ---
         const priceInputs = [
-    'original_price', 'discount_price', 'shipping_charge', 'cgst_percentage', 'sgst_percentage',
-    'igst_percentage', 'ugst_percentage', 'cess_percentage'
-];
+            'original_price', 'discount_price', 'shipping_charge',
+            'cgst_percentage', 'sgst_percentage',
+            'igst_percentage', 'ugst_percentage', 'cess_percentage'
+        ];
         const gstTypeSelect = document.getElementById('gst_type');
         const finalPriceDisplay = document.getElementById('final-price-display');
 
         function calculateTotalPrice() {
-    const originalPrice = parseFloat(document.getElementById('original_price').value) || 0;
-    const discountPrice = parseFloat(document.getElementById('discount_price').value) || 0;
+            const originalPrice = parseFloat(document.getElementById('original_price').value) || 0;
+            const discountPrice = parseFloat(document.getElementById('discount_price').value) || 0;
 
-  let basePrice = originalPrice;
-    if (discountPrice > 0 && discountPrice < originalPrice) {
-        basePrice = discountPrice;
-    }
-    
-    const shippingCharge = parseFloat(document.getElementById('shipping_charge').value) || 0;
-    const gstType = gstTypeSelect.value;
+            let basePrice = originalPrice;
+            if (discountPrice > 0 && discountPrice < originalPrice) {
+                basePrice = discountPrice;
+            }
+            
+            const shippingCharge = parseFloat(document.getElementById('shipping_charge').value) || 0;
+            const gstType = gstTypeSelect ? gstTypeSelect.value : 'intra_state';
             let gstPercentage = 0;
 
             if (gstType === 'intra_state') {
@@ -197,11 +429,11 @@
 
             // Calculate additional price from custom options
             let customOptionsPrice = 0;
-            const optionGroups = customOptionsBuilder.querySelectorAll('.option-group');
-            optionGroups.forEach(group => {
-                const priceInputs = group.querySelectorAll('.option-values-container input[type="number"]');
+            const optionGroupsEls = customOptionsBuilder.querySelectorAll('.option-group');
+            optionGroupsEls.forEach(group => {
+                const priceInputsEls = group.querySelectorAll('.option-values-container input[type="number"]');
                 let maxOptionPrice = 0;
-                priceInputs.forEach(input => {
+                priceInputsEls.forEach(input => {
                     const price = parseFloat(input.value) || 0;
                     if (price > maxOptionPrice) {
                         maxOptionPrice = price;
@@ -213,9 +445,23 @@
             const subtotal = basePrice + customOptionsPrice;
             const gstAmount = subtotal * (gstPercentage / 100);
             const cessAmount = subtotal * (cessPercentage / 100);
-            
-            const total = subtotal + gstAmount + cessAmount + shippingCharge;
-            finalPriceDisplay.textContent = `₹ ${total.toFixed(2)}`;
+
+            const totalWithoutShipping = subtotal + gstAmount + cessAmount;
+            const totalWithShipping = totalWithoutShipping + shippingCharge;
+
+            const priceWithoutShippingEl = document.getElementById('price-without-shipping');
+            const priceDeliveryEl = document.getElementById('price-delivery');
+
+            if (priceWithoutShippingEl) {
+                priceWithoutShippingEl.textContent = `₹ ${totalWithoutShipping.toFixed(2)}`;
+            }
+            if (priceDeliveryEl) {
+                priceDeliveryEl.textContent = `₹ ${shippingCharge.toFixed(2)}`;
+            }
+
+            if (finalPriceDisplay) {
+                finalPriceDisplay.textContent = `₹ ${totalWithShipping.toFixed(2)}`;
+            }
         }
 
         // Attach event listeners to all price-related fields
@@ -225,7 +471,9 @@
                 element.addEventListener('input', calculateTotalPrice);
             }
         });
-        gstTypeSelect.addEventListener('change', calculateTotalPrice);
+        if (gstTypeSelect) {
+            gstTypeSelect.addEventListener('change', calculateTotalPrice);
+        }
 
         // --- Custom Options Builder Logic ---
         function createOptionValueElement(container, valueName = '', priceImpact = '0.00') {
@@ -239,9 +487,9 @@
             `;
             valueDiv.querySelector('.remove-option-value-btn').addEventListener('click', () => {
                 valueDiv.remove();
-                calculateTotalPrice(); // Re-calculate when an option is removed
+                calculateTotalPrice(); // Re-calc when an option is removed
             });
-            valueDiv.querySelector('.price-input').addEventListener('input', calculateTotalPrice); // NEW: Listen for price changes
+            valueDiv.querySelector('.price-input').addEventListener('input', calculateTotalPrice);
             container.appendChild(valueDiv);
         }
 
@@ -267,7 +515,7 @@
 
             groupDiv.querySelector('.remove-option-group-btn').addEventListener('click', () => {
                 groupDiv.remove();
-                calculateTotalPrice(); // Re-calculate when a group is removed
+                calculateTotalPrice(); // Re-calc when a group is removed
             });
 
             if (Object.keys(values).length > 0) {
@@ -283,7 +531,7 @@
 
         addOptionGroupBtn.addEventListener('click', () => {
             createOptionGroupElement();
-            calculateTotalPrice(); // Recalculate on adding a new group
+            calculateTotalPrice();
         });
         
         let initialData = {};
@@ -299,9 +547,9 @@
 
         form.addEventListener('submit', function(event) {
             const customOptionsData = {};
-            const optionGroups = customOptionsBuilder.querySelectorAll('.option-group');
+            const optionGroupsEls = customOptionsBuilder.querySelectorAll('.option-group');
 
-            optionGroups.forEach(group => {
+            optionGroupsEls.forEach(group => {
                 const groupNameInput = group.querySelector('input[type="text"]');
                 const groupName = groupNameInput.value.trim();
                 
@@ -333,5 +581,5 @@
         // Initial calculation on page load
         calculateTotalPrice();
     });
-</script>
+    </script>
 {% endblock %}
