@@ -15,13 +15,31 @@
         <div class="swiper-slide flex justify-center">
           <a href="{{ url_for('category_page', category_slug=category.name|slugify) }}"
              class="flex flex-col items-center text-center group relative category-link">
+            
             <div class="w-32 h-32 mx-auto rounded-full bg-white shadow-lg overflow-hidden 
-                        transform transition duration-300 group-hover:scale-110 flex items-center justify-center">
-              
-                          <img src="{{ url_for('static', filename=category.image) if category.image else url_for('static', filename='images/placeholder.png') }}"
-                       alt="{{ category.name }}"
-                       class="w-full h-full object-cover object-center">
-            </div>
+            transform transition duration-300 group-hover:scale-110 flex items-center justify-center">
+
+  {% if category.image %}
+      {% if category.image.startswith('http') %}
+          {# Cloudinary URL #}
+          <img src="{{ category.image }}"
+               alt="{{ category.name }}"
+               class="w-full h-full object-cover object-center">
+      {% else %}
+          {# Old/local static path #}
+          <img src="{{ url_for('static', filename=category.image) }}"
+               alt="{{ category.name }}"
+               class="w-full h-full object-cover object-center">
+      {% endif %}
+  {% else %}
+      {# Fallback placeholder #}
+      <img src="{{ url_for('static', filename='images/placeholder.png') }}"
+           alt="{{ category.name }}"
+           class="w-full h-full object-cover object-center">
+  {% endif %}
+</div>
+
+             
 
             <h3 class="mt-4 text-white text-lg font-semibold group-hover:text-amber-300 transition-colors duration-300">
               {{ category.name }}

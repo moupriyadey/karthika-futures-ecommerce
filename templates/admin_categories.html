@@ -51,12 +51,15 @@
                             <td>{{ category.id[:8] }}...</td>
                             <td>{{ category.name }}</td>
                             <td>{{ category.description or 'N/A' }}</td>
+                            
                             <td>
     {% if category.image %}
         {% if category.image.startswith('http') %}
+            {# Cloudinary URL #}
             <img src="{{ category.image }}" alt="{{ category.name }}"
                  class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover; border-radius: 0.25rem;">
         {% else %}
+            {# Old local static path #}
             <img src="{{ url_for('static', filename=category.image) }}" alt="{{ category.name }}"
                  class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover; border-radius: 0.25rem;">
         {% endif %}
@@ -64,6 +67,7 @@
         <span class="text-muted">No Image</span>
     {% endif %}
 </td>
+
 
                             <td>
                                 <button type="button" class="btn btn-primary btn-sm me-2 edit-category-btn"
@@ -204,7 +208,8 @@
             editNewImagePreview.classList.add('d-none');
             document.getElementById('edit_category_image').value = ''; // Clear file input
 
-            // Display current image or no image text (supports Cloudinary + local)
+            // Display current image or no image text
+           // Display current image or no image text (supports Cloudinary + local)
 if (categoryImage) {
     if (categoryImage.startsWith('http')) {
         // Cloudinary full URL
@@ -220,7 +225,7 @@ if (categoryImage) {
     currentImagePreview.style.display = 'none';
     noImageText.style.display = 'block';
 }
-
+ 
         });
 
         // --- Delete Category Modal Logic ---
