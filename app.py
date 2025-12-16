@@ -429,6 +429,8 @@ class Artwork(db.Model):
     hsn_code = Column(String(20), nullable=True) # NEW LINE
     hsn_description = Column(String(255), nullable=True)
     name = Column(String(200), nullable=False)
+    slug = Column(String(255), unique=True, nullable=False)
+
     description = Column(Text, nullable=True)
     original_price = Column(Numeric(10, 2), nullable=False) # Price before any options or GST
     discount_price = Column(Numeric(10, 2), nullable=True, default=None) 
@@ -2042,6 +2044,37 @@ def product_detail(sku):
 # (Your file snippet shows they are already imported)
 
 # Route 1: Handles the file upload to Cloudinary and saves the URL
+@app.route('/p/<string:slug>')
+def product_detail_slug(slug):
+    artwork = Artwork.query.filter_by(slug=slug).first_or_404()
+
+    artwork_data = {
+        'id': artwork.id,
+        'sku': artwork.sku,
+        'name': artwork.name,
+        'description': artwork.description,
+        'original_price': float(artwork.original_price),
+        'cgst_percentage': float(artwork.cgst_percentage),
+        'sgst_percentage': float(artwork.sgst_percentage),
+        'igst_percentage': float(artwork.igst_percentage),
+        'ugst_percentage': float(artwork.ugst_percentage),
+        'cess_percentage': float(artwork.cess_percentage),
+        'gst_type': artwork.gst_type,
+        'stock': artwork.stock,
+        'is_featured': artwork.is_featured,
+        'shipping_charge': float(artwork.shipping_charge),
+        'image_url': artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png',
+        'custom_options': artwork.get_custom_options_dict()
+    }
+
+    return render_template(
+        'product_detail.html',
+        artwork=artwork,
+        artwork_data=artwork_data
+    )
+
+
+
 @app.route('/order_summary/<order_id>') # This line defines the web address
 @login_required # This means only logged-in users can see this page
 def order_summary(order_id):
@@ -2827,6 +2860,8 @@ def admin_add_artwork():
             is_featured=is_featured,
             shipping_charge=shipping_charge                 # NEW: Assign shipping charge
         )
+        from slugify import slugify
+        new_artwork.slug = slugify(name)
 
         new_artwork.set_images_list(image_paths)  # Store image paths as JSON
 
@@ -2897,6 +2932,8 @@ def admin_edit_artwork(artwork_id):
 
         # --- Update artwork fields ---
         artwork.name = name
+        artwork.slug = slugify(name)
+
         artwork.category_id = category_id
         artwork.is_featured = is_featured
         artwork.description = description

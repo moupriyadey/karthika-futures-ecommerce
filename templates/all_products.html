@@ -68,7 +68,7 @@
                             </div>
                             {% endif %}
 
-                            <a href="{{ url_for('product_detail', sku=artwork.sku) }}">
+                            <a href="{{ url_for('product_detail_slug', slug=artwork.slug) }}">
                                 {# Image Block #}
                                 <div class="h-48 bg-white flex items-center justify-center overflow-hidden rounded-t-lg transition duration-300 group p-2">
                                     <img src="{{ artwork.get_images_list()[0] if artwork.get_images_list() else url_for('static', filename='images/placeholder.png') }}"

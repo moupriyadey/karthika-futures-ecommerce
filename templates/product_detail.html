@@ -1,6 +1,14 @@
 {% extends '_base.html' %}
 
-{% block title %}{{ artwork.name }} - Karthika Futures{% endblock %}
+{% block title %}
+{{ artwork.name }} | Press On Nails | Reusable Nails Online India – NailMart
+{% endblock %}
+
+{% block seo %}
+<meta name="description"
+content="{{ artwork.meta_description if artwork.meta_description else artwork.name ~ ' – Professional nail products by NailMart India. Buy online in India with fast delivery.' }}" />
+{% endblock %}
+
 
 {% block content %}
 <main class="pt-24">

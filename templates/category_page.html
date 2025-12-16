@@ -35,7 +35,7 @@
                 </div>
                 {% endif %}
 
-                <a href="{{ url_for('product_detail', sku=artwork.sku) }}">
+                <a href="{{ url_for('product_detail_slug', slug=artwork.slug) }}">
                     <div class="h-48 w-full p-2 flex items-center justify-center">
                         <img src="{{ artwork.get_images_list()[0] if artwork.get_images_list() else url_for('static', filename='images/placeholder.png') }}" 
                              alt="{{ artwork.name }}" 
