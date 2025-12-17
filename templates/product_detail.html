@@ -21,15 +21,17 @@ content="{{ artwork.meta_description if artwork.meta_description else artwork.na
 
           <!-- Thumbnails Desktop -->
           <div class="artwork-thumbnails hidden lg:flex flex-col space-y-2 p-2 sticky top-24 max-h-[70vh] overflow-y-auto">
-            {% for image in artwork.get_images_list() %}
-            <img src="{{ image }}" 
-                 alt="Thumbnail {{ loop.index }}" 
-                 class="w-20 h-20 object-cover rounded-lg cursor-pointer border-2 border-transparent hover:border-gradient-to-r from-purple-500 to-pink-500 transition duration-300"
-                 onclick="updateSwiperSlide({{ loop.index0 }})">
-            {% endfor %}
+           {% for image in artwork.get_images_list() %}
+<img src="{{ image }}"
+loading="lazy"
+     alt="{{ artwork.name }} thumbnail {{ loop.index }} – NailMart India"
+     class="w-20 h-20 object-cover rounded-lg cursor-pointer border-2 border-transparent hover:border-gradient-to-r from-purple-500 to-pink-500 transition duration-300"
+     onclick="updateSwiperSlide({{ loop.index0 }})">
+{% endfor %}
             {% if not artwork.get_images_list() %}
             <img src="{{ url_for('static', filename='images/placeholder.png') }}" 
-                 alt="Thumbnail"
+                 alt="Product image placeholder – NailMart India"
+
                  class="w-20 h-20 object-cover rounded-lg border-2 border-gradient-to-r from-purple-500 to-pink-500 cursor-default">
             {% endif %}
           </div>
@@ -39,16 +41,20 @@ content="{{ artwork.meta_description if artwork.meta_description else artwork.na
             <div class="swiper-wrapper">
               {% for image in artwork.get_images_list() %}
               <div class="swiper-slide flex items-center justify-center">
-                <img src="{{ image }}" 
-                     alt="{{ artwork.name }}" 
-                     class="object-contain w-full h-auto max-h-[70vh] cursor-zoom-in"
-                     onclick="openFullImage(this.src)">
+                
+                <img src="{{ image }}"
+                loading="lazy" 
+     alt="{{ artwork.name }} – {{ artwork.category.name }} – NailMart India"
+     class="object-contain w-full h-auto max-h-[70vh] cursor-zoom-in"
+     onclick="openFullImage(this.src)">
+
               </div>
               {% endfor %}
               {% if not artwork.get_images_list() %}
               <div class="swiper-slide flex items-center justify-center">
                 <img src="{{ url_for('static', filename='images/placeholder.png') }}" 
-                     alt="{{ artwork.name }}" 
+                    alt="No image available for {{ artwork.name }} – NailMart India"
+
                      class="object-contain w-full h-auto max-h-[70vh] cursor-zoom-in"
                      onclick="openFullImage(this.src)">
               </div>
@@ -62,14 +68,17 @@ content="{{ artwork.meta_description if artwork.meta_description else artwork.na
           <!-- Thumbnails Mobile -->
           <div class="artwork-thumbnails-mobile flex lg:hidden flex-row space-x-2 mt-2 overflow-x-auto">
             {% for image in artwork.get_images_list() %}
-            <img src="{{ image }}" 
-                 alt="Thumbnail {{ loop.index }}" 
-                 class="w-16 h-16 object-cover rounded-lg cursor-pointer border-2 border-transparent hover:border-gradient-to-r from-purple-500 to-pink-500 transition duration-300"
-                 onclick="updateSwiperSlide({{ loop.index0 }})">
-            {% endfor %}
+              <img src="{{ image }}"
+              loading="lazy"
+                  alt="{{ artwork.name }} thumbnail {{ loop.index }} – NailMart India"
+                  class="w-16 h-16 object-cover rounded-lg cursor-pointer border-2 border-transparent hover:border-gradient-to-r from-purple-500 to-pink-500 transition duration-300"
+                  onclick="updateSwiperSlide({{ loop.index0 }})">
+              {% endfor %}
+
             {% if not artwork.get_images_list() %}
             <img src="{{ url_for('static', filename='images/placeholder.png') }}" 
-                 alt="Thumbnail"
+                 alt="Product image placeholder – NailMart India"
+
                  class="w-16 h-16 object-cover rounded-lg border-2 border-gradient-to-r from-purple-500 to-pink-500 cursor-default">
             {% endif %}
           </div>
