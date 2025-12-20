@@ -30,15 +30,7 @@ import string
 from markupsafe import Markup
 from openpyxl import load_workbook
 
-wb = load_workbook(excel_file)
-ws = wb.active
 
-headers = [cell.value for cell in ws[1]]
-
-rows = []
-for row in ws.iter_rows(min_row=2, values_only=True):
-    row_dict = dict(zip(headers, row))
-    rows.append({k: v if v is not None else '' for k, v in row_dict.items()})
 
 
 # SQLAlchemy Imports
@@ -2097,13 +2089,22 @@ def admin_bulk_upload():
             flash('❌ Please select an Excel file before uploading.', 'danger')
             return redirect(request.url)
 
+        from openpyxl import load_workbook
+
         try:
-            df = pd.read_excel(excel_file)
+            wb = load_workbook(excel_file)
+            ws = wb.active
         except Exception:
             flash('❌ Invalid Excel file. Please upload the approved .xlsx format.', 'danger')
             return redirect(request.url)
 
-        df = df.fillna('')
+        headers = [cell.value for cell in ws[1]]
+
+        rows = []
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            row_dict = dict(zip(headers, row))
+            rows.append({k: v if v is not None else '' for k, v in row_dict.items()})
+
 
         REQUIRED_COLUMNS = [
             'sku', 'hsn_code', 'hsn_description', 'name', 'description',
@@ -2116,7 +2117,7 @@ def admin_bulk_upload():
             'category_id', 'custom_options_json', 'is_featured'
         ]
 
-        missing_columns = [c for c in REQUIRED_COLUMNS if c not in df.columns]
+        missing_columns = [c for c in REQUIRED_COLUMNS if c not in headers]
 
         if missing_columns:
             flash(
@@ -2126,7 +2127,8 @@ def admin_bulk_upload():
             flash('✔ Fix: Use ONLY the approved bulk-upload Excel template.', 'warning')
             return redirect(request.url)
 
-        preview_rows = df.to_dict(orient='records')
+        preview_rows = rows
+
 
         flash(
             f'✔ {len(preview_rows)} rows loaded successfully. Please review before final upload.',
