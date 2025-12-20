@@ -2180,6 +2180,8 @@ def admin_bulk_finalize():
                 is_featured=bool(request.form.getlist('is_featured[]')[i]),
                 images=json.dumps([default_image_url])
             )
+            from slugify import slugify
+            artwork.slug = slugify(f"{artwork.name}-{artwork.sku}")
 
             db.session.add(artwork)
             success_count += 1
