@@ -62,169 +62,115 @@
     scroll-behavior: smooth;
   }
 </style>
-
 {% for category, products in categorized_artworks.items() %}
-<section id="{{ category|lower|replace(' ', '-') }}" class="py-8 mb-8 bg-white rounded-lg shadow-md">
+<section id="{{ category|lower|replace(' ', '-') }}"
+         class="py-8 mb-8 bg-white rounded-lg shadow-md">
+
   <div class="container mx-auto px-4">
-    <a href="{{ url_for('category_page', category_slug=category|slugify) }}" class="block text-center mb-6">
-  <h2 class="text-3xl font-bold gradient-link category-heading">
-    {{ category|upper }}
-  </h2>
-</a>
+
+    <a href="{{ url_for('category_page', category_slug=category|slugify) }}"
+       class="block text-center mb-6">
+      <h2 class="text-3xl font-bold gradient-link category-heading">
+        {{ category|upper }}
+      </h2>
+    </a>
 
     <div class="swiper mySwiper-{{ category|lower|replace(' ', '-') }}">
       <div class="swiper-wrapper">
-      
-       {% for product in products %}
 
-<div class="swiper-slide w-full flex justify-center">
-  <div class="product-card bg-white rounded-lg shadow-md overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl flex flex-col relative">
+        {% for product in products %}
+        <div class="swiper-slide w-full flex justify-center">
 
-    {# Image clickable #}
-    <a href="{{ url_for('product_detail_slug', slug=product.slug) }}">
-
-      <div class="h-48 w-full p-2 flex items-center justify-center">
-        <img src="{{ product.get_images_list()[0] if product.get_images_list() else url_for('static', filename='images/placeholder.png') }}" 
-             alt="{{ product.name }}" 
-             class="object-contain max-h-full max-w-full transition-transform duration-300 hover:scale-105">
-      </div>
-    </a>
-
-    <div class="p-2 flex flex-col justify-between text-center">
-      <div>
-        <h3 class="text-sm font-semibold text-gray-900 mb-1 truncate">{{ product.name }}</h3>
-        <div class="flex items-baseline justify-center mb-1">
-          <span class="text-base font-bold text-primary">{{ product.selling_price_incl_gst | currency }}</span>
-        </div>
-        <div class="flex items-center justify-center mb-1">
-          <div class="text-yellow-500 text-xs">
-            <i class="fas fa-star"></i><i class="fas fa-star"></i>
-            <i class="fas fa-star"></i><i class="fas fa-star"></i>
-            <i class="fas fa-star-half-alt"></i>
-          </div>
-          <span class="text-xs text-gray-600 ml-1">(4.5/5)</span>
-        </div>
-        {% if product.shipping_charge == 0 %}
-        <p class="text-green-600 font-semibold text-xs mb-1">
-          <i class="fas fa-truck mr-1"></i> Free Delivery
-        </p>
-        {% else %}
-        <p class="text-gray-500 font-semibold text-xs mb-1">
-          <i class="fas fa-truck mr-1"></i> Shipping: {{ product.shipping_charge | currency }}
-        </p>
-        {% endif %}
-      </div>
-
-      <div class="flex justify-center mt-2">
-        {% if product.stock > 0 %}
-        <a href="{{ url_for('product_detail', sku=product.sku) }}"
-           class="btn btn-primary px-3 py-1 text-center text-xs w-full">
-          View Details
-        </a>
-        {% else %}
-        <button class="btn btn-secondary px-3 py-1 opacity-60 cursor-not-allowed text-xs w-full"
-                disabled>
-          Out of Stock
-        </button>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-</div>
-
-{% endfor %}
+          <div class="product-card bg-white rounded-lg shadow-md overflow-hidden
+            transform transition-transform duration-300
+            hover:scale-105 hover:shadow-xl flex flex-col relative
+            cursor-pointer"
+     data-href="{{ url_for('product_detail_slug', slug=product.slug) }}">
 
 
-      </div> 
-
-    </div>
-  </div>
-    </section>
-{% endfor %}
-
-<section class="fade-section py-6 bg-white rounded-lg shadow-md mb-8">
-  <div class="container mx-auto px-4">
-    <h2 class="fade-item text-4xl sm:text-5xl font-extrabold text-primary mb-12 text-center drop-shadow-lg">
-      Most Searched Items
-    </h2>
- 
-</section>
-
-<div class="swiper mySwiperFeatured">
-  <div class="swiper-wrapper">
-    {% for artwork in featured_artworks %}
-    <div class="swiper-slide w-full flex justify-center">
-      <div class="fade-item product-card bg-white rounded-lg shadow-md overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-xl flex flex-col relative">
-
-        {# Image clickable #}
-        <a href="{{ url_for('product_detail_slug', slug=artwork.slug) }}">
-          <div class="h-48 w-full p-2 flex items-center justify-center">
-            <img src="{{ artwork.get_images_list()[0] if artwork.get_images_list() else url_for('static', filename='images/placeholder.png') }}"
-                 alt="{{ artwork.name }}"
-                 class="object-contain max-h-full max-w-full transition-transform duration-300 hover:scale-105">
-          </div>
-        </a>
-
-        <div class="p-2 flex flex-col justify-between text-center">
-          <div>
-            <h3 class="text-sm font-semibold text-gray-900 mb-1 truncate">{{ artwork.name }}</h3>
-            <div class="flex items-baseline justify-center mb-1">
-              <span class="text-base font-bold text-primary">{{ artwork.selling_price_incl_gst | currency }}</span>
-            </div>
-            <div class="flex items-center justify-center mb-1">
-              <div class="text-yellow-500 text-xs">
-                <i class="fas fa-star"></i><i class="fas fa-star"></i>
-                <i class="fas fa-star"></i><i class="fas fa-star"></i>
-                <i class="fas fa-star-half-alt"></i>
+            <!-- IMAGE (same as old) -->
+            <a href="{{ url_for('product_detail_slug', slug=product.slug) }}">
+              <div class="h-48 w-full p-2 flex items-center justify-center">
+                <img src="{{ product.get_images_list()[0] if product.get_images_list()
+                             else url_for('static', filename='images/placeholder.png') }}"
+                     alt="{{ product.name }}"
+                     class="object-contain max-h-full max-w-full
+                            transition-transform duration-300 hover:scale-105">
               </div>
-              <span class="text-xs text-gray-600 ml-1">(4.5/5)</span>
-            </div>
-            {% if artwork.shipping_charge == 0 %}
-            <p class="text-green-600 font-semibold text-xs mb-1">
-              <i class="fas fa-truck mr-1"></i> Free Delivery
-            </p>
-            {% else %}
-            <p class="text-gray-500 font-semibold text-xs mb-1">
-              <i class="fas fa-truck mr-1"></i> Shipping: {{ artwork.shipping_charge | currency }}
-            </p>
-            {% endif %}
-          </div>
-          <div class="flex justify-center mt-2">
-            {% if artwork.stock > 0 %}
-            <a href="{{ url_for('product_detail', sku=artwork.sku) }}"
-               class="btn btn-primary px-3 py-1 text-center text-xs w-full">
-              View Details
             </a>
-            {% else %}
-            <button class="btn btn-secondary px-3 py-1 opacity-60 cursor-not-allowed text-xs w-full"
-                    disabled>
-              Out of Stock
-            </button>
-            {% endif %}
+
+            <!-- CONTENT -->
+            <div class="p-2 flex flex-col justify-between text-center">
+              <div>
+
+                <h3 class="text-sm font-semibold text-gray-900 mb-1 truncate">
+                  {{ product.name }}
+                </h3>
+
+                <div class="flex items-baseline justify-center mb-1">
+                  <span class="text-base font-bold text-primary">
+                    {{ product.selling_price_incl_gst | currency }}
+                  </span>
+                </div>
+
+                <!-- ⭐ STARS (UNCHANGED) -->
+                <div class="flex items-center justify-center mb-1">
+                  <div class="text-yellow-500 text-xs">
+                    <i class="fas fa-star"></i><i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i><i class="fas fa-star"></i>
+                    <i class="fas fa-star-half-alt"></i>
+                  </div>
+                  <span class="text-xs text-gray-600 ml-1">(4.5/5)</span>
+                </div>
+
+                {% if product.shipping_charge == 0 %}
+                  <p class="text-green-600 font-semibold text-xs mb-1">
+                    <i class="fas fa-truck mr-1"></i> Free Delivery
+                  </p>
+                {% else %}
+                  <p class="text-gray-500 font-semibold text-xs mb-1">
+                    <i class="fas fa-truck mr-1"></i>
+                    Shipping: {{ product.shipping_charge | currency }}
+                  </p>
+                {% endif %}
+
+              </div>
+
+              <!-- BUTTON (ORANGE – SAME AS SCREENSHOT) -->
+              <div class="flex justify-center mt-2">
+                {% if product.stock > 0 %}
+                  <a href="{{ url_for('product_detail', sku=product.sku) }}"
+                     class="btn btn-primary px-3 py-1 text-xs w-full">
+                    View Details
+                  </a>
+                {% else %}
+                  <button class="btn btn-secondary px-3 py-1 text-xs w-full
+                                 opacity-60 cursor-not-allowed" disabled>
+                    Out of Stock
+                  </button>
+                {% endif %}
+              </div>
+
+            </div>
           </div>
+
         </div>
+        {% endfor %}
+
       </div>
     </div>
-    {% else %}
-    <div class="swiper-slide w-full flex justify-center">
-      <p class="text-center text-gray-800 w-full py-10">No featured artworks available at the moment.</p>
-    </div>
-    {% endfor %}
+
   </div>
-</div>
+</section>
+{% endfor %}
 
 
 
-
-
-
-
-    
     <section class="fade-section py-16 bg-primary text-white text-center">
         <div class="container mx-auto">
-            <h2 class="fade-item text-4xl font-extrabold mb-6">Discover Your Spiritual Connection</h2>
+            <h2 class="fade-item text-4xl font-extrabold mb-6">Discover Your Nail Connection</h2>
             <p class="fade-item text-lg md:text-xl max-w-3xl mx-auto mb-8">
-                Each artwork at Karthika Futures is a gateway to ancient wisdom and inner peace. Find the piece that resonates with your soul.
+                Each artwork at Nail Mart India is exclusively curated for you. Find the piece that resonates with your Nail.
             </p>
             <a href="{{ url_for('all_products') }}" class="fade-item btn bg-white text-primary text-xl px-8 py-4 rounded-full shadow-lg hover:bg-gray-100 transform hover:scale-105 transition-all duration-300">
                 Begin Your Journey <i class="fas fa-leaf ml-2"></i>
@@ -234,13 +180,13 @@
 
     <section class="fade-section py-16 bg-gradient-to-br from-yellow-50 to-orange-50 text-gray-800">
     <div class="container mx-auto text-center">
-        <h2 class="fade-item text-4xl font-extrabold mb-6 text-primary">Mission of Karthikafutures</h2>
+        <h2 class="fade-item text-4xl font-extrabold mb-6 text-primary">Nail Accademy</h2>
 
             <p class="fade-item text-lg md:text-xl max-w-3xl mx-auto mb-8 leading-relaxed">
-                Every purchase from Karthika Futures contributes to the propagation of Dharma and ancient spiritual wisdom.
+                Nail Care Tips
             </p>
             <a href="{{ url_for('about') }}" class="fade-item btn btn-success text-xl px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
-    Read more about Dharma Prachar <i class="fas fa-heart ml-2"></i>
+    Special Nail Ideas - How to protect your Glam <i class="fas fa-heart ml-2"></i>
 </a>
         </div>
     </section>
@@ -303,6 +249,8 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 <script>
+
+
     function hideAllSpinners() {
         const spinners = document.querySelectorAll('.category-spinner');
         spinners.forEach(spinner => {
@@ -392,20 +340,41 @@
     // Initialize Swiper for each product category section
     const categoryCarousels = document.querySelectorAll("[class*='mySwiper-']");
     categoryCarousels.forEach(carousel => {
-        const swiperInstance = new Swiper(carousel, {
-            effect: "coverflow",
-            grabCursor: true,
-            centeredSlides: true,
-            loop: true,
-            slidesPerView: "auto",
-            
-            coverflowEffect: {
-                rotate: 0,
-                stretch: 80,
-                depth: 200,
-                modifier: 1,
-                slideShadows: false,
+    const swiperInstance = new Swiper(carousel, {
+        effect: "coverflow",
+        grabCursor: true,
+        centeredSlides: true,
+        loop: true,
+        slidesPerView: "auto",
+        preventClicks: false,
+        preventClicksPropagation: false,
+        slideToClickedSlide: false, // Prevents accidental jumping
+        
+        on: {
+            click: function (swiper, event) {
+                // 1. Check if the user clicked the card or something inside it
+                const card = event.target.closest('.product-card');
+                
+                // 2. Check if they clicked an actual button or link (don't interfere with those)
+                const isActionable = event.target.closest('a, button');
+
+                if (card && !isActionable) {
+                    const url = card.getAttribute('data-href');
+                    if (url) {
+                        window.location.href = url;
+                    }
+                }
             },
+        },
+        // ... keep your existing coverflowEffect and breakpoints
+    coverflowEffect: {
+        rotate: 0,
+        stretch: 80,
+        depth: 200,
+        modifier: 1,
+        slideShadows: false,
+    },
+
             
             autoplay: {
                 delay: 3000,
@@ -444,7 +413,7 @@
 
    var swiperFeatured = new Swiper(".mySwiperFeatured", {
     effect: "coverflow",
-    grabCursor: true,
+    grabCursor: false,
     centeredSlides: true,
     loop: true,
     slidesPerView: "auto",
@@ -489,18 +458,46 @@
         },
     },
 });
+
+
+
+
 </script>
 <style>
+
+  /* Ensure the card content is definitely on top and clickable */
+.product-card > div, 
+.product-card > a {
+    position: relative;
+    z-index: 30 !important;
+    pointer-events: auto !important;
+}
     /* Add this to your style.css if the issue persists 
 .swiper-slide {
     width: auto !important;   
 }
      .......*/
 
+     .product-card {
+  pointer-events: auto !important;
+  z-index: 20; /* Ensure it stays above the swiper-wrapper background */
+}
+
+/* Ensure the wrapper doesn't eat the click */
+.swiper-wrapper {
+  pointer-events: auto !important;
+}
+/* ✅ FORCE SWIPER SLIDES TO BE CLICKABLE */
+.swiper,
+.swiper-wrapper,
+.swiper-slide {
+  pointer-events: auto !important;
+}
+
 .product-card {
   position: relative;
   border-radius: 0.75rem;
-  overflow: hidden;
+  overflow: visible;   /* 🔑 allow clicks to pass */
 }
 
 .product-card::before {
@@ -588,9 +585,27 @@
 
 .product-card::before {
   pointer-events: none; /* ✅ allows clicks to pass through */
-  z-index: 1;
+  z-index: 5;
 }
 
+/* Ensure content is physically above the animated border */
+.product-card > a, 
+.product-card > div {
+    position: relative;
+    z-index: 10 !important; 
+    pointer-events: auto !important;
+}
+
+/* Ensure the pseudo-element border stays in the background */
+.product-card::before {
+    z-index: -1; 
+    pointer-events: none !important;
+}
+/* Add this to ensure content is above the border */
+.product-card > * {
+  position: relative;
+  z-index: 10;
+}
 
 /* Mobile devices (always show subtle styling) */
 @media (max-width: 768px) {
@@ -722,6 +737,10 @@
   cursor: pointer;
   text-decoration: none;
 }
+/* users visually know it’s clickable*/
+.product-card {
+  cursor: pointer;
+}   
 
 /* Blinking blue underline */
 .gradient-link::after {
