@@ -28,7 +28,18 @@ import io
 import base64
 import string 
 from markupsafe import Markup
-import pandas as pd
+from openpyxl import load_workbook
+
+wb = load_workbook(excel_file)
+ws = wb.active
+
+headers = [cell.value for cell in ws[1]]
+
+rows = []
+for row in ws.iter_rows(min_row=2, values_only=True):
+    row_dict = dict(zip(headers, row))
+    rows.append({k: v if v is not None else '' for k, v in row_dict.items()})
+
 
 # SQLAlchemy Imports
 from flask_sqlalchemy import SQLAlchemy
