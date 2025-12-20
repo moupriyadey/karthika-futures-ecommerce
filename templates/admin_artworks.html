@@ -20,6 +20,12 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4>All Artworks</h4>
         <a href="{{ url_for('admin_add_artwork') }}" class="btn btn-success"><i class="fas fa-plus me-2"></i>Add New Artwork</a>
+    
+    <a href="{{ url_for('admin_bulk_upload') }}"
+   class="btn btn-sm btn-outline-primary">
+   Bulk Upload (Excel)
+</a>
+
     </div>
 
     {% if artworks %}

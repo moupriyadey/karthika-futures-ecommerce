@@ -28,6 +28,7 @@ import io
 import base64
 import string 
 from markupsafe import Markup
+import pandas as pd
 
 # SQLAlchemy Imports
 from flask_sqlalchemy import SQLAlchemy
@@ -2073,6 +2074,127 @@ def product_detail_slug(slug):
         artwork_data=artwork_data
     )
 
+@app.route('/admin/bulk-upload', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_bulk_upload():
+
+    if request.method == 'POST':
+        excel_file = request.files.get('excel_file')
+
+        if not excel_file:
+            flash('❌ Please select an Excel file before uploading.', 'danger')
+            return redirect(request.url)
+
+        try:
+            df = pd.read_excel(excel_file)
+        except Exception:
+            flash('❌ Invalid Excel file. Please upload the approved .xlsx format.', 'danger')
+            return redirect(request.url)
+
+        df = df.fillna('')
+
+        REQUIRED_COLUMNS = [
+            'sku', 'hsn_code', 'hsn_description', 'name', 'description',
+            'original_price', 'discount_price', 'stock',
+            'shipping_charge',
+            'package_weight_grams', 'package_length_cm',
+            'package_width_cm', 'package_height_cm',
+            'gst_type', 'cgst_percentage', 'sgst_percentage',
+            'igst_percentage', 'ugst_percentage', 'cess_percentage',
+            'category_id', 'custom_options_json', 'is_featured'
+        ]
+
+        missing_columns = [c for c in REQUIRED_COLUMNS if c not in df.columns]
+
+        if missing_columns:
+            flash(
+                '❌ Excel format error. Missing columns: ' + ', '.join(missing_columns),
+                'danger'
+            )
+            flash('✔ Fix: Use ONLY the approved bulk-upload Excel template.', 'warning')
+            return redirect(request.url)
+
+        preview_rows = df.to_dict(orient='records')
+
+        flash(
+            f'✔ {len(preview_rows)} rows loaded successfully. Please review before final upload.',
+            'success'
+        )
+
+        return render_template(
+            'admin_bulk_preview.html',
+            rows=preview_rows
+        )
+
+    return render_template('admin_bulk_upload.html')
+
+@app.route('/admin/bulk-upload-finalize', methods=['POST'])
+@login_required
+@admin_required
+def admin_bulk_finalize():
+
+    try:
+        default_image_url = cloudinary.uploader.upload(
+            "static/images/default_artwork.jpg",
+            folder="artworks/default"
+        )['secure_url']
+    except Exception:
+        flash('❌ Default image upload failed. Check Cloudinary configuration.', 'danger')
+        return redirect(url_for('admin_bulk_upload'))
+
+    total = len(request.form.getlist('sku[]'))
+    success_count = 0
+
+    for i in range(total):
+        sku = request.form.getlist('sku[]')[i].strip()
+
+        # Duplicate SKU check
+        if Artwork.query.filter_by(sku=sku).first():
+            flash(f'⚠ Duplicate SKU skipped: {sku}', 'warning')
+            continue
+
+        try:
+            artwork = Artwork(
+                sku=sku,
+                hsn_code=request.form.getlist('hsn_code[]')[i],
+                hsn_description=request.form.getlist('hsn_description[]')[i],
+                name=request.form.getlist('name[]')[i],
+                description=request.form.getlist('description[]')[i],
+                original_price=float(request.form.getlist('original_price[]')[i] or 0),
+                discount_price=float(request.form.getlist('discount_price[]')[i] or 0),
+                stock=int(request.form.getlist('stock[]')[i] or 0),
+                shipping_charge=float(request.form.getlist('shipping_charge[]')[i] or 0),
+                package_weight_grams=int(request.form.getlist('package_weight_grams[]')[i] or 0),
+                package_length_cm=int(request.form.getlist('package_length_cm[]')[i] or 0),
+                package_width_cm=int(request.form.getlist('package_width_cm[]')[i] or 0),
+                package_height_cm=int(request.form.getlist('package_height_cm[]')[i] or 0),
+                gst_type=request.form.getlist('gst_type[]')[i],
+                cgst_percentage=float(request.form.getlist('cgst_percentage[]')[i] or 0),
+                sgst_percentage=float(request.form.getlist('sgst_percentage[]')[i] or 0),
+                igst_percentage=float(request.form.getlist('igst_percentage[]')[i] or 0),
+                ugst_percentage=float(request.form.getlist('ugst_percentage[]')[i] or 0),
+                cess_percentage=float(request.form.getlist('cess_percentage[]')[i] or 0),
+                category_id=request.form.getlist('category_id[]')[i],
+                custom_options=request.form.getlist('custom_options_json[]')[i],
+                is_featured=bool(request.form.getlist('is_featured[]')[i]),
+                images=json.dumps([default_image_url])
+            )
+
+            db.session.add(artwork)
+            success_count += 1
+
+        except Exception:
+            flash(f'❌ Row skipped due to invalid data (SKU: {sku})', 'danger')
+            continue
+
+    db.session.commit()
+
+    flash(
+        f'✔ Bulk upload completed successfully. {success_count} artworks added.',
+        'success'
+    )
+    return redirect(url_for('admin_panel'))
 
 
 @app.route('/order_summary/<order_id>') # This line defines the web address
