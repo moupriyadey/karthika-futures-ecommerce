@@ -1,6 +1,10 @@
 # .gitignore
 .env
+.env.*
 __pycache__/
+instance/
 .venv/
 *.pyc
 static/uploads/
+*.sqlite3
+*.log

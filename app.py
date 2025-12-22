@@ -144,11 +144,11 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 }
 
 # Email Configuration
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.environ.get('SENDER_EMAIL')
-app.config['MAIL_PASSWORD'] = os.environ.get('SENDER_PASSWORD')
+#app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+#app.config['MAIL_PORT'] = 587
+#app.config['MAIL_USE_TLS'] = True
+#app.config['MAIL_USERNAME'] = os.environ.get('SENDER_EMAIL')
+#app.config['MAIL_PASSWORD'] = os.environ.get('SENDER_PASSWORD')
 app.config['BREVO_API_KEY'] = os.environ.get('BREVO_API_KEY')
 
 
@@ -191,7 +191,7 @@ cloudinary.config(
 )
 
 # Business Details (for invoices, etc.)
-app.config['OUR_BUSINESS_NAME'] = "Karthika Futures"
+app.config['OUR_BUSINESS_NAME'] = "NaiL Mart India"
 app.config['OUR_BUSINESS_ADDRESS'] = "Annapurnna Appartment, New Alipore, Kolkata - 700052"
 app.config['OUR_GSTIN'] = "29RUPA1234F1Z5" # Example GSTIN
 app.config['OUR_PAN'] = "ABCDE1234F" # Example PAN
@@ -3345,10 +3345,10 @@ from flask_migrate import Migrate
 
 
 # Email Sending
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.application import MIMEApplication
+#import smtplib
+#from email.mime.multipart import MIMEMultipart
+#from email.mime.text import MIMEText
+#from email.mime.application import MIMEApplication
 
 # CSRF protection
 from flask_wtf.csrf import CSRFProtect, generate_csrf
