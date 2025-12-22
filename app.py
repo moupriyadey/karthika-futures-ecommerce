@@ -145,12 +145,14 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 }
 
 # Email Configuration (Brevo SMTP)
-app.config['MAIL_SERVER'] = os.environ.get('SMTP_SERVER')
-app.config['MAIL_PORT'] = int(os.environ.get('SMTP_PORT', 587))
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.environ.get('SMTP_LOGIN')
-app.config['MAIL_PASSWORD'] = os.environ.get('SMTP_PASSWORD')
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('SENDER_EMAIL')
+#app.config['MAIL_SERVER'] = os.environ.get('SMTP_SERVER')
+#app.config['MAIL_PORT'] = int(os.environ.get('SMTP_PORT', 587))
+#app.config['MAIL_USE_TLS'] = True
+#app.config['MAIL_USERNAME'] = os.environ.get('SMTP_LOGIN')
+#app.config['MAIL_PASSWORD'] = os.environ.get('SMTP_PASSWORD')
+#app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('SENDER_EMAIL')
+app.config['BREVO_API_KEY'] = os.environ.get('BREVO_API_KEY')
+
 
 
 
