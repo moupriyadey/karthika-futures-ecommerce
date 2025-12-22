@@ -152,6 +152,7 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 #app.config['MAIL_PASSWORD'] = os.environ.get('SMTP_PASSWORD')
 #app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('SENDER_EMAIL')
 app.config['BREVO_API_KEY'] = os.environ.get('BREVO_API_KEY')
+app.config['SENDER_EMAIL'] = os.environ.get('SENDER_EMAIL')
 
 
 
