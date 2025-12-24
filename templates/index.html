@@ -62,16 +62,19 @@
     scroll-behavior: smooth;
   }
 </style>
-{% for category, products in categorized_artworks.items() %}
-<section id="{{ category|lower|replace(' ', '-') }}"
+{% for category in categories %}
+    {% set products = categorized_artworks.get(category.name) %}
+    {% if products %}
+
+<section id="{{ category.name|lower|replace(' ', '-') }}"
          class="py-8 mb-8 bg-white rounded-lg shadow-md">
 
   <div class="container mx-auto px-4">
 
-    <a href="{{ url_for('category_page', category_slug=category|slugify) }}"
+    <a href="{{ url_for('category_page', category_slug=category.name|slugify) }}"
        class="block text-center mb-6">
       <h2 class="text-3xl font-bold gradient-link category-heading">
-        {{ category|upper }}
+        {{ category.name|upper }}
       </h2>
     </a>
 
@@ -155,6 +158,7 @@
           </div>
 
         </div>
+       
         {% endfor %}
 
       </div>
@@ -162,6 +166,7 @@
 
   </div>
 </section>
+   {% endif %}
 {% endfor %}
 
 
@@ -330,7 +335,7 @@
                 spaceBetween: 30,
             },
             1024: {
-                slidesPerView: 4,
+                slidesPerView: 5,
                 spaceBetween: 40,
             },
         },
@@ -531,16 +536,18 @@
 
 .category-heading {
     display: inline-block;
-    padding: 0.3rem 0.8rem;
-    border-radius: 0.5rem;
-    background: linear-gradient(to right, #6f33fa, #fa8e29); /* base gradient */
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    padding: 0.5rem 1.4rem;
+    border-radius: 999px; /* pill shape */
+    background: linear-gradient(135deg, #f5f3ff, #f739be);
+    color: #4f46e5;
+    font-weight: 700;
     position: relative;
     cursor: pointer;
-    transition: all 0.3s ease;
-    overflow: hidden; /* needed for shine effect */
+    transition: all 0.25s ease;
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.18);
+    overflow: hidden; 
 }
+
 
 /* Blue outline on hover */
 .category-heading::after {
@@ -566,13 +573,18 @@
     height: 200%;
     background: linear-gradient(
         120deg,
-        rgba(255,255,255,0.1) 0%,
-        rgba(255,255,255,0.5) 50%,
-        rgba(255,255,255,0.1) 100%
+        rgba(255,255,255,0.00) 0%,
+        rgba(255,255,255,0.12) 20%,
+        rgba(255,255,255,0.45) 40%,
+        rgba(255,255,255,0.45) 60%,
+        rgba(255,255,255,0.12) 80%,
+        rgba(255,255,255,0.00) 100%
     );
+    filter: blur(1.2px);
     transform: rotate(25deg) translateX(-100%);
-    animation: shine 2s linear infinite; /* continuous shine */
+    animation: shine 2.2s linear infinite;
 }
+
 
 @keyframes shine {
     0% {
@@ -626,17 +638,6 @@
   text-decoration: none;
 }
 
-/* Blinking blue underline */
-.gradient-link::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: -4px; /* space between text and underline */
-  width: 100%;
-  height: 2px;
-  background-color: #3b82f6; /* Tailwind blue-600 */
-  animation: blink-underline 1.2s infinite;
-}
 
 @keyframes blink-underline {
   0%, 50%, 100% {
@@ -746,13 +747,20 @@
 .gradient-link::after {
   content: "";
   position: absolute;
-  left: 0;
-  bottom: -4px; /* space between text and underline */
-  width: 100%;
+  left: 20%;
+  bottom: 6px;   /* 🔑 INSIDE the button */
+  width: 60%;
   height: 2px;
-  background-color: #3b82f6; /* Tailwind blue-600 */
-  animation: blink-underline 1.2s infinite;
+  background: linear-gradient(to right, #3b82f6, #9333ea);
+  border-radius: 2px;
+  animation: blink-underline 1.4s infinite;
 }
+.category-heading:hover {
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 10px 22px rgba(99, 102, 241, 0.28);
+}
+
+
 
 @keyframes blink-underline {
   0%, 50%, 100% {

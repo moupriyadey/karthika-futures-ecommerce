@@ -19,14 +19,35 @@
         </div>
         <div class="card-body">
             <form action="{{ url_for('admin_add_category') }}" method="POST">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="input-group">
-                    <input type="text" class="form-control" placeholder="Category Name" name="category_name" required>
-                    <button class="btn btn-primary" type="submit"><i class="fas fa-plus me-2"></i>Add Category</button>
-                </div>
-            </form>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="mb-2">
+        <input type="text"
+               class="form-control"
+               placeholder="Category Name"
+               name="category_name"
+               required>
+    </div>
+
+    <div class="mb-2">
+        <input type="number"
+               class="form-control"
+               name="display_order"
+               placeholder="Display Order (1 = Top)"
+               value="999">
+    </div>
+
+    <button class="btn btn-primary" type="submit">
+        <i class="fas fa-plus me-2"></i>Add Category
+    </button>
+</form>
+
+
+
         </div>
     </div>
+
+  
 
     <div class="card shadow-sm border-0 rounded-lg">
         <div class="card-header bg-light">
@@ -37,21 +58,27 @@
             <div class="table-responsive">
                 <table class="table table-hover table-striped align-middle">
                     <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Description</th>
-                            <th>Image</th> {# Placeholder for image column #}
-                            <th>Actions</th>
-                        </tr>
+                            <tr>
+                                <th>⇅</th>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Image</th>
+                                <th>Actions</th>
+                            </tr>
                     </thead>
-                    <tbody>
+
+                    <tbody id="category-sortable">
                         {% for category in categories %}
-                        <tr>
-                            <td>{{ category.id[:8] }}...</td>
+                        <tr data-id="{{ category.id }}"
+                            data-display-order="{{ category.display_order }}"
+                            style="cursor: move;">
+
+                            <td class="drag-handle text-center">☰</td>
+                            <td>{{ category.id[:60] }}...</td>
                             <td>{{ category.name }}</td>
                             <td>{{ category.description or 'N/A' }}</td>
-                            
+                                                    
                             <td>
     {% if category.image %}
         {% if category.image.startswith('http') %}
@@ -110,6 +137,18 @@
             <form id="editCategoryForm" method="POST" action="" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-body">
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Display Order <small class="text-muted">(Lower = Higher Priority)</small>
+                        </label>
+                        <input type="number"
+                            class="form-control"
+                            name="display_order"
+                            value="">
+                    </div>
+
+
                     <div class="mb-3">
                         <label for="edit_category_name" class="form-label">Category Name</label>
                         <input type="text" class="form-control" id="edit_category_name" name="name" required>
@@ -164,6 +203,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
     // Function to preview image in the modal
     function previewNewImage(input, previewId) {
@@ -201,6 +241,9 @@
             
             editCategoryNameInput.value = categoryName;
             editCategoryDescriptionInput.value = categoryDescription;
+            document.querySelector('#editCategoryForm input[name="display_order"]').value =
+            button.getAttribute('data-display-order') || 999;
+
             editCategoryForm.action = `/admin/edit-category/${categoryId}`;
 
             // Reset new image preview
@@ -245,5 +288,41 @@ if (categoryImage) {
             });
         });
     });
+
+
+const el = document.getElementById('category-sortable');
+
+if (el) {
+    Sortable.create(el, {
+        animation: 150,
+        handle: '.drag-handle',
+        onEnd: function () {
+            const order = [];
+            el.querySelectorAll('tr').forEach((row, index) => {
+                order.push({
+                    id: row.dataset.id,
+                    display_order: index + 1
+                });
+            });
+
+            fetch('/admin/update-category-order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify(order)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) {
+                    alert("Failed to save order");
+                }
+            });
+        }
+    });
+}
+
 </script>
+
 {% endblock %}

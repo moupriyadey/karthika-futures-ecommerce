@@ -426,7 +426,9 @@ class Category(db.Model):
     name = Column(String(100), unique=True, nullable=False)
     description = Column(Text, nullable=True)
     image = Column(String(255), nullable=True) # Path to category image
+    display_order = Column(Integer, default=999)# category sorting 
     artworks = relationship('Artwork', backref='category', lazy=True)
+    
 
     def __repr__(self):
         return f"Category('{self.name}')"
@@ -1924,7 +1926,11 @@ def reset_password():
 # --- Routes ---
 @app.route('/')
 def index():
-    categories = Category.query.all()
+    categories = Category.query.order_by(
+    Category.display_order.asc(),
+    Category.name.asc()
+).all()
+
     # Fetch all artworks, you can filter this as needed
     all_artworks = Artwork.query.order_by(Artwork.display_order).all()
     print(f"Number of artworks fetched: {len(all_artworks)}")
@@ -1943,31 +1949,6 @@ def index():
                            categorized_artworks=categorized_artworks,
                            all_artworks=all_artworks,
                            featured_artworks=featured_artworks)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # NEW: Route for category pages
 from datetime import datetime, timedelta
@@ -1994,7 +1975,8 @@ def all_products():
     search_query = request.args.get('search', '')
     
     # Fetch all categories
-    categories = Category.query.all()
+    categories = Category.query.order_by(Category.display_order.asc(), Category.name.asc()).all()
+
     
     # Dictionary to hold artworks grouped by category
     categorized_artworks = {}
@@ -2773,7 +2755,7 @@ def admin_orders_view():
 @login_required
 @admin_required
 def admin_categories():
-    categories = Category.query.all()
+    categories = Category.query.order_by(Category.display_order).all()
     return render_template('admin_categories.html', categories=categories)
 
 @app.route('/admin/add-category', methods=['POST'])
@@ -2781,15 +2763,21 @@ def admin_categories():
 @admin_required
 def admin_add_category():
     name = request.form.get('category_name')
+    display_order = int(request.form.get('display_order', 999))  # ✅ ADD
+
     if name:
         existing_category = Category.query.filter_by(name=name).first()
         if existing_category:
             flash(f'Category "{name}" already exists.', 'warning')
         else:
-            new_category = Category(name=name)
+            new_category = Category(
+                name=name,
+                display_order=display_order   # ✅ ADD
+            )
             db.session.add(new_category)
             db.session.commit()
             flash(f'Category "{name}" added successfully!', 'success')
+
     else:
         flash('Category name cannot be empty.', 'danger')
     return redirect(url_for('admin_categories'))
@@ -2802,6 +2790,7 @@ def admin_edit_category(category_id):
     if request.method == 'POST':
         new_name = request.form.get('name')
         description = request.form.get('description')
+        display_order = int(request.form.get('display_order', 999))
         
         if new_name and new_name != category.name:
             existing_category = Category.query.filter_by(name=new_name).first()
@@ -2810,7 +2799,8 @@ def admin_edit_category(category_id):
                 return render_template('admin_edit_category.html', category=category)
             category.name = new_name
         
-        category.description = description
+        category.display_order = display_order
+ 
 
                 # Handle image upload (Cloudinary)
         if 'image' in request.files:
@@ -2839,6 +2829,21 @@ def admin_edit_category(category_id):
         flash('Category updated successfully!', 'success')
         return redirect(url_for('admin_categories'))
     return render_template('admin_edit_category.html', category=category)
+
+@app.route('/admin/update-category-order', methods=['POST'])
+@login_required
+@admin_required
+def update_category_order():
+    data = request.get_json()
+
+    for item in data:
+        category = Category.query.get(item['id'])
+        if category:
+            category.display_order = item['display_order']
+
+    db.session.commit()
+    return jsonify({'success': True})
+
 
 @app.route('/delete-selected-orders', methods=['POST'])
 @login_required
@@ -3034,7 +3039,8 @@ def admin_add_artwork():
 @admin_required
 def admin_edit_artwork(artwork_id):
     artwork = Artwork.query.get_or_404(artwork_id)
-    categories = Category.query.all()
+    categories = Category.query.order_by(Category.display_order).all()
+
 
     if request.method == 'POST':
         # --- Retrieve form data ---
@@ -3049,6 +3055,8 @@ def admin_edit_artwork(artwork_id):
         cess_percentage = request.form.get('cess_percentage', '0.00')
         stock = request.form.get('stock', '0')
         description = request.form.get('description')
+        display_order = int(request.form.get('display_order', 999))
+
         shipping_charge = request.form.get('shipping_charge', '0.00')
         gst_type = request.form.get('gst_type')
 
