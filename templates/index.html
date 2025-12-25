@@ -110,11 +110,29 @@
                   {{ product.name }}
                 </h3>
 
-                <div class="flex items-baseline justify-center mb-1">
-                  <span class="text-base font-bold text-primary">
-                    {{ product.selling_price_incl_gst | currency }}
-                  </span>
-                </div>
+                <div class="price-box text-center mb-1">
+                      {% set final_price = product.selling_price_incl_gst + product.shipping_charge %}
+                      {% set fake_mrp = final_price * 125 // 100 %}
+
+                      <span class="text-base font-bold text-primary final-price">
+                        {{ final_price | currency }}
+                      </span>
+
+                      {% if final_price >= 199 %}
+                        <div class="text-xs text-gray-500">
+                          <span class="line-through mr-1">
+                            {{ fake_mrp | currency }}
+                          </span>
+                          <span class="text-green-600 font-semibold">
+                            You save {{ (fake_mrp - final_price) | currency }}
+                          </span>
+                        </div>
+                      {% endif %}
+
+  <p class="text-xs text-gray-500">(Final Price · Incl. GST & Shipping)</p>
+</div>
+
+
 
                 <!-- ⭐ STARS (UNCHANGED) -->
                 <div class="flex items-center justify-center mb-1">
@@ -130,12 +148,8 @@
                   <p class="text-green-600 font-semibold text-xs mb-1">
                     <i class="fas fa-truck mr-1"></i> Free Delivery
                   </p>
-                {% else %}
-                  <p class="text-gray-500 font-semibold text-xs mb-1">
-                    <i class="fas fa-truck mr-1"></i>
-                    Shipping: {{ product.shipping_charge | currency }}
-                  </p>
                 {% endif %}
+
 
               </div>
 
@@ -143,9 +157,14 @@
               <div class="flex justify-center mt-2">
                 {% if product.stock > 0 %}
                   <a href="{{ url_for('product_detail', sku=product.sku) }}"
-                     class="btn btn-primary px-3 py-1 text-xs w-full">
-                    View Details
+                    class="btn btn-primary px-3 py-1 text-xs w-full view-details-btn"
+                    onclick="handleCardClick(event, this)">
+                    <span class="btn-text">View Details</span>
+                    <span class="btn-spinner hidden ml-2">
+                      <i class="fas fa-spinner fa-spin"></i>
+                    </span>
                   </a>
+
                 {% else %}
                   <button class="btn btn-secondary px-3 py-1 text-xs w-full
                                  opacity-60 cursor-not-allowed" disabled>
@@ -292,12 +311,13 @@
     });
 
     // Handle the "pageshow" event for bfcache
-    window.addEventListener('pageshow', function(event) {
-        if (event.persisted) {
-            // Page was restored from the bfcache
-            hideAllSpinners();
-        }
-    });
+   window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+        hideAllSpinners();
+        resetViewDetailButtons(); // ✅ ADD THIS
+    }
+});
+
 
     function openFullImage(imageUrl) {
         const popup = document.getElementById("fullImageView");
@@ -364,11 +384,12 @@
                 const isActionable = event.target.closest('a, button');
 
                 if (card && !isActionable) {
-                    const url = card.getAttribute('data-href');
-                    if (url) {
-                        window.location.href = url;
-                    }
+                  const btn = card.querySelector(".view-details-btn");
+                  if (btn) {
+                    btn.click(); // reuse the same logic
+                  }
                 }
+
             },
         },
         // ... keep your existing coverflowEffect and breakpoints
@@ -465,10 +486,79 @@
 });
 
 
+  function handleCardClick(event, button) {
+    // Prevent double clicks
+    event.preventDefault();
 
+    // Stop ALL Swipers immediately
+    if (typeof Swiper !== "undefined") {
+      document.querySelectorAll(".swiper").forEach(swiperEl => {
+        if (swiperEl.swiper) {
+          swiperEl.swiper.autoplay.stop();
+        }
+      });
+    }
 
+    // Disable the button
+    button.classList.add("opacity-70", "pointer-events-none");
+
+    // Swap text → spinner
+    const text = button.querySelector(".btn-text");
+    const spinner = button.querySelector(".btn-spinner");
+    if (text && spinner) {
+      text.textContent = "Loading...";
+      spinner.classList.remove("hidden");
+    }
+
+    // Navigate after tiny delay (UX polish)
+    const url = button.getAttribute("href");
+    setTimeout(() => {
+      window.location.href = url;
+    }, 250);
+  }
+
+  function resetViewDetailButtons() {
+    document.querySelectorAll('.view-details-btn').forEach(btn => {
+      // Re-enable button
+      btn.classList.remove('opacity-70', 'pointer-events-none');
+
+      // Restore text
+      const text = btn.querySelector('.btn-text');
+      const spinner = btn.querySelector('.btn-spinner');
+      if (text) text.textContent = 'View Details';
+      if (spinner) spinner.classList.add('hidden');
+    });
+
+    // Restart Swipers (important UX polish)
+    if (typeof Swiper !== "undefined") {
+      document.querySelectorAll(".swiper").forEach(swiperEl => {
+        if (swiperEl.swiper && swiperEl.swiper.autoplay) {
+          swiperEl.swiper.autoplay.start();
+        }
+      });
+    }
+  }
 </script>
+
+
+
 <style>
+  /* Price animation – subtle & premium */
+.final-price {
+  animation: priceFadeIn 0.6s ease-out both;
+}
+
+@keyframes priceFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 
   /* Ensure the card content is definitely on top and clickable */
 .product-card > div, 
@@ -770,5 +860,6 @@
     opacity: 0;
   }
 }
+
 </style>
 {% endblock %}

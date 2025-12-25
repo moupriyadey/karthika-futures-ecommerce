@@ -86,11 +86,29 @@
                                     <h3 class="text-sm font-semibold text-gray-900 mb-1 truncate">{{ artwork.name }}</h3>
                                     {# Removed description to clean up the card height #}
                                     
-                                  <div class="flex items-baseline justify-center mb-1">
+                                    <div class="price-box text-center">
+                                        {% set final_price = artwork.selling_price_incl_gst + artwork.shipping_charge %}
+                                        {% set fake_mrp = final_price * 125 // 100 %}
+
+
                                         <span class="text-lg font-bold text-primary final-price">
-                                        ₹{{ "{:,.2f}".format(artwork.original_price or 0) }}
-                                         </span>
+                                            {{ final_price | currency }}
+                                        </span>
+
+                                        {% if final_price >= 199 %}
+                                            <div class="text-xs text-gray-500">
+                                                <span class="line-through mr-1">
+                                                {{ fake_mrp | currency }}
+                                                </span>
+                                                <span class="text-green-600 font-semibold">
+                                                You save {{ (fake_mrp - final_price) | currency }}
+                                                </span>
+                                            </div>
+                                        {% endif %}
+
+                                        <p class="price-note">(Final Price · Incl. GST & Shipping)</p>
                                     </div>
+
 
 
                                     <div class="flex items-center justify-center mb-1">
@@ -103,7 +121,7 @@
                                     {% if artwork.shipping_charge == 0 %}
                                         <p class="text-green-600 font-semibold text-xs mb-2"><i class="fas fa-truck mr-1"></i> Free Delivery</p>
                                     {% else %}
-                                        <p class="text-gray-500 text-xs mb-2"><i class="fas fa-truck mr-1"></i> Shipping: {{ artwork.shipping_charge | currency }}</p>
+                                        
                                     {% endif %}
                                 </div>
                                 
@@ -403,6 +421,41 @@
 </script>
 
 <style>
+    @media (max-width: 640px) {
+  .price-box .line-through {
+    display: block;
+  }
+}
+
+    /* Price animation – subtle & premium */
+.final-price {
+  animation: priceFadeIn 0.6s ease-out both;
+}
+
+@keyframes priceFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.price-note {
+  font-size: 11px;
+  color: #6b7280; /* gray-500 */
+  margin-top: 2px;
+}
+
+/* Mobile optimization */
+@media (max-width: 640px) {
+  .price-note {
+    font-size: 10px;
+    line-height: 1.2;
+  }
+}
+
     .scrollbar-hide {
         -ms-overflow-style: none;
         scrollbar-width: none;

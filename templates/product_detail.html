@@ -111,9 +111,11 @@ loading="lazy"
     </div>
     {% else %}
     <span class="text-4xl font-extrabold text-gray-900" id="displayPrice">
-        {# This is the most likely culprit if the page is product_detail.html #}
-        ₹{{ "{:,.2f}".format(artwork.price | default(0) ) }}
+        {{ artwork.selling_price_incl_gst | currency }}
     </span>
+    <p class="text-sm text-gray-500 mt-1">(Inclusive of GST)</p>
+
+
     {% endif %}
 </div>
         
