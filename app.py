@@ -1134,20 +1134,23 @@ def cart():
     payable_amount_for_threshold = grand_total - total_shipping_charge
 
     # Progress bar %
+    # ✅ Calculate order value excluding shipping (but including GST)
+    order_value_for_shipping = grand_total - total_shipping_charge
+
     progress_percentage = min(
-        (payable_amount_for_threshold / FREE_SHIPPING_THRESHOLD) * 100,
+        (order_value_for_shipping / FREE_SHIPPING_THRESHOLD) * 100,
         100
     )
 
-    # Free shipping logic
-    if payable_amount_for_threshold >= FREE_SHIPPING_THRESHOLD:
+    if order_value_for_shipping >= FREE_SHIPPING_THRESHOLD:
         free_shipping_unlocked = True
         amount_needed_for_free_shipping = Decimal('0.00')
     else:
         free_shipping_unlocked = False
         amount_needed_for_free_shipping = (
-            FREE_SHIPPING_THRESHOLD - payable_amount_for_threshold
+            FREE_SHIPPING_THRESHOLD - order_value_for_shipping
         )
+
 
     # -----------------------------
     # FIRST-TIME DISCOUNT LOGIC
