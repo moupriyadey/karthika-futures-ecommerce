@@ -17,9 +17,12 @@
                     <span class="font-semibold text-gray-900">{{ subtotal_before_gst | currency }}</span>
                 </div>
                 <div class="flex justify-between py-2 border-b">
-    <span class="text-gray-600">Subtotal (Excl. GST):</span>
-    <span class="font-semibold text-gray-900">{{ subtotal_before_gst | currency }}</span>
-</div>
+                    <span class="text-gray-600">Subtotal (Incl. GST):</span>
+                    <span class="font-semibold text-gray-900">
+                        {{ (subtotal_before_gst + total_gst_amount) | currency }}
+                    </span>
+                </div>
+
 
 {% if first_time_discount_amount and first_time_discount_amount > 0 %}
 <div class="flex justify-between py-2 border-b bg-green-50 rounded-md px-2">
@@ -27,6 +30,58 @@
     <span class="font-bold text-green-700">- {{ first_time_discount_amount | currency }}</span>
 </div>
 {% endif %}
+
+{% if not free_shipping_unlocked %}
+<div class="mb-3 p-3 rounded-md bg-yellow-50 text-yellow-800 text-sm font-medium">
+    🚚 Add <strong>{{ amount_needed_for_free_shipping | currency }}</strong> more to get
+    <span class="font-bold text-green-700">FREE Shipping</span>
+</div>
+{% else %}
+<div class="mb-3 p-3 rounded-md bg-green-50 text-green-700 text-sm font-semibold">
+    🎉 Congratulations! You’ve unlocked <strong>FREE Shipping</strong>
+</div>
+{% endif %}
+
+<div class="mt-2">
+    <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+        <div
+    class="bg-gradient-to-r
+    {% if free_shipping_unlocked %}
+        from-green-500 to-green-600
+    {% else %}
+        from-yellow-400 to-orange-500
+    {% endif %}
+    h-2 transition-all duration-500"
+    style="width: {{ progress_percentage }}%">
+</div>
+
+    </div>
+    <p class="text-xs text-gray-600 mt-1 text-right">
+        {{ progress_percentage | round(0) }}% of FREE Shipping goal
+    </p>
+</div>
+
+{% if upsell_product %}
+<div class="mt-3 p-3 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-between gap-3">
+    <div>
+        <p class="text-sm font-semibold text-blue-900">
+            🧲 Add <span class="font-bold">{{ upsell_product.name }}</span>
+        </p>
+        <p class="text-xs text-blue-700">
+            Only {{ upsell_product.selling_price_incl_gst | currency }} — unlock FREE Shipping
+        </p>
+    </div>
+
+    <button
+        onclick="quickAddUpsell('{{ upsell_product.sku }}')"
+        class="bg-blue-600 text-white text-sm px-3 py-1 rounded hover:bg-blue-700 transition">
+        Add
+    </button>
+</div>
+{% endif %}
+
+
+
                 <div class="flex justify-between py-2 border-b">
                     <span class="text-gray-600">Shipping Charge:</span>
                     <span class="font-semibold text-gray-900">{{ shipping_charge | currency }}</span>
@@ -67,7 +122,13 @@
                             </div>
                             <button class="text-red-600 text-sm hover:underline remove-from-cart-btn" data-item-key="{{ item.item_key }}">Remove</button>
                         </div>
-                        <div class="mt-2 text-sm text-gray-700">Qty: {{ item.quantity }}</div>
+                        <div class="mt-2 flex items-center gap-3">
+                            <button class="qty-btn" data-key="{{ item.item_key }}" data-action="decrease">−</button>
+
+                            <span class="font-semibold">{{ item.quantity }}</span>
+
+                            <button class="qty-btn" data-key="{{ item.item_key }}" data-action="increase">+</button>
+                        </div>
                         <div class="mt-1 text-primary font-bold text-lg">{{ item.total_price_incl_gst | currency }}</div>
                     </div>
                 </div>
@@ -95,7 +156,26 @@
 {% endblock %}
 
 {% block extra_js %}
+
 <script>
+
+function quickAddUpsell(sku) {
+    fetch('/add-to-cart', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+            sku: sku,
+            quantity: 1,
+            options: {}
+        })
+    }).then(() => window.location.reload());
+}
+
+
+
 document.addEventListener('DOMContentLoaded', function() {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
@@ -132,7 +212,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 showCustomAlert('An error occurred. Please try again.', 'danger');
             }
         });
+    });document.querySelectorAll('.qty-btn').forEach(btn => {
+    btn.addEventListener('click', async function () {
+        const itemKey = this.dataset.key;
+        const action = this.dataset.action;
+
+        await fetch('/update-cart-quantity', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({
+                item_key: itemKey,
+                action: action
+            })
+        });
+
+        window.location.reload();
     });
+});
+
 
     // Image popup
     const popup = document.getElementById("imagePopup");

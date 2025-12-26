@@ -110,13 +110,12 @@ loading="lazy"
         You save: ₹{{ "{:,.2f}".format( (artwork.price | default(0)) - (artwork.discount_price | default(0)) ) }}
     </div>
     {% else %}
-    <span class="text-4xl font-extrabold text-gray-900" id="displayPrice">
-        {{ artwork.selling_price_incl_gst | currency }}
-    </span>
-    <p class="text-sm text-gray-500 mt-1">(Inclusive of GST)</p>
+<span class="text-4xl font-extrabold text-gray-900" id="displayPrice">
+    {{ (artwork.selling_price_incl_gst + artwork.shipping_charge) | currency }}
+</span>
+<p class="text-sm text-gray-500 mt-1">(Final Price · Incl. GST & Shipping)</p>
+{% endif %}
 
-
-    {% endif %}
 </div>
         
 {# Multi-section description, using "||" to split sections and ":" to split title + body #}
@@ -385,44 +384,37 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const currencyFormatter = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' });
 
-    function updatePrice() {
-        let currentPrice = artworkData.original_price;
-        const selectedOptions = {};
-        const quantity = parseInt(quantityInput.value);
+function updatePrice() {
+    // START from FINAL PRICE (GST already included)
+    let unitFinalPrice = parseFloat({{ artwork.selling_price_incl_gst | tojson }});
+    const selectedOptions = {};
+    const quantity = parseInt(quantityInput.value);
 
-        customOptionsContainer.querySelectorAll('select[data-option-group]').forEach(select => {
-            const selectedOption = select.options[select.selectedIndex];
-            const groupName = select.dataset.optionGroup;
-            if (selectedOption.value !== "default") {
-                const priceImpact = parseFloat(selectedOption.dataset.priceImpact);
-                if (!isNaN(priceImpact)) {
-                    currentPrice += priceImpact;
-                    selectedOptions[groupName] = selectedOption.value;
-                }
+    // Add option price impacts
+    customOptionsContainer.querySelectorAll('select[data-option-group]').forEach(select => {
+        const selectedOption = select.options[select.selectedIndex];
+        const groupName = select.dataset.optionGroup;
+
+        if (selectedOption.value !== "default") {
+            const priceImpact = parseFloat(selectedOption.dataset.priceImpact);
+            if (!isNaN(priceImpact)) {
+                unitFinalPrice += priceImpact;
+                selectedOptions[groupName] = selectedOption.value;
             }
-        });
-
-        let totalGstRate = 0;
-        if (artworkData.gst_type === 'intra_state') {
-            totalGstRate = artworkData.cgst_percentage + artworkData.sgst_percentage;
-        } else if (artworkData.gst_type === 'inter_state') {
-            totalGstRate = artworkData.igst_percentage;
-        } else if (artworkData.gst_type === 'union_territory') {
-            totalGstRate = artworkData.cgst_percentage + artworkData.ugst_percentage;
         }
-        totalGstRate += artworkData.cess_percentage;
+    });
 
-        const totalPriceBeforeGst = currentPrice * quantity;
-        const gstAmount = (totalPriceBeforeGst * totalGstRate) / 100;
-                
-        // Shipping charged once per order (base estimate)
-        let finalPrice = totalPriceBeforeGst + gstAmount + artworkData.shipping_charge;
+    // Shipping charged once per order
+    const finalPrice = (unitFinalPrice * quantity) + artworkData.shipping_charge;
 
-        displayPriceElement.textContent = currencyFormatter.format(finalPrice);
+    // SHOW final price
+    displayPriceElement.textContent = currencyFormatter.format(finalPrice);
 
-        artworkData.current_unit_price_before_gst = currentPrice;
-        artworkData.selected_options = selectedOptions;
-    }
+    // Cart still needs base price (before GST)
+    artworkData.current_unit_price_before_gst = artworkData.original_price;
+    artworkData.selected_options = selectedOptions;
+}
+
 
     quantityInput.addEventListener('change', updatePrice);
     quantityInput.addEventListener('input', updatePrice);

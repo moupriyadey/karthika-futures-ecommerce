@@ -4,6 +4,11 @@ load_dotenv()
 import cloudinary
 import cloudinary.uploader
 import cloudinary.utils
+import cloudinary.utils
+import cloudinary
+import cloudinary.uploader
+import cloudinary
+import cloudinary.utils
 import socket
 
 
@@ -236,7 +241,7 @@ def get_products_by_category(category_name):
     return [art for art in artworks if art.get("category") == category_name]
 
 # ... imports
-import cloudinary.utils # Make sure to add this import if it's not present
+ # Make sure to add this import if it's not present
 # --- CRITICAL INVOICE DOWNLOAD DEFINITIONS (FIXED) ---
 
 # This constant must be defined
@@ -1077,48 +1082,118 @@ def remove_from_cart():
         return jsonify(success=True, message='Item removed from cart.', cart_count=total_quantity_in_cart)
     return jsonify(success=False, message='Item not found in cart.'), 404
 
-# MODIFIED: Cart route to display detailed cart items with new discount logic
+@app.route('/update-cart-quantity', methods=['POST'])
+@csrf.exempt
+def update_cart_quantity():
+    data = request.get_json()
+    item_key = data.get('item_key')
+    action = data.get('action')
+
+    cart = session.get('cart', {})
+
+    if item_key not in cart:
+        return jsonify(success=False, message="Item not found in cart"), 404
+
+    if action == 'increase':
+        cart[item_key]['quantity'] += 1
+
+    elif action == 'decrease':
+        cart[item_key]['quantity'] -= 1
+
+        # If quantity becomes 0, remove item
+        if cart[item_key]['quantity'] <= 0:
+            del cart[item_key]
+
+    session['cart'] = cart
+    session.modified = True
+
+    return jsonify(success=True)
+
 @app.route('/cart')
 def cart():
-    # 1. Calculate all initial totals (Subtotal, GST, Shipping)
-    detailed_cart_items, subtotal_before_gst, total_cgst_amount, \
-    total_sgst_amount, total_igst_amount, total_ugst_amount, total_cess_amount, \
-    total_gst_amount, grand_total, total_shipping_charge = get_cart_items_details()
-    
-    # 2. Initialize and Apply First-Time Customer Discount
+    # 1. Calculate all cart totals
+    (
+        detailed_cart_items,
+        subtotal_before_gst,
+        total_cgst_amount,
+        total_sgst_amount,
+        total_igst_amount,
+        total_ugst_amount,
+        total_cess_amount,
+        total_gst_amount,
+        grand_total,
+        total_shipping_charge
+    ) = get_cart_items_details()
+
+    # -----------------------------
+    # FREE SHIPPING CONFIG
+    # -----------------------------
+    FREE_SHIPPING_THRESHOLD = Decimal('999.00')
+
+    # 👉 Amount customer actually pays for products (GST included, shipping excluded)
+    payable_amount_for_threshold = grand_total - total_shipping_charge
+
+    # Progress bar %
+    progress_percentage = min(
+        (payable_amount_for_threshold / FREE_SHIPPING_THRESHOLD) * 100,
+        100
+    )
+
+    # Free shipping logic
+    if payable_amount_for_threshold >= FREE_SHIPPING_THRESHOLD:
+        free_shipping_unlocked = True
+        amount_needed_for_free_shipping = Decimal('0.00')
+    else:
+        free_shipping_unlocked = False
+        amount_needed_for_free_shipping = (
+            FREE_SHIPPING_THRESHOLD - payable_amount_for_threshold
+        )
+
+    # -----------------------------
+    # FIRST-TIME DISCOUNT LOGIC
+    # -----------------------------
     first_time_discount_amount = Decimal('0.00')
 
-    # Check for authentication and first-time status
     if current_user.is_authenticated and current_user.is_first_time_customer():
         MIN_PURCHASE = Decimal('1000.00')
-        DISCOUNT_RATE = Decimal('0.10') # 10% off
+        DISCOUNT_RATE = Decimal('0.10')
 
         if subtotal_before_gst >= MIN_PURCHASE:
             first_time_discount_amount = subtotal_before_gst * DISCOUNT_RATE
-            # Since the grand total and GST amounts were already calculated based on the 
-            # FULL subtotal, we now need to adjust the grand total downwards by the discount amount.
-            # NOTE: For simplicity, we apply the discount to the entire 'subtotal_before_gst' 
-            # and reduce the final total by this amount. This is a simple, minimal approach.
-            
-            # 3. Update the Grand Total
             grand_total -= first_time_discount_amount
-            
-            # Optional: Flash a success message
-            flash("🎉 You received a 10% first-time customer discount!", 'success')
+            flash("🎉 You received a 10% first-time customer discount!", "success")
 
-    # 4. Render the template, passing the new discount variable
-    return render_template('cart.html', 
-                            cart_items=detailed_cart_items,
-                            subtotal_before_gst=subtotal_before_gst,
-                            total_cgst_amount=total_cgst_amount,
-                            total_sgst_amount=total_sgst_amount,
-                            total_igst_amount=total_igst_amount,
-                            total_ugst_amount=total_ugst_amount,
-                            total_cess_amount=total_cess_amount, 
-                            total_gst_amount=total_gst_amount,
-                            first_time_discount_amount=first_time_discount_amount, 
-                            grand_total=grand_total, 
-                            shipping_charge=total_shipping_charge)
+    # -----------------------------
+    # UPSELL PRODUCT (SAFE DEFAULT)
+    # -----------------------------
+    upsell_product = None
+    if not free_shipping_unlocked:
+        upsell_product = Artwork.query.filter_by(
+            sku='NAIL-GLUE-199'
+        ).first()
+
+    # -----------------------------
+    # RENDER CART
+    # -----------------------------
+    return render_template(
+        'cart.html',
+        cart_items=detailed_cart_items,
+        subtotal_before_gst=subtotal_before_gst,
+        total_cgst_amount=total_cgst_amount,
+        total_sgst_amount=total_sgst_amount,
+        total_igst_amount=total_igst_amount,
+        total_ugst_amount=total_ugst_amount,
+        total_cess_amount=total_cess_amount,
+        total_gst_amount=total_gst_amount,
+        first_time_discount_amount=first_time_discount_amount,
+        grand_total=grand_total,
+        shipping_charge=total_shipping_charge,
+        free_shipping_unlocked=free_shipping_unlocked,
+        progress_percentage=progress_percentage,
+        amount_needed_for_free_shipping=amount_needed_for_free_shipping,
+        upsell_product=upsell_product
+    )
+
 
 # NEW: Route to create a direct order from "Buy Now"
 @app.route('/create_direct_order', methods=['POST'])
@@ -3322,8 +3397,7 @@ def admin_delete_artwork(artwork_id):
 import os
 from dotenv import load_dotenv
 load_dotenv()
-import cloudinary
-import cloudinary.uploader
+
 
 import json
 import csv
@@ -3999,8 +4073,7 @@ def admin_remove_invoice_pdf(order_id):
     flash(f'Invoice link removed for Order ID {order_id}. The customer will no longer see the download option.', 'warning')
     return redirect(url_for('admin_edit_invoice', order_id=order_id))
 
-import cloudinary
-import cloudinary.utils
+
 from flask import redirect, flash, url_for
 from flask_login import login_required, current_user
 
