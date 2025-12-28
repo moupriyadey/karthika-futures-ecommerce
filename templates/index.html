@@ -3,11 +3,9 @@
 {% block title %}NaiLMart India - Your Gateway to amazing Nail Art{% endblock %}
 
 {% block content %}
-<main class="pt-20">
+<main>
   
-<section id="categoryBar"
-         class="py-3 bg-gradient-to-r from-purple-500/90 to-pink-500/90
-                sticky z-40 shadow-sm backdrop-blur-lg">
+<section id="categoryBar">
 
 
   <div class="max-w-6xl mx-auto px-4 relative">
@@ -71,7 +69,9 @@
     {% if products %}
 
 <section id="{{ category.name|lower|replace(' ', '-') }}"
-         class="py-8 mb-8 bg-white rounded-lg shadow-md section-reveal">
+         class="py-8 mb-8 bg-white rounded-lg shadow-md section-reveal"
+        >
+
 
 
   <div class="container mx-auto px-4">
@@ -624,6 +624,23 @@ revealSections.forEach(sec => revealObserver.observe(sec));
 
 
 <style>
+  /* ✅ MOBILE-SAFE CATEGORY HEADING BUTTON */
+.category-heading {
+  display: inline-block;
+  padding: 0.55rem 1.4rem;
+  border-radius: 999px;
+
+  background: linear-gradient(to right, #7c3aed, #ec4899);
+  color: #ffffff !important;
+
+  font-weight: 700;
+  font-size: 1.15rem;
+  line-height: 1.2;
+  text-align: center;
+
+  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.35);
+}
+
 /* STEP 5A — Premium category hover */
 @media (min-width: 768px) {
   .category-link {
@@ -664,21 +681,14 @@ revealSections.forEach(sec => revealObserver.observe(sec));
     transform: translateY(0);
   }
 }
-#categoryBar {
-  transition: top 0.25s ease;
-}
 
-/* STEP 3A – Compact category bar */
-#categoryBar {
-  padding-top: 0.6rem;
-  padding-bottom: 0.6rem;
-}
 /* STEP 3B – Reduce category icon size (desktop only) */
 @media (min-width: 1024px) {
-  #categoryBar .w-32 {
+  /*#categoryBar .w-32 {
     width: 6.5rem;
     height: 6.5rem;
-  }
+  } */
+@media (min-width: 1024px) {
 }
 /* STEP 4 – Active category subtle indicator */
 .category-link.active h3 {
@@ -762,70 +772,82 @@ revealSections.forEach(sec => revealObserver.observe(sec));
 .category-heading span {
   color: #2563eb;
 }
-#categoryBar {
-  top: 76px; /* 36px announcement + ~40px navbar */
-}
 
+
+
+
+/* 🎯 SAFE button-style category heading */
 .category-heading {
-    display: inline-block;
-    padding: 0.5rem 1.4rem;
-    border-radius: 999px; /* pill shape */
-    background: linear-gradient(135deg, #f5f3ff, #f739be);
-    color: #4f46e5;
-    font-weight: 700;
-    position: relative;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.18);
-    overflow: hidden; 
+  display: inline-block;
+  padding: 0.45rem 1.25rem;
+  border-radius: 999px;
+
+  background: linear-gradient(to right, #7c3aed, #ec4899);
+  color: #ffffff !important;
+
+  font-weight: 700;
+  font-size: 1.1rem;
+  white-space: nowrap;
+
+  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.3);
 }
 
 
-/* Blue outline on hover */
-.category-heading::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    box-shadow: 0 0 0 2px #2563eb;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-.category-heading:hover::after {
-    opacity: 1;
-}
-
-/* Continuous shining animation */
-.category-heading::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(
-        120deg,
-        rgba(255,255,255,0.00) 0%,
-        rgba(255,255,255,0.12) 20%,
-        rgba(255,255,255,0.45) 40%,
-        rgba(255,255,255,0.45) 60%,
-        rgba(255,255,255,0.12) 80%,
-        rgba(255,255,255,0.00) 100%
-    );
-    filter: blur(1.2px);
-    transform: rotate(25deg) translateX(-100%);
-    animation: shine 2.2s linear infinite;
-}
 
 
-@keyframes shine {
-    0% {
-        transform: rotate(25deg) translateX(-100%);
-    }
-    100% {
-        transform: rotate(25deg) translateX(100%);
-    }
+/* STEP 4A — Make Explore Category bar compact */
+#categoryBar .max-w-6xl {
+  max-width: 1100px; /* reduced from full wide */
 }
+/* STEP 4B — Reduce space between icon & name */
+.category-link h3 {
+  margin-top: 0.4rem !important; /* reduced from mt-3 */
+}
+/* STEP 4C — Premium subtle hover (desktop only) */
+@media (min-width: 768px) {
+  .category-link {
+    transition: transform 0.25s ease;
+  }
+
+  .category-link:hover {
+    transform: translateY(-4px);
+  }
+
+  .category-link:hover .w-32 {
+    transform: scale(1.08);
+    box-shadow: 0 10px 24px rgba(124, 58, 237, 0.35);
+  }
+
+  .category-link h3 {
+    transition: color 0.25s ease, letter-spacing 0.25s ease;
+  }
+
+  .category-link:hover h3 {
+    color: #6d28d9;
+    letter-spacing: 0.5px;
+  }
+}
+/* STEP 5A — Premium animated gradient for Category Bar 
+#categoryBar {
+  background: linear-gradient(
+    270deg,
+    rgba(147,51,234,0.9),
+    rgba(236,72,153,0.9),
+    rgba(99,102,241,0.9)
+  );
+  background-size: 400% 400%;
+  animation: categoryGradient 14s ease infinite;
+} */
+
+/* Soft animation (luxury, not distracting) */
+@keyframes categoryGradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+
+
 
 .product-card::before {
   pointer-events: none; /* ✅ allows clicks to pass through */
@@ -854,21 +876,41 @@ revealSections.forEach(sec => revealObserver.observe(sec));
 /* Mobile devices (always show subtle styling) */
 @media (max-width: 768px) {
   .category-heading {
-    color: #2563eb; /* blue text even without hover */
-    background-color: rgba(37, 99, 235, 0.08); /* faint blue block */
-    box-shadow: 0 0 0 1px #2563eb; /* subtle outline */
+    background: linear-gradient(to right, #7c3aed, #ec4899);
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35);
   }
-
-/* Gradient text */
-.gradient-link {
-  background: linear-gradient(to right, #6f33fa, #fa8e29); /* violet → blue */
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  position: relative;
-  display: inline-block;
-  cursor: pointer;
-  text-decoration: none;
 }
+
+.category-heading {
+  position: relative;
+  overflow: hidden;
+}
+
+/* SAFE SHINE – no vibration */
+.category-heading::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,0.35) 50%,
+    rgba(255,255,255,0) 100%
+  );
+  animation: shine-safe 5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes shine-safe {
+  0% { left: -60%; }
+  50% { left: 120%; }
+  100% { left: 120%; }
+}
+
 
 
 @keyframes blink-underline {
@@ -972,32 +1014,12 @@ revealSections.forEach(sec => revealObserver.observe(sec));
 
 
 /* Gradient text */
-.gradient-link {
-  background: linear-gradient(to right, #6f33fa, #fa8e29); /* violet → blue */
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  position: relative;
-  display: inline-block;
-  cursor: pointer;
-  text-decoration: none;
-}
-/* users visually know it’s clickable*/
+sers visually know it’s clickable*/
 .product-card {
   cursor: pointer;
 }   
 
-/* Blinking blue underline */
-.gradient-link::after {
-  content: "";
-  position: absolute;
-  left: 20%;
-  bottom: 6px;   /* 🔑 INSIDE the button */
-  width: 60%;
-  height: 2px;
-  background: linear-gradient(to right, #3b82f6, #9333ea);
-  border-radius: 2px;
-  animation: blink-underline 1.4s infinite;
-}
+
 .category-heading:hover {
     transform: translateY(-2px) scale(1.03);
     box-shadow: 0 10px 22px rgba(99, 102, 241, 0.28);
@@ -1074,6 +1096,14 @@ revealSections.forEach(sec => revealObserver.observe(sec));
   25%, 75% {
     opacity: 0;
   }
+}
+/* FIX: headings not hidden under announcement + navbar + category bar */
+section[id] {
+  scroll-margin-top: calc(
+    var(--announcement-height) +
+    var(--navbar-height) +
+    32px
+  );
 }
 
 /* Active category highlight */

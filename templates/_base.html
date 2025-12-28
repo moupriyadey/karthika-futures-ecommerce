@@ -52,41 +52,6 @@ function checkEDD(pinInputId, resultId) {
     display.classList.add("text-green-600");
 }
 
-<script>
-const searchInput = document.getElementById("animatedSearch");
-
-if (searchInput) {
-  const texts = [
-    "Search press-on nails",
-    "Search nail glue & kits",
-    "Search trending designs",
-    "Search best sellers"
-  ];
-
-  let textIndex = 0;
-  let charIndex = 0;
-  let deleting = false;
-
-  function typeEffect() {
-    if (document.activeElement === searchInput) return;
-
-    let current = texts[textIndex];
-
-    if (!deleting) {
-      searchInput.placeholder = current.slice(0, charIndex++);
-      if (charIndex > current.length + 8) deleting = true;
-    } else {
-      searchInput.placeholder = current.slice(0, charIndex--);
-      if (charIndex < 0) {
-        deleting = false;
-        textIndex = (textIndex + 1) % texts.length;
-      }
-    }
-  }
-
-  setInterval(typeEffect, 120);
-}
-</script>
 
 
 
@@ -543,12 +508,29 @@ if (searchInput) {
         #announcementText {
   transition: opacity 0.3s ease;
 }
-body {
-  padding-top: 36px; /* announcement bar height */
+
+
+
+#announcementBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 9999 !important; /* 🔒 absolute top layer */
+}
+#mainNavbar {
+  position: fixed;
+  top: 36px;           /* EXACTLY below announcement bar */
+  width: 100%;
+  z-index: 9000;
 }
 
-#mainNavbar {
-  top: 36px;
+/* 🔒 Prevent Swiper from ever crossing top bars */
+.swiper,
+.swiper-wrapper,
+.swiper-slide,
+.product-card {
+  z-index: 1 !important;
 }
 
     </style>
@@ -697,24 +679,70 @@ Trusted by nail artists & home users across India.
         window.userLoginUrl = "{{ url_for('user_login') }}"; // Expose login URL for redirection
 
         // Scroll navbar hide/show
-        let lastScrollTop = 0;
-        const navbar = document.getElementById('mainNavbar');
-        window.addEventListener('scroll', () => {
-            const currentScroll = window.scrollY;
-            // Hide navbar when scrolling down, show when scrolling up or at top
-            navbar.style.top = (currentScroll > lastScrollTop && currentScroll > 100) ? '-80px' : '0';
-            lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
-        });
+        
+     
+let lastScrollTop = 0;
+const navbar = document.getElementById("mainNavbar");
+const categoryBar = document.getElementById("categoryBar");
 
-       
+window.addEventListener("scroll", () => {
+  const currentScroll = window.scrollY;
+
+  /* Navbar hide / show */
+  if (currentScroll > lastScrollTop && currentScroll > 100) {
+  navbar.style.top = "-80px";
+  categoryBar.style.top = "36px"; // stick under announcement
+} else {
+  navbar.style.top = "36px";
+  categoryBar.style.top = "92px"; // announcement + navbar
+}
+
+
+  lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
+});
+
+
 
 
 
     </script>
     <script src="{{ url_for('static', filename='js/main.js', v=now().timestamp()) }}"></script>
-    
-    
     <script>
+document.addEventListener("DOMContentLoaded", function () {
+  const searchInput = document.getElementById("animatedSearch");
+  if (!searchInput) return;
+
+  const texts = [
+    "Search press-on nails",
+    "Search nail glue & kits",
+    "Search trending designs",
+    "Search best sellers"
+  ];
+
+  let textIndex = 0;
+  let charIndex = 0;
+  let deleting = false;
+
+  function typeEffect() {
+    if (document.activeElement === searchInput) return;
+
+    const current = texts[textIndex];
+
+    if (!deleting) {
+      searchInput.placeholder = current.slice(0, charIndex++);
+      if (charIndex > current.length + 6) deleting = true;
+    } else {
+      searchInput.placeholder = current.slice(0, charIndex--);
+      if (charIndex < 0) {
+        deleting = false;
+        textIndex = (textIndex + 1) % texts.length;
+      }
+    }
+  }
+
+  setInterval(typeEffect, 120);
+});
+
         console.log("_base.html: DOMContentLoaded fired. Initializing flashed messages and cart count.");
         // Custom alert function (replicated from main.js for immediate availability if needed)
         // This is a fallback and main.js's version is preferred.

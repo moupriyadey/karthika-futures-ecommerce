@@ -1,5 +1,10 @@
 /* CSS Variables */
 :root {
+  --announcement-height: 36px;
+  --navbar-height: 56px; /* approximate actual navbar height */
+}
+
+:root {
     --saffron: #FF8C00;
     --saffron-light: #FFA500;
     --saffron-gold: #FFBF00;
@@ -583,4 +588,38 @@ body {
 .no-scrollbar {
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
+}
+/* 🔒 LOCKED + GRADIENT: Category Bar */
+#categoryBar {
+  position: sticky;
+  top: calc(var(--announcement-height) + var(--navbar-height));
+  z-index: 850;
+
+  padding-top: 26px;   /* 🔑 prevents overlap */
+  padding-bottom: 18px;
+
+  background: linear-gradient(
+    90deg,
+    rgba(147,51,234,0.95),
+    rgba(236,72,153,0.95)
+  );
+
+  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+}
+
+/* 🔒 Prevent headings from hiding behind sticky bars */
+section[id] {
+  scroll-margin-top: calc(
+    var(--announcement-height) +
+    var(--navbar-height) +
+    80px
+  );
+}
+
+
+#categoryBar .swiper {
+  padding-top: 10px;
+}
+#categoryBar .swiper {
+  padding-top: 10px;
 }
