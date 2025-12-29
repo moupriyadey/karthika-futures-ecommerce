@@ -509,6 +509,36 @@ function checkEDD(pinInputId, resultId) {
   transition: opacity 0.3s ease;
 }
 
+.custom-link {
+  color: #ff4da6;
+  font-weight: 600;
+  margin-left: 6px;
+  text-decoration: underline;
+}
+
+.whatsapp-link {
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+}
+/* 🔹 WhatsApp icon — Announcement Bar */
+.wa-icon-announcement {
+  font-size: 14px;
+  color: #25D366;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+/* 🔹 WhatsApp icon — Marquee Bar */
+.wa-icon-marquee {
+  font-size: 18px;
+  color: #25D366;
+  margin-left: 6px;
+  display: inline-block;
+  vertical-align: middle;
+  animation: pulse 1.6s infinite;
+}
+
 
 
 #announcementBar {
@@ -531,6 +561,22 @@ function checkEDD(pinInputId, resultId) {
 .swiper-slide,
 .product-card {
   z-index: 1 !important;
+}
+
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
     </style>
@@ -809,13 +855,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 
-
-
 const announcements = [
   "🚚 Free Shipping on orders above ₹999",
   "🎉 Get 15% OFF on your first order – Code: NAILMART",
   "🔥 Trending Nail Designs – Limited Stock",
-  "💅 Premium Press-On Nails loved by Nail Artists"
+  "💅 Premium Press-On Nails loved by Nail Artists",
+  `
+  ✨ Get your <strong>CUSTOM DESIGN</strong> 💅🏻 
+  <a href="custom_design.html" class="custom-link">
+    Share your idea or image here
+  </a>
+ <a href="https://wa.me/919330482697?text=Hi%20Guruji%2C%20I%20want%20a%20custom%20nail%20design%20💅🏻"
+   target="_blank"
+   title="Chat with us on WhatsApp">
+  <i class="fa-brands fa-whatsapp wa-icon-announcement"></i>
+</a>
+
+
+  `
 ];
 
 let aIndex = 0;
@@ -824,7 +881,7 @@ const el = document.getElementById("announcementText");
 function rotateAnnouncement() {
   el.style.opacity = 0;
   setTimeout(() => {
-    el.textContent = announcements[aIndex];
+    el.innerHTML = announcements[aIndex];
     el.style.opacity = 1;
     aIndex = (aIndex + 1) % announcements.length;
   }, 300);

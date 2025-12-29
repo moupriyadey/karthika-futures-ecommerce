@@ -56,10 +56,80 @@
       
     </div>
   </div>
+  <!-- 🎀 Custom Design Marquee Ribbon -->
+<div id="customMarquee"
+     class="w-full bg-gradient-to-r from-pink-500 to-purple-600
+            text-white text-sm font-semibold overflow-hidden">
+
+ <div class="marquee-track">
+  ✨ <strong>Want CUSTOMIZED NAILS 💅🏻 ??</strong>
+
+  <a href="https://wa.me/919330482697?text=Hi%20NaiLMart%2C%20I%20want%20a%20custom%20nail%20design.%20Here%20is%20instructions%20and%20images%20for%20my%20customized%20nails.%20Let%20me%20know%20pricing%20and%20expected%20delivery%20date.%20I%20want%20to%20wear%20them%20on%20the%20date%20of"
+     target="_blank"
+     title="Share images via WhatsApp"
+     class="marquee-whatsapp">
+    <i class="fa-brands fa-whatsapp wa-icon-marquee"></i>
+    <span>Share images or idea via WhatsApp</span>
+  </a>
+
+  <span class="mx-1">|</span>
+
+  <a href="custom_design.html" class="marquee-link">
+    Don't want to chat?? No Problem !! 📝 Upload images & instructions here
+  </a>
+</div>
+
+
+
+    &nbsp;&nbsp;•&nbsp;&nbsp;
+  </div>
+</div>
+
 </section>
 
 
 <style>
+  /* ⏸ Pause marquee on hover (desktop) */
+#customMarquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+  
+  #customMarquee {
+  border-top: 1px solid rgba(255,255,255,0.2);
+}
+
+  #customMarquee {
+  height: 34px;
+  display: flex;
+  align-items: center;
+}
+
+.marquee-track {
+  white-space: nowrap;
+  display: inline-flex;   /* 🔑 THIS FIXES LINE BREAK */
+  align-items: center;    /* 🔑 vertical alignment */
+  gap: 6px;
+  padding-left: 100%;
+  animation: marquee 18s linear infinite;
+}
+
+
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
+
+.marquee-link {
+  color: #fff;
+  text-decoration: underline;
+  margin: 0 6px;
+}
+
+.marquee-whatsapp {
+  margin-left: 6px;
+}
+
   html {
     scroll-behavior: smooth;
   }
@@ -324,6 +394,22 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 <script>
+
+
+  const marquee = document.getElementById("customMarquee");
+  const track = marquee?.querySelector(".marquee-track");
+
+  if (marquee && track) {
+    marquee.addEventListener("touchstart", () => {
+      track.style.animationPlayState = "paused";
+    });
+
+    marquee.addEventListener("touchend", () => {
+      track.style.animationPlayState = "running";
+    });
+  }
+
+
 document.querySelectorAll(".category-link").forEach(link => {
   link.addEventListener("click", function () {
     document.querySelectorAll(".category-link")
