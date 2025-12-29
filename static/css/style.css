@@ -595,8 +595,8 @@ body {
   top: calc(var(--announcement-height) + var(--navbar-height));
   z-index: 850;
 
-  padding-top: 26px;   /* 🔑 prevents overlap */
-  padding-bottom: 18px;
+  padding-top: 20px;   /* 🔑 prevents overlap */
+  padding-bottom: 13px;
 
   background: linear-gradient(
     90deg,
@@ -622,4 +622,58 @@ section[id] {
 }
 #categoryBar .swiper {
   padding-top: 10px;
+}
+/* Add this to style.css */
+main {
+    /* Adjust this value (e.g., 200px to 250px) until the content is visible below the Category Bar */
+    margin-top: 35px; 
+}
+
+/* If you use the specific class already in your _base.html */
+.main-content-area {
+    padding-top: 240px !important; 
+}
+/* Add/Update these rules in style.css */
+
+@media (max-width: 576px) {
+    /* 1. Shrink Brand Name so Hamburger fits on the same line */
+    .navbar-brand {
+        font-size: 1.1rem !important; /* Smaller size for mobile */
+        letter-spacing: 0.02em;
+        white-space: nowrap; /* Prevents name from breaking into two lines */
+    }
+
+    /* 2. Force Navbar Header to stay in one row */
+    .navbar .container {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    /* 3. Reduce Hamburger size slightly */
+    .navbar-toggler {
+        padding: 0.25rem 0.5rem !important;
+        font-size: 0.9rem !important;
+    }
+}
+@media (max-width: 576px) {
+    /* Force Brand and Hamburger to stay side-by-side */
+    .navbar .container {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+    }
+
+    .navbar-brand {
+        font-size: 1.1rem !important; /* Shrink text to fit */
+        white-space: nowrap;
+        margin-right: 10px;
+    }
+
+    .navbar-toggler {
+        padding: 4px 8px !important; /* Smaller button */
+        flex-shrink: 0;
+    }
 }
