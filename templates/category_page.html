@@ -1,26 +1,28 @@
 {% extends '_base.html' %}
 
 {% block content %}
-<main class="pt-3">  {# adjusted so navbar + marquee don’t overlap #}
+<main>
+  {# adjusted so navbar + marquee don’t overlap #}
     {% if sale_end_time %}
     <!-- 🔹 Top Marquee Offer Bar -->
-    <div class="offer-marquee-bar bg-gradient-to-r from-purple-700 via-pink-600 to-red-500 text-white fixed top-16 w-full z-50 shadow-md">
+    <div class="offer-marquee-bar bg-gradient-to-r from-purple-700 via-pink-600 to-red-500 text-white sticky top-16 w-full z-50 shadow-md">
         <div class="overflow-hidden whitespace-nowrap py-2">
             <span class="inline-block animate-marquee font-bold tracking-wide text-sm sm:text-base md:text-lg">
-                🎉 LIMITED TIME OFFER ON <span class="underline">‘SRI RAM’</span> WALLFRAME! &nbsp;&nbsp;|&nbsp;&nbsp; 
+                🎉 LIMITED TIME OFFER ON <span class="underline">‘CUSTOMIZED’</span> PROFESSIONAL NAIL KIT! &nbsp;&nbsp;|&nbsp;&nbsp; 
                 ⏳ Sale ends in <span id="marquee-countdown-timer" class="font-extrabold"></span> &nbsp;&nbsp;|&nbsp;&nbsp; 
                 🚚 Free Delivery on Orders Above ₹999 &nbsp;&nbsp;|&nbsp;&nbsp; ORDER SOON!
             </span>
         </div>
     </div>
     <!-- Padding so content not hidden by fixed bar -->
-    <div class="pt-20"></div>
+    
     {% endif %}
 
     <!-- 🔹 Category Section -->
     <div class="container mx-auto px-4 py-6">
         <div class="text-center mb-6">
-            <h1 class="text-4xl sm:text-5xl font-extrabold text-primary mb-2">{{ category.name }}</h1>
+            <h1 id="categoryTitle"
+    class="text-4xl sm:text-5xl font-extrabold text-primary mb-2">{{ category.name }}</h1>
             <p class="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">{{ category.description }}</p>
         </div>
 
@@ -140,6 +142,19 @@
 
 {% block extra_js %}
 <script>
+   
+document.addEventListener("DOMContentLoaded", function () {
+  const title = document.getElementById("categoryTitle");
+  if (!title) return;
+
+  setTimeout(() => {
+    const yOffset = -150; // 🔥 CHANGE ONLY THIS NUMBER ...-20slight up -40more up -60strong up +20move down
+    const y = title.getBoundingClientRect().top + window.pageYOffset + yOffset;
+    window.scrollTo({ top: y, behavior: "auto" });
+  }, 150);
+});
+  
+
     document.addEventListener('DOMContentLoaded', function() {
         const saleEndTime = new Date("{{ sale_end_time }}");
         const countdownElement = document.getElementById('countdown-timer');
@@ -242,5 +257,11 @@
     from { opacity: 0; transform: translateY(20px); }
     to   { opacity: 1; transform: translateY(0); }
 }
+/* 🔥 REMOVE BASE LAYOUT TOP GAP FOR CATEGORY PAGE ONLY */
+.main-content-area {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+
 </style>
 {% endblock %}

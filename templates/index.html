@@ -3,7 +3,7 @@
 {% block title %}NaiLMart India - Your Gateway to amazing Nail Art{% endblock %}
 
 {% block content %}
-<main>
+
   
 <section id="categoryBar">
 
@@ -56,32 +56,11 @@
       
     </div>
   </div>
-  <!-- 🎀 Custom Design Marquee Ribbon -->
-<div id="customMarquee"
-     class="w-full bg-gradient-to-r from-pink-500 to-purple-600
-            text-white text-sm font-semibold overflow-hidden">
-
- <div class="marquee-track">
-  ✨ <strong>Want CUSTOMIZED NAILS 💅🏻 ??</strong>
-
-  <a href="https://wa.me/919330482697?text=Hi%20NaiLMart%2C%20I%20want%20a%20custom%20nail%20design.%20Here%20is%20instructions%20and%20images%20for%20my%20customized%20nails.%20Let%20me%20know%20pricing%20and%20expected%20delivery%20date.%20I%20want%20to%20wear%20them%20on%20the%20date%20of"
-     target="_blank"
-     title="Share images via WhatsApp"
-     class="marquee-whatsapp">
-    <i class="fa-brands fa-whatsapp wa-icon-marquee"></i>
-    <span>Share images or idea via WhatsApp</span>
-  </a>
-
-  <span class="mx-1">|</span>
-
-  <a href="custom_design.html" class="marquee-link">
-    Don't want to chat?? No Problem !! 📝 Upload images & instructions here
-  </a>
-</div>
+ 
 
 
 
-    &nbsp;&nbsp;•&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;
   </div>
 </div>
 
@@ -92,42 +71,6 @@
   /* ⏸ Pause marquee on hover (desktop) */
 #customMarquee:hover .marquee-track {
   animation-play-state: paused;
-}
-
-  
-  #customMarquee {
-  border-top: 1px solid rgba(255,255,255,0.2);
-}
-
-  #customMarquee {
-  height: 34px;
-  display: flex;
-  align-items: center;
-}
-
-.marquee-track {
-  white-space: nowrap;
-  display: inline-flex;   /* 🔑 THIS FIXES LINE BREAK */
-  align-items: center;    /* 🔑 vertical alignment */
-  gap: 6px;
-  padding-left: 100%;
-  animation: marquee 18s linear infinite;
-}
-
-
-@keyframes marquee {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-100%); }
-}
-
-.marquee-link {
-  color: #fff;
-  text-decoration: underline;
-  margin: 0 6px;
-}
-
-.marquee-whatsapp {
-  margin-left: 6px;
 }
 
   html {
@@ -295,12 +238,10 @@
        </p>
 
        <a href="{{ url_for('all_products') }}"
-          class="inline-block px-8 py-3 rounded-full
-                 bg-gradient-to-r from-purple-600 to-pink-500
-                 text-white font-semibold shadow-lg
-                 hover:scale-105 transition-transform">
-         Explore All Designs →
-       </a>
+   class="inline-block px-8 py-3 rounded-full text-white font-semibold shadow-lg hover:scale-105 transition-transform"
+   style="background: linear-gradient(to right, #F88379, #E9746A, #DA655B, #FF9288) !important;">
+   Explore All Designs →
+</a>
 
      </div>
    </section>
@@ -388,7 +329,7 @@
     </div>
 </div>
 
-</main>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -822,8 +763,14 @@ revealSections.forEach(sec => revealObserver.observe(sec));
 }
 
 .product-card {
+  border: none !important;        /* Removes the hard border line */
+    background: #ffffff;
+    border-radius: 12px;
+    /* Soft shadow "shady" effect from your screenshot */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08) !important; 
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
   position: relative;
-  border-radius: 0.75rem;
+   
   overflow: visible;   /* 🔑 allow clicks to pass */
 }
 
@@ -1100,7 +1047,7 @@ revealSections.forEach(sec => revealObserver.observe(sec));
 
 
 /* Gradient text */
-sers visually know it’s clickable*/
+/*sers visually know it’s clickable*/
 .product-card {
   cursor: pointer;
 }   

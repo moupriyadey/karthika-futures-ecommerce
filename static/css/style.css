@@ -118,21 +118,21 @@ body {
     to { opacity: 0; }
 }
 
+
 /* Navbar Styling */
 .navbar {
     background: linear-gradient(to right, var(--navbar-bg-start), var(--navbar-bg-end));
     border-bottom: 2px solid var(--navbar-border-color);
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.25); /* Stronger shadow for depth */
     transition: top 0.4s ease-in-out, background 0.3s ease; /* Added top for floating effect */
-    padding-top: 0.5rem; /* Compact padding for ~1.5cm height */
-    padding-bottom: 0.5rem; /* Compact padding for ~1.5cm height */
-    height: auto; /* Allow height to adjust with padding */
+    padding-top: 2px !important;    /* Shrinks the vertical height */
+    padding-bottom: 2px !important;
+    min-height: 45px !important;
 }
-
 .navbar-brand {
     color: var(--navbar-text-color) !important;
-    font-size: 1.5rem; /* Adjusted: Smaller brand font size */
-    font-weight: 800; /* Bolder */
+    font-size: 1.1rem !important;   /* Was 1.5rem */
+    font-weight: 700; /* Bolder */
     letter-spacing: 0.05em; /* Slight letter spacing */
     text-shadow: 2px 2px 4px rgba(0,0,0,0.4); /* More pronounced shadow */
     transition: color 0.3s ease;
@@ -145,9 +145,9 @@ body {
 .navbar-nav .nav-link {
     color: var(--navbar-text-color) !important;
     font-weight: 600; /* Slightly bolder links */
-    font-size: 0.95rem; /* Adjusted: Slightly smaller nav links */
+    font-size: 0.8rem !important;   /* Was 0.95rem */
     transition: color 0.3s ease, transform 0.2s ease, text-shadow 0.3s ease;
-    padding: 0.4rem 0.8rem; /* Further compact padding for nav links */
+    padding: 0.2rem 0.5rem !important;
     position: relative; /* For underline effect */
     /* Embossed text effect */
     text-shadow: 1px 1px 2px rgba(0,0,0,0.3), -1px -1px 2px rgba(255,255,255,0.1);
@@ -287,18 +287,6 @@ body {
 }
 
 
-/* Main Content Area */
-/* Main Content Area */
-.main-content-area {
-    padding-top: 7rem; /* Let's revert to 7rem, as 11rem is excessive if it doesn't solve it */
-    flex-grow: 1;
-    background-color: rgba(255, 255, 255, 0.98);
-    border-radius: 1.5rem;
-    padding: 2rem; /* This sets 2rem for right, bottom, left. Top is overridden by padding-top */
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-    margin-top: 2rem;
-    margin-bottom: 2rem;
-}
 
 /* NEW: Styles for horizontally scrollable carousels */
 #featured-artworks-carousel,
@@ -494,12 +482,6 @@ body {
 }
 
 /* Product Ratings */
-.product-card .rating {
-    color: var(--saffron-gold);
-}
-.product-card .final-price {
-    color: var(--red);
-}
 
 /* Admin Dashboard Cards */
 .card.bg-primary { background-color: var(--saffron) !important; }
@@ -590,22 +572,8 @@ body {
     scrollbar-width: none;  /* Firefox */
 }
 /* 🔒 LOCKED + GRADIENT: Category Bar */
-#categoryBar {
-  position: sticky;
-  top: calc(var(--announcement-height) + var(--navbar-height));
-  z-index: 850;
 
-  padding-top: 20px;   /* 🔑 prevents overlap */
-  padding-bottom: 13px;
 
-  background: linear-gradient(
-    90deg,
-    rgba(147,51,234,0.95),
-    rgba(236,72,153,0.95)
-  );
-
-  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
-}
 
 /* 🔒 Prevent headings from hiding behind sticky bars */
 section[id] {
@@ -617,23 +585,91 @@ section[id] {
 }
 
 
-#categoryBar .swiper {
-  padding-top: 10px;
-}
-#categoryBar .swiper {
-  padding-top: 10px;
-}
-/* Add this to style.css */
-main {
-    /* Adjust this value (e.g., 200px to 250px) until the content is visible below the Category Bar */
-    margin-top: 35px; 
+/* ===============================
+   GLOBAL LAYOUT VARIABLES
+================================ */
+:root {
+  --announcement-height: 36px;
+  --navbar-height: 56px;
+  --category-height: auto;
 }
 
-/* If you use the specific class already in your _base.html */
-.main-content-area {
-    padding-top: 240px !important; 
+/* ===============================
+   CATEGORY BAR (LOCKED TO NAVBAR)
+================================ */
+#categoryBar {
+  position: fixed;
+  top: calc(var(--announcement-height) + var(--navbar-height));
+  left: 0;
+  width: 100%;
+  z-index: 8500;
+
+  padding: 8px 0 2px;
+
+  background: linear-gradient(
+    270deg,
+    rgba(147,51,234,0.65),
+    rgba(236,72,153,0.65),
+    rgba(99,102,241,0.65)
+  );
+  background-size: 300% 300%;
+  animation: categoryGradient 16s ease infinite;
+
+  backdrop-filter: blur(6px);
 }
-/* Add/Update these rules in style.css */
+
+@keyframes categoryGradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+main {
+  margin-top: calc(
+    var(--announcement-height) +
+    var(--navbar-height) +
+    120px
+  );
+}
+
+
+/* Compact spacing between icon & label */
+.category-link h3 {
+  margin-top: 0.35rem !important;
+}
+
+/* Premium Category Bar Background */
+#categoryBar {
+    background: linear-gradient(to bottom, #ffffff, #fdfbfb); /* Subtle premium silk look */
+    padding: 20px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.03);
+}
+
+/* Shady effect for Category Icons */
+.category-link .rounded-full {
+    border: 2px solid #ffffff !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08) !important; /* The "Shady" effect */
+    transition: all 0.3s ease-in-out;
+}
+
+.category-link:hover .rounded-full {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12) !important;
+    border-color: var(--navbar-bg-end) !important; /* Subtle glow using your theme purple */
+}
+
+.category-link h3 {
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    color: #444;
+}
+
+/* Pages other than homepage */
+.main-content-area {
+  padding-top: 2rem;
+}
+
+
+
 
 @media (max-width: 576px) {
     /* 1. Shrink Brand Name so Hamburger fits on the same line */
@@ -676,4 +712,148 @@ main {
         padding: 4px 8px !important; /* Smaller button */
         flex-shrink: 0;
     }
+}
+/* 🔻 Space for bottom marquee */
+body {
+  padding-bottom: 65px; /* mobile-safe for marquee */
+}
+
+/* ⏸ Pause marquee on hover (desktop) */
+#customMarquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+/* 🔻 GLOBAL MARQUEE (single source of truth) */
+#customMarquee {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  border-top: 1px solid rgba(255,255,255,0.2);
+}
+
+.marquee-track {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 100%;
+  animation: marquee 18s linear infinite;
+}
+
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
+
+/* ⏸ Pause on hover / touch */
+#customMarquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+
+/* 🔒 Absolute top layer for marquee (above cards, swiper, modals except alerts) */
+#customMarquee {
+  z-index: 2147483000 !important; /* browser-safe max layer */
+}
+
+/* 🧱 Prevent product cards & swiper from overlapping marquee */
+.product-card,
+.product-grid,
+.swiper,
+.swiper-wrapper,
+.swiper-slide {
+  position: relative;
+  z-index: 1;
+}
+/* 🔒 Ensure marquee always stays above product cards */
+.product-card,
+.swiper,
+.swiper-wrapper,
+.swiper-slide {
+  z-index: 1 !important;
+}
+.product-card .rating {
+    color: var(--saffron-gold);
+}
+.product-card .final-price {
+    color: var(--red);
+}
+/* --- THE SHADY PRODUCT CARD MASTER STYLE --- */
+.product-card {
+    background: #ffffff !important;
+    border-radius: 12px !important;
+    border: none !important; /* Removes the thin hard border */
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    
+    /* This creates the soft "shady" elevation from your screenshot */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08) !important;
+    
+    /* Smooth transition for the hover effect */
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
+                box-shadow 0.3s ease !important;
+}
+
+/* Effect when you hover or touch the card */
+.product-card:hover {
+    transform: translateY(-8px) scale(1.02); /* Card lifts up */
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12) !important; /* Shadow gets deeper */
+}
+
+/* Quick fix for the image inside the shady card */
+.product-card img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    padding: 10px;
+    transition: transform 0.5s ease;
+}
+
+.product-card:hover img {
+    transform: scale(1.05); /* Slight image zoom on hover */
+}
+/* --- PREMIUM SLIM CATEGORY BAR --- */
+#categoryBar {
+    /* A very light, premium pearl/off-white color */
+   background: linear-gradient(-45deg, #F88379, #E9746A, #DA655B, #73f191) !important;
+background-size: 400% 400% !important;
+    /* Reduced vertical padding to keep it slim */
+    padding: 8px 0 !important; 
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    margin-bottom: 15px;
+}
+
+/* Force the slide container to have no background so our bar color shows */
+#categoryBar .swiper-slide, 
+#categoryBar .bg-white {
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+/* The circular icon styling - keep it "shady" */
+.category-link .rounded-full {
+    width: 65px !important;  /* Slightly smaller icons to save height */
+    height: 65px !important;
+    background: #ffffff !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08) !important;
+    border: 2px solid transparent !important;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+/* The classy hovering style you liked */
+.category-link:hover .rounded-full {
+    transform: translateY(-5px) scale(1.05);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12) !important;
+    border-color: var(--navbar-bg-end) !important; /* Premium purple border on hover */
+}
+
+/* Slimming down the category text */
+.category-link h3 {
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    margin-top: 5px !important;
+    color: #444 !important;
 }
