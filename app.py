@@ -1005,7 +1005,7 @@ def add_to_cart():
     data = request.get_json()
     sku = data.get('sku')
     quantity = int(data.get('quantity', 1))
-    selected_options = data.get('options', {}) # Dictionary of selected options
+    selected_options = data.get('selected_options', {}) # Dictionary of selected options
 
     if not sku or quantity < 1:
         return jsonify(success=False, message='Invalid product or quantity.'), 400
