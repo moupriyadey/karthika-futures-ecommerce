@@ -1,0 +1,110 @@
+PAGE LANDING FIX – SAFE METHOD (NO LAYOUT CHANGES)
+
+Purpose:
+Fix extra top gap caused by fixed navbar / sticky bars
+by landing the page directly on the main heading.
+
+This method uses ONLY JavaScript scrolling.
+No CSS or layout changes required.
+
+
+==============================
+STEP 1 – ADD ID TO HEADING
+==============================
+
+Example (product_detail.html):
+
+BEFORE:
+<h1 class="text-3xl font-extrabold text-gray-900 mb-1">{{ artwork.name }}</h1>
+
+AFTER:
+<h1 id="pageTitle"
+    class="text-3xl font-extrabold text-gray-900 mb-1">
+  {{ artwork.name }}
+</h1>
+
+
+==============================
+STEP 2 – ADD THIS JS (BOTTOM OF PAGE)
+==============================
+
+Place inside {% block extra_js %}
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const title = document.getElementById("pageTitle");
+  if (!title) return;
+
+  setTimeout(() => {
+    const yOffset = -150;   // 🔧 ADJUST ONLY THIS VALUE
+    const y = title.getBoundingClientRect().top
+              + window.pageYOffset
+              + yOffset;
+
+    window.scrollTo({ top: y, behavior: "auto" });
+  }, 150);
+});
+</script>
+
+
+==============================
+HOW TO ADJUST POSITION
+==============================
+
+Negative value = move UP
+Positive value = move DOWN
+
+Examples:
+-80   → slightly up
+-120  → normal fixed navbar
+-150  → navbar + category bar (recommended)
+-200  → more up
++20   → move down
+
+ONLY change yOffset. Nothing else.
+
+
+==============================
+USE ON OTHER PAGES
+==============================
+
+• Add ID to that page's <h1>
+• Reuse SAME JS
+• Adjust yOffset if needed
+
+Works for:
+✔ category_page.html
+✔ product_detail.html
+✔ payment pages
+✔ any page with fixed headers
+
+
+==============================
+SAFE TO STORE?
+==============================
+
+YES ✅
+
+You can save this as:
+page-landing-fix.txt
+
+and keep it in:
+- project root
+- /docs
+- /notes
+- anywhere for reference
+
+It does NOT affect the project.
+
+
+==============================
+DO NOT DO
+==============================
+
+❌ Do NOT remove padding classes
+❌ Do NOT modify _base.html
+❌ Do NOT mix scrollIntoView + scrollBy
+❌ Do NOT touch CSS unless required
+
+
+Status: SAFE • REVERSIBLE • PAGE-SPECIFIC

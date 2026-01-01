@@ -623,13 +623,6 @@ section[id] {
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
-main {
-  margin-top: calc(
-    var(--announcement-height) +
-    var(--navbar-height) +
-    120px
-  );
-}
 
 
 /* Compact spacing between icon & label */
@@ -856,4 +849,28 @@ background-size: 400% 400% !important;
     font-weight: 600 !important;
     margin-top: 5px !important;
     color: #444 !important;
+}
+/* ===============================
+   GLOBAL TOP SPACING (ALL PAGES)
+================================ */
+
+.site-main {
+  padding-top: calc(
+    var(--announcement-height) +
+    var(--navbar-height)
+    
+  );
+}
+/* ===============================
+   HOMEPAGE EXTRA OFFSET
+   (announcement + navbar + category bar)
+================================ */
+
+#categoryBar + .site-main,
+body .site-main:has(#categoryBar) {
+  padding-top: calc(
+    var(--announcement-height) +
+    var(--navbar-height) +
+    120px
+  );
 }

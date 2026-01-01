@@ -456,9 +456,10 @@ function checkEDD(pinInputId, resultId) {
             </div>
         </div>
     </nav>
-    <main class="flex-grow">
-        {% block content %}{% endblock %}
-    </main>
+    <main id="siteMain" class="flex-grow site-main">
+    {% block content %}{% endblock %}
+</main>
+
 
     <footer class="footer">
         <div class="container mx-auto px-4 py-8">
@@ -541,10 +542,16 @@ Trusted by nail artists & home users across India.
   
 
 let lastScrollTop = 0;
+let isAutoScrolling = false;   // ✅ ADD THIS
+
 const navbar = document.getElementById("mainNavbar");
 const categoryBar = document.getElementById("categoryBar");
 
 window.addEventListener("scroll", () => {
+
+  // 🔒 IMPORTANT: ignore scroll events caused by JS auto-scroll
+  if (isAutoScrolling) return;
+
   const currentScroll = window.scrollY;
 
   if (currentScroll > lastScrollTop && currentScroll > 100) {
@@ -559,7 +566,6 @@ window.addEventListener("scroll", () => {
 
   lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
 });
-
 
 
 
