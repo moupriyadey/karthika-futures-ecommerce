@@ -1,0 +1,101 @@
+{% extends "_base.html" %}
+
+{% block title %}Refund & Replacement Policy - NailMart India{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="background-color:#fffaf0; border-radius:12px;">
+
+  <h1 class="text-center mb-5" style="color:#b34700; font-weight:800;">
+    🔄 Refund & Replacement Policy
+  </h1>
+
+  <div class="card mb-4 shadow-sm border-0">
+    <div class="card-body">
+
+      <p>
+        At <strong>NailMart India</strong>, customer satisfaction is very important to us.
+        We carefully inspect and pack every order to ensure you receive premium-quality products.
+      </p>
+
+      <hr>
+
+      <h5>📦 Replacement Policy</h5>
+      <ul>
+        <li>If you receive a <strong>damaged, defective, or wrong product</strong>, we will provide a replacement.</li>
+        <li>You must inform us within <strong>48 hours</strong> of delivery.</li>
+        <li>An <strong>unedited unboxing video</strong> from package opening to product inspection is mandatory.</li>
+        <li>Replacement will be shipped after verification of the issue.</li>
+      </ul>
+
+      <p class="text-muted">
+        <small>
+          Note: Claims without an unboxing video may not be accepted.
+        </small>
+      </p>
+
+      <hr>
+
+      <h5>💰 Refund Policy</h5>
+      <ul>
+        <li>Refunds are issued only if a replacement is <strong>not possible</strong>.</li>
+        <li>Refund amount will be credited to the <strong>original payment method</strong>.</li>
+        <li>Refund processing may take <strong>5–7 working days</strong> after approval.</li>
+      </ul>
+
+      <hr>
+
+      <h5>❌ Non-Refundable Situations</h5>
+      <ul>
+        <li>Change of mind after placing the order</li>
+        <li>Incorrect selection of design, size, or color by the customer</li>
+        <li>Minor color or design variations due to screen resolution</li>
+        <li>Products damaged due to improper handling after delivery</li>
+      </ul>
+
+      <hr>
+
+      <h5>📮 Cancellation Policy</h5>
+      <ul>
+        <li>Orders can be cancelled <strong>only before dispatch</strong>.</li>
+        <li>Once shipped, cancellation requests cannot be accepted.</li>
+      </ul>
+
+      <hr>
+
+      <h5>📞 Need Help?</h5>
+      <p>
+        If you have any concerns regarding refunds or replacements,
+        please contact us via our <a href="{{ url_for('contact') }}">Contact Page</a>.
+        Our support team will assist you promptly.
+      </p>
+
+      <p class="text-muted mt-4">
+        <small>
+          By placing an order on NailMart India, you agree to this Refund & Replacement Policy.
+          This policy may be updated without prior notice.
+        </small>
+      </p>
+
+    </div>
+  </div>
+
+</div>
+
+<button onclick="history.back()"
+  style="
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 15px;
+    font-size: 14px;
+    cursor: pointer;
+    border: 1px solid #ffae00;
+    border-radius: 5px;
+    background-color: #3bc949;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    z-index: 9999;
+  ">
+  ⬅ Go Back
+</button>
+
+{% endblock %}

@@ -5072,6 +5072,22 @@ def sitemap():
     xml.append('</urlset>')
 
     return Response("".join(xml), mimetype="application/xml")
+@app.route("/policies")
+def policies():
+    return render_template("policy.html")
+
+@app.route("/privacy-policy")
+def privacy_policy():
+    return render_template("privacy_policy.html")
+
+@app.route("/terms-and-conditions")
+def terms_and_conditions():
+    return render_template("terms_conditions.html")
+@app.route("/refund-policy")
+def refund_policy():
+    return render_template("refund_policy.html")
+
+
 
 # --- Run the App ---
 if __name__ == '__main__':

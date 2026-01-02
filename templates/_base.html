@@ -400,6 +400,42 @@ function checkEDD(pinInputId, resultId) {
 }
 </script>
 
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "NailMart India",
+  "url": "https://nailmartindia.com",
+  "sameAs": [],
+  "hasOfferCatalog": {
+    "@type": "OfferCatalog",
+    "name": "Store Policies",
+    "itemListElement": [
+      {
+        "@type": "Offer",
+        "name": "Privacy Policy",
+        "url": "https://nailmartindia.com/privacy-policy"
+      },
+      {
+        "@type": "Offer",
+        "name": "Terms & Conditions",
+        "url": "https://nailmartindia.com/terms-and-conditions"
+      },
+      {
+        "@type": "Offer",
+        "name": "Shipping Policy",
+        "url": "https://nailmartindia.com/policies"
+      },
+      {
+        "@type": "Offer",
+        "name": "Refund Policy",
+        "url": "https://nailmartindia.com/refund-policy"
+      }
+    ]
+  }
+}
+</script>
+
 </head>
 <body class="flex flex-col min-h-screen">
 <!-- Announcement Bar -->
@@ -493,48 +529,92 @@ function checkEDD(pinInputId, resultId) {
     {% block content %}{% endblock %}
 </main>
 
+<footer class="footer">
+  <div class="container mx-auto px-4 py-10">
 
-    <footer class="footer">
-        <div class="container mx-auto px-4 py-8">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div>
-                    <h5 class="text-xl mb-3">NailMart India</h5>
-                   <p class="text-sm">
-Premium nail products, press-on nails & professional nail accessories.
-Trusted by nail artists & home users across India.
-</p> 
-                </div>
-                <div>
-                    <h5 class="text-xl mb-3">Quick Links</h5>
-                    <ul class="space-y-2">
-                        <li><a href="{{ url_for('index') }}" class="text-sm hover:underline">Home</a></li>
-                        <li><a href="{{ url_for('all_products') }}" class="text-sm hover:underline">Products</a></li>
-                        <li><a href="{{ url_for('user_orders') }}" class="text-sm hover:underline">My Orders</a></li>
-                        <li><a href="{{ url_for('contact') }}" class="text-sm hover:underline">Contact Us</a></li>
-                        <li><a href="{{ url_for('user_login') }}" class="text-sm hover:underline">Login</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h5 class="text-xl mb-3">Contact Us</h5>
-                    <p class="text-sm">
-                        Annapurna Apartment, New Alipore<br>
-                        West Bengal, 700053, India<br>
-                        Email: smarasada@gmail.com<br>
-                        Phone: +91 9330480697
-                    </p>
-                    <div class="social-icons mt-4">
-                        <a href="#" class="mr-3"><i class="fab fa-facebook-f"></i></a>
-                        <a href="#" class="mr-3"><i class="fab fa-twitter"></i></a>
-                        <a href="#" class="mr-3"><i class="fab fa-instagram"></i></a>
-                        <a href="#" class="mr-3"><i class="fab fa-linkedin-in"></i></a>
-                    </div>
-                </div>
-            </div>
-            <div class="text-center border-t border-gray-700 pt-6 mt-8">
-                <p class="text-sm">&copy; {{ now.year }} NailMart India. All rights reserved.</p>
-            </div>
+    <!-- TOP GRID -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+
+      <!-- BRAND -->
+      <div>
+        <h5 class="text-xl mb-3 font-semibold">NailMart India</h5>
+        <p class="text-sm leading-relaxed">
+          Premium reusable press-on nails and custom nail designs.
+          Trusted by nail artists and customers across India.
+        </p>
+      </div>
+
+      <!-- QUICK LINKS -->
+      <div>
+        <h5 class="text-xl mb-3 font-semibold">Quick Links</h5>
+        <ul class="space-y-2">
+          <li><a href="{{ url_for('index') }}" class="text-sm hover:underline">Home</a></li>
+          <li><a href="{{ url_for('all_products') }}" class="text-sm hover:underline">Products</a></li>
+          <li><a href="{{ url_for('user_orders') }}" class="text-sm hover:underline">My Orders</a></li>
+          <li><a href="{{ url_for('contact') }}" class="text-sm hover:underline">Contact Us</a></li>
+          <li><a href="{{ url_for('user_login') }}" class="text-sm hover:underline">Login</a></li>
+        </ul>
+      </div>
+
+      <!-- POLICIES -->
+      <div>
+        <h5 class="text-xl mb-3 font-semibold">Policies</h5>
+        <ul class="space-y-2">
+          <li><a href="{{ url_for('privacy_policy') }}" class="text-sm hover:underline">Privacy Policy</a></li>
+          <li><a href="{{ url_for('terms_and_conditions') }}" class="text-sm hover:underline">Terms & Conditions</a></li>
+          <li><a href="{{ url_for('policies') }}" class="text-sm hover:underline">Shipping Policy</a></li>
+          <li><a href="{{ url_for('refund_policy') }}" class="text-sm hover:underline">Refund Policy</a></li>
+        </ul>
+      </div>
+
+      <!-- CONTACT -->
+      <div>
+        <h5 class="text-xl mb-3 font-semibold">Contact Us</h5>
+        <p class="text-sm leading-relaxed">
+          Annapurna Apartment, New Alipore<br>
+          West Bengal – 700053, India<br>
+          📧 smarasada@gmail.com<br>
+          📞 +91 9330480697
+        </p>
+
+        <div class="social-icons mt-4 flex gap-4">
+          <a href="https://www.instagram.com/" target="_blank" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+          <a href="https://www.facebook.com/" target="_blank" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+          <a href="https://www.youtube.com/@KarthikaStories" target="_blank" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
         </div>
-    </footer>
+      </div>
+    </div>
+
+    <!-- TRUST BADGES -->
+    <div class="mt-8 flex flex-wrap gap-3 items-center justify-center text-xs text-gray-600">
+      <span class="px-3 py-1 border rounded-full">🇮🇳 Made for India</span>
+      <span class="px-3 py-1 border rounded-full">🔐 Secure Payments</span>
+      <span class="px-3 py-1 border rounded-full">📦 Fast Shipping</span>
+      <span class="px-3 py-1 border rounded-full">📞 Customer Support</span>
+    </div>
+
+    <!-- SEO MICRO-COPY -->
+    <div class="mt-6 text-xs text-gray-500 leading-relaxed text-center max-w-4xl mx-auto">
+      <p>
+        NailMart India is an online store offering premium reusable press-on nails,
+        custom nail designs, and salon-quality nail art delivered across India.
+        All products are carefully curated and shipped with quality assurance.
+      </p>
+      <p class="mt-2">
+        Buy press-on nails online in India · Custom nail art · Reusable nails ·
+        Secure payments · Fast delivery · Customer support available
+      </p>
+    </div>
+
+    <!-- COPYRIGHT -->
+    <div class="text-center border-t border-gray-700 pt-6 mt-8">
+      <p class="text-sm">
+        &copy; {{ now.year }} NailMart India. All rights reserved.
+      </p>
+    </div>
+
+  </div>
+</footer>
 
    <!-- 🔻 Bottom Fixed Marquee Bar -->
 <div id="customMarquee"

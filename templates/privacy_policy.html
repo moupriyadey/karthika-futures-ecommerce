@@ -1,0 +1,116 @@
+{% extends "_base.html" %}
+
+{% block title %}Privacy Policy - NailMart India{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="background-color:#fffaf0; border-radius:12px;">
+
+  <h1 class="text-center mb-5" style="color:#b34700; font-weight:800;">
+    🔒 Privacy Policy
+  </h1>
+
+  <div class="card mb-4 shadow-sm border-0">
+    <div class="card-body">
+
+      <p>
+        At <strong>NailMart India</strong>, your privacy is extremely important to us.
+        This Privacy Policy explains how we collect, use, and protect your personal information
+        when you visit or make a purchase from our website.
+      </p>
+
+      <hr>
+
+      <h5>📌 Information We Collect</h5>
+      <ul>
+        <li>Your name, phone number, email address, and delivery address</li>
+        <li>Order details such as products purchased and transaction references</li>
+        <li>Technical data like browser type, device, and IP address (for security & analytics)</li>
+      </ul>
+
+      <hr>
+
+      <h5>📦 How We Use Your Information</h5>
+      <ul>
+        <li>To process and deliver your orders</li>
+        <li>To communicate order status, delivery updates, or customer support</li>
+        <li>To improve our website, services, and customer experience</li>
+        <li>To comply with legal or regulatory requirements</li>
+      </ul>
+
+      <hr>
+
+      <h5>🤝 Sharing of Information</h5>
+      <p>
+        We <strong>do not sell or rent</strong> your personal information.
+        Your data is shared only with:
+      </p>
+      <ul>
+        <li>Courier and logistics partners for order delivery</li>
+        <li>Payment gateways (UPI / secure payment processors)</li>
+        <li>Government or legal authorities, if required by law</li>
+      </ul>
+
+      <hr>
+
+      <h5>🔐 Data Security</h5>
+      <p>
+        We use reasonable technical and organizational measures to protect your personal data
+        against unauthorized access, misuse, or disclosure.
+        However, no method of transmission over the internet is 100% secure.
+      </p>
+
+      <hr>
+
+      <h5>🍪 Cookies</h5>
+      <p>
+        Our website may use cookies to enhance browsing experience,
+        analyze traffic, and understand customer preferences.
+        You can disable cookies in your browser settings if you prefer.
+      </p>
+
+      <hr>
+
+      <h5>🧾 Your Rights</h5>
+      <ul>
+        <li>You can request access, correction, or deletion of your personal data</li>
+        <li>You may opt out of promotional communications anytime</li>
+      </ul>
+
+      <hr>
+
+      <h5>📞 Contact Us</h5>
+      <p>
+        If you have any questions about this Privacy Policy or your data,
+        please contact us via our <a href="{{ url_for('contact') }}">Contact Page</a>.
+      </p>
+
+      <p class="text-muted mt-4">
+        <small>
+          By using our website, you consent to this Privacy Policy.
+          This policy may be updated from time to time without prior notice.
+        </small>
+      </p>
+
+    </div>
+  </div>
+
+</div>
+
+<button onclick="history.back()"
+  style="
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 15px;
+    font-size: 14px;
+    cursor: pointer;
+    border: 1px solid #ffae00;
+    border-radius: 5px;
+    background-color: #3bc949;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    z-index: 9999;
+  ">
+  ⬅ Go Back
+</button>
+
+{% endblock %}
