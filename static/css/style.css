@@ -597,6 +597,41 @@ section[id] {
 /* ===============================
    CATEGORY BAR (LOCKED TO NAVBAR)
 ================================ */
+
+/* --- PREMIUM SLIM CATEGORY BAR --- */
+#categoryBar {
+    /* A very light, premium pearl/off-white color */
+   background: linear-gradient(-45deg, #F88379, #E9746A, #DA655B, #73f191) !important;
+background-size: 400% 400% !important;
+    /* Reduced vertical padding to keep it slim */
+    padding: 8px 0 !important; 
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    margin-bottom: 15px;
+}
+
+/* Premium Category Bar Background */
+#categoryBar {
+    background: linear-gradient(to bottom, #ffffff, #fdfbfb); /* Subtle premium silk look */
+    padding: 20px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.03);
+}
+/* =========================================
+   FINAL MICRO-TRIM FOR CATEGORY BAR (SAFE)
+   Purpose: shave ~0.3–0.4 cm from bottom ONLY
+========================================= */
+
+#categoryBar {
+  padding-bottom: 0px !important;/* 👈 this is the key line */
+  margin-bottom: -3px;
+}
+
+
+@media (max-width: 640px) {
+  #categoryBar {
+    padding-bottom: 1px !important;
+  }
+}
+
 #categoryBar {
   position: fixed;
   top: calc(var(--announcement-height) + var(--navbar-height));
@@ -628,13 +663,6 @@ section[id] {
 /* Compact spacing between icon & label */
 .category-link h3 {
   margin-top: 0.35rem !important;
-}
-
-/* Premium Category Bar Background */
-#categoryBar {
-    background: linear-gradient(to bottom, #ffffff, #fdfbfb); /* Subtle premium silk look */
-    padding: 20px 0;
-    border-bottom: 1px solid rgba(0,0,0,0.03);
 }
 
 /* Shady effect for Category Icons */
@@ -807,16 +835,6 @@ body {
 
 .product-card:hover img {
     transform: scale(1.05); /* Slight image zoom on hover */
-}
-/* --- PREMIUM SLIM CATEGORY BAR --- */
-#categoryBar {
-    /* A very light, premium pearl/off-white color */
-   background: linear-gradient(-45deg, #F88379, #E9746A, #DA655B, #73f191) !important;
-background-size: 400% 400% !important;
-    /* Reduced vertical padding to keep it slim */
-    padding: 8px 0 !important; 
-    border-bottom: 1px solid rgba(0,0,0,0.05);
-    margin-bottom: 15px;
 }
 
 /* Force the slide container to have no background so our bar color shows */

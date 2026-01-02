@@ -9,7 +9,9 @@ content="Buy premium press-on nails online in India. Reusable salon-quality nail
 
 {% block content %}
 
-<section class="pt-[110px] md:pt-[120px] pb-10 bg-gradient-to-br from-pink-50 via-white to-purple-50">
+<section class="pt-[110px] md:pt-[120px] pb-14
+bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))]
+from-pink-100 via-white to-purple-100">
   <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-8 items-center">
 
 <!-- TEXT -->
@@ -740,22 +742,53 @@ revealSections.forEach(sec => revealObserver.observe(sec));
 
 
 <style>
-  /* ✅ MOBILE-SAFE CATEGORY HEADING BUTTON */
+/* 🎯 FINAL – COMPACT CATEGORY HEADING (AUTHORITATIVE) */
 .category-heading {
   display: inline-block;
-  padding: 0.55rem 1.4rem;
+  padding: 0.32rem 1.1rem;   /* 🔻 height reduced */
   border-radius: 999px;
 
   background: linear-gradient(to right, #7c3aed, #ec4899);
   color: #ffffff !important;
 
   font-weight: 700;
-  font-size: 1.15rem;
-  line-height: 1.2;
+  font-size: 1.02rem;       /* slightly smaller */
+  line-height: 1.1;         /* tighter vertical space */
   text-align: center;
+  white-space: nowrap;
 
-  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.35);
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.28);
+  position: relative;
+  overflow: hidden;
 }
+
+/* 🌟 SAFE SHINE – no vibration */
+.category-heading::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,0.35) 50%,
+    rgba(255,255,255,0) 100%
+  );
+  animation: shine-safe 5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* 📱 Mobile micro-trim */
+@media (max-width: 768px) {
+  .category-heading {
+    padding: 0.28rem 0.95rem;
+    font-size: 0.98rem;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+  }
+}
+
 
 /* STEP 5A — Premium category hover */
 @media (min-width: 768px) {
@@ -891,29 +924,6 @@ revealSections.forEach(sec => revealObserver.observe(sec));
   50%  { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
-.category-heading span {
-  color: #2563eb;
-}
-
-
-
-
-/* 🎯 SAFE button-style category heading */
-.category-heading {
-  display: inline-block;
-  padding: 0.45rem 1.25rem;
-  border-radius: 999px;
-
-  background: linear-gradient(to right, #7c3aed, #ec4899);
-  color: #ffffff !important;
-
-  font-weight: 700;
-  font-size: 1.1rem;
-  white-space: nowrap;
-
-  box-shadow: 0 6px 16px rgba(124, 58, 237, 0.3);
-}
-
 
 
 
@@ -995,54 +1005,6 @@ revealSections.forEach(sec => revealObserver.observe(sec));
   z-index: 10;
 }
 
-/* Mobile devices (always show subtle styling) */
-@media (max-width: 768px) {
-  .category-heading {
-    background: linear-gradient(to right, #7c3aed, #ec4899);
-    color: #ffffff !important;
-    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35);
-  }
-}
-
-.category-heading {
-  position: relative;
-  overflow: hidden;
-}
-
-/* SAFE SHINE – no vibration */
-.category-heading::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -60%;
-  width: 60%;
-  height: 100%;
-  background: linear-gradient(
-    120deg,
-    rgba(255,255,255,0) 0%,
-    rgba(255,255,255,0.35) 50%,
-    rgba(255,255,255,0) 100%
-  );
-  animation: shine-safe 5s ease-in-out infinite;
-  pointer-events: none;
-}
-
-@keyframes shine-safe {
-  0% { left: -60%; }
-  50% { left: 120%; }
-  100% { left: 120%; }
-}
-
-
-
-@keyframes blink-underline {
-  0%, 50%, 100% {
-    opacity: 1;
-  }
-  25%, 75% {
-    opacity: 0;
-  }
-}
 
     /* Spinner for Category Images */
 .category-link {
