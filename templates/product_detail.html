@@ -162,9 +162,14 @@ loading="lazy"
                       data-option-group="{{ group_name }}">
                 <option value="default" data-price-impact="0">Select {{ group_name }}...</option>
                 {% for option_name, price_impact in options_dict.items() %}
-                <option value="{{ option_name }}" data-price-impact="{{ price_impact }}">
-                    {{ option_name }} ({% if price_impact >= 0 %}+{% endif %}{{ price_impact | currency }})
-                </option>
+                <option
+    value="{{ option_name }}"
+    data-price-impact="{{ price_impact }}"
+    data-image="{{ artwork.get_option_image(group_name, option_name) }}"
+>
+    {{ option_name }} ({{ price_impact | currency }})
+</option>
+
                 {% endfor %}
               </select>
             </div>
@@ -384,6 +389,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     const artworkData = {{ artwork_data | tojson }};
+    artworkData.default_image_url = artworkData.image_url;
+
     const quantityInput = document.getElementById('quantity');
     const customOptionsContainer = document.getElementById('customOptionsContainer');
     const displayPriceElement = document.getElementById('displayPrice');
@@ -391,6 +398,24 @@ document.addEventListener('DOMContentLoaded', function() {
     const buyNowBtn = document.getElementById('buyNowBtn');
 
     const currencyFormatter = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' });
+customOptionsContainer
+    .querySelectorAll('select[data-option-group]')
+    .forEach(select => {
+        select.addEventListener('change', function () {
+            const selected = this.options[this.selectedIndex];
+            const newImage = selected.dataset.image;
+
+            const activeImg = document.querySelector('.swiper-slide-active img');
+
+            if (newImage) {
+                if (activeImg) activeImg.src = newImage;
+                artworkData.image_url = newImage;
+            } else {
+                if (activeImg) activeImg.src = artworkData.default_image_url;
+                artworkData.image_url = artworkData.default_image_url;
+            }
+        });
+    });
 
 function updatePrice() {
     // START from FINAL PRICE (GST already included)

@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>{% block title %}NailMart India{% endblock %}</title>
+<link rel="preload" as="image"
+href="{{ url_for('static', filename='images/hero_nails.png') }}">
 
   {% block seo %}
 <meta name="description" content="NailMart India – Buy premium press-on nails, nail accessories & professional nail products online in India." />
@@ -367,6 +369,37 @@ function checkEDD(pinInputId, resultId) {
 
     </style>
     {% block extra_css %}{% endblock %}
+
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "OnlineStore",
+  "name": "NailMart India",
+  "url": "https://www.nailmartindia.com",
+  "logo": "https://www.nailmartindia.com/static/images/logo.png",
+  "description": "NailMart India is an online store offering premium press-on nails, custom nail designs, and nail accessories with delivery across India.",
+  "sameAs": [
+    "https://www.instagram.com/",
+    "https://www.facebook.com/",
+    "https://www.youtube.com/@dey_moupriya_15"
+  ],
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "New Alipore",
+    "addressLocality": "Kolkata",
+    "addressRegion": "West Bengal",
+    "postalCode": "700053",
+    "addressCountry": "IN"
+  },
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "telephone": "+91-9330480697",
+    "contactType": "customer support",
+    "availableLanguage": ["English", "Hindi"]
+  }
+}
+</script>
+
 </head>
 <body class="flex flex-col min-h-screen">
 <!-- Announcement Bar -->

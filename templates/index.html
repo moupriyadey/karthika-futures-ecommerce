@@ -1,9 +1,72 @@
 {% extends '_base.html' %}
 
-{% block title %}NaiLMart India - Your Gateway to amazing Nail Art{% endblock %}
+{% block title %}Press On Nails India | Buy Premium Reusable Nails Online – NailMart
+{% endblock %}
+{% block seo %}
+<meta name="description"
+content="Buy premium press-on nails online in India. Reusable salon-quality nail designs, custom nails & fast delivery. Trusted by nail artists." />
+{% endblock %}
 
 {% block content %}
 
+<section class="pt-[110px] md:pt-[120px] pb-10 bg-gradient-to-br from-pink-50 via-white to-purple-50">
+  <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-8 items-center">
+
+<!-- TEXT -->
+<div>
+  <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight">
+    Premium Press-On Nails 💅🏻
+  </h1>
+
+  <!-- SEO-only keywords (safe & invisible) -->
+  <p class="sr-only">
+    Press on nails online India, reusable nails, custom nail designs, buy press on nails
+  </p>
+
+  <!-- Subheading -->
+  <p class="mt-4 text-lg text-gray-600 max-w-md">
+    Salon-quality reusable nails. Hand-crafted designs. Delivered across India.
+  </p>
+
+  <!-- CTA Buttons -->
+  <div class="mt-6 flex gap-4">
+    <a href="{{ url_for('all_products') }}"
+       class="px-6 py-3 rounded-full text-white font-semibold shadow-lg
+              hover:scale-105 transition"
+       style="background: linear-gradient(to right, #7c3aed, #ec4899);">
+      Shop Now
+    </a>
+
+    <a href="https://wa.me/919330482697"
+       target="_blank"
+       class="px-6 py-3 rounded-full font-semibold border border-purple-300
+              text-purple-700 hover:bg-purple-50 transition">
+      Custom Design
+    </a>
+  </div>
+
+  <!-- Trust / Conversion Line (MOVED OUTSIDE FLEX) -->
+  <p class="mt-4 text-sm text-gray-500">
+    ⭐ 4.5/5 Rated by Customers · 🇮🇳 Made for Indian Nails · 📦 Pan-India Delivery
+  </p>
+</div>
+
+    <!-- IMAGE -->
+    <div class="flex justify-center">
+     <img src="{{ url_for('static', filename='images/hero_nails.png') }}"
+     alt="Premium press on nails India reusable salon quality"
+     loading="eager"
+     width="500"
+     height="500"
+     class="max-w-sm w-full drop-shadow-xl">
+
+    </div>
+<a href="{{ url_for('all_products') }}" class="sr-only">
+Browse all press on nails in India
+</a>
+
+  </div>
+</section>
   
 <section id="categoryBar">
 
@@ -64,6 +127,31 @@
   </div>
 </div>
 
+</section>
+<section class="bg-white py-6 border-t border-b">
+  <div class="max-w-6xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+
+    <div class="flex flex-col items-center">
+      <i class="fas fa-shipping-fast text-2xl text-purple-600 mb-1"></i>
+      <p class="text-sm font-semibold">Fast Delivery</p>
+    </div>
+
+    <div class="flex flex-col items-center">
+      <i class="fas fa-star text-2xl text-purple-600 mb-1"></i>
+      <p class="text-sm font-semibold">Premium Quality</p>
+    </div>
+
+    <div class="flex flex-col items-center">
+      <i class="fas fa-sync-alt text-2xl text-purple-600 mb-1"></i>
+      <p class="text-sm font-semibold">Reusable Nails</p>
+    </div>
+
+    <div class="flex flex-col items-center">
+      <i class="fab fa-whatsapp text-2xl text-purple-600 mb-1"></i>
+      <p class="text-sm font-semibold">WhatsApp Support</p>
+    </div>
+
+  </div>
 </section>
 
 
@@ -229,12 +317,12 @@
      <div class="container mx-auto px-6 text-center">
 
        <h3 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
-         ✨ Trending This Week
+         🔥 Best Sellers This Week
        </h3>
 
        <p class="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
-         Nail artists across India are loving these designs.
-         Fresh styles, premium quality, limited stock.
+         Most loved nail designs by our customers.
+  Limited stock. Ready to ship.
        </p>
 
        <a href="{{ url_for('all_products') }}"
@@ -254,7 +342,7 @@
 
     <section class="fade-section py-16 bg-primary text-white text-center">
         <div class="container mx-auto">
-            <h2 class="fade-item text-4xl font-extrabold mb-6">Discover Your Nail Connection</h2>
+            <h2 class="fade-item text-4xl font-extrabold mb-6">Find Your Perfect Nail Match 💖</h2>
             <p class="fade-item text-lg md:text-xl max-w-3xl mx-auto mb-8">
                 Each artwork at Nail Mart India is exclusively curated for you. Find the piece that resonates with your Nail.
             </p>
@@ -266,7 +354,7 @@
 
     <section class="fade-section py-16 bg-gradient-to-br from-yellow-50 to-orange-50 text-gray-800">
     <div class="container mx-auto text-center">
-        <h2 class="fade-item text-4xl font-extrabold mb-6 text-primary">Nail Accademy</h2>
+        <h2 class="fade-item text-4xl font-extrabold mb-6 text-primary">Nail Academy</h2>
 
             <p class="fade-item text-lg md:text-xl max-w-3xl mx-auto mb-8 leading-relaxed">
                 Nail Care Tips
@@ -326,7 +414,8 @@
             {% for i in range(12) %}<div class="m-4 -rotate-45">Karthikafutures</div>{% endfor %}
         </div>
         <button onclick="closeFullImage(event)" class="absolute top-4 right-4 text-white text-2xl">&times;</button>
-    </div>
+    
+      </div>
 </div>
 
 

@@ -476,6 +476,25 @@ class Artwork(db.Model):
             return json.loads(self.images) if self.images else []
         except json.JSONDecodeError:
             return []
+    def get_option_image(self, group_name, option_name):
+        """
+        Return image URL based on selected option.
+        Fallback to first image if not mapped.
+        """
+
+        images = self.get_images_list()
+        if not images:
+            return None
+
+        # HARD MAP (minimal, safe)
+        option_image_map = {
+            "TYPE": {
+                "PROFESSIONAL": images[1] if len(images) > 1 else images[0],
+                "STANDARD": images[0]
+            }
+        }
+
+        return option_image_map.get(group_name, {}).get(option_name, images[0])
 
     def set_images_list(self, images_list):
         self.images = json.dumps(images_list)
@@ -4030,34 +4049,32 @@ def generate_invoice_pdf_buffer(order):
     buffer.seek(0)
     return buffer
 
+from flask import Response, url_for
 
+@app.route("/sitemap.xml")
+def sitemap():
+    pages = []
+    pages.append(url_for("index", _external=True))
+    pages.append(url_for("about", _external=True))
+    pages.append(url_for("contact", _external=True))
+    pages.append(url_for("all_products", _external=True))
 
+    # Product pages (if you have slugs)
+    for product in artworks:  # or your product list variable
+        pages.append(url_for("product_detail_slug", slug=product["slug"], _external=True))
 
+    sitemap_xml = """<?xml version="1.0" encoding="UTF-8"?>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    """
+    for page in pages:
+        sitemap_xml += f"""
+        <url>
+            <loc>{page}</loc>
+        </url>
+        """
+    sitemap_xml += "</urlset>"
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    return Response(sitemap_xml, mimetype="application/xml")
 
 
 
