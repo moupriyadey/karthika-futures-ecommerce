@@ -4049,32 +4049,6 @@ def generate_invoice_pdf_buffer(order):
     buffer.seek(0)
     return buffer
 
-from flask import Response, url_for
-
-@app.route("/sitemap.xml")
-def sitemap():
-    pages = []
-    pages.append(url_for("index", _external=True))
-    pages.append(url_for("about", _external=True))
-    pages.append(url_for("contact", _external=True))
-    pages.append(url_for("all_products", _external=True))
-
-    # Product pages (if you have slugs)
-    for product in artworks:  # or your product list variable
-        pages.append(url_for("product_detail_slug", slug=product["slug"], _external=True))
-
-    sitemap_xml = """<?xml version="1.0" encoding="UTF-8"?>
-    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-    """
-    for page in pages:
-        sitemap_xml += f"""
-        <url>
-            <loc>{page}</loc>
-        </url>
-        """
-    sitemap_xml += "</urlset>"
-
-    return Response(sitemap_xml, mimetype="application/xml")
 
 
 
@@ -5074,6 +5048,30 @@ def admin_analytics_data():
 
     return jsonify(data)
 
+from flask import Response, url_for
+
+@app.route("/sitemap.xml")
+def sitemap():
+    pages = [
+        url_for("index", _external=True),
+        url_for("about", _external=True),
+        url_for("contact", _external=True),
+        url_for("all_products", _external=True),
+    ]
+
+    xml = ['<?xml version="1.0" encoding="UTF-8"?>']
+    xml.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
+
+    for page in pages:
+        xml.append(f"""
+  <url>
+    <loc>{page}</loc>
+  </url>
+""")
+
+    xml.append('</urlset>')
+
+    return Response("".join(xml), mimetype="application/xml")
 
 # --- Run the App ---
 if __name__ == '__main__':
