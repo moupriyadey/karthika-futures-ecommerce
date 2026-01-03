@@ -31,47 +31,111 @@
     {% if artworks %}
     <div class="table-responsive">
         <table class="table table-hover table-striped align-middle">
-            <thead>
-                <tr>
-                    <th>Image</th>
-                    <th>SKU</th>
-                    <th>Name</th>
-                    <th>Category</th>
-                    <th>Price (Excl. GST)</th>
-                    <th>GST %</th>
-                    <th>Stock</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
+           <thead class="table-dark">
+<tr>
+    <th>Image</th>
+    <th>SKU</th>
+    <th>Name</th>
+    <th>Category</th>
+    <th>Base Price</th>
+    <th>GST %</th>
+    <th>Shipping</th>
+    <th>Stock</th>
+    <th>Status</th>
+    <th>Featured</th>
+    <th>Actions</th>
+</tr>
+</thead>
+
             <tbody>
                 {% for artwork in artworks %}
-                <tr>
-                    <td>
-                      {% set images = artwork.get_images_list() %}
+               
+               <tr class="{% if not artwork.is_active %}table-secondary{% endif %}">
+
+<td>
+{% set images = artwork.get_images_list() %}
 {% if images %}
-    <img src="{{ images[0] }}" alt="{{ artwork.name }}" class="img-thumbnail" style="width: 70px; height: 70px; object-fit: cover; border-radius: 0.5rem;">
+<img src="{{ images[0] }}" class="img-thumbnail"
+     style="width:70px;height:70px;object-fit:cover;border-radius:0.5rem;">
 {% else %}
-    <img src="{{ url_for('static', filename='images/placeholder.png') }}" alt="Placeholder" class="img-thumbnail" style="width: 70px; height: 70px; object-fit: cover; border-radius: 0.5rem;">
+<img src="{{ url_for('static', filename='images/placeholder.png') }}"
+     class="img-thumbnail" style="width:70px;height:70px;">
 {% endif %}
-                    </td>
-                    <td>{{ artwork.sku }}</td>
-                    <td>{{ artwork.name }}</td>
-                    <td>{{ artwork.category.name if artwork.category else 'N/A' }}</td>
-                    <td>{{ artwork.original_price | currency }}</td> {# Changed from floatformat to currency #}
-                    <td>{{ artwork.gst_percentage | currency }}%</td> {# Changed from floatformat to currency #}
-                    <td>{{ artwork.stock }}</td>
-                    <td>
-                        <a href="{{ url_for('admin_edit_artwork', artwork_id=artwork.id) }}" class="btn btn-primary btn-sm me-2">
-                            <i class="fas fa-edit"></i> Edit
-                        </a>
-                        <button type="button" class="btn btn-danger btn-sm delete-artwork-btn"
-                                data-bs-toggle="modal" data-bs-target="#deleteArtworkModal"
-                                data-artwork-id="{{ artwork.id }}"
-                                data-artwork-name="{{ artwork.name }}">
-                            <i class="fas fa-trash-alt"></i> Delete
-                        </button>
-                    </td>
-                </tr>
+</td>
+
+<td>{{ artwork.sku }}</td>
+
+<td>
+<strong>{{ artwork.name }}</strong><br>
+<small class="text-muted">{{ artwork.category.name if artwork.category else 'N/A' }}</small>
+</td>
+
+<td>{{ artwork.category.name if artwork.category else 'N/A' }}</td>
+
+<td>₹ {{ artwork.original_price }}</td>
+
+<td>
+{% if artwork.gst_type == 'intra_state' %}
+{{ artwork.cgst_percentage + artwork.sgst_percentage }}%
+{% elif artwork.gst_type == 'inter_state' %}
+{{ artwork.igst_percentage }}%
+{% else %}
+{{ artwork.cgst_percentage + artwork.ugst_percentage }}%
+{% endif %}
+</td>
+
+<td>₹ {{ artwork.shipping_charge }}</td>
+
+<td>
+<span class="badge {% if artwork.stock > 5 %}bg-success{% else %}bg-danger{% endif %}">
+{{ artwork.stock }}
+</span>
+</td>
+
+<td>
+{% if artwork.is_active %}
+<span class="badge bg-success">Visible</span>
+{% else %}
+<span class="badge bg-secondary">Hidden</span>
+{% endif %}
+</td>
+
+<td>
+{% if artwork.is_featured %}
+⭐
+{% else %}
+—
+{% endif %}
+</td>
+
+<td class="d-flex gap-1">
+
+<a href="{{ url_for('admin_edit_artwork', artwork_id=artwork.id) }}"
+   class="btn btn-sm btn-primary">
+<i class="fas fa-edit"></i>
+</a>
+
+<form method="POST"
+      action="{{ url_for('toggle_artwork_visibility', artwork_id=artwork.id) }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<button type="submit"
+        class="btn btn-sm {% if artwork.is_active %}btn-warning{% else %}btn-success{% endif %}">
+{% if artwork.is_active %}Hide{% else %}Unhide{% endif %}
+</button>
+</form>
+
+<button type="button"
+        class="btn btn-sm btn-danger delete-artwork-btn"
+        data-bs-toggle="modal"
+        data-bs-target="#deleteArtworkModal"
+        data-artwork-id="{{ artwork.id }}"
+        data-artwork-name="{{ artwork.name }}">
+<i class="fas fa-trash-alt"></i>
+</button>
+
+</td>
+</tr>
+
                 {% endfor %}
             </tbody>
         </table>

@@ -4,6 +4,40 @@
 
 {% block content %}
 <div class="container main-content-area py-5">
+    <!-- 🔥 FLOATING LIVE PRICE PREVIEW (ADMIN) -->
+<div id="livePriceBox"
+     style="
+        position: fixed;
+        top: 120px;
+        right: 20px;
+        width: 260px;
+        background: #ffffff;
+        border: 2px solid #ff8c00;
+        border-radius: 12px;
+        padding: 14px;
+        z-index: 9999;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+     ">
+
+  <h6 style="font-weight: 700; margin-bottom: 10px; color:#333;">
+    💰 Live Price Preview
+  </h6>
+
+  <div class="text-sm mb-1">Base Price: ₹ <span id="lp-base">0.00</span></div>
+  <div class="text-sm mb-1">GST: ₹ <span id="lp-gst">0.00</span></div>
+  <div class="text-sm mb-1">Shipping: ₹ <span id="lp-shipping">0.00</span></div>
+
+  <hr>
+
+  <div style="font-size: 18px; font-weight: 800; color:#2E8B57;">
+    Final Price: ₹ <span id="lp-final">0.00</span>
+  </div>
+
+  <div class="text-muted text-xs mt-2">
+    Updates automatically while editing
+  </div>
+</div>
+
     <h2 class="text-center mb-4">Edit Artwork: {{ artwork.name }}</h2>
 
     <div class="card shadow-sm border-0 rounded-lg">
@@ -141,11 +175,68 @@ Offers: Free shipping above ₹999">{{ form_data.description
                         <input type="number" class="form-control" id="ugst_percentage" name="ugst_percentage" step="0.01" min="0" max="100" value="{{ form_data.ugst_percentage if form_data.ugst_percentage is defined else artwork.ugst_percentage }}" required>
                     </div>
                 </div>
+<hr class="my-4">
+
+<h5 class="mb-3">💰 Live Final Price Preview (Admin Only)</h5>
+
+<div class="card border-0 shadow-sm bg-light">
+    <div class="card-body">
+
+        <div class="row">
+            <div class="col-md-6">
+                <p>Base Price: ₹ <strong><span id="preview-base">0.00</span></strong></p>
+                <p>Shipping Charge: ₹ <strong><span id="preview-shipping">0.00</span></strong></p>
+            </div>
+
+            <div class="col-md-6">
+                <p>GST Amount: ₹ <strong><span id="preview-gst">0.00</span></strong></p>
+                <p class="text-success fw-bold fs-5">
+                    Final Price: ₹ <span id="preview-final">0.00</span>
+                </p>
+            </div>
+        </div>
+
+        <small class="text-muted">
+            Change price / GST / shipping above to get rounded final price.
+        </small>
+
+    </div>
+</div>
+
+
 
                 <div class="mb-3 form-check">
                     <input type="checkbox" class="form-check-input" id="is_featured" name="is_featured" {% if (form_data.is_featured is defined and form_data.is_featured) or (artwork.is_featured and form_data.is_featured is not defined) %}checked{% endif %}>
                     <label class="form-check-label" for="is_featured">Mark as Featured Artwork</label>
                 </div>
+<div class="mb-3 form-check">
+    <input type="checkbox"
+           class="form-check-input"
+           id="is_active"
+           name="is_active"
+           {% if artwork.is_active %}checked{% endif %}>
+
+    <label class="form-check-label fw-bold" for="is_active">
+        Show this artwork on website
+    </label>
+
+    <div class="form-text text-muted">
+        Uncheck to hide this artwork from customers (admin can still edit it).
+    </div>
+</div>
+
+
+<div class="mb-3 form-check">
+    <input type="checkbox" class="form-check-input" id="is_active" name="is_active"
+        {% if artwork.is_active %}checked{% endif %}>
+    <label class="form-check-label" for="is_active">
+        Show this artwork on website
+    </label>
+
+    <div class="form-text text-muted">
+        Uncheck to hide this product from customers (admin can still see & edit it).
+    </div>
+</div>
 
                 <h5 class="mt-4 mb-3">Artwork Images</h5>
                 <div class="mb-3">
@@ -180,9 +271,111 @@ Offers: Free shipping above ₹999">{{ form_data.description
     </div>
 </div>
 {% endblock %}
+<script>
+function recalcAdminPrice() {
+    let base = parseFloat(document.getElementById("original_price").value || 0);
+    let shipping = parseFloat(document.getElementById("shipping_charge").value || 0);
+
+    let cgst = parseFloat(document.getElementById("cgst_percentage").value || 0);
+    let sgst = parseFloat(document.getElementById("sgst_percentage").value || 0);
+    let igst = parseFloat(document.getElementById("igst_percentage").value || 0);
+    let ugst = parseFloat(document.getElementById("ugst_percentage").value || 0);
+
+    let gstPercent = cgst + sgst + igst + ugst;
+    let gstAmount = (base * gstPercent) / 100;
+    let finalPrice = base + gstAmount + shipping;
+
+    document.getElementById("preview-base").innerText = base.toFixed(2);
+    document.getElementById("preview-shipping").innerText = shipping.toFixed(2);
+    document.getElementById("preview-gst").innerText = gstAmount.toFixed(2);
+    document.getElementById("preview-final").innerText = finalPrice.toFixed(2);
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    recalcAdminPrice();
+
+    [
+        "original_price",
+        "shipping_charge",
+        "cgst_percentage",
+        "sgst_percentage",
+        "igst_percentage",
+        "ugst_percentage"
+    ].forEach(function(id) {
+        let el = document.getElementById(id);
+        if (el) {
+            el.addEventListener("input", recalcAdminPrice);
+        }
+    });
+});
+</script>
+
 
 {% block extra_js %}
 <script>
+document.addEventListener("DOMContentLoaded", function () {
+
+  function getVal(id) {
+    const el = document.getElementById(id);
+    return el ? parseFloat(el.value || 0) : 0;
+  }
+
+  function calculateLivePrice() {
+
+    const basePrice = getVal("original_price");
+    const shipping = getVal("shipping_charge");
+
+    const cgst = getVal("cgst_percentage");
+    const sgst = getVal("sgst_percentage");
+    const igst = getVal("igst_percentage");
+    const ugst = getVal("ugst_percentage");
+    const cess = getVal("cess_percentage");
+
+    const gstType = document.getElementById("gst_type")?.value;
+
+    let gstPercent = 0;
+
+    if (gstType === "intra_state") {
+      gstPercent = cgst + sgst;
+    } else if (gstType === "inter_state") {
+      gstPercent = igst;
+    } else if (gstType === "union_territory") {
+      gstPercent = cgst + ugst;
+    }
+
+    gstPercent += cess;
+
+    const gstAmount = (basePrice * gstPercent) / 100;
+    const finalPrice = basePrice + gstAmount + shipping;
+
+    document.getElementById("lp-base").innerText = basePrice.toFixed(2);
+    document.getElementById("lp-gst").innerText = gstAmount.toFixed(2);
+    document.getElementById("lp-shipping").innerText = shipping.toFixed(2);
+    document.getElementById("lp-final").innerText = finalPrice.toFixed(2);
+  }
+
+  const watchedFields = [
+    "original_price",
+    "shipping_charge",
+    "cgst_percentage",
+    "sgst_percentage",
+    "igst_percentage",
+    "ugst_percentage",
+    "cess_percentage",
+    "gst_type"
+  ];
+
+  watchedFields.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener("input", calculateLivePrice);
+      el.addEventListener("change", calculateLivePrice);
+    }
+  });
+
+  calculateLivePrice(); // initial load
+});
+
     document.addEventListener('DOMContentLoaded', function() {
         const addOptionGroupBtn = document.getElementById('add-option-group-btn');
         const customOptionsBuilder = document.getElementById('custom-options-builder');

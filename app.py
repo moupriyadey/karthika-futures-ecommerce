@@ -468,6 +468,7 @@ class Artwork(db.Model):
     category_id = Column(String(36), ForeignKey('category.id'), nullable=False)
     images = Column(Text, nullable=True) # Stored as JSON string of image paths
     is_featured = Column(Boolean, default=False, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
     custom_options = Column(Text, nullable=True) # Stored as JSON string { "Size": {"A4": 0, "A3": 500}, "Frame": {"None": 0, "Wooden": 1000} }
     shipping_charge = Column(Numeric(10, 2), default=Decimal('0.00'), nullable=False) # NEW: Per-artwork shipping charge
 
@@ -2024,116 +2025,101 @@ def reset_password():
 @app.route('/')
 def index():
     categories = Category.query.order_by(
-    Category.display_order.asc(),
-    Category.name.asc()
-).all()
+        Category.display_order.asc(),
+        Category.name.asc()
+    ).all()
 
-    # Fetch all artworks, you can filter this as needed
-    all_artworks = Artwork.query.order_by(Artwork.display_order).all()
-    print(f"Number of artworks fetched: {len(all_artworks)}")
-    
-    # This is the single line change: take the first 10 artworks
+    # ✅ ONLY ACTIVE ARTWORKS
+    all_artworks = Artwork.query.filter(
+        Artwork.is_active == True
+    ).order_by(Artwork.display_order.asc()).all()
+
     featured_artworks = all_artworks[:10]
-    
-    # Categorize artworks
+
     categorized_artworks = defaultdict(list)
     for art in all_artworks:
-        if art.category: # Ensure the artwork has a category
+        if art.category:
             categorized_artworks[art.category.name].append(art)
 
-    return render_template('index.html', 
-                           categories=categories, 
-                           categorized_artworks=categorized_artworks,
-                           all_artworks=all_artworks,
-                           featured_artworks=featured_artworks)
+    return render_template(
+        'index.html',
+        categories=categories,
+        categorized_artworks=categorized_artworks,
+        all_artworks=all_artworks,
+        featured_artworks=featured_artworks
+    )
 
 # NEW: Route for category pages
 from datetime import datetime, timedelta
-
 @app.route('/category/<category_slug>')
 def category_page(category_slug):
-    # The `slugify` filter is already available in your app, we use it to query
-    category = Category.query.filter(func.lower(Category.name) == func.lower(category_slug.replace('-', ' '))).first_or_404()
-    
-    artworks_in_category = Artwork.query.filter_by(category_id=category.id).order_by(Artwork.display_order).all()
-    
-    # Add this line to define the sale end time, e.g., 2 hours from now
+    category = Category.query.filter(
+        func.lower(Category.name) == func.lower(category_slug.replace('-', ' '))
+    ).first_or_404()
+
+    artworks_in_category = Artwork.query.filter(
+        Artwork.category_id == category.id,
+        Artwork.is_active == True
+    ).order_by(Artwork.display_order.asc()).all()
+
     sale_end_time = datetime.now() + timedelta(hours=6)
-    
-    return render_template('category_page.html', 
-                           category=category, 
-                           artworks=artworks_in_category,
-                           sale_end_time=sale_end_time)
 
+    return render_template(
+        'category_page.html',
+        category=category,
+        artworks=artworks_in_category,
+        sale_end_time=sale_end_time
+    )
 
-# MODIFIED: all_products route to pass categorized artworks
 @app.route('/all-products')
 def all_products():
-    search_query = request.args.get('search', '')
-    
-    # Fetch all categories
-    categories = Category.query.order_by(Category.display_order.asc(), Category.name.asc()).all()
+    # Get search query safely
+    search_query = request.args.get('search', '').strip()
 
-    
-    # Dictionary to hold artworks grouped by category
+    # Fetch all categories in proper order
+    categories = Category.query.order_by(
+        Category.display_order.asc(),
+        Category.name.asc()
+    ).all()
+
+    # Dictionary: { "Category Name": [artworks] }
     categorized_artworks = {}
 
     for category in categories:
-        if search_query:
-            # Filter artworks within each category by search query
-            artworks_in_category = Artwork.query.filter(
-                Artwork.category_id == category.id,
-                (Artwork.name.ilike(f'%{search_query}%')) |
-                (Artwork.description.ilike(f'%{search_query}%')) |
-                (Artwork.sku.ilike(f'%{search_query}%'))
-            ).all()
-        else:
-            # Get all artworks for the category
-            artworks_in_category = Artwork.query.filter_by(category_id=category.id).all()
-        
-        if artworks_in_category: # Only add category if it has artworks
-            categorized_artworks[category.name] = artworks_in_category
+        # BASE QUERY: ONLY ACTIVE ARTWORKS
+        query = Artwork.query.filter(
+            Artwork.category_id == category.id,
+            Artwork.is_active == True
+        )
 
-    return render_template('all_products.html', 
-                           categorized_artworks=categorized_artworks, 
-                           search_query=search_query)
+        # APPLY SEARCH FILTER (if any)
+        if search_query:
+            query = query.filter(
+                Artwork.name.ilike(f'%{search_query}%') |
+                Artwork.description.ilike(f'%{search_query}%') |
+                Artwork.sku.ilike(f'%{search_query}%')
+            )
+
+        # FINAL ORDERING
+        artworks = query.order_by(Artwork.display_order.asc()).all()
+
+        # Add category only if it has artworks
+        if artworks:
+            categorized_artworks[category.name] = artworks
+
+    return render_template(
+        'all_products.html',
+        categorized_artworks=categorized_artworks,
+        search_query=search_query
+    )
+
 
 @app.route('/product/<string:sku>')
 def product_detail(sku):
-    artwork = Artwork.query.filter_by(sku=sku).first_or_404()
-    
-    # Convert Artwork object to a JSON-serializable dictionary
-    artwork_data = {
-        'id': artwork.id,
-        'sku': artwork.sku,
-        'name': artwork.name,
-        'description': artwork.description,
-        'original_price': float(artwork.original_price), # Convert Decimal to float
-        'cgst_percentage': float(artwork.cgst_percentage),
-        'sgst_percentage': float(artwork.sgst_percentage),
-        'igst_percentage': float(artwork.igst_percentage),
-        'ugst_percentage': float(artwork.ugst_percentage),
-        'cess_percentage': float(artwork.cess_percentage), # NEW
-        'gst_type': artwork.gst_type,
-        'stock': artwork.stock,
-        'is_featured': artwork.is_featured,
-        'shipping_charge': float(artwork.shipping_charge), # Convert Decimal to float
-        'image_url': artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png',
-        'custom_options': artwork.get_custom_options_dict()
-    }
-    # Ensure Decimal values are converted to float or string for JSON serialization
-    # For custom_options, ensure any Decimal values within are also converted if present
-    # (though get_custom_options_dict should ideally handle this by storing floats/ints)
-    
-    return render_template('product_detail.html', artwork=artwork, artwork_data=artwork_data)
-
-# Make sure to import os and cloudinary/cloudinary.uploader at the top of app.py
-# (Your file snippet shows they are already imported)
-
-# Route 1: Handles the file upload to Cloudinary and saves the URL
-@app.route('/p/<string:slug>')
-def product_detail_slug(slug):
-    artwork = Artwork.query.filter_by(slug=slug).first_or_404()
+    artwork = Artwork.query.filter(
+        Artwork.sku == sku,
+        Artwork.is_active == True
+    ).first_or_404()
 
     artwork_data = {
         'id': artwork.id,
@@ -2150,7 +2136,7 @@ def product_detail_slug(slug):
         'stock': artwork.stock,
         'is_featured': artwork.is_featured,
         'shipping_charge': float(artwork.shipping_charge),
-        'image_url': artwork.get_images_list()[0] if artwork.get_images_list() else 'images/placeholder.png',
+        'image_url': artwork.get_images_list()[0] if artwork.get_images_list() else None,
         'custom_options': artwork.get_custom_options_dict()
     }
 
@@ -2159,6 +2145,40 @@ def product_detail_slug(slug):
         artwork=artwork,
         artwork_data=artwork_data
     )
+
+
+@app.route('/p/<string:slug>')
+def product_detail_slug(slug):
+    artwork = Artwork.query.filter(
+        Artwork.slug == slug,
+        Artwork.is_active == True
+    ).first_or_404()
+
+    artwork_data = {
+        'id': artwork.id,
+        'sku': artwork.sku,
+        'name': artwork.name,
+        'description': artwork.description,
+        'original_price': float(artwork.original_price),
+        'cgst_percentage': float(artwork.cgst_percentage),
+        'sgst_percentage': float(artwork.sgst_percentage),
+        'igst_percentage': float(artwork.igst_percentage),
+        'ugst_percentage': float(artwork.ugst_percentage),
+        'cess_percentage': float(artwork.cess_percentage),
+        'gst_type': artwork.gst_type,
+        'stock': artwork.stock,
+        'is_featured': artwork.is_featured,
+        'shipping_charge': float(artwork.shipping_charge),
+        'image_url': artwork.get_images_list()[0] if artwork.get_images_list() else None,
+        'custom_options': artwork.get_custom_options_dict()
+    }
+
+    return render_template(
+        'product_detail.html',
+        artwork=artwork,
+        artwork_data=artwork_data
+    )
+
 
 @app.route('/admin/bulk-upload', methods=['GET', 'POST'])
 @login_required
@@ -2987,14 +3007,24 @@ def admin_delete_category(category_id):
 @login_required
 @admin_required
 def admin_artworks():
-    artworks = Artwork.query.all()
+    artworks = Artwork.query.order_by(
+        Artwork.display_order,
+        Artwork.name
+    ).all()
 
-    # ADD THE DEBUGGING CODE HERE
-    for artwork in artworks:
-        print(f"Artwork SKU: {artwork.sku}, Images: {artwork.images}, List: {artwork.get_images_list()}")
-    
     return render_template('admin_artworks.html', artworks=artworks)
+
     
+@app.route('/admin/toggle-artwork/<string:artwork_id>', methods=['POST'])
+@login_required
+@admin_required
+def toggle_artwork_visibility(artwork_id):
+    artwork = Artwork.query.get_or_404(artwork_id)
+    artwork.is_active = not artwork.is_active
+    db.session.commit()
+    flash('Artwork visibility updated.', 'success')
+    return redirect(url_for('admin_artworks'))
+
 
 @app.route('/admin/add-artwork', methods=['GET', 'POST'])
 @login_required
@@ -3144,6 +3174,7 @@ def admin_edit_artwork(artwork_id):
         name = request.form.get('name')
         category_id = request.form.get('category_id')
         is_featured = 'is_featured' in request.form
+        is_active = 'is_active' in request.form
         original_price = request.form.get('original_price', '0.00')
         cgst_percentage = request.form.get('cgst_percentage', '0.00')
         sgst_percentage = request.form.get('sgst_percentage', '0.00')
@@ -3182,7 +3213,9 @@ def admin_edit_artwork(artwork_id):
 
         artwork.category_id = category_id
         artwork.is_featured = is_featured
+        artwork.is_active = is_active
         artwork.description = description
+
         artwork.gst_type = gst_type
         artwork.hsn_code = request.form.get('hsn_code')
         artwork.hsn_description = request.form.get('hsn_description')

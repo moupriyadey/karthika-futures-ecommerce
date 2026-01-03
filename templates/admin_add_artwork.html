@@ -4,6 +4,51 @@
 
 {% block content %}
 <div class="container main-content-area py-5">
+<!-- 🔥 FLOATING LIVE PRICE PREVIEW (ADMIN ADD) -->
+<div id="livePriceBox"
+     style="
+        position: fixed;
+        top: 120px;
+        right: 20px;
+        width: 270px;
+        background: #ffffff;
+        border: 2px solid #0d6efd;
+        border-radius: 14px;
+        padding: 15px;
+        z-index: 9999;
+        box-shadow: 0 10px 26px rgba(0,0,0,0.18);
+     ">
+
+  <h6 style="font-weight: 800; margin-bottom: 10px; color:#0d6efd;">
+    💰 Live Price Preview
+  </h6>
+
+  <div class="text-sm mb-1">
+    Base / Discount Price: ₹ <span id="lp-base">0.00</span>
+  </div>
+
+  <div class="text-sm mb-1">
+    GST + CESS: ₹ <span id="lp-gst">0.00</span>
+  </div>
+
+  <div class="text-sm mb-1">
+    Shipping: ₹ <span id="lp-shipping">0.00</span>
+  </div>
+
+  <div class="text-sm mb-1">
+    Options (Max): ₹ <span id="lp-options">0.00</span>
+  </div>
+
+  <hr>
+
+  <div style="font-size: 19px; font-weight: 900; color:#198754;">
+    Final Price: ₹ <span id="lp-final">0.00</span>
+  </div>
+
+  <div class="text-muted text-xs mt-2">
+    Updates in real-time while editing
+  </div>
+</div>
 
     <!-- Page Title -->
     <h2 class="text-center mb-4 text-primary fw-bold">
@@ -383,6 +428,86 @@ Offers: Free shipping above ₹999">{{ form_data.description if form_data.descri
 {% block extra_js %}
     {{ super() }}
     <script>
+     
+document.addEventListener("DOMContentLoaded", function () {
+
+  function val(id) {
+    const el = document.getElementById(id);
+    return el ? parseFloat(el.value || 0) : 0;
+  }
+
+  function calculateFloatingPrice() {
+
+    const originalPrice = val("original_price");
+    const discountPrice = val("discount_price");
+    const shipping = val("shipping_charge");
+
+    let basePrice = originalPrice;
+    if (discountPrice > 0 && discountPrice < originalPrice) {
+      basePrice = discountPrice;
+    }
+
+    const cgst = val("cgst_percentage");
+    const sgst = val("sgst_percentage");
+    const igst = val("igst_percentage");
+    const ugst = val("ugst_percentage");
+    const cess = val("cess_percentage");
+
+    const gstType = document.getElementById("gst_type")?.value;
+
+    let gstPercent = 0;
+    if (gstType === "intra_state") gstPercent = cgst + sgst;
+    else if (gstType === "inter_state") gstPercent = igst;
+    else if (gstType === "union_territory") gstPercent = cgst + ugst;
+
+    gstPercent += cess;
+
+    /* 🔹 Max option price per group */
+    let optionsPrice = 0;
+    document.querySelectorAll(".option-group").forEach(group => {
+      let max = 0;
+      group.querySelectorAll('input[type="number"]').forEach(inp => {
+        const v = parseFloat(inp.value) || 0;
+        if (v > max) max = v;
+      });
+      optionsPrice += max;
+    });
+
+    const subtotal = basePrice + optionsPrice;
+    const gstAmount = subtotal * (gstPercent / 100);
+    const finalPrice = subtotal + gstAmount + shipping;
+
+    document.getElementById("lp-base").innerText = basePrice.toFixed(2);
+    document.getElementById("lp-gst").innerText = gstAmount.toFixed(2);
+    document.getElementById("lp-shipping").innerText = shipping.toFixed(2);
+    document.getElementById("lp-options").innerText = optionsPrice.toFixed(2);
+    document.getElementById("lp-final").innerText = finalPrice.toFixed(2);
+  }
+
+  const watchIds = [
+    "original_price","discount_price","shipping_charge",
+    "cgst_percentage","sgst_percentage",
+    "igst_percentage","ugst_percentage","cess_percentage","gst_type"
+  ];
+
+  watchIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener("input", calculateFloatingPrice);
+      el.addEventListener("change", calculateFloatingPrice);
+    }
+  });
+
+  document.addEventListener("input", e => {
+    if (e.target.closest(".option-group")) {
+      calculateFloatingPrice();
+    }
+  });
+
+  calculateFloatingPrice(); // initial
+});
+
+
     document.addEventListener('DOMContentLoaded', function() {
         const customOptionsBuilder = document.getElementById('custom-options-builder');
         const addOptionGroupBtn = document.getElementById('add-option-group-btn');
