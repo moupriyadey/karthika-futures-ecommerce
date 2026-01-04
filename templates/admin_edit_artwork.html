@@ -209,34 +209,9 @@ Offers: Free shipping above ₹999">{{ form_data.description
                     <input type="checkbox" class="form-check-input" id="is_featured" name="is_featured" {% if (form_data.is_featured is defined and form_data.is_featured) or (artwork.is_featured and form_data.is_featured is not defined) %}checked{% endif %}>
                     <label class="form-check-label" for="is_featured">Mark as Featured Artwork</label>
                 </div>
-<div class="mb-3 form-check">
-    <input type="checkbox"
-           class="form-check-input"
-           id="is_active"
-           name="is_active"
-           {% if artwork.is_active %}checked{% endif %}>
-
-    <label class="form-check-label fw-bold" for="is_active">
-        Show this artwork on website
-    </label>
-
-    <div class="form-text text-muted">
-        Uncheck to hide this artwork from customers (admin can still edit it).
-    </div>
-</div>
 
 
-<div class="mb-3 form-check">
-    <input type="checkbox" class="form-check-input" id="is_active" name="is_active"
-        {% if artwork.is_active %}checked{% endif %}>
-    <label class="form-check-label" for="is_active">
-        Show this artwork on website
-    </label>
 
-    <div class="form-text text-muted">
-        Uncheck to hide this product from customers (admin can still see & edit it).
-    </div>
-</div>
 
                 <h5 class="mt-4 mb-3">Artwork Images</h5>
                 <div class="mb-3">

@@ -2029,10 +2029,9 @@ def index():
         Category.name.asc()
     ).all()
 
-    # ✅ ONLY ACTIVE ARTWORKS
     all_artworks = Artwork.query.filter(
-        Artwork.is_active == True
-    ).order_by(Artwork.display_order.asc()).all()
+        Artwork.is_active == True   # ✅ FIX
+    ).order_by(Artwork.display_order).all()
 
     featured_artworks = all_artworks[:10]
 
@@ -2049,6 +2048,7 @@ def index():
         featured_artworks=featured_artworks
     )
 
+
 # NEW: Route for category pages
 from datetime import datetime, timedelta
 @app.route('/category/<category_slug>')
@@ -2059,8 +2059,8 @@ def category_page(category_slug):
 
     artworks_in_category = Artwork.query.filter(
         Artwork.category_id == category.id,
-        Artwork.is_active == True
-    ).order_by(Artwork.display_order.asc()).all()
+        Artwork.is_active == True   # ✅ FIX
+    ).order_by(Artwork.display_order).all()
 
     sale_end_time = datetime.now() + timedelta(hours=6)
 
@@ -2073,26 +2073,21 @@ def category_page(category_slug):
 
 @app.route('/all-products')
 def all_products():
-    # Get search query safely
     search_query = request.args.get('search', '').strip()
 
-    # Fetch all categories in proper order
     categories = Category.query.order_by(
         Category.display_order.asc(),
         Category.name.asc()
     ).all()
 
-    # Dictionary: { "Category Name": [artworks] }
     categorized_artworks = {}
 
     for category in categories:
-        # BASE QUERY: ONLY ACTIVE ARTWORKS
         query = Artwork.query.filter(
             Artwork.category_id == category.id,
-            Artwork.is_active == True
+            Artwork.is_active == True   # ✅ HARD FILTER
         )
 
-        # APPLY SEARCH FILTER (if any)
         if search_query:
             query = query.filter(
                 Artwork.name.ilike(f'%{search_query}%') |
@@ -2100,10 +2095,8 @@ def all_products():
                 Artwork.sku.ilike(f'%{search_query}%')
             )
 
-        # FINAL ORDERING
-        artworks = query.order_by(Artwork.display_order.asc()).all()
+        artworks = query.order_by(Artwork.display_order).all()
 
-        # Add category only if it has artworks
         if artworks:
             categorized_artworks[category.name] = artworks
 
@@ -2112,40 +2105,14 @@ def all_products():
         categorized_artworks=categorized_artworks,
         search_query=search_query
     )
-
-
 @app.route('/product/<string:sku>')
 def product_detail(sku):
-    artwork = Artwork.query.filter(
-        Artwork.sku == sku,
-        Artwork.is_active == True
+    artwork = Artwork.query.filter_by(
+        sku=sku,
+        is_active=True   # ✅ BLOCK hidden products
     ).first_or_404()
 
-    artwork_data = {
-        'id': artwork.id,
-        'sku': artwork.sku,
-        'name': artwork.name,
-        'description': artwork.description,
-        'original_price': float(artwork.original_price),
-        'cgst_percentage': float(artwork.cgst_percentage),
-        'sgst_percentage': float(artwork.sgst_percentage),
-        'igst_percentage': float(artwork.igst_percentage),
-        'ugst_percentage': float(artwork.ugst_percentage),
-        'cess_percentage': float(artwork.cess_percentage),
-        'gst_type': artwork.gst_type,
-        'stock': artwork.stock,
-        'is_featured': artwork.is_featured,
-        'shipping_charge': float(artwork.shipping_charge),
-        'image_url': artwork.get_images_list()[0] if artwork.get_images_list() else None,
-        'custom_options': artwork.get_custom_options_dict()
-    }
-
-    return render_template(
-        'product_detail.html',
-        artwork=artwork,
-        artwork_data=artwork_data
-    )
-
+    return render_template('product_detail.html', artwork=artwork)
 
 @app.route('/p/<string:slug>')
 def product_detail_slug(slug):
@@ -3052,6 +3019,8 @@ def admin_add_artwork():
         stock = request.form.get('stock', '0')  # Default to '0' for stock
         category_id = request.form.get('category_id')
         is_featured = 'is_featured' in request.form  # Checkbox
+        
+
         custom_options_json = request.form.get('custom_options_json') # JSON string from JS
 
         shipping_charge = request.form.get('shipping_charge', '0.00')  # NEW: Default to '0.00'
@@ -3131,6 +3100,7 @@ def admin_add_artwork():
             stock=stock,
             category_id=category_id,
             is_featured=is_featured,
+            is_active=True,
             shipping_charge=shipping_charge                 # NEW: Assign shipping charge
         )
         from slugify import slugify
@@ -3174,7 +3144,7 @@ def admin_edit_artwork(artwork_id):
         name = request.form.get('name')
         category_id = request.form.get('category_id')
         is_featured = 'is_featured' in request.form
-        is_active = 'is_active' in request.form
+        
         original_price = request.form.get('original_price', '0.00')
         cgst_percentage = request.form.get('cgst_percentage', '0.00')
         sgst_percentage = request.form.get('sgst_percentage', '0.00')
@@ -3213,7 +3183,7 @@ def admin_edit_artwork(artwork_id):
 
         artwork.category_id = category_id
         artwork.is_featured = is_featured
-        artwork.is_active = is_active
+        
         artwork.description = description
 
         artwork.gst_type = gst_type
