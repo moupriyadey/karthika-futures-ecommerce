@@ -2109,10 +2109,34 @@ def all_products():
 def product_detail(sku):
     artwork = Artwork.query.filter_by(
         sku=sku,
-        is_active=True   # ✅ BLOCK hidden products
+        is_active=True
     ).first_or_404()
 
-    return render_template('product_detail.html', artwork=artwork)
+    artwork_data = {
+        'id': artwork.id,
+        'sku': artwork.sku,
+        'name': artwork.name,
+        'description': artwork.description,
+        'original_price': float(artwork.original_price),
+        'cgst_percentage': float(artwork.cgst_percentage),
+        'sgst_percentage': float(artwork.sgst_percentage),
+        'igst_percentage': float(artwork.igst_percentage),
+        'ugst_percentage': float(artwork.ugst_percentage),
+        'cess_percentage': float(artwork.cess_percentage),
+        'gst_type': artwork.gst_type,
+        'stock': artwork.stock,
+        'is_featured': artwork.is_featured,
+        'shipping_charge': float(artwork.shipping_charge),
+        'image_url': artwork.get_images_list()[0] if artwork.get_images_list() else None,
+        'custom_options': artwork.get_custom_options_dict()
+    }
+
+    return render_template(
+        'product_detail.html',
+        artwork=artwork,
+        artwork_data=artwork_data
+    )
+
 
 @app.route('/p/<string:slug>')
 def product_detail_slug(slug):
