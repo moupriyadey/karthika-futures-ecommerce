@@ -17,31 +17,55 @@
     </nav>
     {# End of admin_navbar.html content #}
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4>All Artworks</h4>
-        <a href="{{ url_for('admin_add_artwork') }}" class="btn btn-success"><i class="fas fa-plus me-2"></i>Add New Artwork</a>
-    
-    <a href="{{ url_for('admin_bulk_upload') }}"
-   class="btn btn-sm btn-outline-primary">
-   Bulk Upload (Excel)
-</a>
+    <div class="admin-toolbar mb-4">
+       
+       <div class="row mb-3">
+    <div class="col-md-6">
+        <input type="text"
+               id="adminSearchInput"
+               class="form-control"
+               placeholder="Search by SKU, Name, Category, Status, Featured…">
+    </div>
+    <div class="col-md-6 text-end text-muted small">
+        🔍 Instant search (client-side)
+    </div>
+</div>
+
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">All Artworks</h4>
+
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('admin_add_artwork') }}"
+           class="btn btn-success">
+            <i class="fas fa-plus me-2"></i>Add New Artwork
+        </a>
+
+        <button type="button"
+                id="exportCsvBtn"
+                class="btn btn-outline-success">
+            <i class="fas fa-file-excel me-2"></i>Export CSV
+        </button>
+    </div>
+</div>
 
     </div>
 
     {% if artworks %}
     <div class="table-responsive">
         <table class="table table-hover table-striped align-middle">
-           <thead class="table-dark">
+          <thead class="table-dark">
 <tr>
+    <th>#</th>
     <th>Image</th>
-    <th>SKU</th>
-    <th>Name</th>
-    <th>Category</th>
-    <th>Base Price</th>
+    <th class="sortable">SKU</th>
+    <th class="sortable">Name</th>
+    <th class="sortable">Category</th>
+    <th class="sortable">Base ₹</th>
     <th>GST %</th>
-    <th>Shipping</th>
-    <th>Stock</th>
-    <th>Status</th>
+    <th class="sortable">Shipping ₹</th>
+    <th class="sortable">Final ₹</th>
+    <th class="sortable">Stock</th>
+    <th class="sortable">Status</th>
     <th>Featured</th>
     <th>Actions</th>
 </tr>
@@ -51,6 +75,8 @@
                 {% for artwork in artworks %}
                
                <tr class="{% if not artwork.is_active %}table-secondary{% endif %}">
+
+<td>{{ loop.index }}</td>   <!-- ✅ ROW NUMBER -->
 
 <td>
 {% set images = artwork.get_images_list() %}
@@ -72,7 +98,7 @@
 
 <td>{{ artwork.category.name if artwork.category else 'N/A' }}</td>
 
-<td>₹ {{ artwork.original_price }}</td>
+<td class="price">₹ {{ artwork.original_price }}</td>
 
 <td>
 {% if artwork.gst_type == 'intra_state' %}
@@ -87,28 +113,43 @@
 <td>₹ {{ artwork.shipping_charge }}</td>
 
 <td>
+{% set gst_rate = (
+    artwork.cgst_percentage + artwork.sgst_percentage
+    if artwork.gst_type == 'intra_state'
+    else artwork.igst_percentage
+    if artwork.gst_type == 'inter_state'
+    else artwork.cgst_percentage + artwork.ugst_percentage
+) %}
+{% set gst_amount = ((artwork.original_price * gst_rate) / 100) | round(2) %}
+₹ {{ (artwork.original_price + gst_amount + artwork.shipping_charge) | round(2) }}
+</td>
+
+
+<td>
 <span class="badge {% if artwork.stock > 5 %}bg-success{% else %}bg-danger{% endif %}">
+
 {{ artwork.stock }}
 </span>
 </td>
 
 <td>
 {% if artwork.is_active %}
-<span class="badge bg-success">Visible</span>
+<span class="badge badge-visible">Visible</span>
 {% else %}
-<span class="badge bg-secondary">Hidden</span>
+<span class="badge badge-hidden">Hidden</span>
 {% endif %}
 </td>
 
 <td>
 {% if artwork.is_featured %}
-⭐
+<span class="featured-star">⭐</span>
 {% else %}
 —
 {% endif %}
+
 </td>
 
-<td class="d-flex gap-1">
+<td class="d-flex gap-1 justify-content-center action-btns">
 
 <a href="{{ url_for('admin_edit_artwork', artwork_id=artwork.id) }}"
    class="btn btn-sm btn-primary">
@@ -169,25 +210,203 @@
     </div>
 </div>
 {% endblock %}
-
 {% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const deleteArtworkModalElement = document.getElementById('deleteArtworkModal');
-        const deleteArtworkModal = new bootstrap.Modal(deleteArtworkModalElement);
-        const artworkNameToDelete = document.getElementById('artworkNameToDelete');
-        const deleteArtworkForm = document.getElementById('deleteArtworkForm');
+document.addEventListener("DOMContentLoaded", function () {
 
-        document.querySelectorAll('.delete-artwork-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const artworkId = this.dataset.artworkId;
-                const artworkName = this.dataset.artworkName;
-                
-                artworkNameToDelete.textContent = artworkName;
-                deleteArtworkForm.action = `/admin/artwork/delete/${artworkId}`;
-                deleteArtworkModal.show();
-            });
-        });
+  /* ===============================
+     🔍 CLIENT-SIDE SEARCH FILTER
+     =============================== */
+  const searchInput = document.getElementById("adminSearchInput");
+  const tableRows = document.querySelectorAll("tbody tr");
+
+  if (searchInput) {
+    searchInput.addEventListener("keyup", function () {
+      const query = this.value.toLowerCase();
+
+      tableRows.forEach(row => {
+        row.style.display = row.innerText.toLowerCase().includes(query)
+          ? ""
+          : "none";
+      });
     });
+  }
+
+  /* ===============================
+     🔃 COLUMN SORTING
+     =============================== */
+  document.querySelectorAll("th.sortable").forEach((header, colIndex) => {
+    let asc = true;
+
+    header.addEventListener("click", () => {
+      const tbody = header.closest("table").querySelector("tbody");
+      const rows = Array.from(tbody.querySelectorAll("tr"));
+
+      rows.sort((a, b) => {
+        let A = a.children[colIndex].innerText.trim();
+        let B = b.children[colIndex].innerText.trim();
+
+        let numA = parseFloat(A.replace(/[₹,%]/g, ""));
+        let numB = parseFloat(B.replace(/[₹,%]/g, ""));
+
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return asc ? numA - numB : numB - numA;
+        }
+
+        return asc ? A.localeCompare(B) : B.localeCompare(A);
+      });
+
+      asc = !asc;
+      rows.forEach(tr => tbody.appendChild(tr));
+    });
+  });
+
+  /* ===============================
+     📤 CSV EXPORT (FILTERED ONLY)
+     =============================== */
+  const exportBtn = document.getElementById("exportCsvBtn");
+
+  if (exportBtn) {
+    exportBtn.addEventListener("click", function () {
+
+      let csv = [];
+
+      /* ---- CSV HEADER ---- */
+      const headerCols = document.querySelectorAll("thead th:not(:last-child)");
+      let headerRow = [];
+      headerCols.forEach(th => {
+        headerRow.push(`"${th.innerText.replace(/,/g, ' ')}"`);
+      });
+      csv.push(headerRow.join(","));
+
+      /* ---- DATA ROWS (VISIBLE ONLY) ---- */
+      const rows = document.querySelectorAll("tbody tr");
+
+      rows.forEach(row => {
+        if (row.offsetParent === null) return;
+
+        const cols = row.querySelectorAll("td:not(:last-child)");
+        let rowData = [];
+
+        cols.forEach(col => {
+          let text = col.innerText
+            .replace("₹", "INR ")
+            .replace(/\n/g, " ")
+            .replace(/,/g, " ");
+          rowData.push(`"${text}"`);
+        });
+
+        csv.push(rowData.join(","));
+      });
+
+      if (csv.length <= 1) {
+        alert("No data to export");
+        return;
+      }
+
+      const blob = new Blob(
+        ["\ufeff" + csv.join("\n")], // UTF-8 BOM for Excel
+        { type: "text/csv;charset=utf-8;" }
+      );
+
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "artworks_filtered_export.csv";
+      link.style.display = "none";
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+  }
+
+  /* ===============================
+     🗑 DELETE MODAL HANDLER
+     =============================== */
+  const deleteArtworkModalElement = document.getElementById("deleteArtworkModal");
+
+  if (deleteArtworkModalElement) {
+    const deleteArtworkModal = new bootstrap.Modal(deleteArtworkModalElement);
+    const artworkNameToDelete = document.getElementById("artworkNameToDelete");
+    const deleteArtworkForm = document.getElementById("deleteArtworkForm");
+
+    document.querySelectorAll(".delete-artwork-btn").forEach(button => {
+      button.addEventListener("click", function () {
+        artworkNameToDelete.textContent = this.dataset.artworkName;
+        deleteArtworkForm.action =
+          `/admin/artwork/delete/${this.dataset.artworkId}`;
+        deleteArtworkModal.show();
+      });
+    });
+  }
+
+});
 </script>
 {% endblock %}
+<style>
+/* ---------- ADMIN TABLE POLISH ---------- */
+
+.table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #1f2933;
+  color: #fff;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.table td, .table th {
+  vertical-align: middle !important;
+  text-align: center;
+}
+
+.table td:nth-child(3),
+.table th:nth-child(3) {
+  text-align: left;
+}
+
+/* Price columns */
+.price {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+/* Status badges */
+.badge-visible {
+  background-color: #16a34a;
+}
+.badge-hidden {
+  background-color: #6b7280;
+}
+
+/* Featured star */
+.featured-star {
+  color: #facc15;
+  font-size: 1.1rem;
+}
+
+/* Action buttons compact */
+.action-btns .btn {
+  padding: 4px 8px;
+}
+
+/* Search box */
+#adminSearchInput {
+  max-width: 320px;
+  border-radius: 10px;
+}
+
+/* Toolbar spacing */
+.admin-toolbar {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+</style>
