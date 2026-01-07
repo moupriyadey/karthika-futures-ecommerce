@@ -763,25 +763,27 @@ def send_new_order_alert(order):
         <p><strong>Status:</strong> {order.status}</p>
         <p><strong>Placed On:</strong> {order.order_date.strftime('%d %b %Y, %I:%M %p')}</p>
         <hr>
-        <p>Login to admin panel to view details.</p>
+        <p>Please login to the admin panel to view full order details.</p>
         """
 
         admin_emails = [
-            "admin@karthikafutures.com",
-            "orders@karthikafutures.com",
-            "backup@karthikafutures.com"
+            "rupadeydiamond@gmail.com",
+            "subhashes@yahoo.com",
+            "subhashes@live.com"
         ]
 
-        send_brevo_email(
-            to_emails=admin_emails,
-            subject=subject,
-            html_content=html_content
-        )
+        for email in admin_emails:
+            send_email(
+                to_email=email,
+                subject=subject,
+                html_body=html_content
+            )
 
-        current_app.logger.info(f"Admin alert email sent for order {order.id}")
+        current_app.logger.info(f"✅ Admin alert email sent for order {order.id}")
 
     except Exception as e:
-        current_app.logger.error(f"❌ Failed to send admin order alert: {e}")
+        current_app.logger.error(f"❌ Failed to send admin order alert: {e}", exc_info=True)
+
 
 # Route to handle form submission
 @app.route('/contact', methods=['GET', 'POST'])
