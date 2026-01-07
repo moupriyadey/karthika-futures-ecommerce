@@ -754,35 +754,34 @@ from flask_mail import Message
 
 def send_new_order_alert(order):
     try:
-        subject = f"🔔 New Order Received – {order.id}"
+        subject = f"🛒 New Order Received – {order.id}"
 
-        body = f"""
-New order received!
+        html_content = f"""
+        <h3>New Order Received</h3>
+        <p><strong>Order ID:</strong> {order.id}</p>
+        <p><strong>Total Amount:</strong> ₹{order.total_amount}</p>
+        <p><strong>Status:</strong> {order.status}</p>
+        <p><strong>Placed On:</strong> {order.order_date.strftime('%d %b %Y, %I:%M %p')}</p>
+        <hr>
+        <p>Login to admin panel to view details.</p>
+        """
 
-Order ID: {order.id}
-Order Date: {order.order_date.strftime('%d %b %Y, %I:%M %p')}
-Customer: {order.customer_name}
-Email: {order.customer_email}
-Phone: {order.customer_phone}
+        admin_emails = [
+            "admin@karthikafutures.com",
+            "orders@karthikafutures.com",
+            "backup@karthikafutures.com"
+        ]
 
-Total Amount: ₹{order.total_amount}
-
-Admin Panel:
-https://nailmartindia.com/admin_dashboard
-
-Please login to verify payment and process the order.
-"""
-
-        msg = Message(
+        send_brevo_email(
+            to_emails=admin_emails,
             subject=subject,
-            recipients=ADMIN_ALERT_EMAILS,
-            body=body
+            html_content=html_content
         )
 
-        mail.send(msg)
+        current_app.logger.info(f"Admin alert email sent for order {order.id}")
 
     except Exception as e:
-        print("❌ Failed to send admin order alert:", e)
+        current_app.logger.error(f"❌ Failed to send admin order alert: {e}")
 
 # Route to handle form submission
 @app.route('/contact', methods=['GET', 'POST'])
