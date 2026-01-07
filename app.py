@@ -745,7 +745,7 @@ class ContactMessage(db.Model):
         return f"<ContactMessage '{self.name} - {self.subject}'>"
 
 ADMIN_ALERT_EMAILS = [
-    "asubhashes@yahoo.com",
+    "subhashes@yahoo.com",
     "subhashes@live.com",
     "rupadeydiamond@gmail.com"
 ]
@@ -756,20 +756,60 @@ def send_new_order_alert(order):
     try:
         subject = f"🛒 New Order Received – {order.id}"
 
+        admin_dashboard_url = "https://nailmartindia.com/admin-dashboard"
+        admin_order_url = f"https://nailmartindia.com/admin/order/{order.id}"
+
+
         html_content = f"""
-        <h3>New Order Received</h3>
+        <h3>🛒 New Order Received</h3>
+
         <p><strong>Order ID:</strong> {order.id}</p>
         <p><strong>Total Amount:</strong> ₹{order.total_amount}</p>
         <p><strong>Status:</strong> {order.status}</p>
         <p><strong>Placed On:</strong> {order.order_date.strftime('%d %b %Y, %I:%M %p')}</p>
+
         <hr>
-        <p>Please login to the admin panel to view full order details.</p>
+
+        <p>
+        👉 <a href="{admin_order_url}"
+        style="
+            display:inline-block;
+            padding:10px 16px;
+            background-color:#16a34a;
+            color:#ffffff;
+            text-decoration:none;
+            border-radius:6px;
+            font-weight:600;
+        ">
+        View This Order
+        </a>
+        </p>
+
+        <p style="margin-top:10px;">
+        <a href="{admin_dashboard_url}"
+        style="
+            display:inline-block;
+            padding:8px 14px;
+            background-color:#2563eb;
+            color:#ffffff;
+            text-decoration:none;
+            border-radius:6px;
+            font-weight:500;
+        ">
+        Open Admin Dashboard
+        </a>
+        </p>
+
+        <p style="margin-top:12px;color:#555;">
+        You will be asked to login if not already authenticated.
+        </p>
         """
 
+
         admin_emails = [
-            "rupadeydiamond@gmail.com",
             "subhashes@yahoo.com",
-            "subhashes@live.com"
+            "subhashes@live.com",
+            "rupadeydiamond@gmail.com"
         ]
 
         for email in admin_emails:
