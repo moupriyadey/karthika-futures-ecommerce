@@ -744,6 +744,46 @@ class ContactMessage(db.Model):
     def __repr__(self):
         return f"<ContactMessage '{self.name} - {self.subject}'>"
 
+ADMIN_ALERT_EMAILS = [
+    "asubhashes@yahoo.com",
+    "subhashes@live.com",
+    "rupadeydiamond@gmail.com"
+]
+
+from flask_mail import Message
+
+def send_new_order_alert(order):
+    try:
+        subject = f"🔔 New Order Received – {order.id}"
+
+        body = f"""
+New order received!
+
+Order ID: {order.id}
+Order Date: {order.order_date.strftime('%d %b %Y, %I:%M %p')}
+Customer: {order.customer_name}
+Email: {order.customer_email}
+Phone: {order.customer_phone}
+
+Total Amount: ₹{order.total_amount}
+
+Admin Panel:
+https://nailmartindia.com/admin_dashboard
+
+Please login to verify payment and process the order.
+"""
+
+        msg = Message(
+            subject=subject,
+            recipients=ADMIN_ALERT_EMAILS,
+            body=body
+        )
+
+        mail.send(msg)
+
+    except Exception as e:
+        print("❌ Failed to send admin order alert:", e)
+
 # Route to handle form submission
 @app.route('/contact', methods=['GET', 'POST'])
 def contact():
@@ -1536,6 +1576,10 @@ def purchase_form():
                         db.session.add(stock_log)
 
                 db.session.commit()
+
+                # 🔔 ALERT ADMIN ABOUT NEW ORDER (EMAIL)
+                send_new_order_alert(new_order)
+
 
                 # Clear carts
                 session.pop('cart', None)
@@ -5127,6 +5171,7 @@ def terms_and_conditions():
 def refund_policy():
     return render_template("refund_policy.html")
 
+# TODO (Future): Send payment confirmation alert to admin & customer
 
 
 # --- Run the App ---
