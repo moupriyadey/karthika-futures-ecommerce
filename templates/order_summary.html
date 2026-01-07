@@ -16,7 +16,8 @@
   <div class="max-w-4xl mx-auto">
     <div class="text-center mb-6">
       <h1 class="text-3xl font-extrabold text-gray-900">Order #{{ order.id }}</h1>
-      <p class="mt-2 text-sm text-gray-500">Placed on {{ order.order_date.strftime('%d %b %Y, %I:%M %p') }}</p>
+      <p class="mt-2 text-sm text-gray-500">Placed on {{ order.order_date | ist_time }}
+</p>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">

@@ -16,6 +16,9 @@ import json
 import csv
 import uuid
 import requests
+from datetime import timezone
+import pytz
+
 from datetime import datetime, timedelta # Ensure timedelta is imported here
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -220,6 +223,16 @@ csrf = CSRFProtect(app)
 
 # --- Helper Functions ---
 import re
+@app.template_filter('ist_time')
+def ist_time(value, fmt="%d %b %Y, %I:%M %p"):
+    if not value:
+        return ""
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+
+    ist = pytz.timezone("Asia/Kolkata")
+    return value.astimezone(ist).strftime(fmt)
+
 
 def extract_cloudinary_version(url):
     # Regex to find the version number (v followed by digits)
