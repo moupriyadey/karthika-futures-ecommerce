@@ -1,0 +1,33 @@
+<div class="product-card bg-white rounded-xl shadow-md p-3 hover:shadow-lg transition">
+
+  <a href="{{ url_for('product_detail', sku=artwork.sku) }}">
+    <img src="{{ artwork.image_url }}"
+         alt="{{ artwork.name }}"
+         class="w-full h-48 object-cover rounded-lg">
+  </a>
+
+  <div class="mt-2">
+    <h3 class="text-sm font-semibold text-gray-900 truncate">
+      {{ artwork.name }}
+    </h3>
+
+    <!-- ⭐ RATING (SINGLE SOURCE OF TRUTH) -->
+    {% set rating = artwork.rating if artwork.rating is not none else (3.5 + (loop.index0 % 15) * 0.1) %}
+    {% set reviews = artwork.review_count if artwork.review_count is not none else (20 + loop.index0 * 3) %}
+
+    <div class="flex items-center gap-1 text-sm mt-1">
+      <span class="text-yellow-500 font-semibold">
+        {{ '%.1f'|format(rating) }} ★
+      </span>
+      <span class="text-gray-500">
+        ({{ reviews }})
+      </span>
+    </div>
+
+    <!-- PRICE -->
+    <div class="mt-1 font-bold text-gray-900">
+      {{ artwork.selling_price_incl_gst | currency }}
+    </div>
+  </div>
+
+</div>

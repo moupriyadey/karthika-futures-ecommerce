@@ -53,14 +53,7 @@
                             <span class="text-base font-bold text-primary">{{ artwork.selling_price_incl_gst | currency }}</span>
                         </div>
 
-                        <div class="flex items-center justify-center mb-1">
-                            <div class="text-yellow-500 text-xs">
-                                <i class="fas fa-star"></i><i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i><i class="fas fa-star"></i>
-                                <i class="fas fa-star-half-alt"></i>
-                            </div>
-                            <span class="text-xs text-gray-600 ml-1">(4.5/5)</span>
-                        </div>
+                        
                         
                         {% if artwork.shipping_charge == 0 %}
                         <p class="text-green-600 font-semibold text-xs mb-1">

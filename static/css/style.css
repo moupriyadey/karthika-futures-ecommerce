@@ -921,3 +921,10 @@ body .site-main:has(#categoryBar) {
     line-height: 1.45;
   }
 }
+
+.product-rating, /* product rating star ⭐ hides temporarily */
+.rating,
+.stars,
+.review-stars {
+  display: none !important;
+}
