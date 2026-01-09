@@ -518,14 +518,13 @@ class Artwork(db.Model):
             return json.loads(self.custom_options) if self.custom_options else {}
         except json.JSONDecodeError:
             return {}
+    @property
+    def final_price_incl_gst_and_shipping(self):
+        return self.selling_price_incl_gst + self.shipping_charge
 
     @property
     def selling_price(self):
-        """Returns the discounted price if it's set and lower than the original price, otherwise returns the original price."""
-        # Use 'original_price' for comparison, as that is your column name
-        if self.discount_price is not None and self.discount_price < self.original_price:
-            return self.discount_price
-        return self.original_price 
+        return self.original_price
 
     @property
     def selling_price_incl_gst(self):

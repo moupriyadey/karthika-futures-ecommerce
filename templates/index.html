@@ -235,29 +235,29 @@ Browse all press on nails in India
                 <h3 class="text-sm font-semibold text-gray-900 mb-1 truncate">
                   {{ product.name }}
                 </h3>
+<div class="price-box text-center mb-1">
 
-                <div class="price-box text-center mb-1">
-                      {% set final_price = product.selling_price_incl_gst + product.shipping_charge %}
-                      {% set fake_mrp = final_price * 125 // 100 %}
+  {# ✅ FINAL PRICE – BACKEND SOURCE #}
+  {% set final_price = product.final_price_incl_gst_and_shipping %}
+  {% set fake_mrp = final_price * 125 // 100 %}
 
-                      <span class="text-base font-bold text-primary final-price">
-                        {{ final_price | currency }}
-                      </span>
+  <span class="text-base font-bold text-primary final-price">
+    {{ final_price | currency }}
+  </span>
 
-                      {% if final_price >= 199 %}
-                        <div class="text-xs text-gray-500">
-                          <span class="line-through mr-1">
-                            {{ fake_mrp | currency }}
-                          </span>
-                          <span class="text-green-600 font-semibold">
-                            You save {{ (fake_mrp - final_price) | currency }}
-                          </span>
-                        </div>
-                      {% endif %}
+  {% if final_price >= 199 %}
+    <div class="text-xs text-gray-500">
+      <span class="line-through mr-1">
+        {{ fake_mrp | currency }}
+      </span>
+      <span class="text-green-600 font-semibold">
+        You save {{ (fake_mrp - final_price) | currency }}
+      </span>
+    </div>
+  {% endif %}
 
   <p class="text-xs text-gray-500">(Final Price · Incl. GST & Shipping)</p>
 </div>
-
 
 
                 <!-- ⭐ STARS (UNCHANGED) -->

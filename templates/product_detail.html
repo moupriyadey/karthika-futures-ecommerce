@@ -109,17 +109,21 @@ loading="lazy"
     <span class="text-4xl font-extrabold text-red-600 me-3" id="displayPrice">
         ₹{{ "{:,.2f}".format(artwork.discount_price | default(0) ) }}
     </span>
+
     <span class="text-xl font-semibold text-gray-500 line-through">
         ₹{{ "{:,.2f}".format(artwork.price | default(0) ) }}
     </span>
+
     <div class="mt-2 text-lg text-green-600 font-medium">
         You save: ₹{{ "{:,.2f}".format( (artwork.price | default(0)) - (artwork.discount_price | default(0)) ) }}
     </div>
     {% else %}
 <span class="text-4xl font-extrabold text-gray-900" id="displayPrice">
-    {{ (artwork.selling_price_incl_gst + artwork.shipping_charge) | currency }}
+    {{ artwork.selling_price_incl_gst | currency }}
 </span>
-<p class="text-sm text-gray-500 mt-1">(Final Price · Incl. GST & Shipping)</p>
+<p class="text-sm text-gray-500 mt-1">(Price incl. GST · Shipping calculated at checkout)</p>
+
+
 {% endif %}
 
 </div>

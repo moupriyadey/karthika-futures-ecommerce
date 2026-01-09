@@ -100,7 +100,8 @@
                                     {# Removed description to clean up the card height #}
                                     
                                     <div class="price-box text-center">
-                                        {% set final_price = artwork.selling_price_incl_gst + artwork.shipping_charge %}
+                                        {% set final_price = artwork.selling_price_incl_gst %}
+
                                         {% set fake_mrp = final_price * 125 // 100 %}
 
 
