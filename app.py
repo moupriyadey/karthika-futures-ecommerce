@@ -484,6 +484,7 @@ class Artwork(db.Model):
     is_active = Column(Boolean, default=True, nullable=False)
     custom_options = Column(Text, nullable=True) # Stored as JSON string { "Size": {"A4": 0, "A3": 500}, "Frame": {"None": 0, "Wooden": 1000} }
     shipping_charge = Column(Numeric(10, 2), default=Decimal('0.00'), nullable=False) # NEW: Per-artwork shipping charge
+    meta_description = Column(Text, nullable=True)
 
     def get_images_list(self):
         try:
@@ -3142,6 +3143,7 @@ def admin_add_artwork():
         is_featured = 'is_featured' in request.form  # Checkbox
         
 
+        
         custom_options_json = request.form.get('custom_options_json') # JSON string from JS
 
         shipping_charge = request.form.get('shipping_charge', '0.00')  # NEW: Default to '0.00'
@@ -3209,6 +3211,7 @@ def admin_add_artwork():
             sku=sku,
             name=name,
             description=description,
+            meta_description=request.form.get("meta_description"),
             original_price=original_price,
             hsn_code=request.form.get('hsn_code'),          # NEW
             hsn_description=request.form.get('hsn_description'),  # NEW
@@ -3306,6 +3309,8 @@ def admin_edit_artwork(artwork_id):
         artwork.is_featured = is_featured
         
         artwork.description = description
+        artwork.meta_description = request.form.get("meta_description")
+
 
         artwork.gst_type = gst_type
         artwork.hsn_code = request.form.get('hsn_code')

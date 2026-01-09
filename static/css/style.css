@@ -892,3 +892,32 @@ body .site-main:has(#categoryBar) {
     120px
   );
 }
+/* 🔒 MOBILE BADGE VISIBILITY FIX (FINAL) */
+@media (max-width: 640px) {
+  .badge {
+    background: rgba(0, 0, 0, 0.85) !important;
+    color: #ffffff !important;
+    font-size: 11px !important;
+    padding: 6px 10px !important;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.45) !important;
+  }
+}
+@media (max-width: 640px) {
+  .badge {
+    background-color: rgba(0,0,0,0.88) !important;
+  }
+}
+/* 📱 MOBILE HERO TYPOGRAPHY FIX */
+@media (max-width: 640px) {
+  .hero-slide h1,
+  .hero-slide h2 {
+    font-size: 1.6rem !important;   /* was too large */
+    line-height: 1.25;
+    margin-bottom: 0.5rem;
+  }
+
+  .hero-slide p {
+    font-size: 0.95rem;
+    line-height: 1.45;
+  }
+}

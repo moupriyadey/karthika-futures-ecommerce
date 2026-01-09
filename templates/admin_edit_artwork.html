@@ -87,6 +87,20 @@ Offers: Free shipping above ₹999">{{ form_data.description
     </div>
 </div>
 
+<div class="form-group mt-3">
+  <label>
+    Meta Description (SEO)
+    <small class="text-muted">(Used in Google search results)</small>
+  </label>
+  <textarea
+    name="meta_description"
+    class="form-control"
+    maxlength="160"
+    placeholder="Example: Buy Minimal Line Nail Stickers online in India. Premium reusable press-on nails with free delivery.">
+    {{ artwork.meta_description or '' }}
+  </textarea>
+</div>
+
                 
 
                 <div class="row">

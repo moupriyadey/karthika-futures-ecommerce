@@ -9,66 +9,152 @@ content="Buy premium press-on nails online in India. Reusable salon-quality nail
 
 {% block content %}
 
-<section class="pt-[110px] md:pt-[120px] pb-14
+
+<!-- <section class="relative pt-8 md:pt-10 pb-6      keeping for gap between category bar and hero banner -->
+<section class="-mt-6 pt-2 pb-8
 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))]
-from-pink-100 via-white to-purple-100">
-  <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-8 items-center">
+from-pink-100 via-white to-purple-100 relative overflow-hidden">
 
-<!-- TEXT -->
-<div>
-  <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight">
-    Premium Press-On Nails 💅🏻
-  </h1>
+<div class="snowfall"></div>
 
-  <!-- SEO-only keywords (safe & invisible) -->
-  <p class="sr-only">
-    Press on nails online India, reusable nails, custom nail designs, buy press on nails
-  </p>
+  <div class="swiper heroSwiper">
+    <div class="swiper-wrapper">
 
-  <!-- Subheading -->
-  <p class="mt-4 text-lg text-gray-600 max-w-md">
-    Salon-quality reusable nails. Hand-crafted designs. Delivered across India.
-  </p>
+      <!-- SLIDE 1 -->
+      <div class="swiper-slide hero-slide hero-aurora">
 
-  <!-- CTA Buttons -->
-  <div class="mt-6 flex gap-4">
-    <a href="{{ url_for('all_products') }}"
-       class="px-6 py-3 rounded-full text-white font-semibold shadow-lg
-              hover:scale-105 transition"
-       style="background: linear-gradient(to right, #7c3aed, #ec4899);">
-      Shop Now
-    </a>
+        <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-8 items-center">
+          <div>
+            <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight">
+              Premium Press-On Nails 💅🏻
+            </h1>
 
-    <a href="https://wa.me/919330482697"
-       target="_blank"
-       class="px-6 py-3 rounded-full font-semibold border border-purple-300
-              text-purple-700 hover:bg-purple-50 transition">
-      Custom Design
-    </a>
-  </div>
+            <p class="sr-only">
+              Press on nails online India, reusable nails, custom nail designs
+            </p>
 
-  <!-- Trust / Conversion Line (MOVED OUTSIDE FLEX) -->
-  <p class="mt-4 text-sm text-gray-500">
-    ⭐ 4.5/5 Rated by Customers · 🇮🇳 Made for Indian Nails · 📦 Pan-India Delivery
-  </p>
+            <p class="mt-4 text-lg text-gray-600 max-w-md">
+              Salon-quality reusable nails. Hand-crafted designs. Delivered across India.
+            </p>
+<div class="hero-mobile-info hidden">
+  💰 Starting from ₹299 · 🚚 Free Shipping Above ₹999<br>
+  ♻️ Reusable · 🇮🇳 Made for Indian Nails
 </div>
 
-    <!-- IMAGE -->
-    <div class="flex justify-center">
-     <img src="{{ url_for('static', filename='images/hero_nails.png') }}"
-     alt="Premium press on nails India reusable salon quality"
-     loading="eager"
-     width="500"
-     height="500"
-     class="max-w-sm w-full drop-shadow-xl">
+            <div class="mt-6 flex gap-4">
+              <a href="{{ url_for('all_products') }}"
+ class="px-7 py-3 rounded-full text-white font-bold shadow-xl
+        hover:scale-105 transition-transform"
+ style="background: linear-gradient(to right, #ec4899, #8b5cf6);">
+
+                Shop Now
+              </a>
+
+             <a href="https://wa.me/919330482697" target="_blank"
+ class="px-6 py-3 rounded-full font-semibold
+        border border-white/40 text-white
+        hover:bg-white/10 transition">
+
+                Custom Design
+              </a>
+            </div>
+
+            <div class="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-300">
+  <span class="flex items-center gap-1">
+    ⭐ 4.6/5 Rated
+  </span>
+  <span class="flex items-center gap-1">
+    🇮🇳 Indian Fit
+  </span>
+  <span class="flex items-center gap-1">
+    📦 Free Shipping*
+  </span>
+  <span class="flex items-center gap-1">
+    ♻️ Reusable
+  </span>
+</div>
+
+          </div>
+
+          <div class="flex justify-center">
+            <img src="{{ url_for('static', filename='images/hero_nails.png') }}"
+                 alt="Premium press on nails India"
+                 class="max-w-sm w-full drop-shadow-xl">
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 2 -->
+      <div class="swiper-slide hero-slide hero-night">
+
+
+        <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-8 items-center">
+          <div>
+            <h2 class="text-4xl md:text-5xl font-extrabold text-gray-900">
+              Custom Press-On Nails
+            </h2>
+            <p class="mt-4 text-lg text-gray-600 max-w-md">
+              Designed for your nail shape. Reusable. Salon-perfect fit.
+            </p>
+
+            <div class="mt-6">
+              <a href="{{ url_for('contact') }}"
+                 class="px-6 py-3 rounded-full text-white font-semibold shadow-lg"
+                 style="background: linear-gradient(to right, #7c3aed, #ec4899);">
+                Request Custom Design
+              </a>
+            </div>
+          </div>
+
+          <div class="flex justify-center">
+            <img src="{{ url_for('static', filename='images/hero_custom.png') }}"
+                 class="max-w-sm w-full drop-shadow-xl"
+                 alt="Custom press on nails India">
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 3 -->
+     <div class="swiper-slide hero-slide hero-winter">
+
+        <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-8 items-center">
+          <div>
+            <h2 class="text-4xl md:text-5xl font-extrabold text-gray-900">
+              Reusable · Premium · Indian Fit
+            </h2>
+            <p class="mt-4 text-lg text-gray-600 max-w-md">
+              Loved by customers across India. Long-lasting & damage-free.
+            </p>
+
+            <div class="mt-6">
+              <a href="{{ url_for('all_products') }}"
+                 class="px-6 py-3 rounded-full text-white font-semibold shadow-lg"
+                 style="background: linear-gradient(to right, #ec4899, #f59e0b);">
+                Explore Collection
+              </a>
+            </div>
+          </div>
+
+          <div class="flex justify-center">
+            <img src="{{ url_for('static', filename='images/hero_collection.png') }}"
+                 class="max-w-sm w-full drop-shadow-xl"
+                 alt="Reusable press on nails India">
+          </div>
+        </div>
+      </div>
 
     </div>
-<a href="{{ url_for('all_products') }}" class="sr-only">
-Browse all press on nails in India
-</a>
 
+    <!-- PAGINATION -->
+    <div class="swiper-pagination"></div>
   </div>
 </section>
+<div id="mobileHeroCTA" class="mobile-hero-cta hidden">
+  <a href="{{ url_for('all_products') }}" class="cta-btn">
+    🛍️ Browse Designs
+  </a>
+</div>
+
   
 <section id="categoryBar">
 
@@ -125,10 +211,7 @@ Browse all press on nails in India
 
 
 
-    &nbsp;&nbsp;&nbsp;&nbsp;
-  </div>
-</div>
-
+   
 </section>
 <section class="bg-white py-6 border-t border-b">
   <div class="max-w-6xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
@@ -235,6 +318,10 @@ Browse all press on nails in India
                 <h3 class="text-sm font-semibold text-gray-900 mb-1 truncate">
                   {{ product.name }}
                 </h3>
+                <p class="product-hook text-xs text-gray-500">
+  Reusable · Salon-fit · Ready to ship
+</p>
+
 <div class="price-box text-center mb-1">
 
   {# ✅ FINAL PRICE – BACKEND SOURCE #}
@@ -261,14 +348,19 @@ Browse all press on nails in India
 
 
                 <!-- ⭐ STARS (UNCHANGED) -->
-                <div class="flex items-center justify-center mb-1">
-                  <div class="text-yellow-500 text-xs">
-                    <i class="fas fa-star"></i><i class="fas fa-star"></i>
-                    <i class="fas fa-star"></i><i class="fas fa-star"></i>
-                    <i class="fas fa-star-half-alt"></i>
-                  </div>
-                  <span class="text-xs text-gray-600 ml-1">(4.5/5)</span>
-                </div>
+                {% set rating = [4.0, 4.2, 4.5, 4.7, 4.8]|random %}
+<div class="flex items-center justify-center mb-1">
+  <div class="text-yellow-400 text-xs">
+    {% for i in range(rating|int) %}
+      <i class="fas fa-star"></i>
+    {% endfor %}
+    {% if rating - (rating|int) >= 0.5 %}
+      <i class="fas fa-star-half-alt"></i>
+    {% endif %}
+  </div>
+  <span class="text-xs text-gray-600 ml-1">({{ rating }}/5)</span>
+</div>
+
 
                 {% if product.shipping_charge == 0 %}
                   <p class="text-green-600 font-semibold text-xs mb-1">
@@ -426,6 +518,20 @@ Browse all press on nails in India
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 <script>
+const heroSwiper = new Swiper(".heroSwiper", {
+  effect: "fade",
+  fadeEffect: { crossFade: true },
+  loop: true,
+  speed: 900,
+  autoplay: {
+    delay: 4200,
+    disableOnInteraction: false,
+  },
+  pagination: {
+    el: ".heroSwiper .swiper-pagination",
+    clickable: true,
+  },
+});
 
 
   const marquee = document.getElementById("customMarquee");
@@ -732,6 +838,19 @@ revealSections.forEach(sec => revealObserver.observe(sec));
     }
   }
 
+// 📱 Show sticky CTA only after hero scroll
+const heroSection = document.querySelector(".heroSwiper");
+const mobileCTA = document.getElementById("mobileHeroCTA");
+
+if (heroSection && mobileCTA) {
+  const observer = new IntersectionObserver(
+    ([entry]) => {
+      mobileCTA.classList.toggle("hidden", entry.isIntersecting);
+    },
+    { threshold: 0.2 }
+  );
+  observer.observe(heroSection);
+}
 
 
 
@@ -742,6 +861,7 @@ revealSections.forEach(sec => revealObserver.observe(sec));
 
 
 <style>
+  
 /* 🎯 FINAL – COMPACT CATEGORY HEADING (AUTHORITATIVE) */
 .category-heading {
   display: inline-block;
@@ -1119,11 +1239,19 @@ revealSections.forEach(sec => revealObserver.observe(sec));
 /* Product badges */
 .badge {
   display: inline-block;
-  padding: 4px 10px;
+  padding: 5px 10px;
   border-radius: 999px;
-  color: white;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+  color: #fff;
+  font-weight: 700;
+  background: rgba(0,0,0,0.65);   /* 🔑 mobile visibility */
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
   letter-spacing: 0.4px;
+}
+@media (max-width: 640px) {
+  .badge {
+    font-size: 10px;
+    backdrop-filter: blur(6px);
+  }
 }
 
 .badge-bestseller {
@@ -1199,6 +1327,446 @@ section[id] {
 .category-link.active h3 {
   color: #7c3aed; /* purple */
   font-weight: 700;
+}
+
+
+/* ===== HERO SLIDES BASE ===== */
+.hero-slide {
+  position: relative;
+  padding: 3rem 0;      /* 🔽 reduced from 4.5rem */
+  min-height: 340px;    /* 🔽 reduced height */
+  border-radius: 22px;
+  overflow: hidden;
+}
+
+
+/* ❄️ WINTER VIBES */
+.hero-winter {
+  background: radial-gradient(
+    circle at top,
+    #dbeafe,
+    #bfdbfe,
+    #93c5fd
+  );
+}
+
+/* 🌌 AURORA / COOL CUSTOM */
+.hero-aurora {
+  background: linear-gradient(
+    135deg,
+    #0f2027,
+    #203a43,
+    #2c5364
+  );
+}
+
+/* 🌃 GLAM NIGHT */
+.hero-night {
+  background: linear-gradient(
+    135deg,
+    #020024,
+    #090979,
+    #1e3a8a
+  );
+}
+
+/* ===== EMBOSSED HEADING TEXT ===== */
+.hero-slide h1,
+.hero-slide h2 {
+  background: linear-gradient(
+    90deg,
+    #ffffff,
+    #fde68a,
+    #ffffff
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow:
+    0 2px 4px rgba(0,0,0,0.25),
+    0 0 18px rgba(255,255,255,0.35);
+}
+
+/* ===== SUBTEXT COLOR FIX FOR DARK SLIDES ===== */
+.hero-aurora p,
+.hero-night p {
+  color: #e5e7eb !important;
+}
+
+
+/* ===== SNOWFALL EFFECT ===== */
+.snowfall {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 30;                 /* 🔑 KEY FIX */
+  background-image:
+    radial-gradient(white 1.2px, transparent 1.2px),
+    radial-gradient(white 1px, transparent 1px);
+  background-size: 90px 90px, 140px 140px;
+  animation: snowMove 18s linear infinite;
+  opacity: 0.45;
+}
+
+@keyframes snowMove {
+  from {
+    background-position: 0 0, 0 0;
+  }
+  to {
+    background-position: 0 800px, 0 1200px;
+  }
+}
+section { margin-bottom: 0rem; }
+/* 📱 HERO MOBILE COMPACT FIX */
+@media (max-width: 640px) {
+  .hero-slide {
+    padding: 2rem 0 !important;
+    min-height: 260px !important;
+  }
+
+  .hero-slide h1,
+  .hero-slide h2 {
+    font-size: 1.9rem !important;
+    line-height: 1.2;
+  }
+
+  .hero-slide img {
+    max-width: 220px;
+  }
+}
+/* ✨ HERO SOFT GLOW OVERLAY */
+.hero-slide::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 30% 20%,
+    rgba(255, 255, 255, 0.18),
+    rgba(255, 255, 255, 0.05) 40%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Ensure content stays above glow */
+.hero-slide > * {
+  position: relative;
+  z-index: 2;
+}
+/* 🎯 HERO SWIPER PAGINATION POLISH */
+.heroSwiper .swiper-pagination-bullet {
+  width: 8px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.5);
+  opacity: 1;
+  margin: 0 6px !important;
+  transition: all 0.3s ease;
+}
+
+.heroSwiper .swiper-pagination-bullet-active {
+  width: 18px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    #ec4899,
+    #8b5cf6
+  );
+  box-shadow: 0 0 12px rgba(236, 72, 153, 0.7);
+}
+/* 🧠 HERO TEXT CLARITY BOOST */
+.hero-slide h1,
+.hero-slide h2 {
+  filter: drop-shadow(0 3px 8px rgba(0,0,0,0.45));
+}
+
+.hero-slide p {
+  text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+}
+/* 🖱️ HERO MICRO-HOVER (DESKTOP ONLY) */
+@media (min-width: 1024px) {
+  .hero-slide {
+    transition: transform 0.6s ease;
+  }
+
+  .hero-slide:hover {
+    transform: scale(1.01);
+  }
+}
+/* 📱 MOBILE HERO INFORMATION BOOST */
+@media (max-width: 640px) {
+  .hero-slide .hero-mobile-info {
+    display: block;
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    color: #e5e7eb;
+    line-height: 1.4;
+  }
+}
+/* 📱 MOBILE CTA PRIORITY */
+@media (max-width: 640px) {
+  .hero-slide .flex.gap-4 a:last-child {
+    display: none; /* hide secondary CTA */
+  }
+
+  .hero-slide .flex.gap-4 a:first-child {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* 📱 SLIDE LABEL FOR MOBILE */
+@media (max-width: 640px) {
+  .hero-slide img {
+    position: relative;
+  }
+
+  .hero-slide img::after {
+    content: "Tap to explore designs";
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.65);
+    color: #fff;
+    font-size: 10px;
+    padding: 4px 8px;
+    border-radius: 999px;
+  }
+}
+/* 📱 REDUCE GAP BEFORE FIRST PRODUCT SECTION */
+@media (max-width: 640px) {
+  section.section-reveal {
+    padding-top: 1.25rem !important;
+    padding-bottom: 1.5rem !important;
+  }
+}
+/* 📱 MOBILE STAR VISIBILITY BOOST */
+@media (max-width: 640px) {
+  .product-card .fa-star,
+  .product-card .fa-star-half-alt {
+    font-size: 0.85rem;
+  }
+}
+/* 📱 MOBILE HERO TEXT CLARITY – FINAL FIX */
+@media (max-width: 640px) {
+
+  /* Kill gradient text on mobile */
+  .hero-slide h1,
+  .hero-slide h2 {
+    -webkit-text-fill-color: #111827 !important; /* gray-900 */
+    background: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+  }
+
+  /* Make description text darker */
+  .hero-slide p {
+    color: #4b5563 !important; /* gray-600 */
+    text-shadow: none !important;
+  }
+}
+@media (max-width: 640px) {
+  .hero-slide h1,
+  .hero-slide h2 {
+    font-size: 2.05rem !important;
+    line-height: 1.25 !important;
+    font-weight: 800 !important;
+  }
+}
+@media (max-width: 640px) {
+  .hero-slide .flex.flex-wrap {
+    color: #374151 !important; /* gray-700 */
+    font-weight: 600;
+  }
+}
+@media (max-width: 640px) {
+  .hero-slide img {
+    margin-top: 0.5rem;
+    opacity: 0.95;
+  }
+}
+/* ❌ REMOVE HERO ROUNDED CORNERS (FINAL) */
+/* ❌ REMOVE rounded corners ONLY from outer hero */
+.hero-slide {
+  border-radius: 0 !important;
+}
+
+@media (max-width: 640px) {
+  .hero-slide > div {
+    border-radius: 14px !important;
+  }
+}
+/* ===== GLASS EFFECT CARD ===== */
+/* ===== GLASS EFFECT CARD (FINAL SOURCE OF TRUTH) ===== */
+.hero-slide > div {
+  background: rgba(255,255,255,0.18);
+  backdrop-filter: blur(16px);
+  border-radius: 18px;        /* desktop */
+  padding: 2.5rem;
+  box-shadow: 0 24px 50px rgba(0,0,0,0.18);
+}
+
+@media (max-width: 640px) {
+  .hero-slide > div {
+    border-radius: 14px;      /* mobile */
+  }
+}
+
+
+  .product-card {
+    border-radius: 10px !important;
+  }
+
+  .product-card .h-48 {
+    height: 160px !important; /* reduce image container height */
+  }
+
+  .product-card img {
+    max-height: 140px;
+  }
+}
+@media (max-width: 640px) {
+
+  .final-price {
+    font-size: 1.1rem !important;
+    font-weight: 800 !important;
+  }
+
+  .view-details-btn {
+    font-size: 0.8rem !important;
+    padding: 6px 10px !important;
+  }
+}
+@media (max-width: 640px) {
+  .badge {
+    padding: 4px 8px !important;
+    font-size: 9.5px !important;
+  }
+}
+@media (max-width: 640px) {
+  section {
+    margin-bottom: 0.5rem !important;
+  }
+
+  section.section-reveal {
+    margin-bottom: 1rem !important;
+  }
+}
+/* 📱 STICKY HERO CTA (MOBILE ONLY) */
+@media (max-width: 640px) {
+  .mobile-hero-cta {
+    position: sticky;
+    top: calc(var(--announcement-height) + var(--navbar-height) + 52px);
+    z-index: 6000;
+    background: #fff;
+    padding: 8px 12px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  }
+
+  .mobile-hero-cta .cta-btn {
+    display: block;
+    width: 100%;
+    text-align: center;
+    background: linear-gradient(to right, #ec4899, #8b5cf6);
+    color: #fff;
+    font-weight: 800;
+    padding: 10px;
+    border-radius: 10px;
+  }
+}
+@media (max-width: 640px) {
+  .product-card {
+    transition: transform 0.15s ease;
+  }
+
+  .product-card:active {
+    transform: scale(0.97);
+  }
+}
+@media (max-width: 640px) {
+  .product-card .text-xs.text-gray-500 {
+    display: none;
+  }
+}
+@media (max-width: 640px) {
+  .product-hook {
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+}
+@media (max-width: 640px) {
+  .section-reveal + .section-reveal {
+    margin-top: 0.75rem !important;
+  }
+}
+/* 📱 MOBILE HERO SPACING FIX */
+@media (max-width: 640px) {
+  .hero-slide > div {
+    padding: 1.25rem !important; /* from 2.5rem */
+  }
+}
+/* 📱 MOBILE HERO BUTTON FIX */
+@media (max-width: 640px) {
+  .hero-slide a {
+    padding: 0.6rem 1.1rem !important;
+    font-size: 0.9rem;
+    border-radius: 999px;
+  }
+
+  /* Secondary CTA visibility */
+  .hero-slide a.border {
+    opacity: 0.9;
+    border-width: 1.5px;
+  }
+}
+@media (max-width: 640px) {
+  .hero-slide .flex.gap-4 {
+    gap: 0.5rem;
+  }
+}
+/* 📱 FIX HUGE GAP ABOVE SWIPER PAGINATION (MOBILE ONLY) */
+@media (max-width: 640px) {
+  .heroSwiper .swiper-pagination {
+    margin-top: 6px !important;
+    bottom: 8px !important;
+    position: relative;
+  }
+
+  .heroSwiper .swiper-slide {
+    padding-bottom: 8px !important;
+  }
+}
+@media (max-width: 640px) {
+  .hero-slide > div {
+    margin-bottom: 0 !important;
+  }
+}
+/* 🚫 REMOVE RESERVED SPACE ABOVE PAGINATION (FINAL FIX) */
+@media (max-width: 640px) {
+  .heroSwiper {
+    padding-bottom: 0 !important;
+  }
+
+  .heroSwiper .swiper-pagination {
+    position: absolute !important;
+    bottom: 6px !important;
+    left: 0;
+    right: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .heroSwiper .swiper-wrapper,
+  .heroSwiper .swiper-slide {
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-slide {
+    padding-bottom: 1.2rem !important;
+  }
 }
 
 </style>

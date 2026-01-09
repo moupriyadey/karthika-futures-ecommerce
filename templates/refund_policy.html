@@ -1,35 +1,36 @@
 {% extends "_base.html" %}
 
-{% block title %}Refund & Replacement Policy - NailMart India{% endblock %}
+{% block title %}Refund, Replacement & Cancellation Policy | NailMart India{% endblock %}
 
 {% block content %}
 <div class="container py-5" style="background-color:#fffaf0; border-radius:12px;">
 
   <h1 class="text-center mb-5" style="color:#b34700; font-weight:800;">
-    🔄 Refund & Replacement Policy
+    🔄 Refund, Replacement & Cancellation Policy
   </h1>
 
   <div class="card mb-4 shadow-sm border-0">
     <div class="card-body">
 
       <p>
-        At <strong>NailMart India</strong>, customer satisfaction is very important to us.
-        We carefully inspect and pack every order to ensure you receive premium-quality products.
+        At <strong>NailMart India</strong>, we strive to deliver premium-quality nail products with care and transparency.
+        Every order is quality-checked before dispatch. Please read our policy carefully before placing an order.
       </p>
 
       <hr>
 
       <h5>📦 Replacement Policy</h5>
       <ul>
-        <li>If you receive a <strong>damaged, defective, or wrong product</strong>, we will provide a replacement.</li>
-        <li>You must inform us within <strong>48 hours</strong> of delivery.</li>
-        <li>An <strong>unedited unboxing video</strong> from package opening to product inspection is mandatory.</li>
-        <li>Replacement will be shipped after verification of the issue.</li>
+        <li>Replacement is applicable only if you receive a <strong>damaged, defective, or incorrect product</strong>.</li>
+        <li>You must raise a request within <strong>48 hours</strong> of delivery.</li>
+        <li>A <strong>clear, unedited parcel opening video</strong> (from sealed package opening to product display) is mandatory.</li>
+        <li>Replacement will be processed only after verification by our team.</li>
+        <li>Replacement is subject to product availability.</li>
       </ul>
 
       <p class="text-muted">
         <small>
-          Note: Claims without an unboxing video may not be accepted.
+          Claims without a proper unboxing video will not be accepted under any circumstances.
         </small>
       </p>
 
@@ -37,19 +38,34 @@
 
       <h5>💰 Refund Policy</h5>
       <ul>
-        <li>Refunds are issued only if a replacement is <strong>not possible</strong>.</li>
-        <li>Refund amount will be credited to the <strong>original payment method</strong>.</li>
-        <li>Refund processing may take <strong>5–7 working days</strong> after approval.</li>
+        <li>Refunds are issued <strong>only if replacement is not possible</strong>.</li>
+        <li>Refunds are initiated <strong>after the returned product is received and inspected</strong> by us.</li>
+        <li>A return pickup fee of <strong>₹150</strong> will be deducted from the refundable amount.</li>
+        <li>Refunds are processed to the <strong>original payment method / bank account only</strong>.</li>
+        <li>Refund processing time is <strong>5–7 working days</strong> after product receipt and approval.</li>
       </ul>
 
       <hr>
 
-      <h5>❌ Non-Refundable Situations</h5>
+      <h5>🚚 Return & Pickup Policy</h5>
       <ul>
-        <li>Change of mind after placing the order</li>
-        <li>Incorrect selection of design, size, or color by the customer</li>
-        <li>Minor color or design variations due to screen resolution</li>
-        <li>Products damaged due to improper handling after delivery</li>
+        <li>Return pickup will be arranged by NailMart India where applicable.</li>
+        <li>The product must be unused, unaltered, and in original condition.</li>
+        <li>Original packaging, labels, seals, and accessories must be intact.</li>
+        <li>A return pickup charge of <strong>₹150</strong> applies to all approved returns.</li>
+      </ul>
+
+      <hr>
+
+      <h5>❌ Non-Returnable & Non-Refundable Cases</h5>
+      <ul>
+        <li>Change of mind after placing an order</li>
+        <li>Wrong product selection (design, size, color) by the customer</li>
+        <li>Minor color or design variations due to screen or lighting differences</li>
+        <li>Products damaged due to misuse or improper handling after delivery</li>
+        <li>Used, altered, or partially used products</li>
+        <li>Requests raised after <strong>48 hours</strong> of delivery</li>
+        <li>Products restricted due to hygiene reasons</li>
       </ul>
 
       <hr>
@@ -57,22 +73,31 @@
       <h5>📮 Cancellation Policy</h5>
       <ul>
         <li>Orders can be cancelled <strong>only before dispatch</strong>.</li>
-        <li>Once shipped, cancellation requests cannot be accepted.</li>
+        <li>Once the order is shipped, cancellation requests will not be accepted.</li>
+        <li>Refund (if applicable) will be processed as per refund policy timelines.</li>
       </ul>
 
       <hr>
 
-      <h5>📞 Need Help?</h5>
+      <h5>🎁 Coupons, Offers & Loyalty Programs</h5>
+      <ul>
+        <li>Currently, NailMart India does <strong>not offer loyalty points, gift cards, or wallet balances</strong>.</li>
+        <li>Any future promotional offers will be governed by their respective terms.</li>
+      </ul>
+
+      <hr>
+
+      <h5>📞 Need Assistance?</h5>
       <p>
-        If you have any concerns regarding refunds or replacements,
-        please contact us via our <a href="{{ url_for('contact') }}">Contact Page</a>.
-        Our support team will assist you promptly.
+        For any refund, replacement, or cancellation queries, please reach out through our
+        <a href="{{ url_for('contact') }}">Contact Page</a>.
+        Our support team will respond within business hours.
       </p>
 
       <p class="text-muted mt-4">
         <small>
-          By placing an order on NailMart India, you agree to this Refund & Replacement Policy.
-          This policy may be updated without prior notice.
+          By placing an order on NailMart India, you agree to this policy.
+          NailMart India reserves the right to modify this policy without prior notice.
         </small>
       </p>
 
@@ -97,5 +122,4 @@
   ">
   ⬅ Go Back
 </button>
-
 {% endblock %}
