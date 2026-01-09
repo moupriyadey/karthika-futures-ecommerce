@@ -391,6 +391,22 @@ def send_email(to_email, subject, body_plain=None, html_body=None,
     except Exception as e:
         current_app.logger.error(f"Brevo exception while sending to {to_email}: {e}")
         return False
+def set_single_default_address(user_id, address_id):
+    """
+    Ensures ONLY ONE default address exists for a user.
+    """
+    Address.query.filter(
+        Address.user_id == user_id,
+        Address.is_default == True
+    ).update({"is_default": False})
+
+    address = Address.query.filter_by(
+        id=address_id,
+        user_id=user_id
+    ).first()
+
+    if address:
+        address.is_default = True
 
 
 # --- Database Models ---
@@ -1503,10 +1519,14 @@ def purchase_form():
                 pincode=pincode,
                 is_default=set_as_default,
             )
-            if new_address.is_default:
-                Address.query.filter_by(user_id=current_user.id, is_default=True).update({"is_default": False})
             db.session.add(new_address)
+            db.session.flush()  # get ID
+
+            if set_as_default:
+                set_single_default_address(current_user.id, new_address.id)
+
             db.session.commit()
+
             session['pre_selected_address_id'] = new_address.id
             flash('New address added successfully! Please select it below before placing the order.', 'info')
             return redirect(url_for('purchase_form'))
@@ -1696,31 +1716,29 @@ def purchase_form():
         },
     )
 
-@app.route('/set-default-address/<uuid:address_id>', methods=['POST'])
+@app.route('/set-default-address/<address_id>', methods=['POST'])
 @login_required
 def set_default_address(address_id):
-    address_to_set = Address.query.filter_by(id=address_id, user_id=current_user.id).first()
+    address_to_set = Address.query.filter_by(
+        id=address_id,
+        user_id=current_user.id
+    ).first()
 
     if not address_to_set:
         flash("Address not found or does not belong to you.", "danger")
         return redirect(url_for('my_addresses'))
 
     try:
-        # Unset the old default address for the user
-        current_default = Address.query.filter_by(user_id=current_user.id, is_default=True).first()
-        if current_default:
-            current_default.is_default = False
-        
-        # Set the new default address
-        address_to_set.is_default = True
+        set_single_default_address(current_user.id, address_to_set.id)
         db.session.commit()
-        
-        flash("Default address has been updated successfully.", "success")
+        flash("Default address updated successfully.", "success")
+
     except Exception as e:
         db.session.rollback()
-        flash(f"An error occurred while setting the default address: {e}", "danger")
+        flash(f"Error updating default address: {e}", "danger")
 
     return redirect(url_for('my_addresses'))
+
 # MODIFIED: Signup route to include OTP verification and next_url capture
 # MODIFIED: Signup route to include OTP verification and next_url capture
 @app.route('/signup', methods=['GET', 'POST'])
@@ -4353,7 +4371,6 @@ def user_profile():
 def add_address_form():
     return render_template('add_address_form.html')
 
-
 @app.route('/add-address', methods=['POST'])
 @login_required
 def add_address():
@@ -4368,32 +4385,38 @@ def add_address():
 
     if not all([full_name, phone, address_line1, city, state, pincode]):
         flash('Please fill in all required address fields.', 'danger')
-        return redirect(url_for('purchase_form')) # Corrected redirect for validation failure
+        return redirect(url_for('purchase_form'))
 
-    if is_default:
-        # Unset previous default address
-        for addr in current_user.addresses:
-            if addr.is_default:
-                addr.is_default = False
+    try:
+        # 1️⃣ Create address FIRST
+        new_address = Address(
+            user_id=current_user.id,
+            full_name=full_name,
+            phone=phone,
+            address_line1=address_line1,
+            address_line2=address_line2,
+            city=city,
+            state=state,
+            pincode=pincode,
+            is_default=False  # always false initially
+        )
 
-    new_address = Address(
-        user_id=current_user.id,
-        full_name=full_name,
-        phone=phone,
-        address_line1=address_line1,
-        address_line2=address_line2,
-        city=city,
-        state=state,
-        pincode=pincode,
-        is_default=is_default
-    )
-    if new_address.is_default:
-        # Minimal change: unset any other default addresses for this user
-        Address.query.filter_by(user_id=current_user.id, is_default=True).update({"is_default": False})
-    db.session.add(new_address)
-    db.session.commit()
-    flash('Address added successfully!', 'success')
-    return redirect(url_for('purchase_form')) # Corrected redirect for success
+        db.session.add(new_address)
+        db.session.flush()  # get new_address.id safely
+
+        # 2️⃣ Handle default logic centrally
+        if is_default:
+            set_single_default_address(current_user.id, new_address.id)
+
+        db.session.commit()
+
+        flash('Address added successfully!', 'success')
+        return redirect(url_for('purchase_form'))
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error adding address: {e}', 'danger')
+        return redirect(url_for('purchase_form'))
 
 
 @app.route('/my-addresses')
@@ -4420,8 +4443,10 @@ def view_uploaded_screenshots():
 @app.route('/edit-address/<address_id>', methods=['GET', 'POST'])
 @login_required
 def edit_address(address_id):
-    # Fetch address belonging to current user only
-    address = Address.query.filter_by(id=address_id, user_id=current_user.id).first_or_404()
+    address = Address.query.filter_by(
+        id=address_id,
+        user_id=current_user.id
+    ).first_or_404()
 
     if request.method == 'POST':
         address.label = request.form.get('label', '')
@@ -4432,30 +4457,34 @@ def edit_address(address_id):
         address.pincode = request.form.get('pincode', '')
         address.city = request.form.get('city', '')
         address.state = request.form.get('state', '')
-        address.is_default = 'is_default' in request.form
 
-        # If user set this as default, unset all others
-        if address.is_default:
-            other_addresses = Address.query.filter(Address.user_id == current_user.id, Address.id != address.id)
-            for addr in other_addresses:
-                addr.is_default = False
+        wants_default = 'is_default' in request.form
 
-        db.session.commit()
-        flash("Address updated successfully!", "success")
-        return redirect(url_for('my_addresses'))  # Or wherever you show the list of addresses
+        try:
+            # 1️⃣ Save normal fields first
+            db.session.flush()
+
+            # 2️⃣ Handle default safely (NO autoflush conflict)
+            if wants_default:
+                set_single_default_address(current_user.id, address.id)
+
+            db.session.commit()
+            flash("Address updated successfully!", "success")
+            return redirect(url_for('my_addresses'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error updating address: {e}", "danger")
 
     return render_template("edit_address.html", address=address)
 
 
-
-@app.route('/delete-address/<address_id>', methods=['GET', 'POST'])
+@app.route('/delete-address/<address_id>', methods=['POST'])
 @login_required
 def delete_address(address_id):
-    if request.method == 'GET':
-        flash('Invalid request method for deleting address.', 'warning')
-        return redirect(url_for('user_profile'))
-
+    # 1️⃣ Fetch address safely
     address = db.session.get(Address, address_id)
+
     if not address:
         flash('Address not found.', 'danger')
         return redirect(url_for('user_profile'))
@@ -4464,18 +4493,39 @@ def delete_address(address_id):
         flash('You are not authorized to delete this address.', 'danger')
         return redirect(url_for('user_profile'))
 
-    if address.is_default and len(current_user.addresses) > 1:
-        flash('Cannot delete default address if other addresses exist. Please set another address as default first.', 'danger')
-        return redirect(url_for('user_profile'))
-
+    # 2️⃣ Prevent deletion if linked to orders
     if db.session.query(Order).filter_by(shipping_address_id=address_id).count() > 0:
         flash('Cannot delete address: it is linked to existing orders.', 'danger')
         return redirect(url_for('user_profile'))
 
-    db.session.delete(address)
-    db.session.commit()
-    flash('Address deleted successfully!', 'success')
-    return redirect(url_for('user_profile'))
+    try:
+        # 3️⃣ If deleting DEFAULT address → auto-promote another
+        if address.is_default:
+            other_address = (
+                Address.query
+                .filter(
+                    Address.user_id == current_user.id,
+                    Address.id != address.id
+                )
+                .order_by(Address.id.desc())
+                .first()
+            )
+
+            if other_address:
+                set_single_default_address(current_user.id, other_address.id)
+            # else: only one address → allowed to delete (user will have zero addresses)
+
+        # 4️⃣ Delete address
+        db.session.delete(address)
+        db.session.commit()
+
+        flash('Address deleted successfully!', 'success')
+        return redirect(url_for('user_profile'))
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting address: {e}', 'danger')
+        return redirect(url_for('user_profile'))
 
 
 @app.route('/user-orders')
