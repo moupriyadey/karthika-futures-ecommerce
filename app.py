@@ -1288,13 +1288,16 @@ def cart():
     first_time_discount_amount = Decimal('0.00')
 
     if current_user.is_authenticated and current_user.is_first_time_customer():
-        MIN_PURCHASE = Decimal('1000.00')
-        DISCOUNT_RATE = Decimal('0.10')
+        MIN_PURCHASE = Decimal('4500.00')
+        DISCOUNT_RATE = Decimal('0.02')
 
         if subtotal_before_gst >= MIN_PURCHASE:
             first_time_discount_amount = subtotal_before_gst * DISCOUNT_RATE
             grand_total -= first_time_discount_amount
-            flash("🎉 You received a 10% first-time customer discount!", "success")
+            flash("🎉 You received a 2% first-time customer discount!", "success")
+# FIRST-TIME DISCOUNT LOGIC ends
+    # -----------------------------
+
 
     # -----------------------------
     # UPSELL PRODUCT (SAFE DEFAULT)
